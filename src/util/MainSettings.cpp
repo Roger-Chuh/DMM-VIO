@@ -219,8 +219,8 @@ void dmvio::MainSettings::settingsDefault(int preset)
         preload = preset == 1;
         setting_desiredImmatureDensity = 1500;
         setting_desiredPointDensity = 1000;
-        setting_minFrames = 5;
-        setting_maxFrames = 7;
+        setting_minFrames = 15;//5;
+        setting_maxFrames = 30;//7;
         setting_maxOptIterations = 6;
         setting_minOptIterations = 1;
 
@@ -242,8 +242,8 @@ void dmvio::MainSettings::settingsDefault(int preset)
         preload = preset == 3;
         setting_desiredImmatureDensity = 600;
         setting_desiredPointDensity = 800;
-        setting_minFrames = 4;
-        setting_maxFrames = 6;
+        setting_minFrames = 15;//4;
+        setting_maxFrames = 30;//6;
         setting_maxOptIterations = 4;
         setting_minOptIterations = 1;
 

@@ -895,6 +895,7 @@ void FullSystem::addActiveFrame(ImageAndExposure* image, int id, dmvio::IMUData*
 	FrameShell* shell = new FrameShell();
 	shell->camToWorld = SE3(); 		// no lock required, as fh is not used anywhere yet.
 	shell->aff_g2l = AffLight(0,0);
+	//TODO 这一帧是在这个时间戳被新建的，marg也要在这个时刻marg？？[scratch that] id等于当当前keyfraem size
     shell->marginalizedAt = shell->id = allFrameHistory.size();
     shell->timestamp = image->timestamp;
     shell->incoming_id = id;
@@ -904,7 +905,7 @@ void FullSystem::addActiveFrame(ImageAndExposure* image, int id, dmvio::IMUData*
 
     // =========================== make Images / derivatives etc. =========================
 	fh->ab_exposure = image->exposure_time;
-	fh->makeImages(image->image, &Hcalib);
+	fh->makeImages(image->image, &Hcalib);//TODO generate pyraid, gamma correction, generate gradient
 
     measureInit.end();
 
@@ -918,7 +919,7 @@ void FullSystem::addActiveFrame(ImageAndExposure* image, int id, dmvio::IMUData*
 			coarseInitializer->setFirst(&Hcalib, fh);
             if(setting_useIMU)
             {
-                gravityInit.addMeasure(*imuData, Sophus::SE3d());
+                gravityInit.addMeasure(*imuData, Sophus::SE3d());//TODO imu读数均值，作为重力方向初值，Rw0
             }
             for(IOWrap::Output3DWrapper* ow : outputWrapper)
                 ow->publishSystemStatus(dmvio::VISUAL_INIT);
@@ -930,6 +931,7 @@ void FullSystem::addActiveFrame(ImageAndExposure* image, int id, dmvio::IMUData*
 			{
                 imuIntegration.addIMUDataToBA(*imuData);
 				Sophus::SE3 imuToWorld = gravityInit.addMeasure(*imuData, Sophus::SE3d());
+				std::cout<<"imuToWorld: \n"<<imuToWorld.matrix3x4()<<std::endl;
 				if(initDone)
 				{
 					firstPose = imuToWorld * imuIntegration.TS_cam_imu.inverse();

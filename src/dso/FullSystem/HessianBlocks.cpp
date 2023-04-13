@@ -130,10 +130,10 @@ void FrameHessian::makeImages(float* color, CalibHessian* HCalib)
 
 	for(int i=0;i<pyrLevelsUsed;i++)
 	{
-		dIp[i] = new Eigen::Vector3f[wG[i]*hG[i]];
+		dIp[i] = new Eigen::Vector3f[wG[i]*hG[i]]; //TODO image size at each pyr level
 		absSquaredGrad[i] = new float[wG[i]*hG[i]];
 	}
-	dI = dIp[0];
+	dI = dIp[0]; //TODO assign pointer
 
 
 	// make d0
@@ -162,7 +162,7 @@ void FrameHessian::makeImages(float* color, CalibHessian* HCalib)
 					dI_l[x + y*wl][0] = 0.25f * (dI_lm[2*x   + 2*y*wlm1][0] +
 												dI_lm[2*x+1 + 2*y*wlm1][0] +
 												dI_lm[2*x   + 2*y*wlm1+wlm1][0] +
-												dI_lm[2*x+1 + 2*y*wlm1+wlm1][0]);
+												dI_lm[2*x+1 + 2*y*wlm1+wlm1][0]);//TODO filter image noise?[scratch that], generate pyramid
 				}
 		}
 
@@ -184,7 +184,7 @@ void FrameHessian::makeImages(float* color, CalibHessian* HCalib)
 			if(setting_gammaWeightsPixelSelect==1 && HCalib!=0)
 			{
 				float gw = HCalib->getBGradOnly((float)(dI_l[idx][0]));
-				dabs_l[idx] *= gw*gw;	// convert to gradient of original color space (before removing response).
+				dabs_l[idx] *= gw*gw;	//TODO convert to gradient of original color space (before removing response, i.e. before compensate affine param a b).
 			}
 		}
 	}
@@ -198,7 +198,7 @@ void FrameFramePrecalc::set(FrameHessian* host, FrameHessian* target, CalibHessi
 	SE3 leftToLeft_0 = target->get_worldToCam_evalPT() * host->get_worldToCam_evalPT().inverse();
 	PRE_RTll_0 = (leftToLeft_0.rotationMatrix()).cast<float>();
 	PRE_tTll_0 = (leftToLeft_0.translation()).cast<float>();
-
+    // std::cout<<"PRE_tTll_0: "<<PRE_tTll_0.transpose()<<std::endl;
 
 
 	SE3 leftToLeft = target->PRE_worldToCam * host->PRE_camToWorld;

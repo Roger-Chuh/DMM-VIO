@@ -244,6 +244,7 @@ void run(ImageFolderReader* reader, IOWrap::PangolinDSOViewer* viewer)
                 skippedIMUData.clear();
                 imuDataSkipped = false;
             }
+            //TODO entrance
             fullSystem->addActiveFrame(img, i, imuData.get(), (gtDataThere && found) ? &data : 0);
             if(gtDataThere && found && !disableAllDisplay)
             {

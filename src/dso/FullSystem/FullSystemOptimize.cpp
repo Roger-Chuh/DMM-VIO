@@ -210,7 +210,7 @@ Vec3 FullSystem::linearizeAll(bool fixLinearization)
 					}
 			}
 		}
-		//printf("FINAL LINEARIZATION: removed %d / %d residuals!\n", nResRemoved, (int)activeResiduals.size());
+		// printf("FINAL LINEARIZATION: removed %d / %d residuals!\n", nResRemoved, (int)activeResiduals.size());
 
 	}
 

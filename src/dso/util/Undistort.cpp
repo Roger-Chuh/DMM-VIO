@@ -48,9 +48,9 @@ namespace dso
 
 
 PhotometricUndistorter::PhotometricUndistorter(
-		std::string file,
+		std::string file,            //gamma file
 		std::string noiseImage,
-		std::string vignetteImage,
+		std::string vignetteImage,   //vignette file
 		int w_, int h_)
 {
 	valid=false;
@@ -124,6 +124,7 @@ PhotometricUndistorter::PhotometricUndistorter(
 
 	if(vm16 != 0)
 	{
+	    printf("aaaaa\n");
 		if(vm16->w != w ||vm16->h != h)
 		{
 			printf("PhotometricUndistorter: Invalid vignette image size! got %d x %d, expected %d x %d\n",
@@ -142,6 +143,7 @@ PhotometricUndistorter::PhotometricUndistorter(
 	}
 	else if(vm8 != 0)
 	{
+        printf("bbbbb\n");
 		if(vm8->w != w ||vm8->h != h)
 		{
 			printf("PhotometricUndistorter: Invalid vignette image size! got %d x %d, expected %d x %d\n",
@@ -160,6 +162,7 @@ PhotometricUndistorter::PhotometricUndistorter(
 	}
 	else
 	{
+        printf("ccccc\n");
 		printf("PhotometricUndistorter: Invalid vignette image\n");
 		if(vm16!=0) delete vm16;
 		if(vm8!=0) delete vm8;

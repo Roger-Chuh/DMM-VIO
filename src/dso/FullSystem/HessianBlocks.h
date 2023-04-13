@@ -208,7 +208,7 @@ struct FrameHessian
 	};
 	inline void setEvalPT(const SE3 &worldToCam_evalPT, const Vec10 &state)
 	{
-
+        //std::cout<<"worldToCam_evalPT: \n"<<worldToCam_evalPT.matrix3x4()<<std::endl;
 		this->worldToCam_evalPT = worldToCam_evalPT;
 		setState(state);
 		setStateZero(state);

@@ -33,6 +33,7 @@ void dmvio::integrateIMUData(const IMUData& imuData, gtsam::PreintegratedImuMeas
 {
     for(const auto& measurement : imuData)
     {
+       // std::cout<<"measurement.getAccData(): "<<measurement.getAccData().transpose()<<std::endl;
         if(measurement.getIntegrationTime() == 0.0) continue;
         preintegrated.integrateMeasurement(gtsam::Vector(measurement.getAccData()),
                                            gtsam::Vector(measurement.getGyrData()),

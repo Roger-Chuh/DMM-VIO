@@ -37,9 +37,11 @@ GravityInitializer::addMeasure(const IMUData& imuData, const Sophus::SE3d& currT
 {
     int numMeasure = 0;
     Eigen::Vector3d measure(0.0, 0.0, 0.0);
+    std::cout<<"--------------- imuData.size() "<<imuData.size()<<std::endl;
     for(int i = 0; i < imuData.size(); ++i)
     {
         Eigen::Vector3d curr = imuData[i].getAccData();
+        std::cout<<"curr: "<<curr.transpose()<<std::endl;
         measure += curr;
         numMeasure++;
     }
@@ -55,6 +57,7 @@ GravityInitializer::addMeasure(const IMUData& imuData, const Sophus::SE3d& currT
     Eigen::Vector3d filteredM(0.0, 0.0, 0.0);
     for(auto&& m : measures)
     {
+        std::cout<<"--------------- m: "<<m.transpose()<<std::endl;
         filteredM += m;
     }
     filteredM /= (double) measures.size();
@@ -63,7 +66,7 @@ GravityInitializer::addMeasure(const IMUData& imuData, const Sophus::SE3d& currT
 
     Eigen::Quaterniond quat;
     quat.setFromTwoVectors(measure, -gravity);
-
+std::cout<<"measure: "<<measure.transpose()<<", gravity: "<<gravity.transpose()<<", measures.size(): "<<measures.size()<<std::endl;
     Sophus::SE3d imuToWorld(quat, Eigen::Vector3d::Zero());
 
     return imuToWorld;

@@ -387,7 +387,7 @@ public:
                 }
                 if(imuStamp > imageTimestamp)
                 {
-                    std::cout << "IMU-data too old -> skipping frame" << std::endl;
+                    std::cout << "IMU-data too old -> skipping frame, imu stamp: "<< imuStamp<<", img stamp: "<< imageTimestamp << std::endl;
                     imuDataAllFrames.push_back(dmvio::IMUData{});
                     continue;
                 }
