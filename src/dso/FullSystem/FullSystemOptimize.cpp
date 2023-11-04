@@ -505,7 +505,7 @@ float FullSystem::optimize(int mnumOptIts)
         solveSystem(iteration, lambda);
 		double incDirChange = (1e-20 + previousX.dot(ef->lastX)) / (1e-20 + previousX.norm() * ef->lastX.norm());
 		previousX = ef->lastX;
-
+        std::cout <<"ef->lastX: " <<  ef->lastX.transpose() << std::endl;
 
 		if(std::isfinite(incDirChange) && (setting_solverMode & SOLVER_STEPMOMENTUM))
 		{

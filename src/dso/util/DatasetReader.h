@@ -520,6 +520,7 @@ private:
 	{
 		std::ifstream tr;
 		std::string timesFile = path.substr(0,path.find_last_of('/')) + "/times.txt";
+		std::cout <<"timesFile: "<<timesFile<<std::endl;
 		tr.open(timesFile.c_str());
 		while(!tr.eof() && tr.good())
 		{
@@ -530,6 +531,7 @@ private:
 			long long id;
 			double stamp;
 			float exposure = 0;
+			//std::cout <<"buf: "<<buf<<std::endl;
 			if(3 == sscanf(buf, "%lld %lf %f", &id, &stamp, &exposure))
 			{
                 ids.push_back(id);
@@ -564,7 +566,7 @@ private:
 			if(exposures[i] == 0) exposuresGood=false;
 		}
 
-
+        printf("image num: %d, timestamp num: %d\n",(int)getNumImages(), (int)timestamps.size());
 		if((int)getNumImages() != (int)timestamps.size())
 		{
 			printf("set timestamps and exposures to zero!\n");

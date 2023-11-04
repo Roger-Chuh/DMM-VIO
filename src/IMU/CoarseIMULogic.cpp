@@ -126,6 +126,7 @@ Sophus::SE3d dmvio::CoarseIMULogic::addIMUData(const dmvio::IMUData& imuData, in
     }
 
     // Create IMU factor.
+    //TODO imu factor(r v p)存在于连续普通帧之间，像okvis，basalt，不像vins，orca
     gtsam::ImuFactor::shared_ptr imuFactor(
             new gtsam::ImuFactor(posePrevKey, velPrevKey,
                                  poseCurrentKey, velCurrentKey, biasPrevKey,
@@ -140,14 +141,16 @@ Sophus::SE3d dmvio::CoarseIMULogic::addIMUData(const dmvio::IMUData& imuData, in
     gtsam::noiseModel::Diagonal::shared_ptr biasNoiseModel = computeBiasNoiseModel(imuCalibration, *imuMeasurements);
 
     // Add bias random walk factor.
+    //TODO bias factor(b)
     gtsam::NonlinearFactor::shared_ptr bias_factor(
             new gtsam::BetweenFactor<gtsam::imuBias::ConstantBias>(
                     biasPrevKey, biasCurrentKey,
                     gtsam::imuBias::ConstantBias(gtsam::Vector3::Zero(),
                                                  gtsam::Vector3::Zero()), biasNoiseModel));
 
-    // In the coarse graph we optimize poses in metric frame (imu to world), so we don't need any PoseTransformationFactors.
-    // Instead, we transform the DSO Hessian to the metric frame.
+    //TODO In the coarse graph we optimize poses in metric frame (imu to world), so we don't need any PoseTransformationFactors.
+    //     Instead, we transform the DSO Hessian to the metric frame.
+    //     poses are optimized in imu frame
     coarseGraph->push_back(imuFactor);
     coarseGraph->push_back(bias_factor);
 

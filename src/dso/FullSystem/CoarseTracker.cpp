@@ -784,7 +784,7 @@ void CoarseTracker::debugPlotIDepthMap(float* minID_pt, float* maxID_pt, std::ve
 	int lvl = 0;
 
 	{
-		std::vector<float> allID;
+		std::vector<float> allID;//TODO idepth numbers, sorted
 		for(int i=0;i<h[lvl]*w[lvl];i++)
 		{
 			if(idepth[lvl][i] > 0)
@@ -864,9 +864,10 @@ void CoarseTracker::debugPlotIDepthMap(float* minID_pt, float* maxID_pt, std::ve
 			}
         //IOWrap::displayImage("coarseDepth LVL0", &mf, false);
 
-
-        for(IOWrap::Output3DWrapper* ow : wraps)
+printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
+        for(IOWrap::Output3DWrapper* ow : wraps) {
             ow->pushDepthImage(&mf);
+        }
 
 		if(debugSaveImages)
 		{

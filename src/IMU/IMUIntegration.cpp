@@ -175,6 +175,7 @@ Sophus::SE3 IMUIntegration::addIMUData(const IMUData& imuData, int frameId, doub
 
     if(!isCoarseInitialized()) return Sophus::SE3d{};
 
+    printf("################## [frameId lastFrameId: [%d %d]\n", frameId, lastFrameId);
     return coarseLogic->addIMUData(imuData, frameId, frameTimestamp, lastFrameId, additionalMeasurements,
                                    preparedKeyframe);
 }

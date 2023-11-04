@@ -67,6 +67,7 @@ int FrameHessian::instanceCounter=0;
 int PointHessian::instanceCounter=0;
 int CalibHessian::instanceCounter=0;
 
+std::ofstream output_ostr_ = std::ofstream("/home/roger/work/dm-vio/dm-vio/build/output_dmvio.txt");
 
 boost::mutex FrameShell::shellPoseMutex{};
 
@@ -1005,6 +1006,7 @@ void FullSystem::addActiveFrame(ImageAndExposure* image, int id, dmvio::IMUData*
         SE3 referenceToFrame;
         if(dso::setting_useIMU)
         {
+            // TODO 预积分连续普通帧，并做一次inertial only的优化？用来为direct image alignment提供初值
 			SE3 referenceToFrame = imuIntegration.addIMUData(*imuData, fh->shell->id,
                                                                 fh->shell->timestamp, trackingRefChanged, lastFrameId);
             // If initialized we use the prediction from IMU data as initialization for the coarse tracking.
@@ -1017,6 +1019,18 @@ void FullSystem::addActiveFrame(ImageAndExposure* image, int id, dmvio::IMUData*
         }
 
         std::pair<Vec4, bool> pair = trackNewCoarse(fh, referenceToFramePassed);
+        {
+//            fh->shell->camToWorld;
+//            fh->shell->timestamp;
+
+            Eigen::Quaterniond q;
+            Eigen::Vector3d p;
+            q = Eigen::Quaterniond(fh->shell->camToWorld.rotationMatrix());
+            p = fh->shell->camToWorld.translation();
+            output_ostr_ << std::fixed << fh->shell->timestamp << " "
+                         << p.x() << " " << p.y() << " " << p.z() << " " << q.x() << " " << q.y() << " " << q.z() << " " << q.w()
+                         << std::endl;
+        }
         dso::Vec4 tres = std::move(pair.first);
         bool forceNoKF = !pair.second; // If coarse tracking was bad don't make KF.
         bool forceKF = false;

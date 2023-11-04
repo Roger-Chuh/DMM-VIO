@@ -46,6 +46,9 @@
 
 #include "FullSystem/HessianBlocks.h"
 
+
+//#define USE_INVERSE_COMPOSITIONAL
+
 namespace dso
 {
 int PointFrameResidual::instanceCounter = 0;
@@ -66,6 +69,7 @@ PointFrameResidual::PointFrameResidual(PointHessian* point_, FrameHessian* host_
 	efResidual=0;
 	instanceCounter++;
 	resetOOB();
+    //TODO 这时J只是开辟了空间，还没有赋值
 	J = new RawResidualJacobian();
 	assert(((long)J)%16==0);
 
@@ -85,10 +89,11 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
 	FrameFramePrecalc* precalc = &(host->targetPrecalc[target->idx]);
 	float energyLeft=0;
 	const Eigen::Vector3f* dIl = target->dI;
+    const Eigen::Vector3f* host_dIl = host->dI;
 	//const float* const Il = target->I;
-	const Mat33f &PRE_KRKiTll = precalc->PRE_KRKiTll;
-	const Vec3f &PRE_KtTll = precalc->PRE_KtTll;
-	const Mat33f &PRE_RTll_0 = precalc->PRE_RTll_0;
+    const Mat33f &PRE_KRKiTll = precalc->PRE_KRKiTll; //todo relative pose after optimize
+    const Vec3f &PRE_KtTll = precalc->PRE_KtTll;      //
+    const Mat33f &PRE_RTll_0 = precalc->PRE_RTll_0;   //todo relative pose before optimize
 	const Vec3f &PRE_tTll_0 = precalc->PRE_tTll_0;
 	const float * const color = point->color;
 	const float * const weights = point->weights;
@@ -100,47 +105,145 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
 	Vec6f d_xi_x, d_xi_y;
 	Vec4f d_C_x, d_C_y;
 	float d_d_x, d_d_y;
+    Eigen::Matrix<float, 2, 6> d_uv_d_pose, d_uv_d_pose_inverse_comp, d_uv_d_pose_fwd_jac;
+    Eigen::Matrix<float, 2, 3> d_uv_d_pt3d, d_uv_host_d_n_host, d_uv_target_d_x_target_scaled;
+    Eigen::Matrix<float, 3, 6> d_pt3d_d_pose, d_pt3d_d_pose_inverse_comp;
 	{
 		float drescale, u, v, new_idepth;
 		float Ku, Kv;
 		Vec3f KliP;
-
+        /// PRE_RTll_0 means FEJ
 		if(!projectPoint(point->u, point->v, point->idepth_zero_scaled, 0, 0,HCalib,
 				PRE_RTll_0,PRE_tTll_0, drescale, u, v, Ku, Kv, KliP, new_idepth))
 			{ state_NewState = ResState::OOB; return state_energy; }
 
 		centerProjectedTo = Vec3f(Ku, Kv, new_idepth);
 
+        Vec3f n_host = Vec3f(
+                (point->u-HCalib->cxl())*HCalib->fxli(),
+                (point->v-HCalib->cyl())*HCalib->fyli(),
+                1);
+
+        Vec3f X_target_scaled = PRE_RTll_0 * n_host + PRE_tTll_0*point->idepth_zero_scaled;
+
+
+
+
+        Mat33f X_target_scaled_skew;
+        X_target_scaled_skew <<  (0), -X_target_scaled(2),  X_target_scaled(1),
+                X_target_scaled(2),    (0), -X_target_scaled(0),
+                -X_target_scaled(1),  X_target_scaled(0),     (0);
+
+
+        d_uv_d_pt3d<<HCalib->fxl()/X_target_scaled(2),0,-HCalib->fxl()*X_target_scaled(0)/X_target_scaled(2)/X_target_scaled(2),
+                0, HCalib->fyl()/X_target_scaled(2),-HCalib->fyl()*X_target_scaled(1)/X_target_scaled(2)/X_target_scaled(2);
+        d_pt3d_d_pose.leftCols(3) = point->idepth_zero_scaled*Mat33f::Identity();
+        d_pt3d_d_pose.rightCols(3) = -X_target_scaled_skew;
+
+        d_uv_d_pose = d_uv_d_pt3d * d_pt3d_d_pose;
+
+
+
+        d_uv_host_d_n_host << HCalib->fxl(),           0,            -HCalib->fxl()*n_host(0),
+                0,              HCalib->fyl(),      -HCalib->fyl()*n_host(1);
+
+        //TODO inverse comp d_uv_d_pose
+        d_uv_d_pose_inverse_comp = d_uv_host_d_n_host * PRE_RTll_0.transpose() * d_pt3d_d_pose;
+
+
+
+        d_uv_target_d_x_target_scaled = d_uv_d_pt3d;
+        d_uv_d_pose_fwd_jac = d_uv_target_d_x_target_scaled * d_pt3d_d_pose;
+
+
 
 		// diff d_idepth
+        //TODO 这些在初始化都写过了又写一遍 !!! 放到一起好不好, ai
+        //TODO same as CoarseInitializer.cpp -> CoarseInitializer::calcResAndGS
+        //* 像素点对host上逆深度求导(由于乘了SCALE_IDEPTH倍, 因此乘上)
+        /// d_idepth / d_x,  d_idepth / d_y
+        //TODO 带0的都是使用FEJ的？ PRE_tTll_0, 并不是，带0只是表示这是优化之前的state estimation
+        // drescale = 1/X_target_scaled(2);
+        // drescale = rou2 / rou1
+        // u v是target帧的归一化坐标
+        Vec2f d_uv_d_d;
+        d_uv_d_d = d_uv_host_d_n_host * PRE_RTll_0.transpose() * PRE_tTll_0;
+
+
+        Vec2f d_uv_d_d_fwd_jac;
+        d_uv_d_d_fwd_jac = d_uv_target_d_x_target_scaled * PRE_tTll_0;
+
+#ifndef USE_INVERSE_COMPOSITIONAL
+#ifndef USE_ZNCC
 		d_d_x = drescale * (PRE_tTll_0[0]-PRE_tTll_0[2]*u)*SCALE_IDEPTH*HCalib->fxl();
 		d_d_y = drescale * (PRE_tTll_0[1]-PRE_tTll_0[2]*v)*SCALE_IDEPTH*HCalib->fyl();
+#else
+        d_d_x = d_uv_d_d_fwd_jac(0);
+        d_d_y = d_uv_d_d_fwd_jac(1);
+#endif
+#else
+        d_d_x = d_uv_d_d(0);
+        d_d_y = d_uv_d_d(1);
+#endif
 
 
 
-
-		// diff calib
+        //* 像素点对相机内参fx fy cx cy的导数第一部分
+        // diff calib
+        //! [0]: 1/Pz'*Px*(R20*Px'/Pz' - R00)
+        //! [1]: 1/Pz'*Py*fx/fy*(R21*Px'/Pz' - R01)
+        //! [2]: 1/Pz'*(R20*Px'/Pz' - R00)
+        //! [3]: 1/Pz'*fx/fy*(R21*Px'/Pz' - R01)
 		d_C_x[2] = drescale*(PRE_RTll_0(2,0)*u-PRE_RTll_0(0,0));
 		d_C_x[3] = HCalib->fxl() * drescale*(PRE_RTll_0(2,1)*u-PRE_RTll_0(0,1)) * HCalib->fyli();
+        //TODO KliP: host帧归一化坐标
 		d_C_x[0] = KliP[0]*d_C_x[2];
 		d_C_x[1] = KliP[1]*d_C_x[3];
 
+        //! [0]: 1/Pz'*Px*fy/fy*(R20*Py'/Pz' - R10)
+        //! [1]: 1/Pz'*Py*(R21*Py'/Pz' - R11)
+        //! [2]: 1/Pz'*fy/fy*(R20*Py'/Pz' - R10)
+        //! [3]: 1/Pz'*(R21*Py'/Pz' - R11)
 		d_C_y[2] = HCalib->fyl() * drescale*(PRE_RTll_0(2,0)*v-PRE_RTll_0(1,0)) * HCalib->fxli();
 		d_C_y[3] = drescale*(PRE_RTll_0(2,1)*v-PRE_RTll_0(1,1));
 		d_C_y[0] = KliP[0]*d_C_y[2];
 		d_C_y[1] = KliP[1]*d_C_y[3];
 
-		d_C_x[0] = (d_C_x[0]+u)*SCALE_F;
+
+
+        Eigen::Matrix<float,2,4> d_uv_d_C, d_uv_d_C_inverse_comp;
+
+        //* 第二部分 同样project时候一样使用了scaled的内参
+        //! [Px'/Pz'  0  1  0;
+        //!  0  Py'/Pz'  0  1]
+#if 1
+     //   #ifndef USE_INVERSE_COMPOSITIONAL
+		d_C_x[0] = (d_C_x[0]+u)*SCALE_F;//TODO d_u2_d_fx
 		d_C_x[1] *= SCALE_F;
-		d_C_x[2] = (d_C_x[2]+1)*SCALE_C;
+		d_C_x[2] = (d_C_x[2]+1)*SCALE_C;//TODO d_u2_d_cx
 		d_C_x[3] *= SCALE_C;
 
 		d_C_y[0] *= SCALE_F;
 		d_C_y[1] = (d_C_y[1]+v)*SCALE_F;
 		d_C_y[2] *= SCALE_C;
 		d_C_y[3] = (d_C_y[3]+1)*SCALE_C;
+#else
+        d_C_x[0] = n_host(0)*SCALE_F;//TODO d_u2_d_fx
+        d_C_x[1] = 0*SCALE_F;
+        d_C_x[2] = 1*SCALE_C;//TODO d_u2_d_cx
+        d_C_x[3] = 0*SCALE_C;
 
+        d_C_y[0] = 0*SCALE_F;
+        d_C_y[1] = n_host(1)*SCALE_F;
+        d_C_y[2] = 0*SCALE_C;
+        d_C_y[3] = 1*SCALE_C;
+#endif
 
+#ifndef USE_INVERSE_COMPOSITIONAL
+        //* 像素点对位姿的导数, 位移在前!
+        //! 公式见初始化那儿
+        //TODO same as CoarseInitializer.cpp -> CoarseInitializer::calcResAndGS
+#ifndef USE_ZNCC
 		d_xi_x[0] = new_idepth*HCalib->fxl();
 		d_xi_x[1] = 0;
 		d_xi_x[2] = -new_idepth*u*HCalib->fxl();
@@ -154,10 +257,26 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
 		d_xi_y[3] = -(1+v*v)*HCalib->fyl();
 		d_xi_y[4] = u*v*HCalib->fyl();
 		d_xi_y[5] = u*HCalib->fyl();
+#else
+        d_xi_x = d_uv_d_pose_fwd_jac.row(0).transpose();
+        d_xi_y = d_uv_d_pose_fwd_jac.row(1).transpose();
+#endif
+#else
+        d_xi_x = d_uv_d_pose_inverse_comp.row(0).transpose();
+        d_xi_y = d_uv_d_pose_inverse_comp.row(1).transpose();
+#endif
+#if 0
+        Eigen::Matrix<float,2,12> show;
+        show.block<1,6>(0,0) = d_xi_x.transpose();
+        show.block<1,6>(1,0) = d_xi_y.transpose();
+        show.rightCols(6) = show.leftCols(6) - d_uv_d_pose;
+        std::cout<<"pose jac diff:\n"<<show<<std::endl;
+#endif
 	}
 
 
 	{
+        //TODO 终于找到给J赋值的地方了
 		J->Jpdxi[0] = d_xi_x;
 		J->Jpdxi[1] = d_xi_y;
 
@@ -166,7 +285,12 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
 
 		J->Jpdd[0] = d_d_x;
 		J->Jpdd[1] = d_d_y;
-
+#if 0
+        Eigen::Matrix<float, 2,2> d_uv_d_c_show;
+        d_uv_d_c_show.col(0) = J->Jpdd;
+        d_uv_d_c_show.col(1) = d_uv_d_c_show.col(0) - d_uv_d_pt3d*PRE_tTll_0;
+        std::cout<<"d_uv_d_c_show:\n"<<d_uv_d_c_show<<std::endl;
+#endif
 	}
 
 
@@ -180,86 +304,270 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
 
 	float wJI2_sum = 0;
 
+
+    Eigen::MatrixXf Mat_ZNSSD_I;
+    Eigen::MatrixXf J_ZNSSD_mean;
+    Eigen::MatrixXf J_ZNSSD_J_I_host;
+    Eigen::MatrixXf J_ZNSSD_J_I_target;
+    Eigen::MatrixXf grad_new_host;
+    Eigen::MatrixXf grad_new_target;
+    float host_val_mean;
+    float target_val_mean;
+    Eigen::MatrixXf ones;
+    float host_sigma, target_sigma;
+
+    Eigen::MatrixXf host_info, target_info;
+    size_t count = 0;
+    for(int idx=0;idx<patternNum;idx++) {
+        float Ku, Kv;
+        //? 为啥这里使用idepth_scaled, 上面使用的是zero； 答： 其实和上面一样的....同时调用了setIdepth() setIdepthZero()
+        //! 答: 这里是求图像导数, 由于线性误差大, 就不使用FEJ, 所以使用当前的状态
+        //TODO  这里求残差用的是最新状态重投影，而不是fej状态重投影
+        if (!projectPoint(point->u + patternP[idx][0], point->v + patternP[idx][1], point->idepth_scaled, PRE_KRKiTll,
+                          PRE_KtTll, Ku, Kv)) {
+            continue;
+        }
+
+        Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
+        //float residual = hitColor[0] - (float) (affLL[0] * color[idx] + affLL[1]);
+        Vec3f hostColor = (getInterpolatedElement33(host_dIl, point->u + patternP[idx][0], point->v + patternP[idx][1],
+                                                    wG[0]));
+        float host_value_corrected = (float)(affLL[0] * color[idx] + affLL[1]);
+
+        if (!std::isfinite((float) hitColor[0])) {
+            continue;
+        }
+        hostColor[0] = host_value_corrected;
+        host_info.conservativeResize(count + 1, 3);
+        target_info.conservativeResize(count + 1, 3);
+        host_info.row(count) = hostColor.transpose();
+        target_info.row(count) = hitColor.transpose();
+        count++;
+    }
+
+    int patch_num = host_info.rows();
+    if(patch_num != 0) {
+
+        host_val_mean = host_info.col(0).sum() / patch_num;
+        target_val_mean = target_info.col(0).sum() / patch_num;
+
+        ones.conservativeResize(patch_num, 1);
+        ones.setOnes();
+        host_info.col(0) = host_info.col(0) - host_val_mean * ones;
+        target_info.col(0) = target_info.col(0) - target_val_mean * ones;
+        host_sigma = host_info.col(0).norm();
+        target_sigma = target_info.col(0).norm();
+        host_info.col(0) /= host_sigma;
+        target_info.col(0) /= target_sigma;
+
+
+        Mat_ZNSSD_I.conservativeResize(patch_num, patch_num);
+        Mat_ZNSSD_I.setIdentity();
+
+
+        J_ZNSSD_mean = Mat_ZNSSD_I - (ones / static_cast<float>(patch_num)) * ones.transpose();
+
+        J_ZNSSD_J_I_host =
+                (Mat_ZNSSD_I - (host_info.col(0) * host_info.col(0).transpose())) / host_sigma * J_ZNSSD_mean;
+        J_ZNSSD_J_I_target =
+                (Mat_ZNSSD_I - (target_info.col(0) * target_info.col(0).transpose())) / target_sigma * J_ZNSSD_mean;
+
+        grad_new_host = J_ZNSSD_J_I_host * host_info.rightCols(2);        // "new" gradient: 8x2
+        grad_new_target = J_ZNSSD_J_I_target * target_info.rightCols(2);  // "new" gradient: 8x2
+
+    }
+//    std::cout << "lba, grad_new_host: \n" << grad_new_host << std::endl;
+//    std::cout << "lba, grad_new_target: \n" << grad_new_target << std::endl;
+    int cnt = 0;
 	for(int idx=0;idx<patternNum;idx++)
 	{
 		float Ku, Kv;
+        //? 为啥这里使用idepth_scaled, 上面使用的是zero； 答： 其实和上面一样的....同时调用了setIdepth() setIdepthZero()
+        //! 答: 这里是求图像导数, 由于线性误差大, 就不使用FEJ, 所以使用当前的状态
+        //TODO  这里求残差用的是最新状态重投影，而不是fej状态重投影
 		if(!projectPoint(point->u+patternP[idx][0], point->v+patternP[idx][1], point->idepth_scaled, PRE_KRKiTll, PRE_KtTll, Ku, Kv))
 			{ state_NewState = ResState::OOB; return state_energy; }
 
+		// 像素坐标
 		projectedTo[idx][0] = Ku;
 		projectedTo[idx][1] = Kv;
 
 
         Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
+        //* 残差对光度仿射a求导
+        //! 光度参数使用固定线性化点了
+        float drdA = (color[idx]-b0);
+        if(!std::isfinite((float)hitColor[0]))
+        { state_NewState = ResState::OOB; return state_energy; }
+
+
+
+#ifndef USE_ZNCC
         float residual = hitColor[0] - (float)(affLL[0] * color[idx] + affLL[1]);
+#else
+        float residual_bak = hitColor[0] - (float)(affLL[0] * color[idx] + affLL[1]);
+        float residual = 100 * (target_info(cnt, 0) - host_info(cnt, 0));
 
+#endif
+        Vec3f hostColor = (getInterpolatedElement33(host_dIl, point->u+patternP[idx][0], point->v+patternP[idx][1], wG[0]));
 
+        //printf("value1: %f, value check: %f\n", hostColor[0], color[idx]);
+        //assert(hostColor[0] == color[idx]);
+//        //* 残差对光度仿射a求导
+//        //! 光度参数使用固定线性化点了
+//		float drdA = (color[idx]-b0);
+//		if(!std::isfinite((float)hitColor[0]))
+//		{ state_NewState = ResState::OOB; return state_energy; }
 
-		float drdA = (color[idx]-b0);
-		if(!std::isfinite((float)hitColor[0]))
-		{ state_NewState = ResState::OOB; return state_energy; }
-
-
+#ifndef USE_ZNCC
 		float w = sqrtf(setting_outlierTHSumComponent / (setting_outlierTHSumComponent + hitColor.tail<2>().squaredNorm()));
+#else
+        //float w = sqrtf(setting_outlierTHSumComponent / (setting_outlierTHSumComponent + grad_new_target.row(cnt).squaredNorm()));
+        float w = sqrtf(setting_outlierTHSumComponent / (setting_outlierTHSumComponent + hitColor.tail<2>().squaredNorm()));
+#endif
+        printf("weights: %f, w: %f\n", weights[idx], w);
         w = 0.5f*(w + weights[idx]);
 
 
-
+#ifndef USE_ZNCC
 		float hw = fabsf(residual) < setting_huberTH ? 1 : setting_huberTH / fabsf(residual);
 		energyLeft += w*w*hw *residual*residual*(2-hw);
+#else
+        float hw = fabsf(residual) < setting_huberTH ? 1 : setting_huberTH / fabsf(residual);
+        energyLeft += w*w*hw *residual*residual*(2-hw);
+#endif
 
 		{
+		    printf("hw: %f\n", hw);
 			if(hw < 1) hw = sqrtf(hw);
 			hw = hw*w;
 
 			hitColor[1]*=hw;
 			hitColor[2]*=hw;
 
+            hostColor[1]*=hw;
+            hostColor[2]*=hw;
+
+            grad_new_target.row(cnt) *= hw;
+            grad_new_host.row(cnt) *= hw;
+
+
+            //! 残差 res*w*sqrt(hw)
 			J->resF[idx] = residual*hw;
 
+            //! 图像导数 dx dy
+#ifndef USE_INVERSE_COMPOSITIONAL
+#ifndef USE_ZNCC
 			J->JIdx[0][idx] = hitColor[1];
 			J->JIdx[1][idx] = hitColor[2];
+#else
+            J->JIdx[0][idx] = grad_new_target(cnt, 0);
+            J->JIdx[1][idx] = grad_new_target(cnt, 1);
+#endif
+#else
+#ifndef USE_ZNCC
+            J->JIdx[0][idx] = affLL[0] * hostColor[1];
+            J->JIdx[1][idx] = affLL[0] * hostColor[2];
+#else
+            J->JIdx[0][idx] = affLL[0] * grad_new_host(cnt, 0);
+            J->JIdx[1][idx] = affLL[0] * grad_new_host(cnt, 1);
+#endif
+#endif
+
+            //! 对光度合成后a b的导数 [Ii-b0  1]
+            //! Ij - a*Ii - b  (a = tj*e^aj / ti*e^ai,   b = bj - a*bi) //TODO true dat
+            //! Ij - [a*(Ii-b0) + b]
+            //TODO bug 正负号有影响 ??? ab部分好确实差了一个负号
+#ifndef USE_INVERSE_COMPOSITIONAL
 			J->JabF[0][idx] = drdA*hw;
 			J->JabF[1][idx] = hw;
+#else
+            J->JabF[0][idx] = drdA*hw;
+            J->JabF[1][idx] = 1*hw;
+#endif
 
+#ifndef USE_INVERSE_COMPOSITIONAL
+            //! dIdx&dIdx hessian block
+            // Jt * W * J = [gx; gy] * [gx gy] = [gxgx gxgy; gxgy gygy]
+#ifndef USE_ZNCC
 			JIdxJIdx_00+=hitColor[1]*hitColor[1];
 			JIdxJIdx_11+=hitColor[2]*hitColor[2];
 			JIdxJIdx_10+=hitColor[1]*hitColor[2];
-
+            //! dIdx&dIdab hessian block
 			JabJIdx_00+= drdA*hw * hitColor[1];
 			JabJIdx_01+= drdA*hw * hitColor[2];
 			JabJIdx_10+= hw * hitColor[1];
 			JabJIdx_11+= hw * hitColor[2];
-
+#else
+            JIdxJIdx_00+=grad_new_target(cnt, 0)*grad_new_target(cnt, 0);
+            JIdxJIdx_11+=grad_new_target(cnt, 1)*grad_new_target(cnt, 1);
+            JIdxJIdx_10+=grad_new_target(cnt, 0)*grad_new_target(cnt, 1);
+            //! dIdx&dIdab hessian block
+            JabJIdx_00+= drdA*hw * grad_new_target(cnt, 0);
+            JabJIdx_01+= drdA*hw * grad_new_target(cnt, 1);
+            JabJIdx_10+= hw * grad_new_target(cnt, 0);
+            JabJIdx_11+= hw * grad_new_target(cnt, 1);
+#endif
+            //! dIdab&dIdab hessian block
 			JabJab_00+= drdA*drdA*hw*hw;
 			JabJab_01+= drdA*hw*hw;
 			JabJab_11+= hw*hw;
+#else
+            //! dIdx&dIdx hessian block
+            // Jt * W * J = [gx; gy] * [gx gy] = [gxgx gxgy; gxgy gygy]
+#ifndef USE_ZNCC
+            JIdxJIdx_00+=affLL[0] *affLL[0] *hostColor[1]*hostColor[1];
+            JIdxJIdx_11+=affLL[0] *affLL[0] *hostColor[2]*hostColor[2];
+            JIdxJIdx_10+=affLL[0] *affLL[0] *hostColor[1]*hostColor[2];
+            //! dIdx&dIdab hessian block
+            JabJIdx_00+= drdA*hw * affLL[0] * hostColor[1];
+            JabJIdx_01+= drdA*hw * affLL[0] * hostColor[2];
+            JabJIdx_10+= hw * affLL[0] * hostColor[1];
+            JabJIdx_11+= hw * affLL[0] * hostColor[2];
+#else
+            JIdxJIdx_00+=affLL[0] *affLL[0] *grad_new_host(cnt, 0)*grad_new_host(cnt, 0);
+            JIdxJIdx_11+=affLL[0] *affLL[0] *grad_new_host(cnt, 1)*grad_new_host(cnt, 1);
+            JIdxJIdx_10+=affLL[0] *affLL[0] *grad_new_host(cnt, 0)*grad_new_host(cnt, 1);
+            //! dIdx&dIdab hessian block
+            JabJIdx_00+= drdA*hw * affLL[0] * grad_new_host(cnt, 0);
+            JabJIdx_01+= drdA*hw * affLL[0] * grad_new_host(cnt, 1);
+            JabJIdx_10+= hw * affLL[0] * grad_new_host(cnt, 0);
+            JabJIdx_11+= hw * affLL[0] * grad_new_host(cnt, 1);
 
-
+#endif
+            //! dIdab&dIdab hessian block
+            JabJab_00+= drdA*drdA*hw*hw;
+            JabJab_01+= drdA*hw*hw;
+            JabJab_11+= hw*hw;
+#endif
+#ifndef USE_ZNCC
 			wJI2_sum += hw*hw*(hitColor[1]*hitColor[1]+hitColor[2]*hitColor[2]);
-
+#else
+            wJI2_sum += hw*hw*(grad_new_target.row(cnt).squaredNorm());
+#endif
 			if(setting_affineOptModeA < 0) J->JabF[0][idx]=0;
 			if(setting_affineOptModeB < 0) J->JabF[1][idx]=0;
 
 		}
+        cnt++;
 	}
 
-	J->JIdx2(0,0) = JIdxJIdx_00;
+	J->JIdx2(0,0) = JIdxJIdx_00;  //TODO gradient related 2x2, top left
 	J->JIdx2(0,1) = JIdxJIdx_10;
 	J->JIdx2(1,0) = JIdxJIdx_10;
 	J->JIdx2(1,1) = JIdxJIdx_11;
-	J->JabJIdx(0,0) = JabJIdx_00;
+	J->JabJIdx(0,0) = JabJIdx_00; //TODO buttom left
 	J->JabJIdx(0,1) = JabJIdx_01;
 	J->JabJIdx(1,0) = JabJIdx_10;
 	J->JabJIdx(1,1) = JabJIdx_11;
-	J->Jab2(0,0) = JabJab_00;
+	J->Jab2(0,0) = JabJab_00;     //TODO buttom right
 	J->Jab2(0,1) = JabJab_01;
 	J->Jab2(1,0) = JabJab_01;
 	J->Jab2(1,1) = JabJab_11;
 
 	state_NewEnergyWithOutlier = energyLeft;
 
-	if(energyLeft > std::max<float>(host->frameEnergyTH, target->frameEnergyTH) || wJI2_sum < 2)
+	if(energyLeft > std::max<float>(host->frameEnergyTH, target->frameEnergyTH) /*|| wJI2_sum < 2*/)
 	{
 		energyLeft = std::max<float>(host->frameEnergyTH, target->frameEnergyTH);
 		state_NewState = ResState::OUTLIER;

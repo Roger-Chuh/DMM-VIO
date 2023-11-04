@@ -75,9 +75,11 @@ PoseTransformation::PoseType TransformDSOToIMU::transformPoseInverse(const PoseT
 {
     // dso world to cam in metric scale:
     Sophus::SE3d T_cam_dsoW_metric = Sophus::SE3d();
+    //TODO T_cam_metricW = T_cam_imu * T_I_metricW * R_metricW_dsoW
     T_cam_dsoW_metric = T_cam_imu * Sophus::SE3d(pose).inverse() *
                         Sophus::SE3d(R_dsoW_metricW.inverse(), Sophus::Vector3d::Zero());
     // in DSO scale:
+    //TODO S_dso_metric * T_cam_metricW * S_metric_dso
     Sophus::Sim3d T_cam_dsoW = T_S_DSO.inverse() * Sophus::Sim3d(T_cam_dsoW_metric.matrix()) * T_S_DSO;
     if(!(std::abs(T_cam_dsoW.scale() - 1.0) < 0.0001))
     {

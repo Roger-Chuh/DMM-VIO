@@ -61,7 +61,7 @@ public:
     // ----------- BA Settings -----------
     // Settings regarding dynamic photometric weight.
     double dynamicWeightRMSEThresh = 8.0;
-    bool updateDynamicWeightDuringOptimization = true;
+    bool updateDynamicWeightDuringOptimization = false;//true;
 
     // When the scale changes less than this threshold over generalScaleIntervalSize optimizations we fix it.
     // Disabled by default but could be usefull for some applications. 0.005 or 0.007 are good values for it.

@@ -34,8 +34,11 @@ using namespace dso;
 
 void MainSettings::parseArguments(int argc, char** argv, SettingsUtil& settingsUtil)
 {
-    for(int i = 1; i < argc; i++)
+    for(int i = 1; i < argc; i++) {
+        printf("i: %d\n", i);
         parseArgument(argv[i], settingsUtil);
+        printf("ii: %d\n", i);
+    }
 }
 
 
@@ -165,7 +168,10 @@ void MainSettings::parseArgument(char* arg, SettingsUtil& settingsUtil)
 
     if(1 == sscanf(arg, "settingsFile=%s", buf))
     {
+        printf("a\n");
+        std::cout<<"buf: "<<buf<<std::endl;
         YAML::Node settings = YAML::LoadFile(buf);
+        printf("b\n");
         settingsUtil.tryReadFromYaml(settings);
         printf("Loading settings from yaml file: %s!\n", buf);
         return;
@@ -219,8 +225,8 @@ void dmvio::MainSettings::settingsDefault(int preset)
         preload = preset == 1;
         setting_desiredImmatureDensity = 1500;
         setting_desiredPointDensity = 1000;
-        setting_minFrames = 15;//5;
-        setting_maxFrames = 30;//7;
+        setting_minFrames = 5;//15;//5;
+        setting_maxFrames = 7;//30;//7;
         setting_maxOptIterations = 6;
         setting_minOptIterations = 1;
 
@@ -242,8 +248,8 @@ void dmvio::MainSettings::settingsDefault(int preset)
         preload = preset == 3;
         setting_desiredImmatureDensity = 600;
         setting_desiredPointDensity = 800;
-        setting_minFrames = 15;//4;
-        setting_maxFrames = 30;//6;
+        setting_minFrames = 4;//15;//4;
+        setting_maxFrames = 6;//30;//6;
         setting_maxOptIterations = 4;
         setting_minOptIterations = 1;
 

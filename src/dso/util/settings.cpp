@@ -108,9 +108,13 @@ float setting_thOptIterations=1.2; // factor on break threshold for GN iteration
 
 
 /* Outlier Threshold on photometric energy */
+//#ifndef USE_ZNCC
 float setting_outlierTH = 12*12;					// higher -> less strict
 float setting_outlierTHSumComponent = 50*50; 		// higher -> less strong gradient-based reweighting .
-
+//#else
+//float setting_outlierTH = 0.15*0.15;					// higher -> less strict
+//float setting_outlierTHSumComponent = 50*50;  //0.7*0.7;		// higher -> less strong gradient-based reweighting .
+//#endif
 
 
 
@@ -137,17 +141,19 @@ int   setting_minGoodResForMarg=4;
 // 2 = apply inv. response & remove V.
 int setting_photometricCalibration = 2;
 bool setting_useExposure = true;
-float setting_affineOptModeA = 1e12; //-1: fix. >=0: optimize (with prior, if > 0).
-float setting_affineOptModeB = 1e8; //-1: fix. >=0: optimize (with prior, if > 0).
+float setting_affineOptModeA = -1;//1e12; //-1: fix. >=0: optimize (with prior, if > 0).
+float setting_affineOptModeB = -1;//1e8; //-1: fix. >=0: optimize (with prior, if > 0).
 float setting_affineOptModeA_huberTH = 10000;
 float setting_affineOptModeB_huberTH = 10000;
 int setting_gammaWeightsPixelSelect = 1; // 1 = use original intensity for pixel selection; 0 = use gamma-corrected intensity.
 
 
 
-
+//#ifndef USE_ZNCC
 float setting_huberTH = 9; // Huber Threshold
-
+//#else
+//float setting_huberTH = 0.2; // Huber Threshold
+//#endif
 
 
 
@@ -157,8 +163,11 @@ float setting_frameEnergyTHConstWeight = 0.5;
 float setting_frameEnergyTHN = 0.7f;
 float setting_frameEnergyTHFacMedian = 1.5;
 float setting_overallEnergyTHWeight = 1;
+//#ifndef USE_ZNCC
 float setting_coarseCutoffTH = 20;
-
+//#else
+//float setting_coarseCutoffTH = 0.5;
+//#endif
 
 
 
@@ -207,7 +216,7 @@ float freeDebugParam5 = 1;
 
 
 
-bool debugSaveImages = false;
+bool debugSaveImages = true;//false;
 bool multiThreading = true;
 bool disableAllDisplay = false;
 bool setting_logStuff = true;
