@@ -52,6 +52,9 @@ namespace dso
 #define PYR_LEVELS 6
 //#define USE_INVERSE_COMPOSITIONAL
 #define USE_ZNCC
+
+extern float setting_variableScale;
+
 extern int pyrLevelsUsed;
 
 extern bool setting_useIMU;
@@ -142,6 +145,7 @@ extern bool setting_forceAceptStep;
 
 
 extern float setting_huberTH;
+extern float setting_huberTH_LBA;
 
 
 extern bool setting_logStuff;

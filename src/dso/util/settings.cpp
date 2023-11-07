@@ -33,6 +33,8 @@ namespace dso
 {
 int pyrLevelsUsed = PYR_LEVELS;
 
+float setting_variableScale = 50;
+
 bool setting_useIMU = true; // Use IMU data (false will disable all IMU integration).
 bool setting_useGTSAMIntegration = true; // Use the GTSAM integration for integrating addtional factors to the BA. Needed when useIMU==true).
 
@@ -141,19 +143,20 @@ int   setting_minGoodResForMarg=4;
 // 2 = apply inv. response & remove V.
 int setting_photometricCalibration = 2;
 bool setting_useExposure = true;
-float setting_affineOptModeA = -1;//1e12; //-1: fix. >=0: optimize (with prior, if > 0).
-float setting_affineOptModeB = -1;//1e8; //-1: fix. >=0: optimize (with prior, if > 0).
+float setting_affineOptModeA = 1e12;//1e7;//1e12;//-1;//1e12; //-1: fix. >=0: optimize (with prior, if > 0).
+float setting_affineOptModeB = 1e8;//1e3;//1e8;//-1;//1e8; //-1: fix. >=0: optimize (with prior, if > 0).
 float setting_affineOptModeA_huberTH = 10000;
 float setting_affineOptModeB_huberTH = 10000;
 int setting_gammaWeightsPixelSelect = 1; // 1 = use original intensity for pixel selection; 0 = use gamma-corrected intensity.
 
 
 
-//#ifndef USE_ZNCC
 float setting_huberTH = 9; // Huber Threshold
-//#else
-//float setting_huberTH = 0.2; // Huber Threshold
-//#endif
+#ifndef USE_ZNCC
+float setting_huberTH_LBA = 9;
+#else
+float setting_huberTH_LBA = 9;//0.2;
+#endif
 
 
 
@@ -216,7 +219,7 @@ float freeDebugParam5 = 1;
 
 
 
-bool debugSaveImages = true;//false;
+bool debugSaveImages = false;//true;//false;
 bool multiThreading = true;
 bool disableAllDisplay = false;
 bool setting_logStuff = true;

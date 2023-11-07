@@ -306,7 +306,7 @@ bool FullSystem::doStepFromBackup(float stepfacC,float stepfacT,float stepfacR,f
 	setPrecalcValues();
 
 
-
+printf("[sumA sumB sumR sumT*sumNID]: [%f %f %f %f]\n", sumA, sumB, sumR, sumT * sumNID);
 	return sqrtf(sumA) < 0.0005*setting_thOptIterations &&
 			sqrtf(sumB) < 0.00005*setting_thOptIterations &&
 			sqrtf(sumR) < 0.00005*setting_thOptIterations &&

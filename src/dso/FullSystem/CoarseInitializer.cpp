@@ -95,7 +95,7 @@ bool CoarseInitializer::trackFrame(FrameHessian *newFrameHessian, std::vector<IO
 	alphaK = 2.5*2.5;//*freeDebugParam1*freeDebugParam1;
 	alphaW = 150*150;//*freeDebugParam2*freeDebugParam2;
 #else
-    alphaK = 0.0150*0.0150;//*freeDebugParam1*freeDebugParam1;
+    alphaK = 2.5*2.5;//0.0150*0.0150;//0.005*0.005;//0.010*0.010;//0.0150*0.0150;//*freeDebugParam1*freeDebugParam1;
 	alphaW = 150*150;//*freeDebugParam2*freeDebugParam2;
 #endif
 	regWeight = 0.8;//*freeDebugParam4;
@@ -538,13 +538,15 @@ Vec3f CoarseInitializer::calcResAndGS(
 
             J_ZNSSD_mean = Mat_ZNSSD_I - (ones / static_cast<float>(patch_num)) * ones.transpose();
 
-            J_ZNSSD_J_I_host =
-                    (Mat_ZNSSD_I - (host_info.col(0) * host_info.col(0).transpose())) / host_sigma * J_ZNSSD_mean;
-            J_ZNSSD_J_I_target =
-                    (Mat_ZNSSD_I - (target_info.col(0) * target_info.col(0).transpose())) / target_sigma * J_ZNSSD_mean;
+            J_ZNSSD_J_I_host = setting_variableScale *
+                    ((Mat_ZNSSD_I - (host_info.col(0) * host_info.col(0).transpose())) / host_sigma * J_ZNSSD_mean);
+            J_ZNSSD_J_I_target = setting_variableScale *
+                    ((Mat_ZNSSD_I - (target_info.col(0) * target_info.col(0).transpose())) / target_sigma * J_ZNSSD_mean);
 
             grad_new_host = J_ZNSSD_J_I_host * host_info.rightCols(2);        // "new" gradient: 8x2
             grad_new_target = J_ZNSSD_J_I_target * target_info.rightCols(2);  // "new" gradient: 8x2
+            host_info.col(0) *= setting_variableScale;
+            target_info.col(0) *= setting_variableScale;
 #else
             grad_new_host = host_info.rightCols(2);        // "new" gradient: 8x2
             grad_new_target = target_info.rightCols(2);  // "new" gradient: 8x2

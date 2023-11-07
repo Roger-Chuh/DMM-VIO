@@ -360,21 +360,22 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
         host_info.col(0) /= host_sigma;
         target_info.col(0) /= target_sigma;
 
-
         Mat_ZNSSD_I.conservativeResize(patch_num, patch_num);
         Mat_ZNSSD_I.setIdentity();
 
 
         J_ZNSSD_mean = Mat_ZNSSD_I - (ones / static_cast<float>(patch_num)) * ones.transpose();
 
-        J_ZNSSD_J_I_host =
-                (Mat_ZNSSD_I - (host_info.col(0) * host_info.col(0).transpose())) / host_sigma * J_ZNSSD_mean;
-        J_ZNSSD_J_I_target =
-                (Mat_ZNSSD_I - (target_info.col(0) * target_info.col(0).transpose())) / target_sigma * J_ZNSSD_mean;
+        J_ZNSSD_J_I_host = setting_variableScale *
+                ((Mat_ZNSSD_I - (host_info.col(0) * host_info.col(0).transpose())) / host_sigma * J_ZNSSD_mean);
+        J_ZNSSD_J_I_target = setting_variableScale *
+                ((Mat_ZNSSD_I - (target_info.col(0) * target_info.col(0).transpose())) / target_sigma * J_ZNSSD_mean);
 
         grad_new_host = J_ZNSSD_J_I_host * host_info.rightCols(2);        // "new" gradient: 8x2
         grad_new_target = J_ZNSSD_J_I_target * target_info.rightCols(2);  // "new" gradient: 8x2
 
+        host_info.col(0) *= setting_variableScale;
+        target_info.col(0) *= setting_variableScale;
     }
 //    std::cout << "lba, grad_new_host: \n" << grad_new_host << std::endl;
 //    std::cout << "lba, grad_new_target: \n" << grad_new_target << std::endl;
@@ -406,7 +407,7 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
         float residual = hitColor[0] - (float)(affLL[0] * color[idx] + affLL[1]);
 #else
         float residual_bak = hitColor[0] - (float)(affLL[0] * color[idx] + affLL[1]);
-        float residual = 100 * (target_info(cnt, 0) - host_info(cnt, 0));
+        float residual = 1 * (target_info(cnt, 0) - host_info(cnt, 0));
 
 #endif
         Vec3f hostColor = (getInterpolatedElement33(host_dIl, point->u+patternP[idx][0], point->v+patternP[idx][1], wG[0]));
@@ -425,7 +426,6 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
         //float w = sqrtf(setting_outlierTHSumComponent / (setting_outlierTHSumComponent + grad_new_target.row(cnt).squaredNorm()));
         float w = sqrtf(setting_outlierTHSumComponent / (setting_outlierTHSumComponent + hitColor.tail<2>().squaredNorm()));
 #endif
-        printf("weights: %f, w: %f\n", weights[idx], w);
         w = 0.5f*(w + weights[idx]);
 
 
@@ -433,12 +433,13 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
 		float hw = fabsf(residual) < setting_huberTH ? 1 : setting_huberTH / fabsf(residual);
 		energyLeft += w*w*hw *residual*residual*(2-hw);
 #else
-        float hw = fabsf(residual) < setting_huberTH ? 1 : setting_huberTH / fabsf(residual);
+        float hw = fabsf(residual) < setting_huberTH_LBA ? 1 : setting_huberTH_LBA / fabsf(residual);
         energyLeft += w*w*hw *residual*residual*(2-hw);
 #endif
 
 		{
-		    printf("hw: %f\n", hw);
+            //printf("weights: %f, w: %f, hw: %f, residual: %f\n", weights[idx], w, hw, residual);
+		    //printf("hw: %f\n", hw);
 			if(hw < 1) hw = sqrtf(hw);
 			hw = hw*w;
 
@@ -503,10 +504,18 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
             JIdxJIdx_11+=grad_new_target(cnt, 1)*grad_new_target(cnt, 1);
             JIdxJIdx_10+=grad_new_target(cnt, 0)*grad_new_target(cnt, 1);
             //! dIdx&dIdab hessian block
+            //TODO 即使用了zncc，但关于ab的雅可比任然需要用梯度
+#if 1
             JabJIdx_00+= drdA*hw * grad_new_target(cnt, 0);
             JabJIdx_01+= drdA*hw * grad_new_target(cnt, 1);
             JabJIdx_10+= hw * grad_new_target(cnt, 0);
             JabJIdx_11+= hw * grad_new_target(cnt, 1);
+#else
+            JabJIdx_00+= drdA*hw * hitColor(cnt, 0);
+            JabJIdx_01+= drdA*hw * hitColor(cnt, 1);
+            JabJIdx_10+= hw * hitColor(cnt, 0);
+            JabJIdx_11+= hw * hitColor(cnt, 1);
+#endif
 #endif
             //! dIdab&dIdab hessian block
 			JabJab_00+= drdA*drdA*hw*hw;
@@ -553,15 +562,15 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
 	}
 
 	J->JIdx2(0,0) = JIdxJIdx_00;  //TODO gradient related 2x2, top left
-	J->JIdx2(0,1) = JIdxJIdx_10;
+	J->JIdx2(0,1) = JIdxJIdx_10;  //TODO 梯度x梯度部分的小hessian
 	J->JIdx2(1,0) = JIdxJIdx_10;
 	J->JIdx2(1,1) = JIdxJIdx_11;
 	J->JabJIdx(0,0) = JabJIdx_00; //TODO buttom left
-	J->JabJIdx(0,1) = JabJIdx_01;
+	J->JabJIdx(0,1) = JabJIdx_01; //TODO 光度x梯度部分的小hessian
 	J->JabJIdx(1,0) = JabJIdx_10;
 	J->JabJIdx(1,1) = JabJIdx_11;
 	J->Jab2(0,0) = JabJab_00;     //TODO buttom right
-	J->Jab2(0,1) = JabJab_01;
+	J->Jab2(0,1) = JabJab_01;     //TODO 光度x光度部分的小hessian
 	J->Jab2(1,0) = JabJab_01;
 	J->Jab2(1,1) = JabJab_11;
 
