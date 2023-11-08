@@ -33,7 +33,7 @@ namespace dso
 {
 int pyrLevelsUsed = PYR_LEVELS;
 
-float setting_variableScale = 50;
+float setting_variableScale = 100;//10;//50;
 
 bool setting_useIMU = true; // Use IMU data (false will disable all IMU integration).
 bool setting_useGTSAMIntegration = true; // Use the GTSAM integration for integrating addtional factors to the BA. Needed when useIMU==true).
@@ -60,7 +60,7 @@ bool setting_realTimeMaxKF = false;   // if true, takes as many KF's as possible
 float setting_maxShiftWeightT= 0.04f * (640+480);
 float setting_maxShiftWeightR= 0.0f * (640+480);
 float setting_maxShiftWeightRT= 0.02f * (640+480);
-float setting_kfGlobalWeight = 1;   // general weight on threshold, the larger the more KF's are taken (e.g., 2 = double the amount of KF's).
+float setting_kfGlobalWeight = 0.5;//1;   // general weight on threshold, the larger the more KF's are taken (e.g., 2 = double the amount of KF's).
 float setting_maxAffineWeight= 2;
 
 
@@ -98,8 +98,8 @@ float setting_minPointsRemaining = 0.05;  // marg a frame if less than X% points
 float setting_maxLogAffFacInWindow = 0.7; // marg a frame if factor between intensities to current frame is larger than 1/X or X.
 
 
-int   setting_minFrames = 15;//5; // min frames in window.
-int   setting_maxFrames = 30;//7; // max frames in window.
+int   setting_minFrames = 5; // min frames in window.
+int   setting_maxFrames = 12;//7; // max frames in window.
 int   setting_minFrameAge = 1;
 int   setting_maxOptIterations=6; // max GN iterations.
 int   setting_minOptIterations=1; // min GN iterations.

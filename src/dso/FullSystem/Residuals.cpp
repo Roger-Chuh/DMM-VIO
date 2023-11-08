@@ -408,7 +408,11 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
 #else
         float residual_bak = hitColor[0] - (float)(affLL[0] * color[idx] + affLL[1]);
         float residual = 1 * (target_info(cnt, 0) - host_info(cnt, 0));
-
+        if (std::isnan(residual)) {
+//            isGood = false;
+//            break;
+            state_NewState = ResState::OOB; return state_energy;
+        }
 #endif
         Vec3f hostColor = (getInterpolatedElement33(host_dIl, point->u+patternP[idx][0], point->v+patternP[idx][1], wG[0]));
 

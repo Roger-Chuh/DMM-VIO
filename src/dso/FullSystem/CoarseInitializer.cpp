@@ -95,7 +95,7 @@ bool CoarseInitializer::trackFrame(FrameHessian *newFrameHessian, std::vector<IO
 	alphaK = 2.5*2.5;//*freeDebugParam1*freeDebugParam1;
 	alphaW = 150*150;//*freeDebugParam2*freeDebugParam2;
 #else
-    alphaK = 2.5*2.5;//0.0150*0.0150;//0.005*0.005;//0.010*0.010;//0.0150*0.0150;//*freeDebugParam1*freeDebugParam1;
+    alphaK = 2.5*2.5;//2.5*2.5;//0.0150*0.0150;//0.005*0.005;//0.010*0.010;//0.0150*0.0150;//*freeDebugParam1*freeDebugParam1;
 	alphaW = 150*150;//*freeDebugParam2*freeDebugParam2;
 #endif
 	regWeight = 0.8;//*freeDebugParam4;
@@ -193,6 +193,8 @@ bool CoarseInitializer::trackFrame(FrameHessian *newFrameHessian, std::vector<IO
 			Mat88f H_new, Hsc_new; Vec8f b_new, bsc_new;
 			Vec3f resNew = calcResAndGS(lvl, H_new, b_new, Hsc_new, bsc_new, refToNew_new, refToNew_aff_new, false);
 			Vec3f regEnergy = calcEC(lvl);
+
+			std::cout << "resNew: " << resNew.transpose() << ", regEnergy: " << regEnergy.transpose() << std::endl;
 
 			float eTotalNew = (resNew[0]+resNew[1]+regEnergy[1]);
 			float eTotalOld = (resOld[0]+resOld[1]+regEnergy[0]);
@@ -667,6 +669,13 @@ Vec3f CoarseInitializer::calcResAndGS(
 #else
             float residual_bak = hitColor[0] - r2new_aff[0] * rlR - r2new_aff[1];
             float residual = 1 * (target_info(cnt, 0) - host_info(cnt, 0));
+            //printf("residual: %f\n", residual);
+
+            if (std::isnan(residual)) {
+                isGood = false;
+                break;
+            }
+
             //printf("residual: %f\n", residual);
             float hw = fabs(residual) < setting_huberTH ? 1 : setting_huberTH / fabs(residual);
             energy += hw *residual*residual*(2-hw);
