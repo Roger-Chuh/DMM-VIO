@@ -51,7 +51,11 @@ namespace dso
 // ============== PARAMETERS TO BE DECIDED ON COMPILE TIME =================
 #define PYR_LEVELS 6
 //#define USE_INVERSE_COMPOSITIONAL
-//#define USE_ZNCC
+#define USE_ZNCC
+
+#ifdef USE_ZNCC
+#define USE_ZNCC_WEIGHT
+#endif
 
 extern float setting_variableScale;
 

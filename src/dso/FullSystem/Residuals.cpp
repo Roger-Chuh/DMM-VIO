@@ -346,6 +346,7 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
     }
 
     int patch_num = host_info.rows();
+    float ws2 = 1;
     if(patch_num != 0) {
 
         host_val_mean = host_info.col(0).sum() / patch_num;
@@ -374,11 +375,23 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
         grad_new_host = J_ZNSSD_J_I_host * host_info.rightCols(2);        // "new" gradient: 8x2
         grad_new_target = J_ZNSSD_J_I_target * target_info.rightCols(2);  // "new" gradient: 8x2
 
+
+        float zncc = target_info.col(0).dot(host_info.col(0));
+        float r2 = 2 - 2 * zncc;
+        ws2 = 2.0 / (r2 + 2.0);
+
+#ifdef USE_ZNCC_WEIGHT
+        if (zncc < 0.8) {
+            state_NewState = ResState::OOB; return state_energy;
+        }
+#endif
         host_info.col(0) *= setting_variableScale;
         target_info.col(0) *= setting_variableScale;
     }
 //    std::cout << "lba, grad_new_host: \n" << grad_new_host << std::endl;
 //    std::cout << "lba, grad_new_target: \n" << grad_new_target << std::endl;
+
+
     int cnt = 0;
 	for(int idx=0;idx<patternNum;idx++)
 	{
@@ -430,8 +443,11 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
         //float w = sqrtf(setting_outlierTHSumComponent / (setting_outlierTHSumComponent + grad_new_target.row(cnt).squaredNorm()));
         float w = sqrtf(setting_outlierTHSumComponent / (setting_outlierTHSumComponent + hitColor.tail<2>().squaredNorm()));
 #endif
+#ifndef USE_ZNCC_WEIGHT
         w = 0.5f*(w + weights[idx]);
-
+#else
+        w = std::sqrt(ws2);
+#endif
 
 #ifndef USE_ZNCC
 		float hw = fabsf(residual) < setting_huberTH ? 1 : setting_huberTH / fabsf(residual);

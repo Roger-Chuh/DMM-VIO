@@ -295,8 +295,8 @@ void run(ImageFolderReader* reader, IOWrap::PangolinDSOViewer* viewer)
     gettimeofday(&tv_end, NULL);
 
 
-    fullSystem->printResult(imuSettings.resultsPrefix + "result.txt", false, false, true);
-    fullSystem->printResult(imuSettings.resultsPrefix + "resultKFs.txt", true, false, false);
+//    fullSystem->printResult(imuSettings.resultsPrefix + "result.txt", false, false, true);
+//    fullSystem->printResult(imuSettings.resultsPrefix + "resultKFs.txt", true, false, false);
     fullSystem->printResult(imuSettings.resultsPrefix + "resultScaled.txt", false, true, true);
 
     dmvio::TimeMeasurement::saveResults(imuSettings.resultsPrefix + "timings.txt");

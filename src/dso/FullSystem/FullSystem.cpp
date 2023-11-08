@@ -260,8 +260,8 @@ void FullSystem::printResult(std::string file, bool onlyLogKFPoses, bool saveMet
 	boost::unique_lock<boost::mutex> crlock(shellPoseMutex);
 
 	std::ofstream myfile;
-	myfile.open (file.c_str());
-	myfile << std::setprecision(15);
+	myfile.open (file.c_str());//, std::ios::binary | std::ios::app | std::ios::in | std::ios::out);
+	myfile << std::setprecision(6);
 
 	for(FrameShell* s : allFrameHistory)
 	{
@@ -285,13 +285,16 @@ void FullSystem::printResult(std::string file, bool onlyLogKFPoses, bool saveMet
             // not actually camToFirst any more...
             camToFirst = Sophus::SE3d(imuIntegration.getTransformDSOToIMU().transformPose(camToWorld.inverse().matrix()));
         }
-
-		myfile << s->timestamp <<
-			" " << camToFirst.translation().transpose()<<
-			" " << camToFirst.so3().unit_quaternion().x()<<
-			" " << camToFirst.so3().unit_quaternion().y()<<
-			" " << camToFirst.so3().unit_quaternion().z()<<
-			" " << camToFirst.unit_quaternion().w() << "\n";
+        Eigen::Vector3f p = camToFirst.translation().cast<float>();
+        Eigen::Quaternionf q = camToFirst.unit_quaternion().cast<float>();
+		myfile << std::fixed << static_cast<float>(s->timestamp) << " "
+		       << p.x() << " "
+               << p.y() << " "
+               << p.z() << " "
+			   << q.x() << " "
+			   << q.y() << " "
+			   << q.z() << " "
+			   << q.w() << "\n";//std::endl;
 	}
 	myfile.close();
 }
