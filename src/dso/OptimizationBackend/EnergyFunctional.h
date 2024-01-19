@@ -102,15 +102,15 @@ public:
 
 	void setAdjointsF(CalibHessian* Hcalib);
 
-	std::vector<EFFrame*> frames;
-	int nPoints, nFrames, nResiduals;
+	std::vector<EFFrame*> frames;//!< 能量函数中的帧
+	int nPoints, nFrames, nResiduals;//!< EFPoint的数目, EFframe关键帧数, 残差数
 
     // HMForGTSAM, bMForGTSAM only contain marginalized points until the next time a keyframe is marginalized.
     // With each keyframe marginalization the information in them is transferred to the GTSAMIntegration.
-	MatXX HM, HMForGTSAM;
-	VecX bM, bMForGTSAM;
+	MatXX HM, HMForGTSAM;//!< 优化的Hessian矩阵, 边缘化掉逆深度
+	VecX bM, bMForGTSAM;//!< 优化的Jr项, 边缘化掉逆深度
 
-	int resInA, resInL, resInM;
+	int resInA, resInL, resInM;//!< 分别是在计算A, L, 边缘化H和b中残差的数量
 	MatXX lastHS;
 	VecX lastbS;
 	VecX lastX;
@@ -123,11 +123,11 @@ public:
 	IndexThreadReduce<Vec10>* red;
 
 
-	std::map<uint64_t,
+	std::map<uint64_t,// 历史ID
 	  Eigen::Vector2i,
 	  std::less<uint64_t>,
 	  Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector2i>>
-	  > connectivityMap;
+	  > connectivityMap;//!< 关键帧之间的连接关系, first: 前32表示host ID, 后32位表示target ID; second:数目 [0] 普通的, [1] 边缘化的
 
 private:
 
@@ -143,21 +143,21 @@ private:
 	void calcLEnergyPt(int min, int max, Vec10* stats, int tid);
 
 	void orthogonalize(VecX* b, MatXX* H);
-	Mat18f* adHTdeltaF;
+	Mat18f* adHTdeltaF;//!< host和target之间位姿的增量, 一共[帧数×帧数]个
 
-	Mat88* adHost;
+	Mat88* adHost;//!< 伴随矩阵, double
 	Mat88* adTarget;
 
-	Mat88f* adHostF;
+	Mat88f* adHostF;//!< 伴随矩阵, float
 	Mat88f* adTargetF;
 
 
-	VecC cPrior;
-	VecCf cDeltaF;
+	VecC cPrior;//!< setting_initialCalibHessian 信息矩阵
+	VecCf cDeltaF;//!< 相机内参增量
 	VecCf cPriorF;
 
-	AccumulatedTopHessianSSE* accSSE_top_L;
-	AccumulatedTopHessianSSE* accSSE_top_A;
+	AccumulatedTopHessianSSE* accSSE_top_L;//!<
+	AccumulatedTopHessianSSE* accSSE_top_A;//!<
 
 
 	AccumulatedSCHessianSSE* accSSE_bot;

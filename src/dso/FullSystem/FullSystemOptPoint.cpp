@@ -47,11 +47,15 @@ namespace dso
 {
 
 
-
+//@ 优化未成熟点逆深度, 并创建成PointHessian
+/// 是优化滑窗内所有关键帧上的未成熟点
+/// 然后往最新关键帧上投构造photometric error？(seems like it) (scratch that)
+/// it's multiple view triangulate for one point
 PointHessian* FullSystem::optimizeImmaturePoint(
 		ImmaturePoint* point, int minObs,
 		ImmaturePointTemporaryResidual* residuals)
 {
+    ///[ ***step 1*** ] 初始化和其它关键帧的res(点在其它关键帧上投影)
 	int nres = 0;
 	for(FrameHessian* fh : frameHessians)
 	{

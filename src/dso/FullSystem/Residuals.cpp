@@ -70,23 +70,24 @@ PointFrameResidual::PointFrameResidual(PointHessian* point_, FrameHessian* host_
 	instanceCounter++;
 	resetOOB();
     //TODO 这时J只是开辟了空间，还没有赋值
-	J = new RawResidualJacobian();
-	assert(((long)J)%16==0);
+	J = new RawResidualJacobian();// 各种雅克比
+	assert(((long)J)%16==0); // 16位对齐
 
 	isNew=true;
 }
 
 
 
-
+//@ 求对各个参数的导数, 和能量值
 double PointFrameResidual::linearize(CalibHessian* HCalib)
 {
+    // printf("fx fy cx cy: [%f %f %f %f]\n", HCalib->fxl(), HCalib->fyl(), HCalib->cxl(), HCalib->cyl());
 	state_NewEnergyWithOutlier=-1;
 
 	if(state_state == ResState::OOB)
 		{ state_NewState = ResState::OOB; return state_energy; }
-
-	FrameFramePrecalc* precalc = &(host->targetPrecalc[target->idx]);
+//TODO 同一个host有多个target，合理
+	FrameFramePrecalc* precalc = &(host->targetPrecalc[target->idx]);// 得到这个目标帧在主帧上的一些预计算参数
 	float energyLeft=0;
 	const Eigen::Vector3f* dIl = target->dI;
     const Eigen::Vector3f* host_dIl = host->dI;
@@ -95,13 +96,13 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
     const Vec3f &PRE_KtTll = precalc->PRE_KtTll;      //
     const Mat33f &PRE_RTll_0 = precalc->PRE_RTll_0;   //todo relative pose before optimize
 	const Vec3f &PRE_tTll_0 = precalc->PRE_tTll_0;
-	const float * const color = point->color;
+	const float * const color = point->color;// host帧上颜色
 	const float * const weights = point->weights;
 
-	Vec2f affLL = precalc->PRE_aff_mode;
-	float b0 = precalc->PRE_b0_mode;
+	Vec2f affLL = precalc->PRE_aff_mode;// 待优化的a和b, 就是host和target合的
+	float b0 = precalc->PRE_b0_mode;// 主帧的单独 b
 
-
+//! x=0时候求几何的导数, 使用FEJ!! ,逆深度没有使用FEJ
 	Vec6f d_xi_x, d_xi_y;
 	Vec4f d_C_x, d_C_y;
 	float d_d_x, d_d_y;
@@ -115,7 +116,7 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
         /// PRE_RTll_0 means FEJ
 		if(!projectPoint(point->u, point->v, point->idepth_zero_scaled, 0, 0,HCalib,
 				PRE_RTll_0,PRE_tTll_0, drescale, u, v, Ku, Kv, KliP, new_idepth))
-			{ state_NewState = ResState::OOB; return state_energy; }
+			{ state_NewState = ResState::OOB; return state_energy; }// 投影不在图像里, 则返回OOB
 
 		centerProjectedTo = Vec3f(Ku, Kv, new_idepth);
 
@@ -595,7 +596,7 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
 	J->Jab2(1,1) = JabJab_11;
 
 	state_NewEnergyWithOutlier = energyLeft;
-
+//* 大于阈值则视为有外点
 	if(energyLeft > std::max<float>(host->frameEnergyTH, target->frameEnergyTH) /*|| wJI2_sum < 2*/)
 	{
 		energyLeft = std::max<float>(host->frameEnergyTH, target->frameEnergyTH);
@@ -639,7 +640,7 @@ void PointFrameResidual::debugPlot()
 }
 
 
-
+//@ 把计算的残差,雅克比值给EFResidual, 更新残差的状态(好坏)
 void PointFrameResidual::applyRes(bool copyJacobians)
 {
 	if(copyJacobians)
@@ -652,7 +653,8 @@ void PointFrameResidual::applyRes(bool copyJacobians)
 		if(state_NewState == ResState::IN)// && )
 		{
 			efResidual->isActiveAndIsGoodNEW=true;
-			efResidual->takeDataF();
+            //? 指针好恶心, 计算好了调用这个函数
+			efResidual->takeDataF(); // 从当前取jacobian数据
 		}
 		else
 		{

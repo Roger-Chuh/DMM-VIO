@@ -80,14 +80,14 @@ public:
     void debugPlotIDepthMap(float* minID, float* maxID, std::vector<IOWrap::Output3DWrapper*> &wraps) const;
     void debugPlotIDepthMapFloat(std::vector<IOWrap::Output3DWrapper*> &wraps);
 
-	FrameHessian* lastRef;
+	FrameHessian* lastRef;//!< 参考帧
 	AffLight lastRef_aff_g2l;
-	FrameHessian* newFrame;
-	int refFrameID;
+	FrameHessian* newFrame;//!< 新来的一帧
+	int refFrameID;//!< 参考帧id
 
 	// act as pure ouptut
 	Vec5 lastResiduals;
-	Vec3 lastFlowIndicators;
+	Vec3 lastFlowIndicators;//!< 光流指示用, 只有平移和, 旋转+平移的像素移动
 	double firstCoarseRMSE;
 private:
 
@@ -104,24 +104,24 @@ private:
 	void calcGS(int lvl, Mat88 &H_out, Vec8 &b_out, const SE3 &refToNew, AffLight aff_g2l);
 
 	// pc buffers
-	float* pc_u[PYR_LEVELS];
-	float* pc_v[PYR_LEVELS];
-	float* pc_idepth[PYR_LEVELS];
-	float* pc_color[PYR_LEVELS];
-	int pc_n[PYR_LEVELS];
+	float* pc_u[PYR_LEVELS];//!< 每层上的有逆深度点的坐标x
+	float* pc_v[PYR_LEVELS];//!< 每层上的有逆深度点的坐标y
+	float* pc_idepth[PYR_LEVELS];//!< 每层上点的逆深度
+	float* pc_color[PYR_LEVELS];//!< 每层上点的颜色值
+	int pc_n[PYR_LEVELS];//!< 每层上点的个数
 
 	// warped buffers
-	float* buf_warped_idepth;
-	float* buf_warped_u;
-	float* buf_warped_v;
-	float* buf_warped_dx;
-	float* buf_warped_dy;
-	float* buf_warped_residual;
-	float* buf_warped_weight;
-	float* buf_warped_refColor;
-	int buf_warped_n;
+	float* buf_warped_idepth;//!< 投影得到的点的逆深度
+	float* buf_warped_u;//!< 投影得到的归一化坐标
+	float* buf_warped_v;//!< 同上
+	float* buf_warped_dx;//!< 投影点的图像梯度
+	float* buf_warped_dy;//!< 投影点的图像梯度
+	float* buf_warped_residual;//!< 投影得到的残差
+	float* buf_warped_weight;//!< 投影的huber函数权重
+	float* buf_warped_refColor;//!< 投影点参考帧上的灰度值
+	int buf_warped_n;//!< 投影点的个数
 
-    std::vector<float*> ptrToDelete;
+    std::vector<float*> ptrToDelete;//!< 所有的申请的内存指针, 用于析构删除
 	Accumulator9 acc;
 
     dmvio::IMUIntegration &imuIntegration;
@@ -146,7 +146,7 @@ public:
 	void makeK( CalibHessian* HCalib);
 
 
-	float* fwdWarpedIDDistFinal;
+	float* fwdWarpedIDDistFinal;//!< 距离场的数值
 
 	Mat33f K[PYR_LEVELS];
 	Mat33f Ki[PYR_LEVELS];
@@ -168,8 +168,8 @@ private:
 
 	PointFrameResidual** coarseProjectionGrid;
 	int* coarseProjectionGridNum;
-	Eigen::Vector2i* bfsList1;
-	Eigen::Vector2i* bfsList2;
+	Eigen::Vector2i* bfsList1;//!< 投影到frame的坐标
+	Eigen::Vector2i* bfsList2;//!< 和1轮换使用
 
 	void growDistBFS(int bfsNum);
 };

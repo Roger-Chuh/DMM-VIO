@@ -63,6 +63,7 @@ using dmvio::GravityInitializer;
 
 namespace dso
 {
+// Hessian矩阵计数, 有点像 shared_ptr
 int FrameHessian::instanceCounter=0;
 int PointHessian::instanceCounter=0;
 int CalibHessian::instanceCounter=0;
@@ -71,6 +72,13 @@ std::ofstream output_ostr_ = std::ofstream("/home/roger/work/dm-vio/dm-vio/build
 
 boost::mutex FrameShell::shellPoseMutex{};
 
+/********************************
+ * @ function: 构造函数
+ *
+ * @ param:
+ *
+ * @ note:
+ *******************************/
 FullSystem::FullSystem(bool linearizeOperationPassed, const dmvio::IMUCalibration& imuCalibration,
                        dmvio::IMUSettings& imuSettings)
     : linearizeOperation(linearizeOperationPassed), imuIntegration(&Hcalib, imuCalibration, imuSettings,
@@ -140,7 +148,7 @@ FullSystem::FullSystem(bool linearizeOperationPassed, const dmvio::IMUCalibratio
 		calibLog=0;
 	}
 
-	assert(retstat!=293847);
+	assert(retstat!=293847);// shell正常执行结束返回这么个值,填充8~15位bit, 有趣
 
 
 
@@ -161,7 +169,7 @@ FullSystem::FullSystem(bool linearizeOperationPassed, const dmvio::IMUCalibratio
 	statistics_numMargResFwd = 0;
 	statistics_numMargResBwd = 0;
 
-	lastCoarseRMSE.setConstant(100);
+	lastCoarseRMSE.setConstant(100);//5维向量都=100
 
 	currentMinActDist=2;
 	initialized=false;
@@ -176,7 +184,7 @@ FullSystem::FullSystem(bool linearizeOperationPassed, const dmvio::IMUCalibratio
 
 	needNewKFAfter = -1;
 	runMapping=true;
-	mappingThread = boost::thread(&FullSystem::mappingLoop, this);
+	mappingThread = boost::thread(&FullSystem::mappingLoop, this);// 建图线程单开
 	lastRefStopID=0;
 
 
@@ -190,7 +198,7 @@ FullSystem::FullSystem(bool linearizeOperationPassed, const dmvio::IMUCalibratio
 FullSystem::~FullSystem()
 {
 	blockUntilMappingIsFinished();
-
+    // 删除new的ofstream
 	if(setting_logStuff)
 	{
 		calibLog->close(); delete calibLog;
@@ -224,7 +232,7 @@ void FullSystem::setOriginalCalib(const VecXf &originalCalib, int originalW, int
 {
 
 }
-
+//* 设置相机响应函数
 void FullSystem::setGammaFunction(float* BInv)
 {
 	if(BInv==0) return;
@@ -298,7 +306,7 @@ void FullSystem::printResult(std::string file, bool onlyLogKFPoses, bool saveMet
 	}
 	myfile.close();
 }
-
+//@ 使用确定的运动模型对新来的一帧进行跟踪, 得到位姿和光度参数
 std::pair<Vec4, bool> FullSystem::trackNewCoarse(FrameHessian* fh, Sophus::SE3 *referenceToFrameHint)
 {
     dmvio::TimeMeasurement timeMeasurement(referenceToFrameHint ? "FullSystem::trackNewCoarse" : "FullSystem::trackNewCoarseNoIMU");
@@ -310,10 +318,10 @@ std::pair<Vec4, bool> FullSystem::trackNewCoarse(FrameHessian* fh, Sophus::SE3 *
 
 
 
-	FrameHessian* lastF = coarseTracker->lastRef;
+	FrameHessian* lastF = coarseTracker->lastRef;  // 参考帧
 
 	AffLight aff_last_2_l = AffLight(0,0);
-
+//[ ***step 1*** ] 设置不同的运动状态
     // Seems to contain poses reference_to_newframe.
     std::vector<SE3,Eigen::aligned_allocator<SE3>> lastF_2_fh_tries;
 
@@ -346,22 +354,23 @@ std::pair<Vec4, bool> FullSystem::trackNewCoarse(FrameHessian* fh, Sophus::SE3 *
     if(!referenceToFrameHint)
     {
         if(allFrameHistory.size() == 2)
-            for(unsigned int i=0;i<lastF_2_fh_tries.size();i++) lastF_2_fh_tries.push_back(SE3());
+            for(unsigned int i=0;i<lastF_2_fh_tries.size();i++) lastF_2_fh_tries.push_back(SE3()); //? 这个size()不应该是0么
         else
         {
-            FrameShell* slast = allFrameHistory[allFrameHistory.size()-2];
-            FrameShell* sprelast = allFrameHistory[allFrameHistory.size()-3];
+            FrameShell* slast = allFrameHistory[allFrameHistory.size()-2];// 上一帧
+            FrameShell* sprelast = allFrameHistory[allFrameHistory.size()-3]; // 大上一帧
             SE3 slast_2_sprelast;
             SE3 lastF_2_slast;
             {	// lock on global pose consistency!
                 boost::unique_lock<boost::mutex> crlock(shellPoseMutex);
-                slast_2_sprelast = sprelast->camToWorld.inverse() * slast->camToWorld;
-                lastF_2_slast = slast->camToWorld.inverse() * lastF->shell->camToWorld;
+                slast_2_sprelast = sprelast->camToWorld.inverse() * slast->camToWorld; // 上一帧和大上一帧的运动
+                lastF_2_slast = slast->camToWorld.inverse() * lastF->shell->camToWorld; // 参考帧到上一帧运动
                 aff_last_2_l = slast->aff_g2l;
             }
+            /// 匀速模型
             SE3 fh_2_slast = slast_2_sprelast;// assumed to be the same as fh_2_slast.
 
-
+            //! 尝试不同的运动
             // get last delta-movement.
             lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast);	// assume constant motion.
             lastF_2_fh_tries.push_back(fh_2_slast.inverse() * fh_2_slast.inverse() * lastF_2_slast);	// assume double motion (frame skipped)
@@ -369,7 +378,7 @@ std::pair<Vec4, bool> FullSystem::trackNewCoarse(FrameHessian* fh, Sophus::SE3 *
             lastF_2_fh_tries.push_back(lastF_2_slast); // assume zero motion.
             lastF_2_fh_tries.push_back(SE3()); // assume zero motion FROM KF.
 
-
+            //! 尝试不同的旋转变动
             // just try a TON of different initializations (all rotations). In the end,
             // if they don't work they will only be tried on the coarsest level, which is super fast anyway.
             // also, if tracking rails here we loose, so we really, really want to avoid that.
@@ -418,16 +427,20 @@ std::pair<Vec4, bool> FullSystem::trackNewCoarse(FrameHessian* fh, Sophus::SE3 *
 
 	// as long as maxResForImmediateAccept is not reached, I'll continue through the options.
 	// I'll keep track of the so-far best achieved residual for each level in achievedRes.
+    //! 把到目前为止最好的残差值作为每一层的阈值
 	// If on a coarse level, tracking is WORSE than achievedRes, we will not continue to save time.
+    //! 粗层的能量值大, 也不继续优化了, 来节省时间
 
 	bool trackingGoodRet = false;
 
 	Vec5 achievedRes = Vec5::Constant(NAN);
 	bool haveOneGood = false;
 	int tryIterations=0;
+        //! 逐个尝试
 	for(unsigned int i=0;i<lastF_2_fh_tries.size();i++)
 	{
-		AffLight aff_g2l_this = aff_last_2_l;
+        //[ ***step 2*** ] 尝试不同的运动状态, 得到跟踪是否良好
+		AffLight aff_g2l_this = aff_last_2_l; // 上一帧的赋值当前帧
 		SE3 lastF_2_fh_this = lastF_2_fh_tries[i];
 		bool trackingIsGood = coarseTracker->trackNewestCoarse(
 				fh, lastF_2_fh_this, aff_g2l_this,
@@ -464,10 +477,12 @@ std::pair<Vec4, bool> FullSystem::trackNewCoarse(FrameHessian* fh, Sophus::SE3 *
 					coarseTracker->lastResiduals[4]);
 		}
 
-
+//[ ***step 3*** ] 如果跟踪正常, 并且0层残差比最好的还好留下位姿, 保存最好的每一层的能量值
 		// do we have a new winner?
 		if(trackingIsGood && std::isfinite((float)coarseTracker->lastResiduals[0]) && !(coarseTracker->lastResiduals[0] >=  achievedRes[0]))
 		{
+            //printf("take over. minRes %f -> %f!\n", achievedRes[0], coarseTracker->lastResiduals[0]);
+            //TODO average optical flow
 			flowVecs = coarseTracker->lastFlowIndicators;
 			aff_g2l = aff_g2l_this;
 			lastF_2_fh = lastF_2_fh_this;
@@ -480,11 +495,11 @@ std::pair<Vec4, bool> FullSystem::trackNewCoarse(FrameHessian* fh, Sophus::SE3 *
 			for(int i=0;i<5;i++)
 			{
 				if(!std::isfinite((float)achievedRes[i]) || achievedRes[i] > coarseTracker->lastResiduals[i])	// take over if achievedRes is either bigger or NAN.
-					achievedRes[i] = coarseTracker->lastResiduals[i];
+					achievedRes[i] = coarseTracker->lastResiduals[i]; // 里面保存的是各层得到的能量值
 			}
 		}
 
-
+//[ ***step 4*** ] 小于阈值则暂停, 并且为下次设置阈值
         if(haveOneGood &&  achievedRes[0] < lastCoarseRMSE[0]*setting_reTrackThreshold)
             break;
 
@@ -504,9 +519,9 @@ std::pair<Vec4, bool> FullSystem::trackNewCoarse(FrameHessian* fh, Sophus::SE3 *
 		    exit(1);
         }
 	}
-
+//! 把这次得到的最好值给下次用来当阈值
 	lastCoarseRMSE = achievedRes;
-
+//[ ***step 5*** ] 此时shell在跟踪阶段, 没人使用, 设置值
 	// no lock required, as fh is not used anywhere yet.
 	fh->shell->camToTrackingRef = lastF_2_fh.inverse();
 	fh->shell->trackingRef = lastF->shell;
@@ -539,7 +554,8 @@ std::pair<Vec4, bool> FullSystem::trackNewCoarse(FrameHessian* fh, Sophus::SE3 *
 
 	return std::make_pair(Vec4(achievedRes[0], flowVecs[0], flowVecs[1], flowVecs[2]), trackingGoodRet);
 }
-
+//@ 利用新的帧 fh 对关键帧中的ImmaturePoint进行更新
+/// multi-small-baseline-stereo, update idepth
 void FullSystem::traceNewCoarse(FrameHessian* fh)
 {
     dmvio::TimeMeasurement timeMeasurement("traceNewCoarse");
@@ -552,7 +568,7 @@ void FullSystem::traceNewCoarse(FrameHessian* fh)
 	K(1,1) = Hcalib.fyl();
 	K(0,2) = Hcalib.cxl();
 	K(1,2) = Hcalib.cyl();
-
+    // 遍历关键帧
 	for(FrameHessian* host : frameHessians)		// go through all active frames
 	{
 
@@ -561,9 +577,12 @@ void FullSystem::traceNewCoarse(FrameHessian* fh)
 		Vec3f Kt = K * hostToNew.translation().cast<float>();
 
 		Vec2f aff = AffLight::fromToVecExposure(host->ab_exposure, fh->ab_exposure, host->aff_g2l(), fh->aff_g2l()).cast<float>();
-
+        /// loop across all points on frameHessian
 		for(ImmaturePoint* ph : host->immaturePoints)
 		{
+            /// trace on epipole line
+            //TODO entrance
+            /// deoutlier, update immaturePoints epipolar search interval [idepth_min and idepth_max]
 			ph->traceOn(fh, KRKi, Kt, aff, &Hcalib, false );
 
 			if(ph->lastTraceStatus==ImmaturePointStatus::IPS_GOOD) trace_good++;
@@ -587,13 +606,14 @@ void FullSystem::traceNewCoarse(FrameHessian* fh)
 
 
 
-
+//@ 处理挑选出来待激活的点
 void FullSystem::activatePointsMT_Reductor(
 		std::vector<PointHessian*>* optimized,
 		std::vector<ImmaturePoint*>* toOptimize,
 		int min, int max, Vec10* stats, int tid)
 {
 	ImmaturePointTemporaryResidual* tr = new ImmaturePointTemporaryResidual[frameHessians.size()];
+    /// normally min = 0, max = toOptimize.size()
 	for(int k=min;k<max;k++)
 	{
 		(*optimized)[k] = optimizeImmaturePoint((*toOptimize)[k],1,tr);
@@ -602,11 +622,13 @@ void FullSystem::activatePointsMT_Reductor(
 }
 
 
-
+//@ 激活未成熟点, 加入优化
 void FullSystem::activatePointsMT()
 {
     dmvio::TimeMeasurement timeMeasurement("activatePointsMT");
-
+//[ ***step 1*** ] 阈值计算, 通过距离地图来控制数目
+        //currentMinActDist 初值为 2
+        //* 这太牛逼了.....参数
     if(ef->nPoints < setting_desiredPointDensity*0.66)
 		currentMinActDist -= 0.8;
 	if(ef->nPoints < setting_desiredPointDensity*0.8)
@@ -633,7 +655,7 @@ void FullSystem::activatePointsMT()
                 currentMinActDist, (int)(setting_desiredPointDensity), ef->nPoints);
 
 
-
+/// newest keyframe
 	FrameHessian* newestHs = frameHessians.back();
 
 	// make dist map.
@@ -642,14 +664,16 @@ void FullSystem::activatePointsMT()
 
 	//coarseTracker->debugPlotDistMap("distMap");
 
-	std::vector<ImmaturePoint*> toOptimize; toOptimize.reserve(20000);
+	std::vector<ImmaturePoint*> toOptimize; toOptimize.reserve(20000);// 待激活的点
 
-
+//[ ***step 2*** ] 处理未成熟点, 激活/删除/跳过
 	for(FrameHessian* host : frameHessians)		// go through all active frames
 	{
 		if(host == newestHs) continue;
-
+//TODO 老帧上的点往最新关键帧投影，构造残差
 		SE3 fhToNew = newestHs->PRE_worldToCam * host->PRE_camToWorld;
+        // 第0层到1层
+        /// old[0] to new[1]
 		Mat33f KRKi = (coarseDistanceMap->K[1] * fhToNew.rotationMatrix().cast<float>() * coarseDistanceMap->Ki[0]);
 		Vec3f Kt = (coarseDistanceMap->K[1] * fhToNew.translation().cast<float>());
 
@@ -665,10 +689,10 @@ void FullSystem::activatePointsMT()
 //				immature_invalid_deleted++;
 				// remove point.
 				delete ph;
-				host->immaturePoints[i]=0;
+				host->immaturePoints[i]=0; // 指针赋零
 				continue;
 			}
-
+            //* 未成熟点的激活条件
 			// can activate only if this is true.
 			bool canActivate = (ph->lastTraceStatus == IPS_GOOD
 					|| ph->lastTraceStatus == IPS_SKIPPED
@@ -682,6 +706,7 @@ void FullSystem::activatePointsMT()
 			// if I cannot activate the point, skip it. Maybe also delete it.
 			if(!canActivate)
 			{
+                //* 删除被边缘化帧上的, 和OOB点
 				// if point will be out afterwards, delete it instead.
 				if(ph->host->flaggedForMarginalization || ph->lastTraceStatus == IPS_OOB)
 				{
@@ -696,16 +721,23 @@ void FullSystem::activatePointsMT()
 
 			// see if we need to activate point due to distance map.
 			Vec3f ptp = KRKi * Vec3f(ph->u, ph->v, 1) + Kt*(0.5f*(ph->idepth_max+ph->idepth_min));
+            /// reproject from old[0] to new[1]
 			int u = ptp[0] / ptp[2] + 0.5f;
 			int v = ptp[1] / ptp[2] + 0.5f;
 
 			if((u > 0 && v > 0 && u < wG[1] && v < hG[1]))
 			{
-
+                // 距离地图 + 小数点
+                //TODO
+                //TODO could we use KDTree instead?
+                //TODO we need calculate pair-wise distance between any reprojected points in 8 directions
 				float dist = coarseDistanceMap->fwdWarpedIDDistFinal[u+wG[1]*v] + (ptp[0]-floorf((float)(ptp[0])));
-
-				if(dist>=currentMinActDist* ph->my_type)
+/// remember fwdWarpedIDDistFinal is updated in makeDistanceMap, which stores all the
+                /// search distances (index k in the loop [0..40]).
+                /// search distance plus the decimal part of ptp[0] which is x in world cordinate w.r.t last frame.
+				if(dist>=currentMinActDist* ph->my_type)/// 点越多, 距离阈值越大 [my_type 1 2 4]
 				{
+                    /// 每新activate一个点，那与这个点相关的distanceMap也要更新，很严谨
 					coarseDistanceMap->addIntoDistFinal(u,v);
 					toOptimize.push_back(ph);
 				}
@@ -721,16 +753,16 @@ void FullSystem::activatePointsMT()
 
 //	printf("ACTIVATE: %d. (del %d, notReady %d, marg %d, good %d, marg-skip %d)\n",
 //			(int)toOptimize.size(), immature_deleted, immature_notReady, immature_needMarg, immature_want, immature_margskip);
-
+//[ ***step 3*** ] 优化上一步挑出来的未成熟点, 进行逆深度优化, 并得到pointhessian
 	std::vector<PointHessian*> optimized; optimized.resize(toOptimize.size());
-
+/// triangulate immature points to active points
 	if(multiThreading)
 		treadReduce.reduce(boost::bind(&FullSystem::activatePointsMT_Reductor, this, &optimized, &toOptimize, _1, _2, _3, _4), 0, toOptimize.size(), 50);
 
 	else
 		activatePointsMT_Reductor(&optimized, &toOptimize, 0, toOptimize.size(), 0, 0);
 
-
+//[ ***step 4*** ] 把PointHessian加入到能量函数, 删除收敛的未成熟点, 或不好的点
 	for(unsigned k=0;k<toOptimize.size();k++)
 	{
 		PointHessian* newpoint = optimized[k];
@@ -739,8 +771,12 @@ void FullSystem::activatePointsMT()
 		if(newpoint != 0 && newpoint != (PointHessian*)((long)(-1)))
 		{
 			newpoint->host->immaturePoints[ph->idxInImmaturePoints]=0;
+            /// 自己push_back到自己里面？
+            //TODO 把newpoint push到该point所host的帧的收敛点列表里去
 			newpoint->host->pointHessians.push_back(newpoint);
-			ef->insertPoint(newpoint);
+			ef->insertPoint(newpoint);// 能量函数中插入点 //TODO 相当于正式把这个3d点加入到大优化中了
+            /// pattern of 8 ? nah, it's usually 2 or 3
+            //printf("newpoint->residuals: %d\n",newpoint->residuals.size());
 			for(PointFrameResidual* r : newpoint->residuals)
 				ef->insertResidual(r);
 			assert(newpoint->efPoint != 0);
@@ -748,6 +784,7 @@ void FullSystem::activatePointsMT()
 		}
 		else if(newpoint == (PointHessian*)((long)(-1)) || ph->lastTraceStatus==IPS_OOB)
 		{
+		    // bug: 原来的顺序错误
 			ph->host->immaturePoints[ph->idxInImmaturePoints]=0;
             delete ph;
 		}
@@ -757,14 +794,17 @@ void FullSystem::activatePointsMT()
 		}
 	}
 
-
+//[ ***step 5*** ] 把删除的点丢掉
 	for(FrameHessian* host : frameHessians)
 	{
 		for(int i=0;i<(int)host->immaturePoints.size();i++)
 		{
 			if(host->immaturePoints[i]==0)
 			{
-				host->immaturePoints[i] = host->immaturePoints.back();
+			    /// 这次没激活成功的immature点可以不删，留给下次关键帧激活，
+                /// 但是这次判定成outlier的immature点要删掉，不给他机会了
+                //bug 如果back的也是空的呢
+				host->immaturePoints[i] = host->immaturePoints.back();// 没有顺序要求, 直接最后一个给空的
 				host->immaturePoints.pop_back();
 				i--;
 			}
@@ -783,7 +823,7 @@ void FullSystem::activatePointsOldFirst()
 {
 	assert(false);
 }
-
+//@ 标记要移除点的状态, 边缘化or丢掉
 void FullSystem::flagPointsForRemoval()
 {
 	assert(EFIndicesValid);
@@ -793,6 +833,7 @@ void FullSystem::flagPointsForRemoval()
 
 	//if(setting_margPointVisWindow>0)
 	{
+        //bug 又是不用的一条语句
 		for(int i=((int)frameHessians.size())-1;i>=0 && i >= ((int)frameHessians.size());i--)
 			if(!frameHessians[i]->flaggedForMarginalization) fhsToKeepPoints.push_back(frameHessians[i]);
 
@@ -813,6 +854,7 @@ void FullSystem::flagPointsForRemoval()
 			PointHessian* ph = host->pointHessians[i];
 			if(ph==0) continue;
 
+			//* 丢掉相机后面, 没有残差的点
 			if(ph->idepth_scaled < setting_minIdepth || ph->residuals.size()==0)
 			{
 				host->pointHessiansOut.push_back(ph);
@@ -820,9 +862,12 @@ void FullSystem::flagPointsForRemoval()
 				host->pointHessians[i]=0;
 				flag_nores++;
 			}
+            //* 把边缘化的帧上的点, 以及受影响较大的点标记为边缘化or删除
 			else if(ph->isOOB(fhsToKeepPoints, fhsToMargPoints) || host->flaggedForMarginalization)
 			{
 				flag_oob++;
+                //TODO* 如果是一个内点, 则把残差在当前状态线性化, 并计算到零点残差
+                // (pose和内参用的fej，idp，ab和梯度用的最新状态的雅可比 )
 				if(ph->isInlierNew())
 				{
 					flag_in++;
@@ -830,18 +875,20 @@ void FullSystem::flagPointsForRemoval()
 					for(PointFrameResidual* r : ph->residuals)
 					{
 						r->resetOOB();
-						r->linearize(&Hcalib);
+						r->linearize(&Hcalib);//TODO (pose和内参用的fej，idp，ab和梯度用的最新状态的雅可比 )
 						r->efResidual->isLinearized = false;
 						r->applyRes(true);
-						if(r->efResidual->isActive())
+                        // 如果是激活(可参与优化)的残差, 则给fix住, 计算res_toZeroF //TODO 雅可比不包含逆深度的部分 dim = 8, 6 dof pose + 2 dof affine
+						if(r->efResidual->isActive())//TODO 只有是内点时才会继续
 						{
 							r->efResidual->fixLinearizationF(ef);
 							ngoodRes++;
 						}
 					}
+                    //* 如果逆深度的协方差很大直接扔掉, 小的边缘化掉
                     if(ph->idepth_hessian > setting_minIdepthH_marg)
 					{
-						flag_inin++;
+						flag_inin++; //the bigger the hessian, the better the point
 						ph->efPoint->stateFlag = EFPointStatus::PS_MARGINALIZE;
 						host->pointHessiansMarginalized.push_back(ph);
 					}
@@ -853,6 +900,7 @@ void FullSystem::flagPointsForRemoval()
 
 
 				}
+                //* 不是内点直接扔掉
 				else
 				{
 					host->pointHessiansOut.push_back(ph);
@@ -866,7 +914,8 @@ void FullSystem::flagPointsForRemoval()
 			}
 		}
 
-
+        //* 删除边缘化或者删除的点
+        //!< contains all ACTIVE points.
 		for(int i=0;i<(int)host->pointHessians.size();i++)
 		{
 			if(host->pointHessians[i]==0)
@@ -879,7 +928,14 @@ void FullSystem::flagPointsForRemoval()
 	}
 
 }
-
+/********************************
+ * @ function:
+ *
+ * @ param: 	image		标定后的辐照度和曝光时间
+ * @			id
+ *
+ * @ note: start from here
+ *******************************/
 // The function is passed the IMU-data from the previous frame until the current frame.
 void FullSystem::addActiveFrame(ImageAndExposure* image, int id, dmvio::IMUData* imuData, dmvio::GTData* gtData)
 {
@@ -888,12 +944,13 @@ void FullSystem::addActiveFrame(ImageAndExposure* image, int id, dmvio::IMUData*
     dmvio::TimeMeasurement timeMeasurementZero("zero");
     timeMeasurementZero.end();
     timeMeasurementMeasurement.end();
-
+    //[ ***step 1*** ] track线程锁
     dmvio::TimeMeasurement timeMeasurement("addActiveFrame");
 	boost::unique_lock<boost::mutex> lock(trackMutex);
 
 
 	dmvio::TimeMeasurement measureInit("initObjectsAndMakeImage");
+    //[ ***step 2*** ] 创建FrameHessian和FrameShell, 并进行相应初始化, 并存储所有帧
 	// =========================== add into allFrameHistory =========================
 	FrameHessian* fh = new FrameHessian();
 	FrameShell* shell = new FrameShell();
@@ -906,16 +963,17 @@ void FullSystem::addActiveFrame(ImageAndExposure* image, int id, dmvio::IMUData*
 	fh->shell = shell;
 	allFrameHistory.push_back(shell);
 
-
+    //[ ***step 3*** ] 得到曝光时间, 生成金字塔, 计算整个图像梯度
     // =========================== make Images / derivatives etc. =========================
 	fh->ab_exposure = image->exposure_time;
 	fh->makeImages(image->image, &Hcalib);//TODO generate pyraid, gamma correction, generate gradient
 
     measureInit.end();
-
+    //[ ***step 4*** ] 进行初始化
 	if(!initialized)
 	{
 		// use initializer!
+        //[ ***step 4.1*** ] 加入第一帧
 		if(coarseInitializer->frameID<0)	// first frame set. fh is kept by coarseInitializer.
 		{
             // Only in this case no IMU-data is accumulated for the BA as this is the first frame.
@@ -943,6 +1001,7 @@ void FullSystem::addActiveFrame(ImageAndExposure* image, int id, dmvio::IMUData*
 			}
             if (initDone)    // if SNAPPED
             {
+                //[ ***step 4.2*** ] 跟踪成功, 完成初始化
                 initializeFromInitializer(fh);
                 if(setting_useIMU && linearizeOperation)
                 {
@@ -978,7 +1037,7 @@ void FullSystem::addActiveFrame(ImageAndExposure* image, int id, dmvio::IMUData*
 	    // --------------------------  Coarse tracking (after visual initializer succeeded). --------------------------
         dmvio::TimeMeasurement coarseTrackingTime("fullCoarseTracking");
 		int lastFrameId = -1;
-
+        //[ ***step 5*** ] 对新来的帧进行跟踪, 得到位姿光度, 判断跟踪状态
 		// =========================== SWAP tracking reference?. =========================
 		bool trackingRefChanged = false;
 		if(coarseTracker_forNewKF->refFrameID > coarseTracker->refFrameID)
@@ -1020,7 +1079,7 @@ void FullSystem::addActiveFrame(ImageAndExposure* image, int id, dmvio::IMUData*
             }
             imuIntegration.addIMUDataToBA(*imuData);
         }
-
+        //TODO 使用旋转和位移对像素移动的作用比来判断运动状态
         std::pair<Vec4, bool> pair = trackNewCoarse(fh, referenceToFramePassed);
         {
 //            fh->shell->camToWorld;
@@ -1053,8 +1112,9 @@ void FullSystem::addActiveFrame(ImageAndExposure* image, int id, dmvio::IMUData*
         }
 
         double timeSinceLastKeyframe = fh->shell->timestamp - allKeyFramesHistory.back()->timestamp;
+        //[ ***step 6*** ] 判断是否插入关键帧
 		bool needToMakeKF = false;
-		if(setting_keyframesPerSecond > 0)
+		if(setting_keyframesPerSecond > 0)    // 每隔多久插入关键帧
 		{
 			needToMakeKF = allFrameHistory.size()== 1 ||
 					(fh->shell->timestamp - allKeyFramesHistory.back()->timestamp) > 0.95f/setting_keyframesPerSecond;
@@ -1133,11 +1193,13 @@ void FullSystem::addActiveFrame(ImageAndExposure* image, int id, dmvio::IMUData*
 
         lock.unlock();
         timeLastStuff.end();
+        //[ ***step 7*** ] 把该帧发布出去
         coarseTrackingTime.end();
 		deliverTrackedFrame(fh, needToMakeKF);
 		return;
 	}
 }
+//TODO 把跟踪的帧, 给到建图线程, 设置成关键帧或非关键帧
 void FullSystem::deliverTrackedFrame(FrameHessian* fh, bool needKF)
 {
     dmvio::TimeMeasurement timeMeasurement("deliverTrackedFrame");
@@ -1189,7 +1251,7 @@ void FullSystem::deliverTrackedFrame(FrameHessian* fh, bool needKF)
 		else handleKey( IOWrap::waitKey(1) );
 
 
-
+//TODO important entrance, marginalization and sliding window optimization are done in this function
 		if(needKF)
 		{
             if(setting_useIMU)
@@ -1341,21 +1403,28 @@ void FullSystem::makeNonKeyFrame( FrameHessian* fh)
     dmvio::TimeMeasurement timeMeasurement("makeNonKeyframe");
 	// needs to be set by mapping thread. no lock required since we are in mapping thread.
 	{
-		boost::unique_lock<boost::mutex> crlock(shellPoseMutex);
+		boost::unique_lock<boost::mutex> crlock(shellPoseMutex);//TODO 生命周期结束后自动解锁
 		assert(fh->shell->trackingRef != 0);
+        // mapping时将它当前位姿取出来得到camToWorld
 		fh->shell->camToWorld = fh->shell->trackingRef->camToWorld * fh->shell->camToTrackingRef;
+        /// 同时更新nullspace
 		fh->setEvalPT_scaled(fh->shell->camToWorld.inverse(),fh->shell->aff_g2l);
 	}
-
+//TODO entrance, overload "traceNewCoarse"
 	traceNewCoarse(fh);
+    //TODO 这个delete是为啥，把指针删掉了，那这块地址谁来指向？我以后要访问地址里的变量怎么办？
+    //TODO 明白了，这是non-keyframe，旨在更新keyframe的idepth interval，none-keyframe的数据之后不会再访问了，它的使命已经完成
 	delete fh;
 }
-
+//@ 生成关键帧, 优化, 激活点, 提取点, 边缘化关键帧
 void FullSystem::makeKeyFrame( FrameHessian* fh)
 {
     dmvio::TimeMeasurement timeMeasurement("makeKeyframe");
+    //[ ***step 1*** ] 设置当前估计的fh的位姿, 光度参数
 	// needs to be set by mapping thread
 	{
+        // 同样取出位姿, 当前的作为最终值
+        //? 为啥要从shell来设置 ???   答: 因为shell不删除, 而且参考帧还会被优化, shell是桥梁
 		boost::unique_lock<boost::mutex> crlock(shellPoseMutex);
 		assert(fh->shell->trackingRef != 0);
 		fh->shell->camToWorld = fh->shell->trackingRef->camToWorld * fh->shell->camToTrackingRef;
@@ -1367,28 +1436,33 @@ void FullSystem::makeKeyFrame( FrameHessian* fh)
             std::cout << "Frames between KFs: " << framesBetweenKFs << std::endl;
         }
     }
+//[ ***step 2*** ] 把这一帧来更新之前帧的未成熟点
+/// 不同于non-keyframe，这里是keyframe，所以不会delete fh
+    //TODO depth filter
+	traceNewCoarse(fh);  // 更新未成熟点(深度未收敛的点)
 
-	traceNewCoarse(fh);
-
-	boost::unique_lock<boost::mutex> lock(mapMutex);
-
+	boost::unique_lock<boost::mutex> lock(mapMutex); // 建图锁
+//[ ***step 3*** ] 选择要边缘化掉的帧
 	// =========================== Flag Frames to be Marginalized. =========================
-	flagFramesForMarginalization(fh);
+    //TODO Marginalization  entrance
+	flagFramesForMarginalization(fh); // TODO 这里没用最新帧，可以改进下
 
-
+//[ ***step 4*** ] 加入到关键帧序列
 	// =========================== add New Frame to Hessian Struct. =========================
-    dmvio::TimeMeasurement timeMeasurementAddFrame("newFrameAndNewResidualsForOldPoints");
+    /// sliding window size, roughly around 7
+	dmvio::TimeMeasurement timeMeasurementAddFrame("newFrameAndNewResidualsForOldPoints");
 	fh->idx = frameHessians.size();
 	frameHessians.push_back(fh);
 	fh->frameID = allKeyFramesHistory.size();
     fh->shell->keyframeId = fh->frameID;
 	allKeyFramesHistory.push_back(fh->shell);
+    //TODO@ 向能量函数中增加一帧, 进行的操作: 改变正规方程(绝对pose的雅可比转成相对pose的雅可比), 重新排ID, 共视关系
 	ef->insertFrame(fh, &Hcalib);
+    //TODO 每添加一个关键帧都会运行这个来设置位姿, 设置位姿线性化点, fix linearization point
+	setPrecalcValues();	// 每添加一个关键帧都会运行这个来设置位姿, 设置位姿线性化点
 
-	setPrecalcValues();
 
-
-
+//[ ***step 5*** ] 构建之前关键帧与当前帧fh的残差(旧的), or before optimization
 	// =========================== add new residuals for old points =========================
 	int numFwdResAdde=0;
 	for(FrameHessian* fh1 : frameHessians)		// go through all active frames
@@ -1396,22 +1470,27 @@ void FullSystem::makeKeyFrame( FrameHessian* fh)
 		if(fh1 == fh) continue;
 		for(PointHessian* ph : fh1->pointHessians)
 		{
-			PointFrameResidual* r = new PointFrameResidual(ph, fh1, fh);
+			PointFrameResidual* r = new PointFrameResidual(ph, fh1, fh); // 新建当前帧fh和之前帧之间的残差
+            /// 这时J只是开辟了空间，还没有赋值, 初值为0
+            //  printf("r->J->resF[0]: %f \n",r->J->resF[0]);
+            //  printf("r->J->resF(0): %f \n",r->J->resF(0));
 			r->setState(ResState::IN);
 			ph->residuals.push_back(r);
 			ef->insertResidual(r);
-			ph->lastResiduals[1] = ph->lastResiduals[0];
-			ph->lastResiduals[0] = std::pair<PointFrameResidual*, ResState>(r, ResState::IN);
+			ph->lastResiduals[1] = ph->lastResiduals[0]; // 设置上上个残差
+			ph->lastResiduals[0] = std::pair<PointFrameResidual*, ResState>(r, ResState::IN); // 当前的设置为上一个
 			numFwdResAdde+=1;
 		}
 	}
 
     timeMeasurementAddFrame.end();
 
-
+///[ ***step 6*** ] 激活所有关键帧上的部分未成熟点(构造新的残差)
+/// 开始往上面开辟的空间中填入残差，雅可比(no, not yet right?)
 	// =========================== Activate Points (& flag for marginalization). =========================
+    //TODO triangulate immature points to active PointHessian
 	activatePointsMT();
-	ef->makeIDX();
+	ef->makeIDX(); // ? 为啥要重新设置ID呢, 是因为加新的帧了么
 
 
 
@@ -1423,20 +1502,22 @@ void FullSystem::makeKeyFrame( FrameHessian* fh)
     }
 
 	// =========================== OPTIMIZE ALL =========================
-
-	fh->frameEnergyTH = frameHessians.back()->frameEnergyTH;
+    //[ ***step 7*** ] 对滑窗内的关键帧进行优化(说的轻松, 里面好多问题)
+    //TODO sliding window optimization entrance
+	fh->frameEnergyTH = frameHessians.back()->frameEnergyTH; // 这两个不是一个值么???
 	float rmse = optimize(setting_maxOptIterations);
 
 
 
 
 	// =========================== Figure Out if INITIALIZATION FAILED =========================
+    //* 所有的关键帧数小于4，认为还是初始化，此时残差太大认为初始化失败
 	if(allKeyFramesHistory.size() <= 4)
 	{
 		if(allKeyFramesHistory.size()==2 && rmse > 20*benchmark_initializerSlackFactor)
 		{
 			printf("I THINK INITIALIZATINO FAILED! Resetting.\n");
-			initFailed=true;
+			initFailed=true; // 优化后的能量函数太大, 认为是跟丢了
 		}
 		if(allKeyFramesHistory.size()==3 && rmse > 13*benchmark_initializerSlackFactor)
 		{
@@ -1450,8 +1531,9 @@ void FullSystem::makeKeyFrame( FrameHessian* fh)
 		}
 	}
 
-
+//[ ***step 8*** ] 去除外点, 把最新帧设置为参考帧
 	// =========================== REMOVE OUTLIER =========================
+    //TODO 是否可以更加严格一些
 	removeOutliers();
 
 
@@ -1470,7 +1552,7 @@ void FullSystem::makeKeyFrame( FrameHessian* fh)
         {
             imuReady = imuIntegration.finishKeyframeOptimization(fh->shell->id);
         }
-
+//TODO 之前插入新关键帧，两个tracker指针内容交换了一下，这里给_forNewKF赋上新的内容
         coarseTracker_forNewKF->makeK(&Hcalib);
 		coarseTracker_forNewKF->setCoarseTrackingRef(frameHessians);
 
@@ -1496,11 +1578,12 @@ void FullSystem::makeKeyFrame( FrameHessian* fh)
     imuUsedBefore = imuReady;
 
 
-
+//[ ***step 9*** ] 标记删除和边缘化的点, 并删除&边缘化
     // =========================== (Activate-)Marginalize Points =========================
     dmvio::TimeMeasurement timeMeasurementMarginalizePoints("marginalizeAndRemovePoints");
-	flagPointsForRemoval();
-	ef->dropPointsF();
+	flagPointsForRemoval();// TODO 这里要把残差恢复至fej状态的（现在的残差是最新状态的，会小于fej状态下的残差，现在就是要让残差变大）
+	ef->dropPointsF();     // TODO 扔掉drop的点 刚只扔了pointhessian，后端的能量函数还没扔掉，现在也把ef扔掉
+    //TODO 每次设置线性化点都会更新零空间, 因为刚删掉了一帧，所以要再更新一下零空间
 	getNullspaces(
 			ef->lastNullspaces_pose,
 			ef->lastNullspaces_scale,
@@ -1509,9 +1592,10 @@ void FullSystem::makeKeyFrame( FrameHessian* fh)
 	ef->marginalizePointsF();
 	timeMeasurementMarginalizePoints.end();
 
-
+//[ ***step 10*** ] 生成新的点
 	// =========================== add new Immature points & new residuals =========================
-	makeNewTraces(fh, 0);
+    //TODO [detect new points]
+	makeNewTraces(fh, 0);//TODO 刚去掉了一些点，现在肯定要再提一些点,  并且现在还是新插了关键帧，得保证又足够的immaturePoints去支持我的地图
 
 
 
@@ -1526,7 +1610,9 @@ void FullSystem::makeKeyFrame( FrameHessian* fh)
 
 
     // =========================== Marginalize Frames =========================
-
+//[ ***step 11*** ] 边缘化掉关键帧
+    //* 边缘化一帧要删除or边缘化上面所有点
+    //TODO 刚marg了点，现在要marg帧
     dmvio::TimeMeasurement timeMeasurementMargFrames("marginalizeFrames");
 	for(unsigned int i=0;i<frameHessians.size();i++)
 		if(frameHessians[i]->flaggedForMarginalization)
@@ -1556,27 +1642,28 @@ void FullSystem::makeKeyFrame( FrameHessian* fh)
     }
 }
 
-
+//@ 从初始化中提取出信息, 用于跟踪.
 void FullSystem::initializeFromInitializer(FrameHessian* newFrame)
 {
 	boost::unique_lock<boost::mutex> lock(mapMutex);
-
+//[ ***step 1*** ] 把第一帧设置成关键帧, 加入队列, 加入EnergyFunctional
     // add firstframe.
-	FrameHessian* firstFrame = coarseInitializer->firstFrame;
-	firstFrame->idx = frameHessians.size();
-	frameHessians.push_back(firstFrame);
-	firstFrame->frameID = allKeyFramesHistory.size();
-	allKeyFramesHistory.push_back(firstFrame->shell);
+	FrameHessian* firstFrame = coarseInitializer->firstFrame;// 第一帧增加进地图
+	firstFrame->idx = frameHessians.size();// 赋值给它id (0开始)
+	frameHessians.push_back(firstFrame);// 地图内关键帧容器
+	firstFrame->frameID = allKeyFramesHistory.size();	// 所有历史关键帧id
+	allKeyFramesHistory.push_back(firstFrame->shell);// 所有历史关键帧
 	ef->insertFrame(firstFrame, &Hcalib);
-	setPrecalcValues();
+	///* 计算frameHessian的预计算值, 和状态的delta值
+	setPrecalcValues(); // 设置相对位姿预计算值
 
 	baIntegration->addFirstBAFrame(firstFrame->shell->id);
 
-	firstFrame->pointHessians.reserve(wG[0]*hG[0]*0.2f);
-	firstFrame->pointHessiansMarginalized.reserve(wG[0]*hG[0]*0.2f);
-	firstFrame->pointHessiansOut.reserve(wG[0]*hG[0]*0.2f);
+	firstFrame->pointHessians.reserve(wG[0]*hG[0]*0.2f);// 20%的点数目
+	firstFrame->pointHessiansMarginalized.reserve(wG[0]*hG[0]*0.2f);// 被边缘化
+	firstFrame->pointHessiansOut.reserve(wG[0]*hG[0]*0.2f);// 丢掉的点
 
-
+//[ ***step 2*** ] 求出平均尺度因子
 	float sumID=1e-5, numID=1e-5;
 
     double sumFirst = 0.0;
@@ -1584,7 +1671,8 @@ void FullSystem::initializeFromInitializer(FrameHessian* newFrame)
     int num = 0;
 	for(int i=0;i<coarseInitializer->numPoints[0];i++)
 	{
-		sumID += coarseInitializer->points[0][i].iR;
+	    //? iR的值到底是啥
+		sumID += coarseInitializer->points[0][i].iR;// 第0层点的中位值, 相当于
 		numID++;
 	}
 
@@ -1594,37 +1682,38 @@ void FullSystem::initializeFromInitializer(FrameHessian* newFrame)
     float rescaleFactor = 1;
 
 	rescaleFactor = 1 / (sumID / numID);
-
+    //[ ***step 4*** ] 设置第一帧和最新帧的待优化量, 参考帧
     SE3 firstToNew = coarseInitializer->thisToNext;
     std::cout << "Scaling with rescaleFactor: " << rescaleFactor << std::endl;
     firstToNew.translation() /= rescaleFactor;
 
 	// randomly sub-select the points I need.
+    // 目标点数 / 实际提取点数
 	float keepPercentage = setting_desiredPointDensity / coarseInitializer->numPoints[0];
 
     if(!setting_debugout_runquiet)
         printf("Initialization: keep %.1f%% (need %d, have %d)!\n", 100*keepPercentage,
                 (int)(setting_desiredPointDensity), coarseInitializer->numPoints[0] );
-
+    //[ ***step 3*** ] 创建PointHessian, 点加入关键帧, 加入EnergyFunctional
 	for(int i=0;i<coarseInitializer->numPoints[0];i++)
 	{
-		if(rand()/(float)RAND_MAX > keepPercentage) continue;
+		if(rand()/(float)RAND_MAX > keepPercentage) continue;// 如果提取的点比较少, 不执行; 提取的多, 则随机干掉
 
 		Pnt* point = coarseInitializer->points[0]+i;
 		ImmaturePoint* pt = new ImmaturePoint(point->u+0.5f,point->v+0.5f,firstFrame,point->my_type, &Hcalib);
 
-		if(!std::isfinite(pt->energyTH)) { delete pt; continue; }
+		if(!std::isfinite(pt->energyTH)) { delete pt; continue; }// 点值无穷大
 
-
+        // 创建ImmaturePoint就为了创建PointHessian? 是为了接口统一吧
 		pt->idepth_max=pt->idepth_min=1;
 		PointHessian* ph = new PointHessian(pt, &Hcalib);
 		delete pt;
 		if(!std::isfinite(ph->energyTH)) {delete ph; continue;}
 
-        ph->setIdepthScaled(point->iR * rescaleFactor);
-		ph->setIdepthZero(ph->idepth);
+        ph->setIdepthScaled(point->iR * rescaleFactor);//? 为啥设置的是scaled之后的
+		ph->setIdepthZero(ph->idepth);  //! 设置初始先验值, 还有神奇的求零空间方法
 		ph->hasDepthPrior=true;
-		ph->setPointStatus(PointHessian::ACTIVE);
+		ph->setPointStatus(PointHessian::ACTIVE); // 激活点
 
 		firstFrame->pointHessians.push_back(ph);
 		ef->insertPoint(ph);
@@ -1674,7 +1763,7 @@ void FullSystem::makeNewTraces(FrameHessian* newFrame, float* gtDepth)
 		if(selectionMap[i]==0) continue;
 
 		ImmaturePoint* impt = new ImmaturePoint(x,y,newFrame, selectionMap[i], &Hcalib);
-		if(!std::isfinite(impt->energyTH)) delete impt;
+		if(!std::isfinite(impt->energyTH)) delete impt; // 投影得到的不是有穷数
 		else newFrame->immaturePoints.push_back(impt);
 
 	}
@@ -1683,16 +1772,19 @@ void FullSystem::makeNewTraces(FrameHessian* newFrame, float* gtDepth)
 }
 
 
-
+//* 计算frameHessian的预计算值, 和状态的delta值
+//@ 设置关键帧之间的关系
 void FullSystem::setPrecalcValues()
 {
 	for(FrameHessian* fh : frameHessians)
 	{
-		fh->targetPrecalc.resize(frameHessians.size());
-		for(unsigned int i=0;i<frameHessians.size();i++)
-			fh->targetPrecalc[i].set(fh, frameHessians[i], &Hcalib);
+		fh->targetPrecalc.resize(frameHessians.size());// 每个目标帧预运算容器, 大小是关键帧数
+		for(unsigned int i=0;i<frameHessians.size();i++) {//? 还有自己和自己的???
+            ///@ 计算优化前和优化后的相对位姿, 相对光度变化, 及中间变量
+            fh->targetPrecalc[i].set(fh, frameHessians[i], &Hcalib);
+        }
 	}
-
+/// 这是为了后面使用固定线性化点吧（FEJ）
 	ef->setDeltaF(&Hcalib);
 }
 

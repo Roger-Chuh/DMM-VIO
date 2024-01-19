@@ -46,7 +46,7 @@ public:
 
 	PixelSelector(int w, int h);
 	~PixelSelector();
-	int currentPotential;
+	int currentPotential;//!< 当前选择像素点的潜力, 就是网格大小, 越大选点越少
 
 
 	bool allowFast;
@@ -60,9 +60,9 @@ private:
 	unsigned char* randomPattern;
 
 
-	int* gradHist;
-	float* ths;
-	float* thsSmoothed;
+	int* gradHist;//!< 根号梯度平方和分布直方图, 0是所有像素个数
+	float* ths;//!< 平滑之前的阈值
+	float* thsSmoothed;//!< 平滑后的阈值
 	int thsStep;
 	const FrameHessian* gradHistFrame;
 

@@ -185,7 +185,7 @@ namespace dso
 			{
 				int c = fd[i][0]*0.9f;
 				if(c>255) c=255;
-				img->at(i) = Vec3b(c,c,c);
+				img->at(i) = Vec3b(c,c,c); //TODO 把单通道图像变成三通道
 			}
 
 			if((int)(freeDebugParam5+0.5f) == 0)

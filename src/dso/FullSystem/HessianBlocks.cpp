@@ -31,11 +31,12 @@
 namespace dso
 {
 
-
+//@ 从ImmaturePoint构造函数, 不成熟点变地图点
+//PointHessian::point_counter_ = 0;
 PointHessian::PointHessian(const ImmaturePoint* const rawPoint, CalibHessian* Hcalib)
 {
 	instanceCounter++;
-	host = rawPoint->host;
+	host = rawPoint->host;// 主帧
 	hasDepthPrior=false;
 
 	idepth_hessian=0;
@@ -48,38 +49,43 @@ PointHessian::PointHessian(const ImmaturePoint* const rawPoint, CalibHessian* Hc
 	assert(std::isfinite(rawPoint->idepth_max));
 	//idepth_init = rawPoint->idepth_GT;
 
-	my_type = rawPoint->my_type;
+	my_type = rawPoint->my_type;//似乎是显示用的
 
-	setIdepthScaled((rawPoint->idepth_max + rawPoint->idepth_min)*0.5);
+	setIdepthScaled((rawPoint->idepth_max + rawPoint->idepth_min)*0.5);//深度均值
 	setPointStatus(PointHessian::INACTIVE);
 
 	int n = patternNum;
-	memcpy(color, rawPoint->color, sizeof(float)*n);
+	memcpy(color, rawPoint->color, sizeof(float)*n);// 一个点对应8个像素
 	memcpy(weights, rawPoint->weights, sizeof(float)*n);
 	energyTH = rawPoint->energyTH;
 
-	efPoint=0;
+	efPoint=0;// 指针=0
 
 
 }
 
-
+//@ 释放residual
 void PointHessian::release()
 {
 	for(unsigned int i=0;i<residuals.size();i++) delete residuals[i];
 	residuals.clear();
 }
 
-
+//@ 设置固定线性化点位置的状态
+//TODO 后面求nullspaces地方没看懂, 回头再看<2019.09.18> 数学原理是啥?
 void FrameHessian::setStateZero(const Vec10 &state_zero)
-{
+{//! 前六维位姿必须是0
 	assert(state_zero.head<6>().squaredNorm() < 1e-20);
 
 	this->state_zero = state_zero;
 
-
+//! 感觉这个nullspaces_pose就是 Adj_T
+        //! Exp(Adj_T*zeta)=T*Exp(zeta)*T^{-1}
+        // 全局转为局部的，左乘边右乘
+        //! T_c_w * delta_T_g * T_c_w_inv = delta_T_l
+        //TODO 这个是数值求导的方法么???
 	for(int i=0;i<6;i++)
-	{
+	{//TODO 一个整扰动，一个负扰动，然后把它变换到local系下, w.r.t. pose
 		Vec6 eps; eps.setZero(); eps[i] = 1e-3;
 		SE3 EepsP = Sophus::SE3::exp(eps);
 		SE3 EepsM = Sophus::SE3::exp(-eps);
@@ -91,6 +97,9 @@ void FrameHessian::setStateZero(const Vec10 &state_zero)
 	//nullspaces_pose.bottomRows<3>() *= SCALE_XI_ROT_INVERSE;
 
 	// scale change
+        //? rethink
+        // scale change
+        //TODO 一个整扰动，一个负扰动，然后把它变换到local系下 w.r.t scale
 	SE3 w2c_leftEps_P_x0 = (get_worldToCam_evalPT());
 	w2c_leftEps_P_x0.translation() *= 1.00001;
 	w2c_leftEps_P_x0 = w2c_leftEps_P_x0 * get_worldToCam_evalPT().inverse();
@@ -124,38 +133,43 @@ void FrameHessian::release()
 	immaturePoints.clear();
 }
 
-
+//* 计算各层金字塔图像的像素值和梯度
 void FrameHessian::makeImages(float* color, CalibHessian* HCalib)
 {
-
+// 每一层创建图像值, 和图像梯度的存储空间
 	for(int i=0;i<pyrLevelsUsed;i++)
 	{
+        ///* 图像导数[0]:辐照度  [1]:x方向导数  [2]:y方向导数, （指针表示图像）
 		dIp[i] = new Eigen::Vector3f[wG[i]*hG[i]]; //TODO image size at each pyr level
 		absSquaredGrad[i] = new float[wG[i]*hG[i]];
 	}
-	dI = dIp[0]; //TODO assign pointer
+	dI = dIp[0]; //TODO assign pointer // 原来他们指向同一个地方
 
 
 	// make d0
-	int w=wG[0];
-	int h=hG[0];
-	for(int i=0;i<w*h;i++)
-		dI[i][0] = color[i];
+	int w=wG[0];// 零层weight
+	int h=hG[0];// 零层height
+	for(int i=0;i<w*h;i++) {
+        /// here assign the color image inside dI. this color only takes one dimension, grey scale?
+        ///       // note that dI is wG*hG*3. this dI[i][0] only assigned color to the first dimension.
+        ///overwrite第一个channel的数据
+        dI[i][0] = color[i];
+    }
 
 	for(int lvl=0; lvl<pyrLevelsUsed; lvl++)
 	{
-		int wl = wG[lvl], hl = hG[lvl];
+		int wl = wG[lvl], hl = hG[lvl];// 该层图像大小
 		Eigen::Vector3f* dI_l = dIp[lvl];
 
 		float* dabs_l = absSquaredGrad[lvl];
 		if(lvl>0)
 		{
 			int lvlm1 = lvl-1;
-			int wlm1 = wG[lvlm1];
+			int wlm1 = wG[lvlm1];// 列数
 			Eigen::Vector3f* dI_lm = dIp[lvlm1];
 
 
-
+// 像素4合1, 生成金字塔
 			for(int y=0;y<hl;y++)
 				for(int x=0;x<wl;x++)
 				{
@@ -166,7 +180,7 @@ void FrameHessian::makeImages(float* color, CalibHessian* HCalib)
 				}
 		}
 
-		for(int idx=wl;idx < wl*(hl-1);idx++)
+		for(int idx=wl;idx < wl*(hl-1);idx++)// 第二行开始
 		{
 			float dx = 0.5f*(dI_l[idx+1][0] - dI_l[idx-1][0]);
 			float dy = 0.5f*(dI_l[idx+wl][0] - dI_l[idx-wl][0]);
@@ -175,38 +189,43 @@ void FrameHessian::makeImages(float* color, CalibHessian* HCalib)
 			if(!std::isfinite(dx)) dx=0;
 			if(!std::isfinite(dy)) dy=0;
 
-			dI_l[idx][1] = dx;
+			dI_l[idx][1] = dx; // 梯度
 			dI_l[idx][2] = dy;
 
 
-			dabs_l[idx] = dx*dx+dy*dy;
+			dabs_l[idx] = dx*dx+dy*dy;// 梯度平方
 
 			if(setting_gammaWeightsPixelSelect==1 && HCalib!=0)
 			{
+                //! 乘上响应函数, 变换回正常的颜色, 因为光度矫正时 I = G^-1(I) / V(x)
 				float gw = HCalib->getBGradOnly((float)(dI_l[idx][0]));
 				dabs_l[idx] *= gw*gw;	//TODO convert to gradient of original color space (before removing response, i.e. before compensate affine param a b).
 			}
 		}
 	}
 }
-
+//@ 计算优化前和优化后的相对位姿, 相对光度变化, 及中间变量
 void FrameFramePrecalc::set(FrameHessian* host, FrameHessian* target, CalibHessian* HCalib )
 {
-	this->host = host;
+	this->host = host;// 这个是赋值, 计数会增加, 不是拷贝
 	this->target = target;
-
+    if(host->frameID == target->frameID){
+        printf(" host and target has the same frameID\n");
+    }
+    //? 实在不懂leftToleft_0这个名字怎么个含义
+    // 优化前host target间位姿变换
 	SE3 leftToLeft_0 = target->get_worldToCam_evalPT() * host->get_worldToCam_evalPT().inverse();
 	PRE_RTll_0 = (leftToLeft_0.rotationMatrix()).cast<float>();
 	PRE_tTll_0 = (leftToLeft_0.translation()).cast<float>();
     // std::cout<<"PRE_tTll_0: "<<PRE_tTll_0.transpose()<<std::endl;
 
-
+// 优化后host到target间位姿变换
 	SE3 leftToLeft = target->PRE_worldToCam * host->PRE_camToWorld;
 	PRE_RTll = (leftToLeft.rotationMatrix()).cast<float>();
 	PRE_tTll = (leftToLeft.translation()).cast<float>();
 	distanceLL = leftToLeft.translation().norm();
 
-
+// 乘上内参, 中间量?
 	Mat33f K = Mat33f::Zero();
 	K(0,0) = HCalib->fxl();
 	K(1,1) = HCalib->fyl();
@@ -217,8 +236,10 @@ void FrameFramePrecalc::set(FrameHessian* host, FrameHessian* target, CalibHessi
 	PRE_RKiTll = PRE_RTll * K.inverse();
 	PRE_KtTll = K * PRE_tTll;
 
-
+// 光度仿射值
+        //TODO 这是两帧相对的a和b，
 	PRE_aff_mode = AffLight::fromToVecExposure(host->ab_exposure, target->ab_exposure, host->aff_g2l(), target->aff_g2l()).cast<float>();
+        //TODO 这是host帧绝对的b
 	PRE_b0_mode = host->aff_g2l_0().b;
 }
 

@@ -107,11 +107,11 @@ public:
 
   inline void finish()
   {
-	shiftUp(true);
+	shiftUp(true); // 都进位到 m
 	A=SSEData1m[0+0] + SSEData1m[0+1] + SSEData1m[0+2] + SSEData1m[0+3];
   }
 
-
+// 加4个字节以内
   inline void updateSingle(
 		  const float val)
   {
@@ -119,7 +119,7 @@ public:
 	  num++; numIn1++;
 	  shiftUp(false);
   }
-
+// 加16个字节
   inline void updateSSE(
 		  const __m128 val)
   {
@@ -147,15 +147,16 @@ public:
 
 
 private:
-  EIGEN_ALIGN16 float SSEData[4*1];
+  EIGEN_ALIGN16 float SSEData[4*1];// 16字节
   EIGEN_ALIGN16 float SSEData1k[4*1];
   EIGEN_ALIGN16 float SSEData1m[4*1];
   float numIn1, numIn1k, numIn1m;
 
-
+//* 进位
   void shiftUp(bool force)
   {
-	  if(numIn1 > 1000 || force)
+      // 大于1000, 相加则进位到 k
+	  if(numIn1 > 1000 || force) //? 为啥1000次就要进位, 答: 只要不超过128位就行, 一个大概的数, 1000个32位的相加, 肯定超不了
 	  {
 		  _mm_store_ps(SSEData1k, _mm_add_ps(_mm_load_ps(SSEData),_mm_load_ps(SSEData1k)));
 		  numIn1k+=numIn1; numIn1=0;
@@ -242,7 +243,7 @@ private:
 
 
 
-
+// 14 个变量情况
 class Accumulator14
 {
 public:
@@ -256,6 +257,7 @@ public:
   {
 	H.setZero();
 	b.setZero();
+      //! (14*14 - 14)/2 + 14 hessian 只需要计算一半
     memset(SSEData,0, sizeof(float)*4*105);
     memset(SSEData1k,0, sizeof(float)*4*105);
     memset(SSEData1m,0, sizeof(float)*4*105);
@@ -592,6 +594,7 @@ private:
  * (assuming x,y are column-vectors).
  * numerically robust to large sums.
  */
+//@ 这也没怎么用SSE都是直接算了
 class AccumulatorApprox
 {
 public:
@@ -602,14 +605,15 @@ public:
 
   inline void initialize()
   {
+      //! 左上角10*10, 55个值(有对称)
 	memset(Data,0, sizeof(float)*60);
 	memset(Data1k,0, sizeof(float)*60);
 	memset(Data1m,0, sizeof(float)*60);
-
+//! 右上角10*3, 30个值
 	memset(TopRight_Data,0, sizeof(float)*32);
 	memset(TopRight_Data1k,0, sizeof(float)*32);
 	memset(TopRight_Data1m,0, sizeof(float)*32);
-
+//! 右下角3*3, 6个值(有对称)
 	memset(BotRight_Data,0, sizeof(float)*8);
 	memset(BotRight_Data1k,0, sizeof(float)*8);
 	memset(BotRight_Data1m,0, sizeof(float)*8);
@@ -653,7 +657,7 @@ inline void finish()
 
 
 
-
+    //@ [x, y]分别是10维向量, [a, c]是公共项对角线, [b]是公共项交叉项
   inline void updateSSE(
 		  const float* const x,
 		  const float* const y,
@@ -846,7 +850,7 @@ inline void finish()
 	  shiftUp(false);
   }
 
-
+//@ 计算10*3部分
   inline void updateTopRight(
 		  const float* const x4,
 		  const float* const x6,
@@ -978,7 +982,7 @@ private:
 
 
 
-
+// 9个变量的情况
 class Accumulator9
 {
 public:
@@ -992,7 +996,7 @@ public:
   {
 	H.setZero();
 	b.setZero();
-    memset(SSEData,0, sizeof(float)*4*45);
+    memset(SSEData,0, sizeof(float)*4*45);// 会对128位, 16字节进行对齐, 因此每个数用4个float存
     memset(SSEData1k,0, sizeof(float)*4*45);
     memset(SSEData1m,0, sizeof(float)*4*45);
     num = numIn1 = numIn1k = numIn1m = 0;
@@ -1001,11 +1005,12 @@ public:
   inline void finish()
   {
 	H.setZero();
-	shiftUp(true);
+	shiftUp(true); // 强制进位到m
 	assert(numIn1==0);
 	assert(numIn1k==0);
 
 	int idx=0;
+      //* H矩阵是对称的, 只有45个数值
 	for(int r=0;r<9;r++)
 		for(int c=r;c<9;c++)
 		{
@@ -1016,7 +1021,7 @@ public:
 	  assert(idx==4*45);
   }
 
-
+// 计算一个9维向量相乘, 得到9*9矩阵
   inline void updateSSE(
 		  const __m128 J0,const __m128 J1,
 		  const __m128 J2,const __m128 J3,
@@ -1024,7 +1029,9 @@ public:
 		  const __m128 J6,const __m128 J7,
 		  const __m128 J8)
   {
+      // 一共45个值
 	  float* pt=SSEData;
+      // 第一行9个值
 	  _mm_store_ps(pt, _mm_add_ps(_mm_load_ps(pt),_mm_mul_ps(J0,J0))); pt+=4;
 	  _mm_store_ps(pt, _mm_add_ps(_mm_load_ps(pt),_mm_mul_ps(J0,J1))); pt+=4;
 	  _mm_store_ps(pt, _mm_add_ps(_mm_load_ps(pt),_mm_mul_ps(J0,J2))); pt+=4;
@@ -1034,7 +1041,7 @@ public:
 	  _mm_store_ps(pt, _mm_add_ps(_mm_load_ps(pt),_mm_mul_ps(J0,J6))); pt+=4;
 	  _mm_store_ps(pt, _mm_add_ps(_mm_load_ps(pt),_mm_mul_ps(J0,J7))); pt+=4;
 	  _mm_store_ps(pt, _mm_add_ps(_mm_load_ps(pt),_mm_mul_ps(J0,J8))); pt+=4;
-
+// 第二行8个, 因为对称
 	  _mm_store_ps(pt, _mm_add_ps(_mm_load_ps(pt),_mm_mul_ps(J1,J1))); pt+=4;
 	  _mm_store_ps(pt, _mm_add_ps(_mm_load_ps(pt),_mm_mul_ps(J1,J2))); pt+=4;
 	  _mm_store_ps(pt, _mm_add_ps(_mm_load_ps(pt),_mm_mul_ps(J1,J3))); pt+=4;
@@ -1080,14 +1087,14 @@ public:
 	  _mm_store_ps(pt, _mm_add_ps(_mm_load_ps(pt),_mm_mul_ps(J8,J8))); pt+=4;
 
 	  num+=4;
-	  numIn1++;
+	  numIn1++;// 乘一次加一
 	  shiftUp(false);
   }
 
 
 
 
-
+// 带权重的9维向量得到9*9矩阵
   inline void updateSSE_eighted(
 		  const __m128 J0,const __m128 J1,
 		  const __m128 J2,const __m128 J3,
@@ -1165,7 +1172,7 @@ public:
 	  shiftUp(false);
   }
 
-
+// 不使用_m128来计算
   inline void updateSingle(
 		  const float J0,const float J1,
 		  const float J2,const float J3,
@@ -1238,7 +1245,7 @@ public:
 	  numIn1++;
 	  shiftUp(false);
   }
-
+// 不使用对齐加速的, 带有权重的
   inline void updateSingleWeighted(
 		  float J0, float J1,
 		  float J2, float J3,

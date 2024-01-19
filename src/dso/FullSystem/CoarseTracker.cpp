@@ -47,18 +47,18 @@
 namespace dso
 {
 
-
+//! 生成2^b个字节对齐
 template<int b, typename T>
 T* allocAligned(int size, std::vector<T*> &rawPtrVec)
 {
     const int padT = 1 + ((1 << b)/sizeof(T));
     T* ptr = new T[size + padT];
     rawPtrVec.push_back(ptr);
-    T* alignedPtr = (T*)(( ((uintptr_t)(ptr+padT)) >> b) << b);
+    T* alignedPtr = (T*)(( ((uintptr_t)(ptr+padT)) >> b) << b);//! 左移右移之后就会按照2的b次幂字节对齐, 丢掉不对齐的
     return alignedPtr;
 }
 
-
+//@ 构造函数, 申请内存, 初始化
 CoarseTracker::CoarseTracker(int ww, int hh, dmvio::IMUIntegration &imuIntegration) : lastRef_aff_g2l(0, 0), imuIntegration(imuIntegration)
 {
 	// make coarse tracking templates.
@@ -101,7 +101,8 @@ CoarseTracker::~CoarseTracker()
         delete[] ptr;
     ptrToDelete.clear();
 }
-
+//@ 构造内参矩阵, 以及一些中间量,
+//TODO  每个类都有这个, 直接用一个多好
 void CoarseTracker::makeK(CalibHessian* HCalib)
 {
 	w[0] = wG[0];
@@ -134,33 +135,36 @@ void CoarseTracker::makeK(CalibHessian* HCalib)
 }
 
 
-
+//@ 使用在当前帧上投影的点的逆深度, 来生成每个金字塔层上点的逆深度值
 void CoarseTracker::makeCoarseDepthL0(std::vector<FrameHessian*> frameHessians)
 {
 	// make coarse tracking templates for latstRef.
-	memset(idepth[0], 0, sizeof(float)*w[0]*h[0]);
+	memset(idepth[0], 0, sizeof(float)*w[0]*h[0]);// 第0层
 	memset(weightSums[0], 0, sizeof(float)*w[0]*h[0]);
+    //[ ***step 1*** ] 计算其它点在最新帧投影第0层上的各个像素的逆深度权重, 和加权逆深度
 
 	for(FrameHessian* fh : frameHessians)
 	{
 		for(PointHessian* ph : fh->pointHessians)
 		{
+            // 点的上一次残差正常
+            //* 优化之后上一次不好的置为0，用来指示，而点是没有删除的，残差删除了
 			if(ph->lastResiduals[0].first != 0 && ph->lastResiduals[0].second == ResState::IN)
 			{
 				PointFrameResidual* r = ph->lastResiduals[0].first;
-				assert(r->efResidual->isActive() && r->target == lastRef);
-				int u = r->centerProjectedTo[0] + 0.5f;
+				assert(r->efResidual->isActive() && r->target == lastRef);// 点的残差是好的, 上一次优化的target是这次的ref
+				int u = r->centerProjectedTo[0] + 0.5f;// 四舍五入
 				int v = r->centerProjectedTo[1] + 0.5f;
 				float new_idepth = r->centerProjectedTo[2];
-				float weight = sqrtf(1e-3 / (ph->efPoint->HdiF+1e-12));
+				float weight = sqrtf(1e-3 / (ph->efPoint->HdiF+1e-12));// 协方差逆做权重
 
-				idepth[0][u+w[0]*v] += new_idepth *weight;
+				idepth[0][u+w[0]*v] += new_idepth *weight;// 加权后的
 				weightSums[0][u+w[0]*v] += weight;
 			}
 		}
 	}
 
-
+//[ ***step 2*** ] 从下层向上层生成逆深度和权重
 	for(int lvl=1; lvl<pyrLevelsUsed; lvl++)
 	{
 		int lvlm1 = lvl-1;
@@ -176,6 +180,7 @@ void CoarseTracker::makeCoarseDepthL0(std::vector<FrameHessian*> frameHessians)
 			for(int x=0;x<wl;x++)
 			{
 				int bidx = 2*x   + 2*y*wlm1;
+                //? 为什么不除以4   答: 后面除以权重的和了 nice!
 				idepth_l[x + y*wl] = 		idepth_lm[bidx] +
 											idepth_lm[bidx+1] +
 											idepth_lm[bidx+wlm1] +
@@ -188,7 +193,7 @@ void CoarseTracker::makeCoarseDepthL0(std::vector<FrameHessian*> frameHessians)
 			}
 	}
 
-
+//[ ***step 3*** ] 0和1层 对于没有深度的像素点, 使用周围斜45度的四个点来填充
     // dilate idepth by 1.
 	for(int lvl=0; lvl<2; lvl++)
 	{
@@ -197,17 +202,19 @@ void CoarseTracker::makeCoarseDepthL0(std::vector<FrameHessian*> frameHessians)
 
 		for(int it=0;it<numIts;it++)
 		{
-			int wh = w[lvl]*h[lvl]-w[lvl];
+			int wh = w[lvl]*h[lvl]-w[lvl];// 空出一行
 			int wl = w[lvl];
 			float* weightSumsl = weightSums[lvl];
 			float* weightSumsl_bak = weightSums_bak[lvl];
-			memcpy(weightSumsl_bak, weightSumsl, w[lvl]*h[lvl]*sizeof(float));
+			memcpy(weightSumsl_bak, weightSumsl, w[lvl]*h[lvl]*sizeof(float));// 备份
 			float* idepthl = idepth[lvl];	// dotnt need to make a temp copy of depth, since I only
 											// read values with weightSumsl>0, and write ones with weightSumsl<=0.
-			for(int i=w[lvl]+1;i<wh-1;i++)
+			for(int i=w[lvl]+1;i<wh-1;i++) // 上下各空一行
 			{
 				if(weightSumsl_bak[i] <= 0)
 				{
+                    // 使用四个角上的点来填充没有深度的
+                    //bug: 对于竖直边缘上的点不太好把, 使用上两行的来计算
 					float sum=0, num=0, numn=0;
 					if(weightSumsl_bak[i+1+wl] > 0) { sum += idepthl[i+1+wl]; num+=weightSumsl_bak[i+1+wl]; numn++;}
 					if(weightSumsl_bak[i-1-wl] > 0) { sum += idepthl[i-1-wl]; num+=weightSumsl_bak[i-1-wl]; numn++;}
@@ -219,7 +226,7 @@ void CoarseTracker::makeCoarseDepthL0(std::vector<FrameHessian*> frameHessians)
 		}
 	}
 
-
+//[ ***step 4*** ] 2层向上, 对于没有深度的像素点, 使用上下左右的四个点来填充
 	// dilate idepth by 1 (2 on lower levels).
 	for(int lvl=2; lvl<pyrLevelsUsed; lvl++)
 	{
@@ -244,7 +251,7 @@ void CoarseTracker::makeCoarseDepthL0(std::vector<FrameHessian*> frameHessians)
 		}
 	}
 
-
+//[ ***step 5*** ] 归一化点的逆深度并赋值给成员变量pc_*
 	// normalize idepths and weights.
 	for(int lvl=0; lvl<pyrLevelsUsed; lvl++)
 	{
@@ -255,6 +262,8 @@ void CoarseTracker::makeCoarseDepthL0(std::vector<FrameHessian*> frameHessians)
 		int wl = w[lvl], hl = h[lvl];
 
 		int lpc_n=0;
+        //!!!! 指针, 只是把指针传过去, 怎么总想有没有赋值, 智障
+
 		float* lpc_u = pc_u[lvl];
 		float* lpc_v = pc_v[lvl];
 		float* lpc_idepth = pc_idepth[lvl];
@@ -266,7 +275,7 @@ void CoarseTracker::makeCoarseDepthL0(std::vector<FrameHessian*> frameHessians)
 			{
 				int i = x+y*wl;
 
-				if(weightSumsl[i] > 0)
+				if(weightSumsl[i] > 0)// 有值的
 				{
 					idepthl[i] /= weightSumsl[i];
 					lpc_u[lpc_n] = x;
@@ -286,7 +295,7 @@ void CoarseTracker::makeCoarseDepthL0(std::vector<FrameHessian*> frameHessians)
 				else
 					idepthl[i] = -1;
 
-				weightSumsl[i] = 1;
+				weightSumsl[i] = 1;// 求完就变成1了
 			}
 
 		pc_n[lvl] = lpc_n;
@@ -295,7 +304,7 @@ void CoarseTracker::makeCoarseDepthL0(std::vector<FrameHessian*> frameHessians)
 }
 
 
-
+//@ 对跟踪的最新帧和参考帧之间的残差, 求 Hessian 和 b
 void CoarseTracker::calcGSSSE(int lvl, Mat88 &H_out, Vec8 &b_out, const SE3 &refToNew, AffLight aff_g2l)
 {
 	acc.initialize();
@@ -313,34 +322,51 @@ void CoarseTracker::calcGSSSE(int lvl, Mat88 &H_out, Vec8 &b_out, const SE3 &ref
 	assert(n%4==0);
 	for(int i=0;i<n;i+=4)
 	{
-		__m128 dx = _mm_mul_ps(_mm_load_ps(buf_warped_dx+i), fxl);
-		__m128 dy = _mm_mul_ps(_mm_load_ps(buf_warped_dy+i), fyl);
+		__m128 dx = _mm_mul_ps(_mm_load_ps(buf_warped_dx+i), fxl);//! dx*fx
+		__m128 dy = _mm_mul_ps(_mm_load_ps(buf_warped_dy+i), fyl);//! dy*fy
 		__m128 u = _mm_load_ps(buf_warped_u+i);
 		__m128 v = _mm_load_ps(buf_warped_v+i);
 		__m128 id = _mm_load_ps(buf_warped_idepth+i);
 
 
 		acc.updateSSE_eighted(
-				_mm_mul_ps(id,dx),
-				_mm_mul_ps(id,dy),
+				_mm_mul_ps(id,dx),// 对位移x导数
+				_mm_mul_ps(id,dy),// 对位移y导数
 				_mm_sub_ps(zero, _mm_mul_ps(id,_mm_add_ps(_mm_mul_ps(u,dx), _mm_mul_ps(v,dy)))),
 				_mm_sub_ps(zero, _mm_add_ps(
 						_mm_mul_ps(_mm_mul_ps(u,v),dx),
-						_mm_mul_ps(dy,_mm_add_ps(one, _mm_mul_ps(v,v))))),
+						_mm_mul_ps(dy,_mm_add_ps(one, _mm_mul_ps(v,v))))),// 对旋转xi_1求导
 				_mm_add_ps(
 						_mm_mul_ps(_mm_mul_ps(u,v),dy),
-						_mm_mul_ps(dx,_mm_add_ps(one, _mm_mul_ps(u,u)))),
-				_mm_sub_ps(_mm_mul_ps(u,dy), _mm_mul_ps(v,dx)),
-				_mm_mul_ps(a,_mm_sub_ps(b0, _mm_load_ps(buf_warped_refColor+i))),
-				minusOne,
-				_mm_load_ps(buf_warped_residual+i),
-				_mm_load_ps(buf_warped_weight+i));
+						_mm_mul_ps(dx,_mm_add_ps(one, _mm_mul_ps(u,u)))),// 对旋转xi_2求导
+				_mm_sub_ps(_mm_mul_ps(u,dy), _mm_mul_ps(v,dx)),// 对旋转xi_3求导
+				_mm_mul_ps(a,_mm_sub_ps(b0, _mm_load_ps(buf_warped_refColor+i))),// 对目标帧a求导
+				minusOne,// 对目标帧b求导
+				_mm_load_ps(buf_warped_residual+i),// 残差
+				_mm_load_ps(buf_warped_weight+i));// huber权重
 	}
-
+// loop all the buffer and cumulate into H and b
+// acc will collect all values in the memory slots into one: H and b.
+        // remember the arrow shape on the paper:
+        /*      X is H, - is b.
+         *      R R R T T T a b -
+         *      x x x x x x x x -
+         *      x x x x x x x x -
+         *      x x x x x x x x -
+         *      x x x x x x x x -
+         *      x x x x x x x x -
+         *      x x x x x x x x -
+         *      x x x x x x x x -
+         *      - - - - - - - - 1
+         *
+         *      H is a matrix contains 8 directional column vectors
+         *      each column is 0-6 residual's jacobian of SE3,
+         * */
 	acc.finish();
 	H_out = acc.H.topLeftCorner<8,8>().cast<double>() * (1.0f/n);
 	b_out = acc.H.topRightCorner<8,1>().cast<double>() * (1.0f/n);
-
+// scale H and b.
+        /// H is a 8*8 matrix, the 8 rows are for 8 different directions (scratch that , it's obvious that H_out is an arrow shaped matrix)
 	H_out.block<8,3>(0,0) *= SCALE_XI_ROT;
 	H_out.block<8,3>(0,3) *= SCALE_XI_TRANS;
 	H_out.block<8,1>(0,6) *= SCALE_A;
@@ -357,7 +383,8 @@ void CoarseTracker::calcGSSSE(int lvl, Mat88 &H_out, Vec8 &b_out, const SE3 &ref
 
 
 
-
+//@ 计算当前位姿投影得到的残差(能量值), 并进行一些统计
+//! 构造尽量多的点, 有助于跟踪
 Vec6 CoarseTracker::calcRes(int lvl, const SE3 &refToNew, AffLight aff_g2l, float cutoffTH)
 {
 	float E = 0;
@@ -376,23 +403,24 @@ Vec6 CoarseTracker::calcRes(int lvl, const SE3 &refToNew, AffLight aff_g2l, floa
 
 	Mat33f RKi = (refToNew.rotationMatrix().cast<float>() * Ki[lvl]);
 	Vec3f t = (refToNew.translation()).cast<float>();
+    // 这个函数会把前后两帧的光度参数变成两个值
 	Vec2f affLL = AffLight::fromToVecExposure(lastRef->ab_exposure, newFrame->ab_exposure, lastRef_aff_g2l, aff_g2l).cast<float>();
 
 
 	float sumSquaredShiftT=0;
 	float sumSquaredShiftRT=0;
 	float sumSquaredShiftNum=0;
-
+// 经过huber函数后的能量阈值
 	float maxEnergy = 2*setting_huberTH*cutoffTH-setting_huberTH*setting_huberTH;	// energy for r=setting_coarseCutoffTH.
 
 
-    MinimalImageB3* resImage = 0;
+    MinimalImageB3* resImage = 0;// 自己定义的图像 nb
 	if(debugPlot)
 	{
 		resImage = new MinimalImageB3(wl,hl);
 		resImage->setConst(Vec3b(255,255,255));
 	}
-
+//* 投影在ref帧上的点
 	int nl = pc_n[lvl];
 	float* lpc_u = pc_u[lvl];
 	float* lpc_v = pc_v[lvl];
@@ -405,31 +433,32 @@ Vec6 CoarseTracker::calcRes(int lvl, const SE3 &refToNew, AffLight aff_g2l, floa
 		float id = lpc_idepth[i];
 		float x = lpc_u[i];
 		float y = lpc_v[i];
-
+//! 投影点
 		Vec3f pt = RKi * Vec3f(x, y, 1) + t*id;
-		float u = pt[0] / pt[2];
+		float u = pt[0] / pt[2];// 归一化坐标
 		float v = pt[1] / pt[2];
-		float Ku = fxl * u + cxl;
+		float Ku = fxl * u + cxl;// 像素坐标
 		float Kv = fyl * v + cyl;
-		float new_idepth = id/pt[2];
+		float new_idepth = id/pt[2];// 当前帧上的深度
 
-		if(lvl==0 && i%32==0)
+		if(lvl==0 && i%32==0) //* 第0层 每隔32个点
 		{
-			// translation only (positive)
+            //* 只正的平移 // translation only (positive)
 			Vec3f ptT = Ki[lvl] * Vec3f(x, y, 1) + t*id;
 			float uT = ptT[0] / ptT[2];
 			float vT = ptT[1] / ptT[2];
 			float KuT = fxl * uT + cxl;
 			float KvT = fyl * vT + cyl;
 
-			// translation only (negative)
+            //* 只负的平移// translation only (negative)
+            /// warpping
 			Vec3f ptT2 = Ki[lvl] * Vec3f(x, y, 1) - t*id;
 			float uT2 = ptT2[0] / ptT2[2];
 			float vT2 = ptT2[1] / ptT2[2];
 			float KuT2 = fxl * uT2 + cxl;
 			float KvT2 = fyl * vT2 + cyl;
 
-			//translation and rotation (negative)
+            //* 旋转+负的平移//translation and rotation (negative)
 			Vec3f pt3 = RKi * Vec3f(x, y, 1) - t*id;
 			float u3 = pt3[0] / pt3[2];
 			float v3 = pt3[1] / pt3[2];
@@ -438,21 +467,22 @@ Vec6 CoarseTracker::calcRes(int lvl, const SE3 &refToNew, AffLight aff_g2l, floa
 
 			//translation and rotation (positive)
 			//already have it.
-
+            //* 统计像素的移动大小
 			sumSquaredShiftT += (KuT-x)*(KuT-x) + (KvT-y)*(KvT-y);
 			sumSquaredShiftT += (KuT2-x)*(KuT2-x) + (KvT2-y)*(KvT2-y);
 			sumSquaredShiftRT += (Ku-x)*(Ku-x) + (Kv-y)*(Kv-y);
 			sumSquaredShiftRT += (Ku3-x)*(Ku3-x) + (Kv3-y)*(Kv3-y);
 			sumSquaredShiftNum+=2;
 		}
-
+//* 图像边沿, 深度为负 则跳过
 		if(!(Ku > 2 && Kv > 2 && Ku < wl-3 && Kv < hl-3 && new_idepth > 0)) continue;
 
 
-
+// 计算残差
 		float refColor = lpc_color[i];
         Vec3f hitColor = getInterpolatedElement33(dINewl, Ku, Kv, wl);
         if(!std::isfinite((float)hitColor[0])) continue;
+        /// 只算host点的残差，不算8个邻域内的残差了?
         float residual = hitColor[0] - (float)(affLL[0] * refColor + affLL[1]);
         float hw = fabs(residual) < setting_huberTH ? 1 : setting_huberTH / fabs(residual);
 
@@ -460,9 +490,9 @@ Vec6 CoarseTracker::calcRes(int lvl, const SE3 &refToNew, AffLight aff_g2l, floa
 		if(fabs(residual) > cutoffTH)
 		{
 			if(debugPlot) resImage->setPixel4(lpc_u[i], lpc_v[i], Vec3b(0,0,255));
-			E += maxEnergy;
-			numTermsInE++;
-			numSaturated++;
+			E += maxEnergy;// 能量值
+			numTermsInE++;// E 中数目
+			numSaturated++;// 大于阈值数目
 		}
 		else
 		{
@@ -470,7 +500,7 @@ Vec6 CoarseTracker::calcRes(int lvl, const SE3 &refToNew, AffLight aff_g2l, floa
 
 			E += hw *residual*residual*(2-hw);
 			numTermsInE++;
-
+//TODO 为凑雅可比buffer一些中间变量，这些变量不一定有明确物理含义
 			buf_warped_idepth[numTermsInWarped] = new_idepth;
 			buf_warped_u[numTermsInWarped] = u;
 			buf_warped_v[numTermsInWarped] = v;
@@ -482,7 +512,7 @@ Vec6 CoarseTracker::calcRes(int lvl, const SE3 &refToNew, AffLight aff_g2l, floa
 			numTermsInWarped++;
 		}
 	}
-
+//* 16字节对齐, 填充上
 	while(numTermsInWarped%4!=0)
 	{
 		buf_warped_idepth[numTermsInWarped] = 0;
@@ -506,12 +536,12 @@ Vec6 CoarseTracker::calcRes(int lvl, const SE3 &refToNew, AffLight aff_g2l, floa
 	}
 
 	Vec6 rs;
-	rs[0] = E;
-	rs[1] = numTermsInE;
-	rs[2] = sumSquaredShiftT/(sumSquaredShiftNum+0.1);
+	rs[0] = E;// 投影的能量值
+	rs[1] = numTermsInE;// 投影的点的数目
+	rs[2] = sumSquaredShiftT/(sumSquaredShiftNum+0.1);// 纯平移时 平均像素移动的大小
 	rs[3] = 0;
-	rs[4] = sumSquaredShiftRT/(sumSquaredShiftNum+0.1);
-	rs[5] = numSaturated / (float)numTermsInE;
+	rs[4] = sumSquaredShiftRT/(sumSquaredShiftNum+0.1);// 平移+旋转 平均像素移动大小
+	rs[5] = numSaturated / (float)numTermsInE;// 大于cutoff阈值的百分比
 
 	return rs;
 }
@@ -520,13 +550,13 @@ Vec6 CoarseTracker::calcRes(int lvl, const SE3 &refToNew, AffLight aff_g2l, floa
 
 
 
-
+//@ 把优化完的最新帧设为参考帧
 void CoarseTracker::setCoarseTrackingRef(
 		std::vector<FrameHessian*> frameHessians)
 {
 	assert(frameHessians.size()>0);
 	lastRef = frameHessians.back();
-	makeCoarseDepthL0(frameHessians);
+	makeCoarseDepthL0(frameHessians); // 生成逆深度估值
 
 
 
@@ -536,6 +566,7 @@ void CoarseTracker::setCoarseTrackingRef(
 	firstCoarseRMSE=-1;
 
 }
+//@ 对新来的帧进行跟踪, 优化得到位姿, 光度参数
 bool CoarseTracker::trackNewestCoarse(
 		FrameHessian* newFrameHessian,
 		SE3 &lastToNew_out, AffLight &aff_g2l_out,
@@ -553,13 +584,13 @@ bool CoarseTracker::trackNewestCoarse(
 
 
 	newFrame = newFrameHessian;
-	int maxIterations[] = {10,20,50,50,50};
+	int maxIterations[] = {10,20,50,50,50};	// 不同层迭代的次数
 	float lambdaExtrapolationLimit = 0.001;
 
-	SE3 refToNew_current = lastToNew_out;
+	SE3 refToNew_current = lastToNew_out;// 优化的初始值
 	AffLight aff_g2l_current = aff_g2l_out;
 
-	bool haveRepeated = false;
+	bool haveRepeated = false; // 是否重复计算了
 
 
     Mat88 H; Vec8 b;
@@ -567,16 +598,31 @@ bool CoarseTracker::trackNewestCoarse(
 	for(int lvl=coarsestLvl; lvl>=0; lvl--)
 	{
 		float levelCutoffRepeat=1;
+        //[ ***step 1*** ] 计算残差, 保证最多60%残差大于阈值, 计算正规方程
+//TODO preCalculate some values w.r.t. current state estimate
+///         buf_warped_idepth
+///			buf_warped_u
+///			buf_warped_v
+///			buf_warped_dx
+///			buf_warped_dy
+///			buf_warped_residual
+///			buf_warped_weight
+///			buf_warped_refColor
 		Vec6 resOld = calcRes(lvl, refToNew_current, aff_g2l_current, setting_coarseCutoffTH*levelCutoffRepeat);
+        //* 保证大于阈值的点小于60%
 		while(resOld[5] > 0.6 && (levelCutoffRepeat < 50 || resOld[5] > 0.99) )
 		{
-			levelCutoffRepeat*=2;
+			levelCutoffRepeat*=2;// 超过阈值的多, 则放大阈值重新计算
 			resOld = calcRes(lvl, refToNew_current, aff_g2l_current, setting_coarseCutoffTH*levelCutoffRepeat);
 
             if(!setting_debugout_runquiet)
                 printf("INCREASING cutoff to %f (ratio is %f)!\n", setting_coarseCutoffTH*levelCutoffRepeat, resOld[5]);
 		}
-
+        // refToNew_current is the camera pose
+        // aff_g2l_current is the photometric
+        // refToNew_current is not used in this function
+        // this function only updates H and b and the aff_g2l_current
+        // calculate GradientS use intel SSE.
 		calcGSSSE(lvl, H, b, refToNew_current, aff_g2l_current);
 
 		float lambda = 0.01;
@@ -594,14 +640,15 @@ bool CoarseTracker::trackNewestCoarse(
 			std::cout << refToNew_current.log().transpose() << " AFF " << aff_g2l_current.vec().transpose() <<" (rel " << relAff.transpose() << ")\n";
 		}
 
-
+//[ ***step 2*** ] 迭代优化
 		for(int iteration=0; iteration < maxIterations[lvl]; iteration++)
 		{
 		    dmvio::TimeMeasurement timeMeasurement("coarseTrackingIteration");
+            //[ ***step 2.1*** ] 计算增量
 			Mat88 Hl = H;
 			for(int i=0;i<8;i++) Hl(i,i) *= (1+lambda);
 
-
+//? lambda太小的化, 就给增量一个因子, 啥原理????
             float extrapFac = 1;
             if(lambda < lambdaExtrapolationLimit) extrapFac = sqrt(sqrt(lambdaExtrapolationLimit / lambda));
 
@@ -650,6 +697,7 @@ bool CoarseTracker::trackNewestCoarse(
                 }
                 if(setting_affineOptModeA < 0 && !(setting_affineOptModeB < 0))	// fix a
                 {
+                    //? 怎么又换了个方法求....
                     Mat88 HlStitch = Hl;
                     Vec8 bStitch = b;
                     HlStitch.col(6) = HlStitch.col(7);
@@ -671,7 +719,7 @@ bool CoarseTracker::trackNewestCoarse(
                 incScaled.segment<1>(7) *= SCALE_B;
 
                 if(!std::isfinite(incScaled.sum())) incScaled.setZero();
-
+//[ ***step 2.2*** ] 使用增量更新后, 重新计算能量值
                 // exp: first three: translational part, last three: rotational part.
                 // Note: gtsam::Pose3 contains first rotational and then translational part!
                 refToNew_new = SE3::exp((Vec6) (incScaled.head<6>())) * refToNew_current;
@@ -684,7 +732,7 @@ bool CoarseTracker::trackNewestCoarse(
 
 			Vec6 resNew = calcRes(lvl, refToNew_new, aff_g2l_new, setting_coarseCutoffTH*levelCutoffRepeat);
 
-			bool accept = (resNew[0] / resNew[1]) < (resOld[0] / resOld[1]);
+			bool accept = (resNew[0] / resNew[1]) < (resOld[0] / resOld[1]);// 平均能量值小则接受
 
 			if(debugPrint)
 			{
@@ -703,6 +751,8 @@ bool CoarseTracker::trackNewestCoarse(
 			{
 				calcGSSSE(lvl, H, b, refToNew_new, aff_g2l_new);
 				resOld = resNew;
+                //TODO update state estimate
+                //TODO 这里用了fej吗? i guess not, it's just coaseTracking, far from fixed lag smoothing
 				aff_g2l_current = aff_g2l_new;
 				refToNew_current = refToNew_new;
                 if(dso::setting_useIMU)
@@ -724,17 +774,18 @@ bool CoarseTracker::trackNewestCoarse(
 				break;
 			}
 		}
-
+//[ ***step 3*** ] 记录上一次残差, 光流指示, 如果调整过阈值则重新计算这一层
 		// set last residual for that level, as well as flow indicators.
 		lastResiduals[lvl] = sqrtf((float)(resOld[0] / resOld[1]));
+        //TODO average optical flow
 		lastFlowIndicators = resOld.segment<3>(2);
 		if(std::isnan(lastResiduals[lvl])) return false;
-		if(lastResiduals[lvl] > 1.5*minResForAbort[lvl]) return false;
+		if(lastResiduals[lvl] > 1.5*minResForAbort[lvl]) return false;//! 如果算出来大于最好的直接放弃
 
 
 		if(levelCutoffRepeat > 1 && !haveRepeated)
 		{
-			lvl++;
+			lvl++;// 这一层重新算一遍
 			haveRepeated=true;
 			printf("REPEAT LEVEL!\n");
 		}
@@ -746,7 +797,7 @@ bool CoarseTracker::trackNewestCoarse(
 	aff_g2l_out = aff_g2l_current;
 
 	bool trackingGood = true;
-
+//[ ***step 4*** ] 判断优化失败情况
 	if((setting_affineOptModeA != 0 && (fabsf(aff_g2l_out.a) > 1.2))
 	|| (setting_affineOptModeB != 0 && (fabsf(aff_g2l_out.b) > 200)))
 		trackingGood = false;
@@ -756,7 +807,7 @@ bool CoarseTracker::trackNewestCoarse(
 	if((setting_affineOptModeA == 0 && (fabsf(logf((float)relAff[0])) > 1.5))
 	|| (setting_affineOptModeB == 0 && (fabsf((float)relAff[1]) > 200)))
 		trackingGood = false;
-
+// 固定情况
     if(setting_affineOptModeA < 0) aff_g2l_out.a=0;
 	if(setting_affineOptModeB < 0) aff_g2l_out.b=0;
 
@@ -839,7 +890,7 @@ void CoarseTracker::debugPlotIDepthMap(float* minID_pt, float* maxID_pt, std::ve
 		{
 			int c = lastRef->dIp[lvl][i][0]*0.9f;
 			if(c>255) c=255;
-			mf.at(i) = Vec3b(c,c,c);
+			mf.at(i) = Vec3b(c,c,c);//TODO one channel to three channel
 		}
 		int wl = w[lvl];
 		for(int y=3;y<h[lvl]-3;y++)
@@ -902,7 +953,7 @@ void CoarseTracker::debugPlotIDepthMapFloat(std::vector<IOWrap::Output3DWrapper*
 
 
 CoarseDistanceMap::CoarseDistanceMap(int ww, int hh)
-{
+{//* 在第一层上算的, 所以除4
 	fwdWarpedIDDistFinal = new float[ww*hh/4];
 
 	bfsList1 = new Eigen::Vector2i[ww*hh/4];
@@ -928,12 +979,12 @@ CoarseDistanceMap::~CoarseDistanceMap()
 
 
 
-
+///@ 对于目前所有的地图点投影, 生成距离场图
 void CoarseDistanceMap::makeDistanceMap(
 		std::vector<FrameHessian*> frameHessians,
 		FrameHessian* frame)
 {
-	int w1 = w[1];
+	int w1 = w[1];//? 为啥使用第一层的
 	int h1 = h[1];
 	int wh1 = w1*h1;
 	for(int i=0;i<wh1;i++)
@@ -948,13 +999,16 @@ void CoarseDistanceMap::makeDistanceMap(
 		if(frame == fh) continue;
 
 		SE3 fhToNew = frame->PRE_worldToCam * fh->PRE_camToWorld;
-		Mat33f KRKi = (K[1] * fhToNew.rotationMatrix().cast<float>() * Ki[0]);
+        /// old keyframe的0层投影到newest keyframe的1层？
+		Mat33f KRKi = (K[1] * fhToNew.rotationMatrix().cast<float>() * Ki[0]);// 0层到1层变换
 		Vec3f Kt = (K[1] * fhToNew.translation().cast<float>());
 
 		for(PointHessian* ph : fh->pointHessians)
 		{
 			assert(ph->status == PointHessian::ACTIVE);
-			Vec3f ptp = KRKi * Vec3f(ph->u, ph->v, 1) + Kt*ph->idepth_scaled;
+            //TODO old keyframe的0层投影到newest keyframe的1层？
+            //TODO in pixel coordinate
+			Vec3f ptp = KRKi * Vec3f(ph->u, ph->v, 1) + Kt*ph->idepth_scaled;// 投影到frame帧
 			int u = ptp[0] / ptp[2] + 0.5f;
 			int v = ptp[1] / ptp[2] + 0.5f;
 			if(!(u > 0 && v > 0 && u < w[1] && v < h[1])) continue;
@@ -963,8 +1017,8 @@ void CoarseDistanceMap::makeDistanceMap(
 			numItems++;
 		}
 	}
-
-	growDistBFS(numItems);
+/// now in this function, use dfs to grow distance in the bfslist1 list.
+	growDistBFS(numItems);///numItems is the total number of point hessians in all frames in the sliding window.
 }
 
 
@@ -976,41 +1030,60 @@ void CoarseDistanceMap::makeInlierVotes(std::vector<FrameHessian*> frameHessians
 }
 
 
-
+//@ 生成每一层的距离, 第一层为1, 第二层为2....
+/// record all the neighbourhood of point hessians in the sliding window frames in a BFS fashion
+/// they store all the neighbour points in bfsList1 and bfsList2
+/// the pattern is interlacing four directions and eight directions.
 void CoarseDistanceMap::growDistBFS(int bfsNum)
 {
 	assert(w[0] != 0);
 	int w1 = w[1], h1 = h[1];
+    //TODO loop all points for 40 times
 	for(int k=1;k<40;k++)
 	{
 		int bfsNum2 = bfsNum;
-		std::swap<Eigen::Vector2i*>(bfsList1,bfsList2);
+        //* 每一次都是在上一次的点周围找
+        /// reprojections from older keyframes[0] to newest keyframe[1]
+		std::swap<Eigen::Vector2i*>(bfsList1,bfsList2); // 每次迭代一遍就交换
 		bfsNum=0;
 
-		if(k%2==0)
+		if(k%2==0) // 偶数
 		{
 			for(int i=0;i<bfsNum2;i++)
 			{
 				int x = bfsList2[i][0];
 				int y = bfsList2[i][1];
 				if(x==0 || y== 0 || x==w1-1 || y==h1-1) continue;
-				int idx = x + y * w1;
+				int idx = x + y * w1;/// this makes up the distance index to find in forward warped idepth distance final
+                /// remember in coarseTracker make Depth map, fwdWarpedIDDistFinal was initialized as 1000 for each value.
+                /// fwd's value will be quickly marked as k or k-1 or k-2 or ... any value between 0..k
+                /// this way they will keep search the other direction which was not retrieved before.
+                /// the following four if statements are searching right left up and down four directions.
+                /// the reason they swap the bfsList is that they want to interlace the directions, just merge the
+                /// direction patterns into List.
 
-				if(fwdWarpedIDDistFinal[idx+1] > k)
+                //* 右边
+                /// fwdWarpedIDDistFinal = 1000 or 0
+
+				if(fwdWarpedIDDistFinal[idx+1] > k)// 没有赋值的位置
 				{
-					fwdWarpedIDDistFinal[idx+1] = k;
+					fwdWarpedIDDistFinal[idx+1] = k;// 赋值为2, 4, 6 ....
+                    /// k should be recording the depth of search.
 					bfsList1[bfsNum] = Eigen::Vector2i(x+1,y); bfsNum++;
 				}
+                //* 左边
 				if(fwdWarpedIDDistFinal[idx-1] > k)
 				{
 					fwdWarpedIDDistFinal[idx-1] = k;
 					bfsList1[bfsNum] = Eigen::Vector2i(x-1,y); bfsNum++;
 				}
+                //* 下边
 				if(fwdWarpedIDDistFinal[idx+w1] > k)
 				{
 					fwdWarpedIDDistFinal[idx+w1] = k;
 					bfsList1[bfsNum] = Eigen::Vector2i(x,y+1); bfsNum++;
 				}
+                //* 上边
 				if(fwdWarpedIDDistFinal[idx-w1] > k)
 				{
 					fwdWarpedIDDistFinal[idx-w1] = k;
@@ -1026,7 +1099,7 @@ void CoarseDistanceMap::growDistBFS(int bfsNum)
 				int y = bfsList2[i][1];
 				if(x==0 || y== 0 || x==w1-1 || y==h1-1) continue;
 				int idx = x + y * w1;
-
+                //* 上下左右
 				if(fwdWarpedIDDistFinal[idx+1] > k)
 				{
 					fwdWarpedIDDistFinal[idx+1] = k;
@@ -1048,6 +1121,12 @@ void CoarseDistanceMap::growDistBFS(int bfsNum)
 					bfsList1[bfsNum] = Eigen::Vector2i(x,y-1); bfsNum++;
 				}
 
+                /// everything above is same when k is even number.
+                /// what make this different is it search the points
+                /// that is left upper corner of the pixel
+                /// and bottom right corner, top right, bottom left
+                /// four corners.
+                //* 四个角
 				if(fwdWarpedIDDistFinal[idx+1+w1] > k)
 				{
 					fwdWarpedIDDistFinal[idx+1+w1] = k;
@@ -1073,7 +1152,7 @@ void CoarseDistanceMap::growDistBFS(int bfsNum)
 	}
 }
 
-
+//@ 在点(u, v)附近生成距离场
 void CoarseDistanceMap::addIntoDistFinal(int u, int v)
 {
 	if(w[0] == 0) return;

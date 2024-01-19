@@ -65,13 +65,14 @@ class ImageAndExposure;
 class CoarseDistanceMap;
 
 class EnergyFunctional;
-
+//* 删除第i个元素
 template<typename T> inline void deleteOut(std::vector<T*> &v, const int i)
 {
-	delete v[i];
-	v[i] = v.back();
-	v.pop_back();
+	delete v[i];//删除第i个元素指向的内存
+	v[i] = v.back();//把最后一个拿来填i
+	v.pop_back();//弹出最后一个
 }
+//* 删除元素i
 template<typename T> inline void deleteOutPt(std::vector<T*> &v, const T* i)
 {
 	delete i;
@@ -83,6 +84,7 @@ template<typename T> inline void deleteOutPt(std::vector<T*> &v, const T* i)
 			v.pop_back();
 		}
 }
+//* 删除第i个元素, 后面按顺序补上. 针对有顺序序列
 template<typename T> inline void deleteOutOrder(std::vector<T*> &v, const int i)
 {
 	delete v[i];
@@ -90,6 +92,7 @@ template<typename T> inline void deleteOutOrder(std::vector<T*> &v, const int i)
 		v[k-1] = v[k];
 	v.pop_back();
 }
+//* 针对有序序列, 删除其中element的元素
 template<typename T> inline void deleteOutOrder(std::vector<T*> &v, const T* element)
 {
 	int i=-1;
@@ -110,7 +113,7 @@ template<typename T> inline void deleteOutOrder(std::vector<T*> &v, const T* ele
 	delete element;
 }
 
-
+//* 检查矩阵中是否有无穷元素,输出msg和该矩阵
 inline bool eigenTestNan(const MatXX &m, std::string msg)
 {
 	bool foundNan = false;
@@ -161,7 +164,7 @@ public:
 
 	bool isLost;
 	bool initFailed;
-	bool initialized;
+	bool initialized;//!< 是否完成初始化
 	bool linearizeOperation;
 
 
@@ -179,6 +182,7 @@ public:
 	Sophus::SE3 firstPose; // contains transform from first to world.
 
 private:
+    // 创建就通过global赋值，可以用sharedptr
 	CalibHessian Hcalib;
 
     dmvio::GravityInitializer gravityInit;
@@ -270,30 +274,30 @@ private:
 
 
 	// =================== changed by tracker-thread. protected by trackMutex ============
-	boost::mutex trackMutex;
-	std::vector<FrameShell*> allFrameHistory;
+	boost::mutex trackMutex;//!< tracking线程锁
+	std::vector<FrameShell*> allFrameHistory;//!< 所有的历史帧
 	std::vector<Sophus::SE3> gtPoses;
 	CoarseInitializer* coarseInitializer;
-	Vec5 lastCoarseRMSE;
+	Vec5 lastCoarseRMSE;//!< 上一次跟踪的平均chi2
 
 
 	// ================== changed by mapper-thread. protected by mapMutex ===============
-	boost::mutex mapMutex;
+	boost::mutex mapMutex;//!< Mapping 线程锁
 	std::vector<FrameShell*> allKeyFramesHistory;
 
-	EnergyFunctional* ef;
-	IndexThreadReduce<Vec10> treadReduce;
+	EnergyFunctional* ef;//!< 能量方程
+	IndexThreadReduce<Vec10> treadReduce;//!< 多线程
 
 	float* selectionMap;
 	PixelSelector* pixelSelector;
 	CoarseDistanceMap* coarseDistanceMap;
 
-	std::vector<FrameHessian*> frameHessians;	// ONLY changed in marginalizeFrame and addFrame.
-	std::vector<PointFrameResidual*> activeResiduals;
-	float currentMinActDist;
+	std::vector<FrameHessian*> frameHessians;//!< 关键帧 	// ONLY changed in marginalizeFrame and addFrame.
+	std::vector<PointFrameResidual*> activeResiduals;//!< 新加入的激活点的残差
+	float currentMinActDist;//!<　激活点的阈值
 
 
-	std::vector<float> allResVec;
+	std::vector<float> allResVec;//!< 所有在当前最近帧上的残差值
 
 
 
