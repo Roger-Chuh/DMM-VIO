@@ -26,10 +26,10 @@
 #include <stdexcept>
 
 // fix log1p not being found on Android in Eigen
-#if defined( ANDROID )
+#if defined(ANDROID)
 #include <cmath>
 namespace std {
-  using ::log1p;
+using ::log1p;
 }
 #endif
 
@@ -39,39 +39,30 @@ namespace std {
 namespace Sophus {
 using namespace Eigen;
 
-template<typename Scalar>
-struct SophusConstants {
-  EIGEN_ALWAYS_INLINE static
-  const Scalar epsilon() {
+template <typename Scalar> struct SophusConstants {
+  EIGEN_ALWAYS_INLINE static const Scalar epsilon() {
     return static_cast<Scalar>(1e-10);
   }
 
-  EIGEN_ALWAYS_INLINE static
-  const Scalar pi() {
+  EIGEN_ALWAYS_INLINE static const Scalar pi() {
     return static_cast<Scalar>(M_PI);
   }
 };
 
-template<>
-struct SophusConstants<float> {
-  EIGEN_ALWAYS_INLINE static
-  float epsilon() {
+template <> struct SophusConstants<float> {
+  EIGEN_ALWAYS_INLINE static float epsilon() {
     return static_cast<float>(1e-5);
   }
 
-  EIGEN_ALWAYS_INLINE static
-  float pi() {
-    return static_cast<float>(M_PI);
-  }
+  EIGEN_ALWAYS_INLINE static float pi() { return static_cast<float>(M_PI); }
 };
 
 class SophusException : public std::runtime_error {
 public:
-  SophusException (const std::string& str)
-    : runtime_error("Sophus exception: " + str) {
-  }
+  SophusException(const std::string &str)
+      : runtime_error("Sophus exception: " + str) {}
 };
 
-}
+} // namespace Sophus
 
 #endif

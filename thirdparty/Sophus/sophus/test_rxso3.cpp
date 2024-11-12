@@ -23,15 +23,13 @@
 #include <iostream>
 #include <vector>
 
-
 #include "rxso3.hpp"
 #include "tests.hpp"
 
 using namespace Sophus;
 using namespace std;
 
-template<class Scalar>
-void tests() {
+template <class Scalar> void tests() {
 
   typedef RxSO3Group<Scalar> RxSO3Type;
   typedef typename RxSO3Group<Scalar>::Point Point;
@@ -45,32 +43,32 @@ void tests() {
   rxso3_vec.push_back(RxSO3Type::exp(Tangent(0., 0., 0.00001, 0.00001)));
   rxso3_vec.push_back(RxSO3Type::exp(Tangent(0., 0., 0.00001, 0)));
   rxso3_vec.push_back(RxSO3Type::exp(Tangent(M_PI, 0, 0, 0.9)));
-  rxso3_vec.push_back(RxSO3Type::exp(Tangent(0.2, 0.5, 0.0,0))
-                      *RxSO3Type::exp(Tangent(M_PI, 0, 0,0.0))
-                      *RxSO3Type::exp(Tangent(-0.2, -0.5, -0.0,0)));
-  rxso3_vec.push_back(RxSO3Type::exp(Tangent(0.3, 0.5, 0.1,0))
-                      *RxSO3Type::exp(Tangent(M_PI, 0, 0,0))
-                      *RxSO3Type::exp(Tangent(-0.3, -0.5, -0.1,0)));
+  rxso3_vec.push_back(RxSO3Type::exp(Tangent(0.2, 0.5, 0.0, 0)) *
+                      RxSO3Type::exp(Tangent(M_PI, 0, 0, 0.0)) *
+                      RxSO3Type::exp(Tangent(-0.2, -0.5, -0.0, 0)));
+  rxso3_vec.push_back(RxSO3Type::exp(Tangent(0.3, 0.5, 0.1, 0)) *
+                      RxSO3Type::exp(Tangent(M_PI, 0, 0, 0)) *
+                      RxSO3Type::exp(Tangent(-0.3, -0.5, -0.1, 0)));
 
   vector<Tangent> tangent_vec;
   Tangent tmp;
-  tmp << 0,0,0,0;
+  tmp << 0, 0, 0, 0;
   tangent_vec.push_back(tmp);
-  tmp << 1,0,0,0;
+  tmp << 1, 0, 0, 0;
   tangent_vec.push_back(tmp);
-  tmp << 1,0,0,0.1;
+  tmp << 1, 0, 0, 0.1;
   tangent_vec.push_back(tmp);
-  tmp << 0,1,0,0.1;
+  tmp << 0, 1, 0, 0.1;
   tangent_vec.push_back(tmp);
-  tmp << 0,0,1,-0.1;
+  tmp << 0, 0, 1, -0.1;
   tangent_vec.push_back(tmp);
-  tmp << -1,1,0,-0.1;
+  tmp << -1, 1, 0, -0.1;
   tangent_vec.push_back(tmp);
-  tmp << 20,-1,0,2;
+  tmp << 20, -1, 0, 2;
   tangent_vec.push_back(tmp);
 
   vector<Point> point_vec;
-  point_vec.push_back(Point(1,2,4));
+  point_vec.push_back(Point(1, 2, 4));
 
   Tests<RxSO3Type> tests;
   tests.setGroupElements(rxso3_vec);

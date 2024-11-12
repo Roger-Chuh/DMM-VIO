@@ -29,8 +29,7 @@
 using namespace Sophus;
 using namespace std;
 
-template<class Scalar>
-void tests() {
+template <class Scalar> void tests() {
 
   typedef SO3Group<Scalar> SO3Type;
   typedef typename SO3Group<Scalar>::Point Point;
@@ -39,30 +38,30 @@ void tests() {
   vector<SO3Type> so3_vec;
 
   so3_vec.push_back(SO3Type(Quaternion<Scalar>(0.1e-11, 0., 1., 0.)));
-  so3_vec.push_back(SO3Type(Quaternion<Scalar>(-1,0.00001,0.0,0.0)));
+  so3_vec.push_back(SO3Type(Quaternion<Scalar>(-1, 0.00001, 0.0, 0.0)));
   so3_vec.push_back(SO3Type::exp(Point(0.2, 0.5, 0.0)));
   so3_vec.push_back(SO3Type::exp(Point(0.2, 0.5, -1.0)));
   so3_vec.push_back(SO3Type::exp(Point(0., 0., 0.)));
   so3_vec.push_back(SO3Type::exp(Point(0., 0., 0.00001)));
   so3_vec.push_back(SO3Type::exp(Point(M_PI, 0, 0)));
-  so3_vec.push_back(SO3Type::exp(Point(0.2, 0.5, 0.0))
-                    *SO3Type::exp(Point(M_PI, 0, 0))
-                    *SO3Type::exp(Point(-0.2, -0.5, -0.0)));
-  so3_vec.push_back(SO3Type::exp(Point(0.3, 0.5, 0.1))
-                    *SO3Type::exp(Point(M_PI, 0, 0))
-                    *SO3Type::exp(Point(-0.3, -0.5, -0.1)));
+  so3_vec.push_back(SO3Type::exp(Point(0.2, 0.5, 0.0)) *
+                    SO3Type::exp(Point(M_PI, 0, 0)) *
+                    SO3Type::exp(Point(-0.2, -0.5, -0.0)));
+  so3_vec.push_back(SO3Type::exp(Point(0.3, 0.5, 0.1)) *
+                    SO3Type::exp(Point(M_PI, 0, 0)) *
+                    SO3Type::exp(Point(-0.3, -0.5, -0.1)));
 
   vector<Tangent> tangent_vec;
-  tangent_vec.push_back(Tangent(0,0,0));
-  tangent_vec.push_back(Tangent(1,0,0));
-  tangent_vec.push_back(Tangent(0,1,0));
-  tangent_vec.push_back(Tangent(M_PI_2,M_PI_2,0.0));
-  tangent_vec.push_back(Tangent(-1,1,0));
-  tangent_vec.push_back(Tangent(20,-1,0));
-  tangent_vec.push_back(Tangent(30,5,-1));
+  tangent_vec.push_back(Tangent(0, 0, 0));
+  tangent_vec.push_back(Tangent(1, 0, 0));
+  tangent_vec.push_back(Tangent(0, 1, 0));
+  tangent_vec.push_back(Tangent(M_PI_2, M_PI_2, 0.0));
+  tangent_vec.push_back(Tangent(-1, 1, 0));
+  tangent_vec.push_back(Tangent(20, -1, 0));
+  tangent_vec.push_back(Tangent(30, 5, -1));
 
   vector<Point> point_vec;
-  point_vec.push_back(Point(1,2,4));
+  point_vec.push_back(Point(1, 2, 4));
 
   Tests<SO3Type> tests;
   tests.setGroupElements(so3_vec);
