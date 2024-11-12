@@ -83,6 +83,8 @@ PoseTransformation::PoseType TransformDSOToIMU::transformPoseInverse(
       Sophus::SE3d(R_dsoW_metricW.inverse(), Sophus::Vector3d::Zero());
   // in DSO scale:
   // TODO S_dso_metric * T_cam_metricW * S_metric_dso
+  // TODO 这里其实只差一个scale了，旋转已经对齐，平移只差比例，
+  // paper里说，这里的sim3的旋转是单位阵，平移是0，但scale应该不为1
   Sophus::Sim3d T_cam_dsoW =
       T_S_DSO.inverse() * Sophus::Sim3d(T_cam_dsoW_metric.matrix()) * T_S_DSO;
   if (!(std::abs(T_cam_dsoW.scale() - 1.0) < 0.0001)) {
@@ -91,7 +93,7 @@ PoseTransformation::PoseType TransformDSOToIMU::transformPoseInverse(
   assert(
       std::abs(T_cam_dsoW.scale() - 1.0) < 0.0001 ||
       std::isnan(T_cam_dsoW.scale())); // Scale should be close to 1 (unless it
-                                       // is Nan which can happen sometimes).
+  // is Nan which can happen sometimes).
   return T_cam_dsoW.matrix();
 }
 
@@ -109,11 +111,16 @@ TransformDSOToIMU::getPoseDerivative(const PoseTransformation::PoseType &pose,
   if (direction == DerivativeDirection::RIGHT_TO_RIGHT) {
     // Analytic derivatives
     assert(precomputedValid);
+    // TODO here 'pose' means 'T_cam_dsoW' in dso scale;
     Sophus::Sim3d intermediateRes = precomputed * Sophus::Sim3d(pose);
     auto firstAdj = intermediateRes.Adj();
+    // TODO we use [R t], gtsam use [t R]
     gtsam::Matrix66 poseJ = convertJacobianToGTSAM(-firstAdj).block<6, 6>(0, 0);
+    // TODO this is 'Jrel' in vi-dso, vi-hso, dm-vio paper
+    printf("use analytical jac\n");
     return poseJ;
   }
+  printf("use numerical jac\n");
   return PoseTransformation::getPoseDerivative(pose, direction);
 }
 
@@ -123,20 +130,27 @@ TransformDSOToIMU::getAllDerivatives(const PoseTransformation::PoseType &pose,
   std::vector<gtsam::Matrix> analyticDerivs;
   bool analyticDerivsFilled = false;
   if (direction == DerivativeDirection::RIGHT_TO_RIGHT) {
-    // Analytic derivatives:
+    // TODO Analytic derivatives, NICE!!
     assert(precomputedValid);
     analyticDerivsFilled = true;
     // Intermediate res is:  T_cam_imu^-1 * T_S_DSO * T_cam_world
+    // TODO here 'pose' means 'T_cam_dsoW' in dso scale;
     Sophus::Sim3d intermediateRes = precomputed * Sophus::Sim3d(pose);
+    // TODO 'firstAdj' means 'Jrel'
     auto firstAdj = intermediateRes.Adj();
     gtsam::Matrix66 poseJ = convertJacobianToGTSAM(-firstAdj).block<6, 6>(0, 0);
     analyticDerivs.push_back(poseJ);
 
     if (*optScale) {
+      // TODO 就是全概率公式, 之前写手眼标定factor时也用到了
+      // TODO d_preint_err_d_T_metricW_imu 转到 d_preint_err_d_scale
       gtsam::Matrix scaleJ = convertJacobianToGTSAM(firstAdj - precomputedAdj);
+      // TODO
+      // 因为这个sim3只优化scale，所以，旋转和平移部分的我置零就行，妙啊，或者只传scale相关的雅可比进去
       analyticDerivs.push_back(scaleJ.topRightCorner<6, 1>());
     }
     if (*optGravity) {
+      // TODO d_preint_err_d_T_metricW_imu 转到 d_preint_err_d_gravity
       Sophus::SE3d innerAdjoint((intermediateRes * T_S_DSO.inverse()).matrix());
       gtsam::Matrix66 gravityJac;
       // J = -(T_cam_imu.inverse() * T_S_DSO * pose * T_S_DSO.inverse() *
@@ -149,10 +163,12 @@ TransformDSOToIMU::getAllDerivatives(const PoseTransformation::PoseType &pose,
         // Set the yaw derivative to zero here.
         gravityJac.block<6, 1>(0, 2).setZero();
       }
+      // TODO 2dof gravity opt, the third col is always 0, not very elegent
       analyticDerivs.push_back(gravityJac.topLeftCorner<6, 3>());
     }
     if (*optT_cam_imu) {
       // Derivative is one.
+      // TODO d_preint_err_d_T_metricW_imu 转到 d_preint_err_d_T_cam_imu
       analyticDerivs.push_back(gtsam::Matrix66::Identity());
     }
 
@@ -322,6 +338,9 @@ gtsam::Matrix66 dmvio::getCoarsePoseDerivative(
                                Sophus::Sim3d(transform.T_cam_imu.matrix()))
                                   .Adj())
           .topLeftCorner(6, 6);
+  // TODO
+  // TODO
+  // 把dso系下，T_cur_ref(等号左边)的雅可比转到metric系下T_w_cur(等号右边)的雅可比，等号左边左扰动，等号右边右扰动
   return poseJac;
 }
 
@@ -351,6 +370,9 @@ gtsam::Matrix dmvio::getCoarseReferenceDerivative(
                               T_w_f_imu.inverse() * T_w_r_imu)
                                  .Adj())
           .topLeftCorner(6, 6);
+  // TODO
+  // TODO
+  // 把dso系下，T_cur_ref(等号左边)的雅可比转到metric系下T_w_ref(等号右边)的雅可比，等号左边左扰动，等号右边右扰动
   return referenceJac;
 }
 

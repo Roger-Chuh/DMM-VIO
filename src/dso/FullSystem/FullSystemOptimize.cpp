@@ -147,7 +147,8 @@ void FullSystem::setNewFrameEnergyTH() {
   //	int good=0,bad=0;
   //	for(float f : allResVec) if(f<newFrame->frameEnergyTH) good++; else
   // bad++; 	printf("EnergyTH: mean %f, median %f, result %f (in %d, out %d)!
-  // \n", 			meanElement, nthElement, sqrtf(newFrame->frameEnergyTH), 			good, bad);
+  // \n", 			meanElement, nthElement,
+  // sqrtf(newFrame->frameEnergyTH), good, bad);
 }
 
 //@ 对残差进行线性化, 并去掉不在图像内, 并且残差大的

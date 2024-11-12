@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include "NumType.h"
 #include "boost/thread.hpp"
 #include "util/settings.h"
 #include <iostream>

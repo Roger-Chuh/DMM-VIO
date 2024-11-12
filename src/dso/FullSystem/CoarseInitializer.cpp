@@ -886,7 +886,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, Mat88f &H_out, Vec8f &b_out,
       //			dp0[idx] = new_idepth*dxInterp; //! dpi/pz' *
       // dxfx 			dp1[idx] = new_idepth*dyInterp; //! dpi/pz' *
       // dyfy 			dp2[idx] = -new_idepth*(u*dxInterp +
-      //v*dyInterp); //! -dpi/pz' * (px'/pz'*dxfx + py'/pz'*dyfy)
+      // v*dyInterp); //! -dpi/pz' * (px'/pz'*dxfx + py'/pz'*dyfy)
       // dp3[idx] = -u*v*dxInterp - (1+v*v)*dyInterp; //! - px'py'/pz'^2*dxfy -
       // (1+py'^2/pz'^2)*dyfy 			dp4[idx] = (1+u*u)*dxInterp +
       // u*v*dyInterp; //! (1+px'^2/pz'^2)*dxfx + px'py'/pz'^2*dxfy
@@ -1385,7 +1385,7 @@ void CoarseInitializer::setFirst(CalibHessian *HCalib,
 
           //				float gth = setting_outlierTH *
           //(sqrtf(sumGrad2)+setting_outlierTHSumComponent);
-          //pl[nl].outlierTH = patternNum*gth*gth;
+          // pl[nl].outlierTH = patternNum*gth*gth;
           //
           //! 外点的阈值与pattern的大小有关, 一个像素是12*12
           //? 这个阈值怎么确定的...
