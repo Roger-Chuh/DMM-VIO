@@ -84,6 +84,15 @@ set(dso_SOURCE_FILES
 		${DSO_SOURCE_DIR}/util/settings.cpp
 		${DSO_SOURCE_DIR}/util/Undistort.cpp
 		${DSO_SOURCE_DIR}/util/globalCalib.cpp
+		${DSO_SOURCE_DIR}/camera_model/double_sphere_camera.cpp
+		${DSO_SOURCE_DIR}/camera_model/kannala_brandt_camera.cpp
+		${DSO_SOURCE_DIR}/camera_model/kb16_camera.cpp
+		${DSO_SOURCE_DIR}/camera_model/kb20_camera.cpp
+		${DSO_SOURCE_DIR}/camera_model/kbl16_camera.cpp
+		${DSO_SOURCE_DIR}/camera_model/pinhole_camera.cpp
+		${DSO_SOURCE_DIR}/camera_model/radial_tangential_camera.cpp
+		${DSO_SOURCE_DIR}/camera_model/ucm_rtp_camera.cpp
+		${DSO_SOURCE_DIR}/camera_model/ucm_rtp_th_camera.cpp
 		)
 
 set(dmvio_SOURCE_FILES
@@ -123,6 +132,7 @@ set(dmvio_SOURCE_FILES
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/src/camera_model
   ${PROJECT_SOURCE_DIR}/src/dso
   ${PROJECT_SOURCE_DIR}/thirdparty/Sophus
   ${PROJECT_SOURCE_DIR}/thirdparty/sse2neon
@@ -175,7 +185,7 @@ endif()
 
 # compile main library.
 include_directories( ${CSPARSE_INCLUDE_DIR} ${CHOLMOD_INCLUDE_DIR} ${YAML_CPP_INCLUDE_DIR})
-add_library(dmvio ${dso_SOURCE_FILES} ${dmvio_SOURCE_FILES} ${dso_opencv_SOURCE_FILES} ${dso_pangolin_SOURCE_FILES})
+add_library(dmvio ${camera_model_SOURCE_FILES} ${dso_SOURCE_FILES} ${dmvio_SOURCE_FILES} ${dso_opencv_SOURCE_FILES} ${dso_pangolin_SOURCE_FILES})
 
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin") # OSX
