@@ -39,7 +39,7 @@ Sophus::SE3d GravityInitializer::addMeasure(const IMUData &imuData,
   std::cout << "--------------- imuData.size() " << imuData.size() << std::endl;
   for (int i = 0; i < imuData.size(); ++i) {
     Eigen::Vector3d curr = imuData[i].getAccData();
-    std::cout << "curr: " << curr.transpose() << std::endl;
+    // std::cout << "curr: " << curr.transpose() << std::endl;
     measure += curr;
     numMeasure++;
   }

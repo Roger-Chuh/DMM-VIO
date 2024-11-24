@@ -24,10 +24,10 @@
  * along with DSO. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "../../camera_model/calib_def.h"
 #include "IOWrapper/ImageRW.h"
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
-
 namespace dso {
 
 namespace IOWrap {
@@ -49,6 +49,101 @@ MinimalImageB *readImageBW_8U(std::string filename) {
   }
   MinimalImageB *img = new MinimalImageB(m.cols, m.rows);
   memcpy(img->data, m.data, m.rows * m.cols);
+  return img;
+}
+void VigCorrection(
+    cv::Mat &image,
+    const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> &vig_mat) {
+  uint8_t raw_val;
+  float viged_val;
+  cv::Mat img_cv_after_vig = cv::Mat(image.rows, image.cols, CV_8UC1);
+  for (size_t col = 0; col < img_cv_after_vig.cols; ++col) {
+    for (size_t row = 0; row < img_cv_after_vig.rows; ++row) {
+      float vig = vig_mat(row, col);
+      // vig = 1.0;
+      raw_val = image.at<uint8_t>(row, col);
+
+      if (vig < 0.15) {
+        viged_val = 0;
+      } else {
+        viged_val = static_cast<float>(raw_val) / vig;
+        if (viged_val >= 255) {
+          viged_val = 255;
+        }
+      }
+      //      std::cout << "raw_val: " << static_cast<int>(raw_val) << ",
+      //      viged_val: " << viged_val << ", vig: " << vig
+      //                << std::endl;
+      img_cv_after_vig.at<uint8_t>(row, col) = static_cast<uint8_t>(viged_val);
+    }
+  }
+
+  image = img_cv_after_vig.clone();
+}
+MinimalImageB *readImageBW_8U2(
+    int fid, aligned_vector<dso::CalibFrame> *p_input_data,
+    std::array<std::pair<cv::Mat, cv::Mat>, kCameraNumUsed>
+        *p_cid_to_undist_map,
+    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> *p_vig_mat) {
+  // cv::Mat m = cv::imread(filename, cv::IMREAD_GRAYSCALE);
+  std::array<cv::Mat, 4> show_mat_vec;
+  for (int cam_id = 0; cam_id < kCameraNumUsed; ++cam_id) {
+    std::string image_path =
+        (*p_input_data)[fid].cid_to_img_file_path.at(cam_id);
+    // cerr << "Reading..." << image_path << endl;
+    // if (files[i].back() == '.') continue;  // skip . and ..
+    cv::Mat image = cv::imread(image_path, 0);
+    // cv::Mat image_before = image.clone();
+    VigCorrection(image, (*p_vig_mat));
+    cv::remap(image, image, (*p_cid_to_undist_map)[cam_id].first,
+              (*p_cid_to_undist_map)[cam_id].second, cv::INTER_CUBIC);
+    // cv::cvtColor(image, image, cv::COLOR_GRAY2BGR);
+    show_mat_vec[cam_id] = image.clone();
+  }
+  //        if (m.rows * m.cols == 0) {
+  //            printf("cv::imread could not read image %s! this may segfault.
+  //            \n",
+  //                   filename.c_str());
+  //            return 0;
+  //        }
+  //        if (m.type() == CV_8UC3) {
+  //            // can happen for webp
+  //            cv::cvtColor(m, m, cv::COLOR_BGR2GRAY);
+  //        }
+  //        if (m.type() != CV_8U) {
+  //            printf("cv::imread did something strange! this may segfault. %i
+  //            \n",
+  //                   m.type());
+  //            return 0;
+  //        }
+
+  //        MinimalImageB *img_target = new MinimalImageB(, hG[0]);
+  //
+  //        for (int i = 0; i < wG[0] * hG[0]; i++) {
+  //            // BRIGHTNESS TRANSFER
+  //            float colL = host_dIl[i][0];
+  //            if (colL < 0)
+  //                colL = 0;
+  //            if (colL > 255)
+  //                colL = 255;
+  //            img_host->at(i) = Vec3b(colL, colL, colL);
+  //            colL = dIl[i][0];
+  //            if (colL < 0)
+  //                colL = 0;
+  //            if (colL > 255)
+  //                colL = 255;
+  //            img_target->at(i) = Vec3b(colL, colL, colL);
+  //        }
+  MinimalImageB *img =
+      new MinimalImageB(show_mat_vec[0].cols, show_mat_vec[0].rows);
+  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    ;
+    for (int i = 0; i < show_mat_vec[0].cols * show_mat_vec[0].rows; i++) {
+      img->data[i + show_mat_vec[0].cols * show_mat_vec[0].rows * cid] =
+          show_mat_vec[cid].data[i];
+    }
+  }
+  // memcpy(img->data, m.data, m.rows * m.cols);
   return img;
 }
 
@@ -82,7 +177,7 @@ MinimalImage<unsigned short> *readImageBW_16U(std::string filename) {
   }
   MinimalImage<unsigned short> *img =
       new MinimalImage<unsigned short>(m.cols, m.rows);
-  memcpy(img->data, m.data, 2 * m.rows * m.cols);
+  memcpy(img->data, m.data, 2 * m.rows * m.cols * kCameraNumUsed);
   return img;
 }
 

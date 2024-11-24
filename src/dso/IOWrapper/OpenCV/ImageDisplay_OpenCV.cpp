@@ -103,33 +103,101 @@ void displayImageStitch(const char *windowName,
 
 void displayImage(const char *windowName, const MinimalImageB *img,
                   bool autoSize) {
-  displayImage(windowName, cv::Mat(img->h, img->w, CV_8U, img->data), autoSize);
+  if (kCameraNumUsed == 4) {
+    std::array<cv::Mat, kCameraNumUsed> show_mat_vec;
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      show_mat_vec[cid] =
+          cv::Mat(img->h, img->w, CV_8U, img->data + img->w * img->h * cid);
+    }
+    cv::Mat img1, img2, img_show;
+    cv::hconcat(show_mat_vec[1], show_mat_vec[2], img1);
+    cv::hconcat(show_mat_vec[0], show_mat_vec[3], img2);
+    cv::vconcat(img1, img2, img_show);
+    displayImage(windowName, img_show, autoSize);
+  } else {
+    displayImage(windowName, cv::Mat(img->h, img->w, CV_8U, img->data),
+                 autoSize);
+  }
 }
 
 void displayImage(const char *windowName, const MinimalImageB3 *img,
                   bool autoSize) {
-  displayImage(windowName, cv::Mat(img->h, img->w, CV_8UC3, img->data),
-               autoSize);
+  if (kCameraNumUsed == 4) {
+    std::array<cv::Mat, kCameraNumUsed> show_mat_vec;
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      show_mat_vec[cid] =
+          cv::Mat(img->h, img->w, CV_8UC3, img->data + img->w * img->h * cid);
+    }
+    cv::Mat img1, img2, img_show;
+    cv::hconcat(show_mat_vec[1], show_mat_vec[2], img1);
+    cv::hconcat(show_mat_vec[0], show_mat_vec[3], img2);
+    cv::vconcat(img1, img2, img_show);
+    displayImage(windowName, img_show, autoSize);
+  } else {
+    displayImage(windowName, cv::Mat(img->h, img->w, CV_8UC3, img->data),
+                 autoSize);
+  }
 }
 
 void displayImage(const char *windowName, const MinimalImageF *img,
                   bool autoSize) {
-  displayImage(windowName,
-               cv::Mat(img->h, img->w, CV_32F, img->data) * (1 / 254.0f),
-               autoSize);
+  if (kCameraNumUsed == 4) {
+    std::array<cv::Mat, kCameraNumUsed> show_mat_vec;
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      show_mat_vec[cid] =
+          cv::Mat(img->h, img->w, CV_32F, img->data + img->w * img->h * cid) *
+          (1 / 254.0f);
+    }
+    cv::Mat img1, img2, img_show;
+    cv::hconcat(show_mat_vec[1], show_mat_vec[2], img1);
+    cv::hconcat(show_mat_vec[0], show_mat_vec[3], img2);
+    cv::vconcat(img1, img2, img_show);
+    displayImage(windowName, img_show, autoSize);
+  } else {
+    displayImage(windowName,
+                 cv::Mat(img->h, img->w, CV_32F, img->data) * (1 / 254.0f),
+                 autoSize);
+  }
 }
 
 void displayImage(const char *windowName, const MinimalImageF3 *img,
                   bool autoSize) {
-  displayImage(windowName,
-               cv::Mat(img->h, img->w, CV_32FC3, img->data) * (1 / 254.0f),
-               autoSize);
+  if (kCameraNumUsed == 4) {
+    std::array<cv::Mat, kCameraNumUsed> show_mat_vec;
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      show_mat_vec[cid] =
+          cv::Mat(img->h, img->w, CV_32FC3, img->data + img->w * img->h * cid) *
+          (1 / 254.0f);
+    }
+    cv::Mat img1, img2, img_show;
+    cv::hconcat(show_mat_vec[1], show_mat_vec[2], img1);
+    cv::hconcat(show_mat_vec[0], show_mat_vec[3], img2);
+    cv::vconcat(img1, img2, img_show);
+    displayImage(windowName, img_show, autoSize);
+  } else {
+    displayImage(windowName,
+                 cv::Mat(img->h, img->w, CV_32FC3, img->data) * (1 / 254.0f),
+                 autoSize);
+  }
 }
 
 void displayImage(const char *windowName, const MinimalImageB16 *img,
                   bool autoSize) {
-  displayImage(windowName, cv::Mat(img->h, img->w, CV_16U, img->data),
-               autoSize);
+  if (kCameraNumUsed == 4) {
+    std::array<cv::Mat, kCameraNumUsed> show_mat_vec;
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      show_mat_vec[cid] =
+          cv::Mat(img->h, img->w, CV_16U, img->data + img->w * img->h * cid);
+    }
+    cv::Mat img1, img2, img_show;
+    cv::hconcat(show_mat_vec[1], show_mat_vec[2], img1);
+    cv::hconcat(show_mat_vec[0], show_mat_vec[3], img2);
+    cv::vconcat(img1, img2, img_show);
+    displayImage(windowName, img_show, autoSize);
+  } else {
+    displayImage(windowName, cv::Mat(img->h, img->w, CV_16U, img->data),
+                 autoSize);
+  }
 }
 
 void displayImageStitch(const char *windowName,
@@ -148,9 +216,26 @@ void displayImageStitch(const char *windowName,
                         const std::vector<MinimalImageB3 *> images, int cc,
                         int rc) {
   std::vector<cv::Mat *> imagesCV;
-  for (size_t i = 0; i < images.size(); i++)
-    imagesCV.push_back(
-        new cv::Mat(images[i]->h, images[i]->w, CV_8UC3, images[i]->data));
+  for (size_t i = 0; i < images.size(); i++) {
+    if (kCameraNumUsed == 4) {
+      std::array<cv::Mat, kCameraNumUsed> show_mat_vec;
+      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+        show_mat_vec[cid] =
+            cv::Mat(images[i]->h, images[i]->w, CV_8UC3,
+                    images[i]->data + images[i]->w * images[i]->h * cid);
+      }
+      cv::Mat img1, img2, img_show;
+      cv::hconcat(show_mat_vec[1], show_mat_vec[2], img1);
+      cv::hconcat(show_mat_vec[0], show_mat_vec[3], img2);
+      cv::vconcat(img1, img2, img_show);
+      cv::Mat *img_show2 =
+          new cv::Mat(img_show.rows, img_show.cols, CV_8UC3, img_show.data);
+      imagesCV.push_back(img_show2);
+    } else {
+      imagesCV.push_back(
+          new cv::Mat(images[i]->h, images[i]->w, CV_8UC3, images[i]->data));
+    }
+  }
   displayImageStitch(windowName, imagesCV, cc, rc);
   for (size_t i = 0; i < images.size(); i++)
     delete imagesCV[i];

@@ -39,7 +39,7 @@ public:
    * creates minimal image with own memory
    */
   inline MinimalImage(int w_, int h_) : w(w_), h(h_) {
-    data = new T[w * h];
+    data = new T[w * h * kCameraNumUsed];
     ownData = true;
   }
 
@@ -58,55 +58,59 @@ public:
 
   inline MinimalImage *getClone() {
     MinimalImage *clone = new MinimalImage(w, h);
-    memcpy(clone->data, data, sizeof(T) * w * h);
+    memcpy(clone->data, data, sizeof(T) * w * h * kCameraNumUsed);
     return clone;
   }
 
-  inline T &at(int x, int y) { return data[(int)x + ((int)y) * w]; }
+  inline T &at(int x, int y, int cid) {
+    return data[(int)x + ((int)y) * w + w * h * cid];
+  }
 
-  inline T &at(int i) { return data[i]; }
+  inline T &at(int i, int cid) { return data[i + w * h * cid]; }
 
-  inline void setBlack() { memset(data, 0, sizeof(T) * w * h); }
+  inline void setBlack() {
+    memset(data, 0, sizeof(T) * w * h * kCameraNumUsed);
+  }
 
   inline void setConst(T val) {
-    for (int i = 0; i < w * h; i++)
+    for (int i = 0; i < w * h * kCameraNumUsed; i++)
       data[i] = val;
   }
 
-  inline void setPixel1(const float &u, const float &v, T val) {
-    at(u + 0.5f, v + 0.5f) = val;
+  inline void setPixel1(const float &u, const float &v, T val, const int &cid) {
+    at(u + 0.5f, v + 0.5f, cid) = val;
   }
 
-  inline void setPixel4(const float &u, const float &v, T val) {
-    at(u + 1.0f, v + 1.0f) = val;
-    at(u + 1.0f, v) = val;
-    at(u, v + 1.0f) = val;
-    at(u, v) = val;
+  inline void setPixel4(const float &u, const float &v, T val, const int &cid) {
+    at(u + 1.0f, v + 1.0f, cid) = val;
+    at(u + 1.0f, v, cid) = val;
+    at(u, v + 1.0f, cid) = val;
+    at(u, v, cid) = val;
   }
 
-  inline void setPixel9(const int &u, const int &v, T val) {
-    at(u + 1, v - 1) = val;
-    at(u + 1, v) = val;
-    at(u + 1, v + 1) = val;
-    at(u, v - 1) = val;
-    at(u, v) = val;
-    at(u, v + 1) = val;
-    at(u - 1, v - 1) = val;
-    at(u - 1, v) = val;
-    at(u - 1, v + 1) = val;
+  inline void setPixel9(const int &u, const int &v, T val, const int &cid) {
+    at(u + 1, v - 1, cid) = val;
+    at(u + 1, v, cid) = val;
+    at(u + 1, v + 1, cid) = val;
+    at(u, v - 1, cid) = val;
+    at(u, v, cid) = val;
+    at(u, v + 1, cid) = val;
+    at(u - 1, v - 1, cid) = val;
+    at(u - 1, v, cid) = val;
+    at(u - 1, v + 1, cid) = val;
   }
 
-  inline void setPixelCirc(const int &u, const int &v, T val) {
+  inline void setPixelCirc(const int &u, const int &v, T val, const int &cid) {
     for (int i = -3; i <= 3; i++) {
-      at(u + 3, v + i) = val;
-      at(u - 3, v + i) = val;
-      at(u + 2, v + i) = val;
-      at(u - 2, v + i) = val;
+      at(u + 3, v + i, cid) = val;
+      at(u - 3, v + i, cid) = val;
+      at(u + 2, v + i, cid) = val;
+      at(u - 2, v + i, cid) = val;
 
-      at(u + i, v - 3) = val;
-      at(u + i, v + 3) = val;
-      at(u + i, v - 2) = val;
-      at(u + i, v + 2) = val;
+      at(u + i, v - 3, cid) = val;
+      at(u + i, v + 3, cid) = val;
+      at(u + i, v - 2, cid) = val;
+      at(u + i, v + 2, cid) = val;
     }
   }
 

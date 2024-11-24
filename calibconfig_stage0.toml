@@ -1,0 +1,561 @@
+[main]
+#calib_cid = [0]
+#gray_cid = [0]
+calib_cid = [0, 1, 2, 3]
+gray_cid = [0, 1, 2, 3]
+rgb_cid = []
+frame_mini_gap = 100000 #ns
+frame_gap = 30000000 #ns
+log_level = 0
+save_folder = "results"
+intr_folder = "intrinsic"
+extr_folder = "extrinsic"
+image_width = 640
+image_height = 480
+is_rgb = false
+is_gray_rgb = false
+calib_stage = 0 # GRAY_VI:0   RGB_VI:1    GRAY_RGB:1
+do_detection_only = false
+
+[dataset]
+#dataSet = "/media/roger/Elements_SE/CI/rigid/check/1"
+#dataSet = "/media/roger/Elements_SE/CI/rigid/2"
+#dataSet = "/media/roger/Elements_SE/CI/rigid/20240516/1"
+#dataSet = "/media/roger/Elements_SE/CI/rigid/20240517/2"
+#dataSet = "/media/roger/Elements_SE/CI/rigid/20240517/1"
+#dataSet = "/media/roger/Elements_SE/CI/gt2/SLAMRecord/calib/2"
+#dataSet = "/media/roger/Elements_SE/CI/gt3/SLAMRecord/calib/2"
+#dataSet = "/media/roger/Elements_SE/CI/test/qy/calib3"
+#dataSet = "/media/roger/Elements_SE/CI/rigid/20240521/SLAMRecord/1"
+#dataSet = "/media/roger/Elements_SE/CI/test/quick_test2"
+#dataSet = "/media/roger/Elements_SE/CI/rigid/bug1/1"
+#dataSet = "/media/roger/Elements_SE/CI/test/gray_rgb/test/2"
+#dataSet = "/media/roger/Elements_SE/CI/test/gray_rgb/3"
+#dataSet = "/media/roger/Elements_SE/CI/test/gray_rgb/4"
+#dataSet = "/media/roger/Elements_SE/CI/test/gray_rgb/test/1"
+#dataSet = "/media/roger/Elements_SE/CI/gt/20240531/calib/1/controller_2024-05-17-13-40-35"
+# dvt
+#dataSet = "/media/roger/Elements_SE/CI/dvt/1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/2/fast"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/3/fast"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/5/calib_with_mask"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/6/for_rj"
+
+# cnc
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/2024-06-23-12-39-04_SN_D3HDXD2D4231000037/controller_2024-06-22-03-33-38"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/2024-06-23-17-32-11_SN_D3HDXD2D4231000057/controller_2024-06-22-05-58-27"
+
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/2024-06-24-14-33-47_SN_D3HDXD2D4231000075/controller_2024-06-21-09-24-06"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/D3HDXD2D4231000108/controller_2024-06-24-03-39-44"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/D3HDXD2D4231000108/controller_2024-06-24-03-40-52"
+
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/2024-06-24-16-09-25_SN_D3HDXD1D4226000009/controller_2024-06-22-05-15-28"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/2024-06-26-11-57-59_SN_D3HDXD2D4231000084/controller_2024-06-24-03-28-28"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/D3HDXD2D4231000108/controller_2024-06-24-03-39-44"
+
+#dataSet = "/media/roger/Elements_SE/CI/dvt/test/富哥轻暴力标定1/controller_2024-06-24-10-20-45"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/test/温柔标定/controller_2024-06-24-08-22-54"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/test/轻暴力标定2/SLAMRecord/controller_2024-06-24-10-58-33"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/test/验证集/nj1"
+
+
+# CI with mask
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ci/2024-06-23-17-40-45_SN_D3HDXD2D4231000114/controller_2024-06-22-04-58-01"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ci/D3HDXD1D4226000016/controller_2024-06-20-10-39-07"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ci/D3HDXD2D4231000028/controller_2024-06-22-09-27-20"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ci/D3HDXD2D4231000065/controller_2024-06-21-06-27-31"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ci/D3HDXD2D4231000079/controller_2024-06-19-21-09-39"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ci/D3HDXD2D4231000108/controller_2024-06-24-03-39-44"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ci/D3HDXD2D4231000113/controller_2024-06-19-08-41-39"
+
+
+# CI rigid with mask
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/controller_2024-07-02-00-29-49"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/controller_2024-07-02-00-31-29"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/controller_2024-07-02-00-41-16"
+
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/2"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/3"
+
+
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/slam/SLAM_calib_data/1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/slam/SLAM_calib_data/2"
+
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/slam2/SLAMRecord/calib/1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/slam2/SLAMRecord/calib/2"
+
+#ab test
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/ab1/SLAMRecord/calib/2"
+
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/ab2/SLAMRecord/1"
+
+# toughest
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_wo_mask/toughest/SLAMRecord/calib"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_wo_mask/toughest/calib"
+# CI rigid wo mask
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_wo_mask/controller_2024-07-01-03-10-13"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_wo_mask/controller_2024-07-01-03-11-24"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_wo_mask/controller_2024-07-01-03-12-41"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_wo_mask/toughest/ab2/1"
+
+#vst
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/vst/SLAMRecord/gray"
+
+
+#D2 gt2
+#dataSet = "/media/roger/Elements_SE/CI/gt2/SLAMRecord/calib/2"
+
+
+# plastic wo mask
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/plastic_wo_mask/D3HDXD2D4231000137/1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/plastic_wo_mask/D3HDXD2D4231000137/test/SLAMRecord/fast"
+
+# D2 online
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/D2/SLAMRecord/1"
+
+# D3 rigid OC
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/oc/torj/0822/D3HDXD2D4231000038/controller_2024-08-22-05-03-35"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/oc/torj/0829/2024-08-29-21-04-56_SN_D3HDXD2D4231000038/controller_2024-08-22-04-09-15"
+
+# D3 outdoor
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/outdoor/1"
+
+
+# D3 plastic oc
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/oc/plastic/SLAMRecord/3"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/oc/plastic/SLAMRecord/SLAMRecord/1"fffjjfjjffj
+
+
+# AB
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/Calib/controller_2024-09-02-04-54-43"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/AB_Test/controller_2024-09-02-08-42-09"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/AB_Test/controller_2024-08-30-04-41-37"
+# calib
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/Calib/controller_2024-08-30-05-15-28"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/far_calib/SLAMRecord/controller_2024-09-16-04-31-28"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/far_calib/SLAMRecord/controller_2024-09-16-04-44-44"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/far_calib/SLAMRecord/controller_2024-09-16-04-47-01"
+# far
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/far_calib2/SLAMRecord/1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/far_calib2/SLAMRecord/2"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/far_calib2/SLAMRecord/3"
+# ab
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/vio2/SLAMRecord/2"
+# self calib
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/self_calib/SLAMRecord/1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/D2/yvrdatalogger2024-09-20-13-10-53"
+
+# self calib, D2 ab test bad
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/D2_bad/1517/SLAMRecord/1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/D2_bad/2321/SLAMRecord/1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/D2_bad/2321/SLAMRecord/4"
+
+#dot
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/D2_bad/1517/SLAMRecord/11"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/D2_bad/2321/SLAMRecord/11"
+
+# far calib rogid wo mask
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/far_calib3/controller_2024-09-24-21-09-23"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/far_calib3/SLAMRecord/2"
+#D2 bug
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/D2/controller_2024-08-30-10-52-14"
+
+
+# liang D2 bug
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/liang/controller_2024-09-10-07-57-08.forRongJie-zaixainbiaoding"
+
+# D3 mapper
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/controller_2024-09-26-16-55-14"
+
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/2"
+
+# short exposure
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/short_exposure/1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/short_exposure/2"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/short_exposure/3"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/short_exposure/4"
+
+# 1004 calib and ab
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/1004/calib1"
+
+# 1008 flat marker
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/flat_marker/1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/flat_marker/2"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/flat_marker/3"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/flat_marker/4"
+
+#1011 plastic
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000137/SLAMRecord/calib1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000137/SLAMRecord/calib2"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000137/SLAMRecord/calib3"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000137/SLAMRecord/calib4"
+
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000137/SLAMRecord/mm1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000137/SLAMRecord/mm2"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000137/SLAMRecord/mm3"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000137/SLAMRecord/mm4"
+
+
+# 40cm D3
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000059/SLAMRecord/sc1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000059/SLAMRecord/sc2"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000059/SLAMRecord/sc3"
+
+
+# dvt1.5 D3
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000158/SLAMRecord_1f/sc1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000158/SLAMRecord_1f/sc2"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000158/SLAMRecord_1f/sc3"
+
+
+# D3HDXD2D4231000059
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000059/SLAMRecord/line1/sc1"
+# D3HDXD2D4231000158
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000158/SLAMRecord/line1/sc1"
+
+
+# D3HDXD2D4231000059
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000059/SLAMRecord/line2/sc2"
+# D3HDXD2D4231000158
+#######dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000158/SLAMRecord/line2/sc2"
+
+
+
+# D2 ke 123456
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D2/123456/SLAMRecord/sc2"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D2/123456/SLAMRecord/line2/sc1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D2/123456/SLAMRecord/calib1/1"
+# D2 ce D2HD432713D9000999
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D2/D2HD432713D9000999/SLAMRecord/sc2"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D2/D2HD432713D9000999/SLAMRecord/line2/sc1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D2/D2HD432713D9000999/SLAMRecord/calib1/1"
+
+
+# D2 marker Map
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D2/D2HD432816D9000072/SLAMRecord/controller_2024-09-10-07-53-20"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/test/controller_2024-10-08-20-41-30"
+
+
+# D2 new mm
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D2/D2HD432713D9000999/SLAMRecord/mm1/dot1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D2/D2HD432713D9000999/SLAMRecord/mm1/mm1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D2/D2HD432713D9000999/SLAMRecord/mm1/mm2"
+
+
+# dvtrr2 200
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/dvt2/D3HDXD2D4363000200/2024-11-13-15-15-20_SN_D3HDXD2D4363000200/controller_2024-09-15-22-13-03"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/dvt2/D3HDXD2D4363000200/controller_2024-11-13-17-55-23"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/dvt2/online_calib/D3HDXD2D4363000200/20241118/1F_outdoor/controller_2024-11-18-16-01-13"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/dvt2/online_calib/D3HDXD2D4363000200/20241118/1F_indoor/controller_2024-11-18-16-08-29"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/dvt2/online_calib/D3HDXD2D4363000200/20241118/9F_office/controller_2024-11-18-15-46-22"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/dvt2/online_calib/D3HDXD2D4363000200/20241118/9F_calibRoom/controller_2024-11-18-16-22-12"
+
+
+# vio1  64
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/dvt2/D3HDXD2D4363000064/SLAMRecord/dot1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/dvt2/D3HDXD2D4363000064/SLAMRecord/mm1"
+
+# vio2 103
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/dvt2/D3HDXD2D4363000103/SLAMRecord/dot1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/dvt2/D3HDXD2D4363000103/SLAMRecord/mm1"
+
+
+# mapping group dvt2
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/dvt2/D3HDXD2D4363000200@DVT2@20241120/20241120/9F_calibRoom/controller_2024-11-20-11-26-41"
+dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/dvt2/D3HDXD2D4363000200@DVT2@20241121_1/20241121/9F_calibRoom/controller_2024-11-21-15-18-29"
+
+
+# man heng
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/online_camera_calibration/6m/controller_2024-10-08-17-23-20"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/online_camera_calibration/6m/controller_2024-10-08-17-25-06"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/online_camera_calibration/manheng/controller_2024-10-10-16-13-44"
+
+# check Tbc
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/checkTbc/1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/checkTbc/2/SLAMRecord/4"
+
+
+
+# 0531 CI, calib & self calib
+#dataSet = "/media/roger/Elements_SE/CI/gt/20240531/calib/1/controller_2024-05-17-13-40-35"
+#dataSet = "/media/roger/Elements_SE/CI/gt/20240531/1"
+
+#D2
+#dataSet = "/media/roger/Elements_SE/CI/gt2/SLAMRecord/calib/2"
+#dataSet = "/media/roger/Elements_SE/CI/gt2/SLAMRecord/1"
+
+
+#self_calib_bin_file = "self_calib_1012_fsrk_sparse.bin"
+#self_calib_bin_file = "self_calib_1012_sift_sparse.bin"
+
+self_calib_bin_file_points = "self_calib_1012_sift_dense.bin"
+self_calib_bin_file_lines = "___self_calib_1019_lines_loose_thr.bin"
+#self_calib_bin_file_lines = "self_calib_1019_lines.bin"
+
+#self_calib_bin_file = "self_calib_1004_fsrk.bin"
+#self_calib_bin_file = "self_calib_0924_sift.bin"
+#self_calib_bin_file = "self_calib_0922_3_raw_image.bin"
+#self_calib_bin_file = "self_calib_0921.bin"
+cam_folder_prefix = "Camera"
+cam_folder_subfix = "images"
+cam_json = "data.json"
+board_type = 0   # Dot:0    AprilTag:1
+plate_num = 3
+detect_thread_num = 8
+imu_folder_name = "IMU_QCOM"
+imu_json_name = "data.json"
+
+skip_detection = false
+use_prior_marker_map = false
+#prior_marker_map_path = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/1/map_0_prior.yaml"
+#prior_marker_map_path = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/1/map_3_prior.yaml"
+#prior_marker_map_path = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/1/map_3_prior2.yaml"
+#prior_marker_map_path = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/short_exposure/1/map_0.yaml"
+#prior_marker_map_path = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/1/map_0.yaml"
+#prior_marker_map_path = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/flat_marker/1/results/map_best.yaml"
+prior_marker_map_path = "map_best.yaml"
+#marker_map_vm_bin_file = "marker_map_vm_homo_warp2.bin"
+#marker_map_vm_bin_file = "marker_map_vm_homo_warp_short.bin"
+#marker_map_vm_bin_file = "marker_map_vm_homo_warp_short_scale3.bin"
+#marker_map_vm_bin_file = "marker_map_vm_homo_warp_short_scale3_wo_preprocess.bin"
+#marker_map_vm_bin_file = "marker_map_vm_homo_warp_short_scale3_wo_preprocess_09.bin"
+#marker_map_vm_bin_file = "marker_map_vm_homo_warp_short_scale3_wo_preprocess_09_5.bin"
+#marker_map_vm_bin_file = "marker_map_vm_homo_warp_short_scale3_wo_preprocess_09_5_wo_gv.bin"
+#marker_map_vm_bin_file = "marker_map_vm_homo_warp_short_scale3_wo_preprocess_09_5_wo_gv_wo_gv.bin"
+#marker_map_vm_bin_file = "marker_map_vm_homo_warp_short_scale3_wo_preprocess_09_5_wo_gv_wo_gv_loose_inlier.bin"
+marker_map_vm_bin_file = "marker_map_vm_homo_warp_short_scale3_wo_preprocess_09_5_wo_gv_wo_gv_loose_inlier_full_ba.bin"
+
+[dot_plate]
+dot_bin_file = "dotInfo_gray.bin"
+dot_bin_file_gray = "dotInfo_gray.bin"
+dot_bin_file_rgb = "dotInfo_rgb.bin"
+show_detect_picture = false
+black_dot = false
+adaptive_thresh = 0.9
+window_ratio = 10
+grid_spacing = 0.03
+grid_size = [30, 90]  # Array with two elements
+grid_seed = 92
+unique_size = 6
+conic_min_area = 4.0
+conic_symmetry = 0.25
+conic_min_aspect = 0.3
+min_area_point_num = 25
+
+
+[apriltag_plate]
+show_tag_detect = false
+apriltag_bin_file = "apriltag_gray.bin"
+apriltag_bin_file_gray = "apriltag_gray.bin"
+apriltag_bin_file_rgb = "apriltag_rgb.bin"
+black_board = 1
+rows = 10
+cols = 10
+apriltag_start_id = 0
+tag_size = 0.08 # m
+tag_gap = 0.2 # ratio
+pattern_num = 3
+
+[calib_check]
+calib_check_cid = [0, 1, 2, 3]
+#calib_file_name = "device_calibration_imu_kb20_joint_imu_intr.xml"
+#calib_file_name = "device_calibration_imu_kb20_20.xml"
+#calib_file_name = "device_calibration_imu_KB16.xml"
+#calib_file_name = "/media/roger/Elements_SE/CI/dvt/test/富哥轻暴力标定1/controller_2024-06-24-10-20-45/results/device_calibration_gray_vi.xml"
+#calib_file_name = "results/device_calibration_gray_vi.xml"
+#calib_file_name = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_wo_mask/controller_2024-07-01-03-12-41/results/device_calibration_gray_vi.xml"
+#calib_file_name = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/1/results/device_calibration_gray_vi.xml"
+#calib_file_name = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/slam/SLAM_calib_data/2/results/device_calibration_gray_vi.xml"
+#calib_file_name = "results/device_calibration_gray_vi_7.xml"
+
+#calib_file_name = "results/device_calibration_imu.xml"
+#calib_file_name = "results/device_calibration_new.xml"
+#calib_file_name = "results/device_calibration_new_rot_only.xml"
+
+# full
+#calib_file_name = "results/device_calibration_new_3dof.xml"
+#calib_file_name = "results/device_calibration_new_5dof.xml"
+
+# skip
+#calib_file_name = "results/device_calibration_new_3dof_skip.xml"
+#calib_file_name = "results/device_calibration_new_5dof_skip.xml"
+
+
+
+
+#orig
+#calib_file_name = "/results/device_calibration_imu_KB16_orig.xml"
+
+
+#calib_file_name = "/results/device_calibration_new_5dof_skip_w_opt.xml"
+#calib_file_name = "/results/device_calibration_new_5dof_skip_wo_opt.xml"
+
+
+
+#calib_file_name = "/results/device_calibration.xml"
+
+
+
+#calib_file_name = "/results/device_calibration_gray_vi_5_far3.xml"
+
+calib_file_name = "/results/device_calibration_new_3dof_skip_w_opt_2.xml"
+#calib_file_name = "/results/device_calibration_new_3dof_skip_wo_opt.xml"
+
+
+
+
+#calib_file_name = "/results/device_calibration_ucmrtp_pre.xml"
+#calib_file_name = "/results/device_calibration_ucmrtp_new.xml"
+
+
+#calib_file_name = "/results/device_calibration_gray_vi_5.xml"
+#calib_file_name = "/results/device_calibration_gray_vi_5_old.xml"
+
+
+#calib_file_name = "/results/device_calibration_imu_pre.xml"
+#calib_file_name = "/results/device_calibration_marker_map.xml"
+
+#calib_file_name = "/results/device_calibration_imu_KB16.xml"
+#calib_file_name = "results/device_calibration_imu_KB16_orig.xml"
+#calib_file_name = "results/device_calibration_imu_KB16_other.xml"
+
+
+#calib_file_name = "results/device_calibration_new_orig.xml"
+
+
+#calib_file_name = "results/device_calibration_imu_KB16.xml"
+#calib_file_name = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_with_mask/D3HDXD2D4231000038/3/results/device_calibration_imu_KB16.xml"
+#calib_file_name = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_wo_mask/controller_2024-07-01-03-12-41/results/device_calibration_imu_KB16.xml"
+#calib_file_name = "/media/roger/Elements_SE/CI/dvt/new_model/rigid_wo_mask/controller_2024-07-01-03-12-41/results/device_calibration_imu_KB16.xml"
+#calib_file_name = "results/device_calibration_gray_vi_new.xml"
+#calib_file_name = "results/device_calibration_gray_vi_kb16.xml"
+#calib_file_name = "results/device_calibration_imu.xml"
+#calib_file_name = "results/device_calibration_gray_vi_ucmrtp.xml"
+#calib_file_name = "/media/roger/Elements_SE/CI/dvt/new_model/2024-06-26-11-57-59_SN_D3HDXD2D4231000084/controller_2024-06-24-03-28-28/results/device_calibration_gray_vi.xml"
+#calib_file_name = "results/device_calibration_gray_vi_new.xml"
+#calib_file_name = "/media/roger/Elements_SE/CI/dvt/new_model/2024-06-24-16-09-25_SN_D3HDXD1D4226000009/controller_2024-06-22-05-15-28/results/device_calibration_gray_vi_new.xml"
+#calib_file_name = "/media/roger/Elements_SE/CI/dvt/new_model/2024-06-26-11-57-59_SN_D3HDXD2D4231000084/controller_2024-06-24-03-28-28/results/device_calibration_gray_vi_ucmrtp.xml"
+#calib_file_name = "/media/roger/Elements_SE/CI/dvt/new_model/2024-06-26-11-57-59_SN_D3HDXD2D4231000084/controller_2024-06-24-03-28-28/results/device_calibration_imu.xml"
+#calib_file_name = "results/device_calibration_gray_vi_new_rm_center.xml"
+#calib_file_name = "results/device_calibration_gray_vi_ucmrtp.xml"
+#calib_file_name = "device_calibration3_wo_tri.xml"
+#calib_check_result_folder = "calib_check_results"
+#calib_check_result_folder = "calib_check_results_with_tri_new"
+calib_check_result_folder = "calib_check_results_with_tri_kb16"
+#calib_check_result_folder = "calib_check_results_with_tri_selfopt"
+#calib_check_result_folder = "calib_check_results_with_tri_rm_center"
+#calib_check_result_folder = "calib_check_results_with_tri_ucmrtp_selfopt"
+#calib_check_result_folder = "calib_check_results_with_tri_ucmrtp_ceres"
+#calib_check_result_folder = "calib_check_results_wo_tri"
+show_calib_check_img = false
+
+[vi_calib]
+#spline knot dt(ms)
+spline_dt=0.003 #0.001 0.01 #0.0033
+spline_dt_rgb=0.1
+
+#to make sure every knot is set around image timestamp
+shift_imu_data=true
+
+#to make sure there's enough imu readings (maybe several seconds) before first image frame
+skip_first_frames_num=30
+
+# ratio of the knots whose weights are higher than other knots
+high_weight_knot_ratio=0.05
+
+# used in compute area
+power=2.0
+#bin_name="aprilTag.bin"
+#bin_name="aprilTag_opt_intr.bin"
+bin_name="aprilTag_deoutlier.bin"
+
+# reprojectError
+thresholdReprojectError=10.0#1.0
+
+# imu accel error threshold
+accel_error_threshold=10.5
+
+#imu gyro error threshold
+gyro_error_threshold=10.05
+
+# gravity norm
+g_norm=9.7946
+
+# use_sim or not
+use_sim=false
+
+# noise level in sim data
+noise_level=0.0
+
+# disturb level [deg], when set below zero, it means cam2plate poses are fixed
+disturb_level=0.2 # 0.5
+
+# fix plate and camera extrinsic or not
+fix_extr=true
+
+# use intr rot factor
+use_intr_rot_factor=false
+
+# intr rot factor weight
+intr_rot_factor_weight=1.0
+
+# res amplify ratio for line factors
+res_amplify_ratio=2.0
+
+# disable_reproj_factor or nor
+disable_reproj_factor=false
+
+# resolution difference weight
+resolution_difference_weight=100.0
+
+# use trifocal tensor factor or not
+use_trifocal_tensor_factor=false
+
+# to speedup
+vm_step_reproj = 1
+vm_step_line = 1
+
+# use magic number in td
+use_magic_number=true
+
+#use_detected_corner or not to speed up calibration
+use_detected_corner=true
+
+#window size used in imu filtering
+window_size=-2 # 150 # 100 # 30 50 70 100 120 150 170
+
+#imu noise bak
+gyro_std=0.1
+gyro_std2=0.01
+gyro_std_high=0.0025
+#
+acc_std=0.5
+acc_std2=0.05
+acc_std_high=0.05 #0.01
+#
+g_std=1.0
+g_std2=1.0
+#
+pose_std=0.01
+pose_std2=0.01
+
+# compensate imu intrinsic
+comp_imu=true
+
+verbose=true
+
+opt_Tc0ci=false
+opt_visual_scale=false
+opt_rolling_shutter=false
+fix_imu_intr=false
+opt_camera_intr=false
+disable_imu_factor=false
+fix_imu_bias=false
+
+four_cam_calib_file_name="/media/roger/Elements_SE/CI/D3_evt/rgb1/device_calibration_imu.xml"
+is_imu_calibrated=false
+is_four_as_one=true
+
+detect_only=false

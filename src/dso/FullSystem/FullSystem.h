@@ -140,7 +140,7 @@ public:
 
   FullSystem(bool linearizeOperationPassed,
              const dmvio::IMUCalibration &imuCalibration,
-             dmvio::IMUSettings &imuSettings);
+             dmvio::IMUSettings &imuSettings, MultiCamera *p_multi_camera);
 
   virtual ~FullSystem();
 
@@ -158,7 +158,7 @@ public:
   void printResult(std::string file, bool onlyLogKFPoses, bool saveMetricPoses,
                    bool useCamToTrackingRef);
 
-  void debugPlot(std::string name);
+  void debugPlot(std::string name, int cid = 0);
 
   void printFrameLifetimes();
   // contains pointers to active frames
@@ -206,7 +206,7 @@ private:
   std::pair<Vec4, bool> trackNewCoarse(FrameHessian *fh,
                                        Sophus::SE3 *referenceToFrameHint = 0);
 
-  void traceNewCoarse(FrameHessian *fh);
+  void traceNewCoarse(FrameHessian *fh, bool is_first_frame = false);
 
   void activatePoints();
 

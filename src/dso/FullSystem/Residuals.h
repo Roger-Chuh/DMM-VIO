@@ -54,6 +54,10 @@ public:
 
   EFResidual *efResidual;
 
+  int host_cid;
+
+  int target_cid;
+
   static int instanceCounter;
 
   ResState state_state;    //!< 上一次的残差状态
@@ -71,6 +75,9 @@ public:
 
   bool isNew;
 
+  //    Eigen::Vector2f projectedTo[MAX_RES_PER_POINT * kCameraNumUsed]; //!<
+  //    各个patch的投影坐标 std::array<Vec3f, kCameraNumUsed> centerProjectedTo;
+  //    //!< patch的中心点投影 [像素x, 像素y, 新帧逆深度]
   Eigen::Vector2f projectedTo[MAX_RES_PER_POINT]; //!< 各个patch的投影坐标
   Vec3f centerProjectedTo; //!< patch的中心点投影 [像素x, 像素y, 新帧逆深度]
                            //!< 用来初始化新点的逆深度
@@ -79,8 +86,12 @@ public:
 
   PointFrameResidual();
 
+  //  PointFrameResidual(PointHessian *point_, FrameHessian *host_,
+  //                     FrameHessian *target_);
+
   PointFrameResidual(PointHessian *point_, FrameHessian *host_,
-                     FrameHessian *target_);
+                     FrameHessian *target_, const int &host_cid_,
+                     const int &target_cid_);
 
   double linearize(CalibHessian *HCalib);
 

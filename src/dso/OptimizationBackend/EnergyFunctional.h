@@ -88,7 +88,8 @@ public:
 
   ~EnergyFunctional();
 
-  EFResidual *insertResidual(PointFrameResidual *r);
+  EFResidual *insertResidual(PointFrameResidual *r,
+                             MultiCamera *p_multi_camera);
 
   EFFrame *insertFrame(FrameHessian *fh, CalibHessian *Hcalib);
 
@@ -149,7 +150,7 @@ private:
 
   void resubstituteF_MT(VecX x, CalibHessian *HCalib, bool MT);
 
-  void resubstituteFPt(const VecCf &xc, Mat18f *xAd, int min, int max,
+  void resubstituteFPt(const VecCf &xc, Mat1Statef *xAd, int min, int max,
                        Vec10 *stats, int tid);
 
   void accumulateAF_MT(MatXX &H, VecX &b, bool MT);
@@ -162,13 +163,13 @@ private:
 
   void orthogonalize(VecX *b, MatXX *H);
 
-  Mat18f *adHTdeltaF; //!< host和target之间位姿的增量, 一共[帧数×帧数]个
+  Mat1Statef *adHTdeltaF; //!< host和target之间位姿的增量, 一共[帧数×帧数]个
 
-  Mat88 *adHost; //!< 伴随矩阵, double
-  Mat88 *adTarget;
+  MatState *adHost; //!< 伴随矩阵, double
+  MatState *adTarget;
 
-  Mat88f *adHostF; //!< 伴随矩阵, float
-  Mat88f *adTargetF;
+  MatStatef *adHostF; //!< 伴随矩阵, float
+  MatStatef *adTargetF;
 
   VecC cPrior;   //!< setting_initialCalibHessian 信息矩阵
   VecCf cDeltaF; //!< 相机内参增量

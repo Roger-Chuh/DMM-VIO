@@ -63,27 +63,45 @@ PointFrameResidual::~PointFrameResidual() {
   delete J;
 }
 
+// PointFrameResidual::PointFrameResidual(PointHessian *point_,
+//                                       FrameHessian *host_,
+//                                       FrameHessian *target_)
+//    : point(point_), host(host_), target(target_) {
+//  efResidual = 0;
+//  instanceCounter++;
+//  resetOOB();
+//  // TODO 这时J只是开辟了空间，还没有赋值
+//  J = new RawResidualJacobian(); // 各种雅克比
+//  assert(((long)J) % 16 == 0);   // 16位对齐
+//
+//  isNew = true;
+//}
 PointFrameResidual::PointFrameResidual(PointHessian *point_,
                                        FrameHessian *host_,
-                                       FrameHessian *target_)
-    : point(point_), host(host_), target(target_) {
+                                       FrameHessian *target_,
+                                       const int &host_cid_,
+                                       const int &target_cid_)
+    : point(point_), host(host_), target(target_), host_cid(host_cid_),
+      target_cid(target_cid_) {
   efResidual = 0;
   instanceCounter++;
   resetOOB();
   // TODO 这时J只是开辟了空间，还没有赋值
-  J = new RawResidualJacobian(); // 各种雅克比
-  assert(((long)J) % 16 == 0);   // 16位对齐
+  J = new RawResidualJacobian(host_cid, target_cid); // 各种雅克比
+  assert(((long)J) % 16 == 0);                       // 16位对齐
 
   isNew = true;
 }
 
 //@ 求对各个参数的导数, 和能量值
+//#define SHOW_IMAGE
 double PointFrameResidual::linearize(CalibHessian *HCalib) {
   // printf("fx fy cx cy: [%f %f %f %f]\n", HCalib->fxl(), HCalib->fyl(),
   // HCalib->cxl(), HCalib->cyl());
   state_NewEnergyWithOutlier = -1;
 
   if (state_state == ResState::OOB) {
+    // printf("oob\n");
     state_NewState = ResState::OOB;
     return state_energy;
   }
@@ -91,16 +109,74 @@ double PointFrameResidual::linearize(CalibHessian *HCalib) {
   FrameFramePrecalc *precalc = &(
       host->targetPrecalc[target
                               ->idx]); // 得到这个目标帧在主帧上的一些预计算参数
+                                       //                              host_cid;
+  //                              target_cid;
+
   float energyLeft = 0;
-  const Eigen::Vector3f *dIl = target->dI;
-  const Eigen::Vector3f *host_dIl = host->dI;
+  const Eigen::Vector3f *dIl = target->dI + wG[0] * hG[0] * target_cid;
+  const Eigen::Vector3f *host_dIl = host->dI + wG[0] * hG[0] * host_cid;
+#ifdef SHOW_IMAGE
+  MinimalImageB3 *img_host = new MinimalImageB3(wG[0], hG[0]);
+  MinimalImageB3 *img_target = new MinimalImageB3(wG[0], hG[0]);
+
+  for (int i = 0; i < wG[0] * hG[0]; i++) {
+    // BRIGHTNESS TRANSFER
+    float colL = host_dIl[i][0];
+    if (colL < 0)
+      colL = 0;
+    if (colL > 255)
+      colL = 255;
+    img_host->at(i) = Vec3b(colL, colL, colL);
+    colL = dIl[i][0];
+    if (colL < 0)
+      colL = 0;
+    if (colL > 255)
+      colL = 255;
+    img_target->at(i) = Vec3b(colL, colL, colL);
+  }
+  img_host->setPixel9(point->u + 0.5, point->v + 0.5, makeRainbow3B(1));
+#endif
   // const float* const Il = target->I;
+  // const Mat33f &PRE_KRKiTll_orig = precalc->PRE_KRKiTll; // todo relative
+  // pose after optimize
+#if 0
+  Mat33f KK = Mat33f::Zero();
+  KK(0, 0) = HCalib->fxl();
+  KK(1, 1) = HCalib->fyl();
+  KK(0, 2) = HCalib->cxl();
+  KK(1, 2) = HCalib->cyl();
+  KK(2, 2) = 1;
+  Mat44f T10 = Mat44f::Identity();
+  T10.topLeftCorner<3, 3>() = KK.inverse() * precalc->PRE_KRKiTll * KK;
+  T10.topRightCorner<3, 1>() = KK.inverse() * precalc->PRE_KtTll;
+
+  Mat44f T10_ = (host->p_multi_camera->cid_to_T01[target_cid].inverse() * T10.cast<double>() * host->p_multi_camera->cid_to_T01[host_cid]).cast<float>();
+
+  const Mat33f &PRE_KRKiTll = KK * T10_.topLeftCorner<3, 3>() * KK.inverse();
+  // const Vec3f &PRE_KtTll = precalc->PRE_KtTll; //
+  const Vec3f &PRE_KtTll = KK * T10_.topRightCorner<3, 1>();
+  //TODO roger, adj jac
+#else
   const Mat33f &PRE_KRKiTll =
-      precalc->PRE_KRKiTll; // todo relative pose after optimize
-  const Vec3f &PRE_KtTll = precalc->PRE_KtTll; //
+      precalc->a_PRE_KRKiTll[host_cid * kCameraNumUsed +
+                             target_cid]; // todo relative pose after optimize
+  const Vec3f &PRE_KtTll =
+      precalc->a_PRE_KtTll[host_cid * kCameraNumUsed + target_cid]; //
+  // TODO roger, adj jac
+  const Mat66 &extra_pose_jac =
+      host->p_multi_camera->cid_to_T01_inv_Adj[target_cid];
+#endif
+#if 0
   const Mat33f &PRE_RTll_0 =
       precalc->PRE_RTll_0; // todo relative pose before optimize
   const Vec3f &PRE_tTll_0 = precalc->PRE_tTll_0;
+#else
+  const Mat33f &PRE_RTll_0 =
+      precalc->a_PRE_RTll_0[host_cid * kCameraNumUsed +
+                            target_cid]; // todo relative pose before optimize
+  const Vec3f &PRE_tTll_0 =
+      precalc->a_PRE_tTll_0[host_cid * kCameraNumUsed + target_cid];
+#endif
   const float *const color = point->color; // host帧上颜色
   const float *const weights = point->weights;
 
@@ -125,6 +201,7 @@ double PointFrameResidual::linearize(CalibHessian *HCalib) {
                       HCalib, PRE_RTll_0, PRE_tTll_0, drescale, u, v, Ku, Kv,
                       KliP, new_idepth)) {
       state_NewState = ResState::OOB;
+      // printf("oob\n");
       return state_energy;
     } // 投影不在图像里, 则返回OOB
 
@@ -277,6 +354,12 @@ double PointFrameResidual::linearize(CalibHessian *HCalib) {
             show.rightCols(6) = show.leftCols(6) - d_uv_d_pose;
             std::cout<<"pose jac diff:\n"<<show<<std::endl;
 #endif
+    Mat26f d_uv_d_pose;
+    d_uv_d_pose.row(0) = d_xi_x.transpose();
+    d_uv_d_pose.row(1) = d_xi_y.transpose();
+    d_uv_d_pose = (d_uv_d_pose.cast<double>() * extra_pose_jac).cast<float>();
+    d_xi_x = d_uv_d_pose.row(0).transpose();
+    d_xi_y = d_uv_d_pose.row(1).transpose();
   }
 
   {
@@ -326,6 +409,10 @@ double PointFrameResidual::linearize(CalibHessian *HCalib) {
                       point->idepth_scaled, PRE_KRKiTll, PRE_KtTll, Ku, Kv)) {
       continue;
     }
+
+#ifdef SHOW_IMAGE
+    img_target->setPixel9(Ku + 0.5, Kv + 0.5, makeRainbow3B(1));
+#endif
 
     Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
     // float residual = hitColor[0] - (float) (affLL[0] * color[idx] +
@@ -399,6 +486,7 @@ double PointFrameResidual::linearize(CalibHessian *HCalib) {
   //    std::cout << "lba, grad_new_target: \n" << grad_new_target << std::endl;
 
   int cnt = 0;
+  float residual;
   for (int idx = 0; idx < patternNum; idx++) {
     float Ku, Kv;
     //? 为啥这里使用idepth_scaled, 上面使用的是zero； 答：
@@ -412,8 +500,8 @@ double PointFrameResidual::linearize(CalibHessian *HCalib) {
     }
 
     // 像素坐标
-    projectedTo[idx][0] = Ku;
-    projectedTo[idx][1] = Kv;
+    projectedTo[idx /*+ MAX_RES_PER_POINT * target_cid*/][0] = Ku;
+    projectedTo[idx /*+ MAX_RES_PER_POINT * target_cid*/][1] = Kv;
 
     Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
     //* 残差对光度仿射a求导
@@ -421,11 +509,12 @@ double PointFrameResidual::linearize(CalibHessian *HCalib) {
     float drdA = (color[idx] - b0);
     if (!std::isfinite((float)hitColor[0])) {
       state_NewState = ResState::OOB;
+      // printf("oob, (float)hitColor[0]: %f\n", (float)hitColor[0]);
       return state_energy;
     }
 
 #ifndef USE_ZNCC
-    float residual = hitColor[0] - (float)(affLL[0] * color[idx] + affLL[1]);
+    residual = hitColor[0] - (float)(affLL[0] * color[idx] + affLL[1]);
 #else
     float residual_bak =
         hitColor[0] - (float)(affLL[0] * color[idx] + affLL[1]);
@@ -448,7 +537,15 @@ double PointFrameResidual::linearize(CalibHessian *HCalib) {
     //		float drdA = (color[idx]-b0);
     //		if(!std::isfinite((float)hitColor[0]))
     //		{ state_NewState = ResState::OOB; return state_energy; }
-
+#ifdef SHOW_IMAGE
+    std::cout << "idx: " << idx << ", hostColor: " << hostColor.transpose()
+              << ", hitColor: " << hitColor.transpose()
+              << ", affLL: " << affLL.transpose()
+              << ", color[idx]: " << color[idx] << std::endl;
+    IOWrap::displayImage("host", img_host);
+    IOWrap::displayImage("target", img_target);
+    IOWrap::waitKey(0);
+#endif
 #ifndef USE_ZNCC
     float w = sqrtf(
         setting_outlierTHSumComponent /
@@ -625,6 +722,9 @@ double PointFrameResidual::linearize(CalibHessian *HCalib) {
   //* 大于阈值则视为有外点
   if (energyLeft > std::max<float>(host->frameEnergyTH,
                                    target->frameEnergyTH) /*|| wJI2_sum < 2*/) {
+    // printf("residual: %f, energyLeft: %f, host->frameEnergyTH: %f,
+    // target->frameEnergyTH: %f\n", residual, energyLeft, host->frameEnergyTH,
+    // target->frameEnergyTH);
     energyLeft = std::max<float>(host->frameEnergyTH, target->frameEnergyTH);
     state_NewState = ResState::OUTLIER;
   } else {
@@ -662,7 +762,7 @@ void PointFrameResidual::debugPlot() {
     if ((projectedTo[i][0] > 2 && projectedTo[i][1] > 2 &&
          projectedTo[i][0] < wG[0] - 3 && projectedTo[i][1] < hG[0] - 3))
       target->debugImage->setPixel1((float)projectedTo[i][0],
-                                    (float)projectedTo[i][1], cT);
+                                    (float)projectedTo[i][1], cT, target_cid);
   }
 }
 
@@ -675,10 +775,12 @@ void PointFrameResidual::applyRes(bool copyJacobians) {
     }
     if (state_NewState == ResState::IN) // && )
     {
+      // printf("good res\n");
       efResidual->isActiveAndIsGoodNEW = true;
       //? 指针好恶心, 计算好了调用这个函数
       efResidual->takeDataF(); // 从当前取jacobian数据
     } else {
+      // printf("bad res, state_NewState: %d\n", state_NewState);
       efResidual->isActiveAndIsGoodNEW = false;
     }
   }

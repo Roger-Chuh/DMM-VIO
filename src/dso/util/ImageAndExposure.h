@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "settings.h"
 #include <cstring>
 #include <iostream>
 
@@ -37,7 +38,7 @@ public:
   float exposure_time; // exposure time in ms.
   inline ImageAndExposure(int w_, int h_, double timestamp_ = 0)
       : w(w_), h(h_), timestamp(timestamp_) {
-    image = new float[w * h];
+    image = new float[w * h * kCameraNumUsed];
     exposure_time = 1;
   }
 
@@ -50,7 +51,7 @@ public:
   inline ImageAndExposure *getDeepCopy() {
     ImageAndExposure *img = new ImageAndExposure(w, h, timestamp);
     img->exposure_time = exposure_time;
-    memcpy(img->image, image, w * h * sizeof(float));
+    memcpy(img->image, image, w * h * kCameraNumUsed * sizeof(float));
     return img;
   }
 };

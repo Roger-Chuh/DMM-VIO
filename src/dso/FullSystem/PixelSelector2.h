@@ -39,13 +39,15 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   int makeMaps(const FrameHessian *const fh, float *map_out, float density,
-               int recursionsLeft = 1, bool plot = false, float thFactor = 1);
+               int recursionsLeft = 1, bool plot = false, float thFactor = 1,
+               int cid = 0);
 
   PixelSelector(int w, int h);
 
   ~PixelSelector();
 
-  int currentPotential; //!< 当前选择像素点的潜力, 就是网格大小, 越大选点越少
+  int currentPotential[kCameraNumUsed]; //!< 当前选择像素点的潜力, 就是网格大小,
+                                        //!< 越大选点越少
 
   bool allowFast;
 
@@ -53,7 +55,7 @@ public:
 
 private:
   Eigen::Vector3i select(const FrameHessian *const fh, float *map_out, int pot,
-                         float thFactor = 1);
+                         float thFactor = 1, int cid = 0);
 
   unsigned char *randomPattern;
 

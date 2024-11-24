@@ -51,9 +51,9 @@ void EnergyFunctional::setAdjointsF(CalibHessian *Hcalib) {
     delete[] adHost;
   if (adTarget != 0)
     delete[] adTarget;
-  adHost = new Mat88[nFrames *
-                     nFrames]; // TODO nFrames*nFrames 2帧可以互为host target
-  adTarget = new Mat88[nFrames * nFrames];
+  adHost = new MatState[nFrames *
+                        nFrames]; // TODO nFrames*nFrames 2帧可以互为host target
+  adTarget = new MatState[nFrames * nFrames];
 
   for (int h = 0; h < nFrames; h++) // 主帧  //TODO 2帧可以互为host target
     for (int t = 0; t < nFrames; t++) // 目标帧
@@ -73,9 +73,10 @@ void EnergyFunctional::setAdjointsF(CalibHessian *Hcalib) {
                   << hostToTarget.matrix3x4() << std::endl;
       }
       /// Host
-      Mat88 AH = Mat88::Identity();
+      MatState AH = MatState::Identity();
       /// Target
-      Mat88 AT = Mat88::Identity();
+      MatState AT = MatState::Identity();
+      // TODO roger, T_th = T_tw * (T_hw)^-1, left_to_left
       // 见笔记推导吧, 或者https://www.cnblogs.com/JingeTU/p/9077372.html
       // TODO 相对pose增量转成绝对pose增量 类似Twc的增量和Twb的增量是一样的
       AH.topLeftCorner<6, 6>() =
@@ -100,14 +101,20 @@ void EnergyFunctional::setAdjointsF(CalibHessian *Hcalib) {
       AT(7, 7) = -1;       //! b'(bj)   //TODO b21对b2的雅可比 = -1
       AH(7, 7) = affLL[0]; //! b'(bi)   //TODO b21对b1的雅可比 = a21
 
-      AH.block<3, 8>(0, 0) *= SCALE_XI_TRANS;
-      AH.block<3, 8>(3, 0) *= SCALE_XI_ROT;
-      AH.block<1, 8>(6, 0) *= SCALE_A;
-      AH.block<1, 8>(7, 0) *= SCALE_B;
-      AT.block<3, 8>(0, 0) *= SCALE_XI_TRANS;
-      AT.block<3, 8>(3, 0) *= SCALE_XI_ROT;
-      AT.block<1, 8>(6, 0) *= SCALE_A; //? 已经是乘过的, 怎么又乘一遍
-      AT.block<1, 8>(7, 0) *= SCALE_B;
+      AH.block<3, STATE_DIM>(0, 0) *= SCALE_XI_TRANS;
+      AH.block<3, STATE_DIM>(3, 0) *= SCALE_XI_ROT;
+      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+        AH.block<1, STATE_DIM>(6 + 2 * cid, 0) *= SCALE_A;
+        AH.block<1, STATE_DIM>(7 + 2 * cid, 0) *= SCALE_B;
+      }
+
+      AT.block<3, STATE_DIM>(0, 0) *= SCALE_XI_TRANS;
+      AT.block<3, STATE_DIM>(3, 0) *= SCALE_XI_ROT;
+      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+        AT.block<1, STATE_DIM>(6 + 2 * cid, 0) *=
+            SCALE_A; //? 已经是乘过的, 怎么又乘一遍
+        AT.block<1, STATE_DIM>(7 + 2 * cid, 0) *= SCALE_B;
+      }
 
       /// adHost, adTarget是一个很长的1维数组
       // TODO precompute
@@ -125,8 +132,8 @@ void EnergyFunctional::setAdjointsF(CalibHessian *Hcalib) {
     delete[] adHostF;
   if (adTargetF != 0)
     delete[] adTargetF;
-  adHostF = new Mat88f[nFrames * nFrames];
-  adTargetF = new Mat88f[nFrames * nFrames];
+  adHostF = new MatStatef[nFrames * nFrames];
+  adTargetF = new MatStatef[nFrames * nFrames];
 
   for (int h = 0; h < nFrames; h++)
     for (int t = 0; t < nFrames; t++) {
@@ -201,7 +208,7 @@ EnergyFunctional::~EnergyFunctional() {
 void EnergyFunctional::setDeltaF(CalibHessian *HCalib) {
   if (adHTdeltaF != 0)
     delete[] adHTdeltaF;
-  adHTdeltaF = new Mat18f[nFrames * nFrames];
+  adHTdeltaF = new Mat1Statef[nFrames * nFrames];
   for (int h = 0; h < nFrames; h++)
     for (int t = 0; t < nFrames; t++) { // TODO ------------> host
       // TODO |
@@ -218,13 +225,13 @@ void EnergyFunctional::setDeltaF(CalibHessian *HCalib) {
       // adj of relative pose incremental cast as float
       adHTdeltaF[idx] = frames[h]
                                 ->data->get_state_minus_stateZero()
-                                .head<8>()
+                                .head<STATE_DIM>()
                                 .cast<float>()
                                 .transpose() *
                             adHostF[idx] +
                         frames[t]
                                 ->data->get_state_minus_stateZero()
-                                .head<8>()
+                                .head<STATE_DIM>()
                                 .cast<float>()
                                 .transpose() *
                             adTargetF[idx];
@@ -236,10 +243,12 @@ void EnergyFunctional::setDeltaF(CalibHessian *HCalib) {
 
   cDeltaF = HCalib->value_minus_value_zero.cast<float>(); // 相机内参增量
   for (EFFrame *f : frames) {
-    f->delta = f->data->get_state_minus_stateZero().head<8>(); // 帧绝对位姿增量
+    f->delta = f->data->get_state_minus_stateZero()
+                   .head<STATE_DIM>(); // 帧绝对位姿增量
     f->delta_prior =
         (f->data->get_state() - f->data->getPriorZero())
-            .head<8>(); // 先验增量//TODO 据视频说只有第一帧才有，初始逆深度等等
+            .head<STATE_DIM>(); // 先验增量//TODO
+                                // 据视频说只有第一帧才有，初始逆深度等等
 
     for (EFPoint *p : f->points)
       p->deltaF = p->data->idepth - p->data->idepth_zero; // 逆深度的增量
@@ -261,11 +270,14 @@ void EnergyFunctional::accumulateAF_MT(MatXX &H, VecX &b, bool MT) {
                 0, allPoints.size(), 50);
     accSSE_top_A->stitchDoubleMT(red, H, b, this, false, true);
     resInA = accSSE_top_A->nres[0];
+    // printf("@@@@accSSE_top_A->nres[0]: %d\n", accSSE_top_A->nres[0]);
   } else {
     accSSE_top_A->setZero(nFrames);
-    for (EFFrame *f : frames)
-      for (EFPoint *p : f->points)
+    for (EFFrame *f : frames) {
+      for (EFPoint *p : f->points) {
         accSSE_top_A->addPoint<0>(p, this); //! mode 0 增加EF点
+      }
+    }
     accSSE_top_A->stitchDoubleMT(red, H, b, this, false,
                                  false); // 不加先验, 得到H, b
     // accSSE_top_A->stitchDoubleMT(red,H,b,this,true,false); // 加先验, 得到H,
@@ -317,24 +329,28 @@ void EnergyFunctional::accumulateSCF_MT(MatXX &H, VecX &b, bool MT) {
 
 //@ 计算相机内参和位姿, 光度的增量
 void EnergyFunctional::resubstituteF_MT(VecX x, CalibHessian *HCalib, bool MT) {
-  assert(x.size() == CPARS + nFrames * 8);
+  assert(x.size() == CPARS + nFrames * STATE_DIM);
 
   VecXf xF = x.cast<float>();
   HCalib->step = -x.head<CPARS>();
   std::cout << "###############################################################"
                "################################# HCalib incremental: "
             << HCalib->step.transpose() << std::endl;
-  Mat18f *xAd = new Mat18f[nFrames * nFrames];
+  Mat1Statef *xAd = new Mat1Statef[nFrames * nFrames];
   VecCf cstep = xF.head<CPARS>();
   for (EFFrame *h : frames) {
-    h->data->step.head<8>() = -x.segment<8>(CPARS + 8 * h->idx);
-    h->data->step.tail<2>().setZero();
-    // TODO * 绝对位姿增量变相对的, xAd用于更新逆深度
+    // TODO roger, maintain Hx = b, not Hx = -b; so we need to multiply (-1)
+    h->data->step.head<STATE_DIM>() =
+        -x.segment<STATE_DIM>(CPARS + STATE_DIM * h->idx);
+    // h->data->step.tail<2>().setZero();
+    // TODO * 绝对位姿增量变相对的, xAd用于更新逆深度,
+    // TODO roger,
+    // 没错，确实绝对增量变相对增量，理解得太深刻了，绝不是相对增量变绝对增量
     for (EFFrame *t : frames)
       xAd[nFrames * h->idx + t->idx] =
-          xF.segment<8>(CPARS + 8 * h->idx).transpose() *
+          xF.segment<STATE_DIM>(CPARS + STATE_DIM * h->idx).transpose() *
               adHostF[h->idx + nFrames * t->idx] +
-          xF.segment<8>(CPARS + 8 * t->idx).transpose() *
+          xF.segment<STATE_DIM>(CPARS + STATE_DIM * t->idx).transpose() *
               adTargetF[h->idx + nFrames * t->idx];
   }
   //* 计算点的逆深度增量
@@ -349,15 +365,18 @@ void EnergyFunctional::resubstituteF_MT(VecX x, CalibHessian *HCalib, bool MT) {
 }
 
 //@ 计算点逆深度的增量
-void EnergyFunctional::resubstituteFPt(const VecCf &xc, Mat18f *xAd, int min,
-                                       int max, Vec10 *stats, int tid) {
+void EnergyFunctional::resubstituteFPt(const VecCf &xc, Mat1Statef *xAd,
+                                       int min, int max, Vec10 *stats,
+                                       int tid) {
   for (int k = min; k < max; k++) {
     EFPoint *p = allPoints[k];
 
     int ngoodres = 0;
-    for (EFResidual *r : p->residualsAll)
-      if (r->isActive())
+    for (EFResidual *r : p->residualsAll) {
+      if (r->isActive()) {
         ngoodres++;
+      }
+    }
     if (ngoodres == 0) {
       p->data->step = 0;
       continue;
@@ -370,10 +389,15 @@ void EnergyFunctional::resubstituteFPt(const VecCf &xc, Mat18f *xAd, int min,
       if (!r->isActive())
         continue;
       //* 减去逆深度和位姿 光度参数
+      // TODO
+      // 因为用了fej，就要恢复到之前的线性化点，又因为雅可比是在相对pose下求得的，所以就有了之前的把绝对pose增量（Ttw,
+      // Thw）转成相对pose增量（Tth）的操作
+      // TODO 全都能呼应上
+      // TODO idp都是被shcur掉的得用类似orca里线特征使用的implicit schur trick
       b -= xAd[r->hostIDX * nFrames + r->targetIDX] *
            r->JpJdF; //! 绝对变相对的, xAd是转置了的
     }
-
+    // TODO 已知pose ab的增量，求idp的增量, implicit schur trick
     p->data->step = -b * p->HdiF; // 逆深度的增量
     assert(std::isfinite(p->data->step));
   }
@@ -433,11 +457,23 @@ void EnergyFunctional::calcLEnergyPt(int min, int max, Vec10 *stats, int tid) {
       if (!r->isLinearized || !r->isActive())
         continue; // 同时满足
       // TODO 1x8 vector
-      Mat18f dp = adHTdeltaF[r->hostIDX + nFrames * r->targetIDX];
+      // TODO roger, 但pose的增量是Tc0的
+      // TODO roger,
+      // 这里已经转成相对增量了，但是是Tc0间的相对增量，并不是Tcjci间的相对增量，还要再转一下
+      Mat1Statef dp = adHTdeltaF[r->hostIDX + nFrames * r->targetIDX];
+      // TODO T10 = Tc0cj * Tcjci * Tc0ci^-1
+      // todo roger, convert delta_Tc0c0 to delta_Tcjci
+      // Note: Adj(inv(T1)) = inv(Adj(T1))
+      // 我想多了，状态量就是delta T0，不是delta T_cjci
+
+      // dp.block<1, 6>(0, 0) =
+      // ((r->p_multi_camera->cid_to_T01_inv_Adj[r->target_cid] * dp.block<1,
+      // 6>(0, 0).transpose().cast<double>())).transpose().cast<float>();
       RawResidualJacobian *rJ = r->J;
 
       // compute Jp*delta
       // TODO 在idp，pose，内参的扰动下，像素投影点的增量
+      // TODO roger, 注意，这里的Jac是Tcjci，但pose的增量是Tc0的，还是要转移一下
       float Jp_delta_x_1 = rJ->Jpdxi[0].dot(dp.head<6>()) +
                            rJ->Jpdc[0].dot(dc) + rJ->Jpdd[0] * dd;
 
@@ -480,6 +516,7 @@ void EnergyFunctional::calcLEnergyPt(int min, int max, Vec10 *stats, int tid) {
         float Jdelta = rJ->JIdx[0][i] * Jp_delta_x_1 +
                        rJ->JIdx[1][i] * Jp_delta_y_1 + rJ->JabF[0][i] * dp[6] +
                        rJ->JabF[1][i] * dp[7];
+        // Jdelta
         // TODO 丢掉常数 f(x0)^2
         // ,难怪，或者我们认为f(x0)=0，我们认为在线性化点处的残差（能量）为0
         E.updateSingleNoShift(
@@ -507,7 +544,7 @@ double EnergyFunctional::calcLEnergyF_MT() {
   }
   E += cDeltaF.cwiseProduct(cPriorF).dot(
       cDeltaF); // 相机内参先验 //TODO 估计值和先验值之间残差的平方
-
+  // printf("!! E: %f\n", E);
   red->reduce(
       boost::bind(&EnergyFunctional::calcLEnergyPt, this, _1, _2, _3, _4), 0,
       allPoints.size(), 50);
@@ -516,9 +553,11 @@ double EnergyFunctional::calcLEnergyF_MT() {
 }
 
 //@ 向能量函数中插入一残差, 更新连接图关系
-EFResidual *EnergyFunctional::insertResidual(PointFrameResidual *r) {
-  EFResidual *efr = new EFResidual(r, r->point->efPoint, r->host->efFrame,
-                                   r->target->efFrame);
+EFResidual *EnergyFunctional::insertResidual(PointFrameResidual *r,
+                                             MultiCamera *p_multi_camera) {
+  EFResidual *efr =
+      new EFResidual(r, r->point->efPoint, r->host->efFrame, r->target->efFrame,
+                     r->host_cid, r->target_cid, p_multi_camera);
   efr->idxInAll =
       r->point->efPoint->residualsAll.size(); // 在这个点的所有残差的id
   r->point->efPoint->residualsAll.push_back(
@@ -550,20 +589,26 @@ EFFrame *EnergyFunctional::insertFrame(FrameHessian *fh, CalibHessian *Hcalib) {
   nFrames++;
   fh->efFrame = eff; // FrameHessian 指向能量函数帧
   /// 6dof pose + 2dof affine + 4dof intr
-  assert(HM.cols() == 8 * nFrames + CPARS - 8); // 边缘化掉一帧, 缺8个
+  // printf("HM: %d, nFrames:%d, STATE_DIM * nFrames + CPARS - STATE_DIM: %d,
+  // STATE_DIM: %d, CPARS: %d\n", HM.cols(), nFrames, STATE_DIM * nFrames +
+  // CPARS - STATE_DIM, STATE_DIM, CPARS);
+  assert(HM.cols() ==
+         STATE_DIM * nFrames + CPARS - STATE_DIM); // 边缘化掉一帧, 缺8个
   // 一个帧8个参数 + 相机内参
-  bM.conservativeResize(8 * nFrames + CPARS);
-  bMForGTSAM.conservativeResize(8 * nFrames + CPARS);
-  HM.conservativeResize(8 * nFrames + CPARS, 8 * nFrames + CPARS);
-  HMForGTSAM.conservativeResize(8 * nFrames + CPARS, 8 * nFrames + CPARS);
+  bM.conservativeResize(STATE_DIM * nFrames + CPARS);
+  bMForGTSAM.conservativeResize(STATE_DIM * nFrames + CPARS);
+  HM.conservativeResize(STATE_DIM * nFrames + CPARS,
+                        STATE_DIM * nFrames + CPARS);
+  HMForGTSAM.conservativeResize(STATE_DIM * nFrames + CPARS,
+                                STATE_DIM * nFrames + CPARS);
   // 新帧的块为0
   /// 矩阵增广 阔维
-  bM.tail<8>().setZero();
-  bMForGTSAM.tail<8>().setZero();
-  HM.rightCols<8>().setZero();
-  HM.bottomRows<8>().setZero();
-  HMForGTSAM.rightCols<8>().setZero();
-  HMForGTSAM.bottomRows<8>().setZero();
+  bM.tail<STATE_DIM>().setZero();
+  bMForGTSAM.tail<STATE_DIM>().setZero();
+  HM.rightCols<STATE_DIM>().setZero();
+  HM.bottomRows<STATE_DIM>().setZero();
+  HMForGTSAM.rightCols<STATE_DIM>().setZero();
+  HMForGTSAM.bottomRows<STATE_DIM>().setZero();
 
   // TODO 默认是false，因为刚加进来还没更新，更新之后会设置成true
   EFIndicesValid = false;
@@ -596,7 +641,7 @@ EFFrame *EnergyFunctional::insertFrame(FrameHessian *fh, CalibHessian *Hcalib) {
 
 //@ 向能量函数中插入一个点, 放入对应的EFframe
 EFPoint *EnergyFunctional::insertPoint(PointHessian *ph) {
-  EFPoint *efp = new EFPoint(ph, ph->host->efFrame);
+  EFPoint *efp = new EFPoint(ph, ph->host->efFrame, ph->host_cid);
   efp->idxInPoints = ph->host->efFrame->points.size();
   ph->host->efFrame->points.push_back(efp);
 
@@ -640,8 +685,8 @@ void EnergyFunctional::marginalizeFrame(EFFrame *fh) {
   assert(EFIndicesValid);
 
   assert((int)fh->points.size() == 0);
-  int ndim = nFrames * 8 + CPARS - 8; // new dimension
-  int odim = nFrames * 8 + CPARS;     // old dimension
+  int ndim = nFrames * STATE_DIM + CPARS - STATE_DIM; // new dimension
+  int odim = nFrames * STATE_DIM + CPARS;             // old dimension
 
   //	VecX eigenvaluesPre = HM.eigenvalues().real();
   //	std::sort(eigenvaluesPre.data(),
@@ -661,8 +706,8 @@ void EnergyFunctional::marginalizeFrame(EFFrame *fh) {
     // evaluation point for each frames.
     gtsamIntegration.addMarginalizedPointsBA(HMForGTSAM, bMForGTSAM, frames);
 
-    Vec8 priorH;
-    Vec8 priorB;
+    VecState priorH;
+    VecState priorB;
     priorH = fh->prior;
     priorB = fh->prior.cwiseProduct(fh->delta_prior);
 
@@ -686,25 +731,25 @@ void EnergyFunctional::marginalizeFrame(EFFrame *fh) {
     //[ ***step 1*** ] 把边缘化的帧挪到最右边, 最下边
     //* HM bM就是边缘化点得到的
     if ((int)fh->idx != (int)frames.size() - 1) {
-      int io = fh->idx * 8 + CPARS;            // index of frame to move to end
-      int ntail = 8 * (nFrames - fh->idx - 1); // 边缘化帧后面的变量数
-      assert((io + 8 + ntail) == nFrames * 8 + CPARS);
+      int io = fh->idx * STATE_DIM + CPARS; // index of frame to move to end
+      int ntail = STATE_DIM * (nFrames - fh->idx - 1); // 边缘化帧后面的变量数
+      assert((io + STATE_DIM + ntail) == nFrames * STATE_DIM + CPARS);
 
-      Vec8 bTmp = bM.segment<8>(io); // 被边缘化的8个变量
-      VecX tailTMP = bM.tail(ntail); // 后面的挪到前面
+      VecState bTmp = bM.segment<STATE_DIM>(io); // 被边缘化的8个变量
+      VecX tailTMP = bM.tail(ntail);             // 后面的挪到前面
       bM.segment(io, ntail) = tailTMP;
-      bM.tail<8>() = bTmp;
+      bM.tail<STATE_DIM>() = bTmp;
 
       //* 边缘化帧右侧挪前面
-      MatXX HtmpCol = HM.block(0, io, odim, 8);
+      MatXX HtmpCol = HM.block(0, io, odim, STATE_DIM);
       MatXX rightColsTmp = HM.rightCols(ntail);
       HM.block(0, io, odim, ntail) = rightColsTmp;
-      HM.rightCols(8) = HtmpCol;
+      HM.rightCols(STATE_DIM) = HtmpCol;
       //* 边缘化帧下边挪上面
-      MatXX HtmpRow = HM.block(io, 0, 8, odim);
+      MatXX HtmpRow = HM.block(io, 0, STATE_DIM, odim);
       MatXX botRowsTmp = HM.bottomRows(ntail);
       HM.block(io, 0, ntail, odim) = botRowsTmp;
-      HM.bottomRows(8) = HtmpRow;
+      HM.bottomRows(STATE_DIM) = HtmpRow;
     }
 
     //[ ***step 2*** ] 加上先验
@@ -712,8 +757,8 @@ void EnergyFunctional::marginalizeFrame(EFFrame *fh) {
     // marginalize. First add prior here, instead of to active.
     /// 这里的prior和inertial
     /// mode下ba，gravity的prior一样，需要预先设置一个权重的，没啥花里胡哨的
-    HM.bottomRightCorner<8, 8>().diagonal() += fh->prior;
-    bM.tail<8>() += fh->prior.cwiseProduct(
+    HM.bottomRightCorner<STATE_DIM, STATE_DIM>().diagonal() += fh->prior;
+    bM.tail<STATE_DIM>() += fh->prior.cwiseProduct(
         fh->delta_prior); /// b_new = b_old + H * delta_state
 
     //	std::cout << std::setprecision(16) << "HMPre:\n" << HM << "\n\n";
@@ -732,16 +777,16 @@ void EnergyFunctional::marginalizeFrame(EFFrame *fh) {
     VecX bMScaled = SVecI.asDiagonal() * bM;
 
     // invert bottom part!
-    Mat88 hpi = HMScaled.bottomRightCorner<8, 8>();
+    MatState hpi = HMScaled.bottomRightCorner<STATE_DIM, STATE_DIM>();
     hpi = 0.5f * (hpi + hpi);
     hpi = hpi.inverse();
     hpi = 0.5f * (hpi + hpi);
 
     // schur-complement!
-    MatXX bli = HMScaled.bottomLeftCorner(8, ndim).transpose() * hpi;
+    MatXX bli = HMScaled.bottomLeftCorner(STATE_DIM, ndim).transpose() * hpi;
     HMScaled.topLeftCorner(ndim, ndim).noalias() -=
-        bli * HMScaled.bottomLeftCorner(8, ndim);
-    bMScaled.head(ndim).noalias() -= bli * bMScaled.tail<8>();
+        bli * HMScaled.bottomLeftCorner(STATE_DIM, ndim);
+    bMScaled.head(ndim).noalias() -= bli * bMScaled.tail<STATE_DIM>();
 
     // unscale!
     HMScaled = SVec.asDiagonal() * HMScaled * SVec.asDiagonal();
@@ -771,9 +816,9 @@ void EnergyFunctional::marginalizeFrame(EFFrame *fh) {
   nFrames--;
   fh->data->efFrame = 0;
 
-  assert((int)frames.size() * 8 + CPARS == (int)HM.rows());
-  assert((int)frames.size() * 8 + CPARS == (int)HM.cols());
-  assert((int)frames.size() * 8 + CPARS == (int)bM.size());
+  assert((int)frames.size() * STATE_DIM + CPARS == (int)HM.rows());
+  assert((int)frames.size() * STATE_DIM + CPARS == (int)HM.cols());
+  assert((int)frames.size() * STATE_DIM + CPARS == (int)bM.size());
   assert((int)frames.size() == (int)nFrames);
 
   //	VecX eigenvaluesPost = HM.eigenvalues().real();
@@ -1017,14 +1062,16 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
   VecX bL_top, bA_top, bM_top, b_sc;
   //* 针对新的残差, 使用的当前残差, 没有逆深度的部分
   accumulateAF_MT(HA_top, bA_top, multiThreading);
-
+  // std::cout << "HA_top:\n" << HA_top << std::endl;
   //* 边缘化fix的残差, 有边缘化对的, 使用的res_toZeroF减去线性化部分, 加上先验,
   //没有逆深度的部分
   // TODO bug: 这里根本就没有点参与了, 只有先验信息,
   // 因为边缘化的和删除的点都不在了
   //! 这里唯一的作用就是 把 p相关的置零, useless
-  accumulateLF_MT(HL_top, bL_top, multiThreading); // 计算的是之前计算过得
-
+  accumulateLF_MT(
+      HL_top, bL_top,
+      multiThreading); // 计算的是之前计算过得
+                       //  std::cout << "HL_top:\n" << HL_top << std::endl;
   // p->Hdd_accLF = 0;
   // p->bd_accLF = 0;
   // p->Hcd_accLF =0 ;
@@ -1032,13 +1079,13 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
   //* 关于逆深度的Schur部分
 
   accumulateSCF_MT(H_sc, b_sc, multiThreading);
-
+  //  std::cout << "H_sc:\n" << H_sc << std::endl;
   // TODO HM 和 bM是啥啊
   // TODO * 由于固定线性化点, 每次迭代更新残差,
   // 对于marg部分，残差bM进行一阶泰勒更新, HM stays unchanged
   bM_top = (bM + HM * getStitchedDeltaF());
   VecX bMGTSAM_top = (bMForGTSAM + HMForGTSAM * getStitchedDeltaF());
-
+  // std::cout << "bM_top:\n" << bM_top << std::endl;
   // printf("HA_top: \n");
   // for(int i = 0; i < HA_top.rows(); i++)
   // {
@@ -1064,6 +1111,7 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
   //[ ***step 2*** ] 如果是设置求解正交系统,
   //则把相对应的零空间部分Jacobian设置为0, 否则正常计算schur
   if (setting_solverMode & SOLVER_ORTHOGONALIZE_SYSTEM) {
+    // printf("solve a\n");
     // have a look if prior is there.
     bool haveFirstFrame = false;
     for (EFFrame *f : frames)
@@ -1089,11 +1137,11 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
     lastbS = bFinal_top;
     // LM
     //* 这个阻尼也是加在Schur complement计算之后的
-    for (int i = 0; i < 8 * nFrames + CPARS; i++)
+    for (int i = 0; i < STATE_DIM * nFrames + CPARS; i++)
       HFinal_top(i, i) *= (1 + lambda);
 
   } else {
-
+    // printf("solve b\n");
     // HFinal_top = HL_top + HM + HA_top;
     HFinal_top = HL_top + HM + HA_top;
     // bFinal_top = bL_top + bM_top + bA_top - b_sc;
@@ -1103,7 +1151,7 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
     lastbS = bFinal_top;
     //* 而这个就是阻尼加在了整个Hessian上
     //? 为什么呢, 是因为减去了零空间么  ??
-    for (int i = 0; i < 8 * nFrames + CPARS; i++)
+    for (int i = 0; i < STATE_DIM * nFrames + CPARS; i++)
       HFinal_top(i, i) *= (1 + lambda);
     HFinal_top -=
         H_sc * (1.0f / (1 + lambda)); // 因为Schur里面有个对角线的逆, 所以是倒数
@@ -1112,6 +1160,7 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
   //[ ***step 3*** ] 使用SVD求解, 或者ldlt直接求解
   VecX x;
   if (setting_solverMode & SOLVER_SVD) {
+    // printf("solve c\n");
     //* 为数值稳定进行缩放
     VecX SVecI = HFinal_top.diagonal().cwiseSqrt().cwiseInverse();
     MatXX HFinalScaled = SVecI.asDiagonal() * HFinal_top * SVecI.asDiagonal();
@@ -1161,7 +1210,7 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
       // as they don't depend on the points (as otherwise the Schur-complement
       // trick doesn't work like this anymore).
       MatXX HPassed = HL_top + HMForGTSAM + HA_top;
-      for (int i = 0; i < 8 * nFrames + CPARS; i++)
+      for (int i = 0; i < STATE_DIM * nFrames + CPARS; i++)
         HPassed(i, i) *= (1 + lambda);
       HPassed -= H_sc * (1.0f / (1 + lambda));
       x = gtsamIntegration.computeBAUpdate(
@@ -1230,10 +1279,10 @@ void EnergyFunctional::makeIDX() {
 
 //@ 返回状态增量, 这里帧位姿和光度参数, 使用的是每一帧绝对的
 VecX EnergyFunctional::getStitchedDeltaF() const {
-  VecX d = VecX(CPARS + nFrames * 8);
+  VecX d = VecX(CPARS + nFrames * STATE_DIM);
   d.head<CPARS>() = cDeltaF.cast<double>(); // 相机内参增量
   for (int h = 0; h < nFrames; h++)
-    d.segment<8>(CPARS + 8 * h) = frames[h]->delta;
+    d.segment<STATE_DIM>(CPARS + STATE_DIM * h) = frames[h]->delta;
   return d;
 }
 

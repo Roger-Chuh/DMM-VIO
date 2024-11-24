@@ -23,6 +23,7 @@
 #ifndef DMVIO_IMUSETTINGS_H
 #define DMVIO_IMUSETTINGS_H
 
+#include "../dso/camera_model/calib_def.h"
 #include "IMUInitialization/IMUInitSettings.h"
 #include <Eigen/Core>
 #include <GTSAMIntegration/PoseTransformation.h>
@@ -38,6 +39,7 @@ namespace dmvio {
 // - Default values set in the code (here or in the constructor).
 // - Values set using a settings.yaml file.
 // - Values set using commandline arguments.
+struct IMUState;
 class IMUSettings {
 public:
   void registerArgs(dmvio::SettingsUtil &set);
@@ -139,6 +141,7 @@ public:
   IMUCalibration(const Sophus::SE3d &tCamImu);
 
   void loadFromFile(std::string settingsFilename);
+  void loadFromFile2(const dso::IMUState &imu_state);
 
   void
   saveToFile(std::string filename); // Save T_cam_imu to as a camchain.yaml.

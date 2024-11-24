@@ -47,14 +47,16 @@ void AccumulatedTopHessianSSE::addPoint(
   float bd_acc = 0;
   float Hdd_acc = 0;
   VecCf Hcd_acc = VecCf::Zero();
-
+  // std::cout << "p->residualsAll: " << p->residualsAll.size() << std::endl;
   for (EFResidual *r : p->residualsAll) // 对该点所有残差遍历一遍
   {
     //* 这个和运行的mode不一样, 又混了.....
     if (mode == 0) // 只计算新加入的残差
     {
-      if (r->isLinearized || !r->isActive())
+      if (r->isLinearized || !r->isActive()) {
+        // printf("continue 1\n");
         continue;
+      }
     }
     if (mode == 1) // bug: 这个条件就一直满足 计算旧的残差, 之前计算过得
     {
@@ -67,13 +69,17 @@ void AccumulatedTopHessianSSE::addPoint(
                       ngoodRes++;
                   }
        */
-      if (!r->isLinearized || !r->isActive())
+      if (!r->isLinearized || !r->isActive()) {
+        // printf("continue 2\n");
         continue;
+      }
     }
     if (mode == 2) // 边缘化计算的情况
     {
-      if (!r->isActive())
+      if (!r->isActive()) {
+        // printf("continue 3\n");
         continue;
+      }
       assert(r->isLinearized);
     }
     // if(mode == 1)
@@ -84,14 +90,16 @@ void AccumulatedTopHessianSSE::addPoint(
     RawResidualJacobian *rJ = r->J; // 导数
     //* ID 来控制不同帧之间的变量, 区分出相同两帧 但是host target角色互换的
     int htIDX = r->hostIDX + r->targetIDX * nframes[tid];
-    Mat18f dp = ef->adHTdeltaF[htIDX]; // 位姿+光度a b
-
+    Mat18f dp =
+        ef->adHTdeltaF[htIDX]; // 位姿+光度a b
+                               // std::cout << "dp: " << dp << std::endl;
     VecNRf resApprox;
     if (mode == 0)
       resApprox = rJ->resF; // TODO 还没做线性化，即还没有雅可比
     if (mode == 2) {        // 边缘化时使用的
       resApprox = r->res_toZeroF; //!< 更新delta后的线性残差
     }
+    // std::cout << "resApprox: " << resApprox.transpose() << std::endl;
     if (mode == 1) {
       // compute Jp*delta
       // TODO fixLinearization = true
@@ -161,7 +169,7 @@ void AccumulatedTopHessianSSE::addPoint(
 
     nres[tid]++;
   }
-
+  // std::cout << 'Hdd_acc:\n' << Hdd_acc << std::endl;
   if (mode == 0) {
     p->Hdd_accAF = Hdd_acc;
     p->bd_accAF = bd_acc;
@@ -302,8 +310,12 @@ void AccumulatedTopHessianSSE::stitchDoubleInternal(
 
     for (int tid2 = 0; tid2 < toAggregate; tid2++) {
       acc[tid2][aidx].finish();
+      // std::cout << "acc[tid2][aidx].num: " << acc[tid2][aidx].num <<
+      // std::endl;
       if (acc[tid2][aidx].num == 0)
         continue;
+      // std::cout << "acc[tid2][aidx].H.cast<double>():\n" <<
+      // acc[tid2][aidx].H.cast<double>() << std::endl;
       accH += acc[tid2][aidx].H.cast<double>(); // 不同线程之间的加起来
     }
     //* 相对的量通过adj变成绝对的量, 并累加到 H, b 中

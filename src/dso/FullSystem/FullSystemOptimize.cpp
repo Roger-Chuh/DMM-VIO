@@ -64,23 +64,46 @@ void FullSystem::linearizeAll_Reductor(
       {
         if (r->isNew) { // TODO 理解无穷远点
           PointHessian *p = r->point;
+#if 0
           Vec3f ptp_inf =
               r->host->targetPrecalc[r->target->idx].PRE_KRKiTll *
               Vec3f(p->u, p->v, 1); // projected point assuming infinite depth.
           Vec3f ptp = ptp_inf +
                       r->host->targetPrecalc[r->target->idx].PRE_KtTll *
                           p->idepth_scaled; // projected point with real depth.
+#else
+          // printf("[host target] : [%d %d]\n", r->host_cid, r->target_cid);
+          // std::cout<<"r->host->targetPrecalc[r->target->idx]\n"
+          //           "                  .a_PRE_KRKiTll[r->host_cid *
+          //           kCameraNumUsed +
+          //           r->target_cid]:\n"<<r->host->targetPrecalc[r->target->idx]
+          //        .a_PRE_KRKiTll[r->host_cid * kCameraNumUsed +
+          //        r->target_cid]<<std::endl;
+          //            std::cout<<"delta
+          //            Tc0:\n"<<r->host->targetPrecalc[r->target->idx]
+          //                             .PRE_KRKiTll<<std::endl;
+          Vec3f ptp_inf =
+              r->host->targetPrecalc[r->target->idx]
+                  .a_PRE_KRKiTll[r->host_cid * kCameraNumUsed + r->target_cid] *
+              Vec3f(p->u, p->v, 1); // projected point assuming infinite depth.
+          Vec3f ptp = ptp_inf +
+                      r->host->targetPrecalc[r->target->idx]
+                              .a_PRE_KtTll[r->host_cid * kCameraNumUsed +
+                                           r->target_cid] *
+                          p->idepth_scaled; // projected point with real depth.
+#endif
           float relBS = 0.01 * ((ptp_inf.head<2>() / ptp_inf[2]) -
                                 (ptp.head<2>() / ptp[2]))
                                    .norm(); // 0.01 = one pixel.
 
-          if (relBS > p->maxRelBaseline)
+          if (relBS > p->maxRelBaseline) {
             p->maxRelBaseline = relBS; // 正比于点的基线长度
-
+          }
           p->numGoodResiduals++;
         }
       } else { //* tid线程的id
         // 删除OOB, Outlier
+        // printf("outlier??\n");
         toRemove[tid].push_back(activeResiduals[k]); // 残差太大则移除
       }
     }
@@ -180,10 +203,10 @@ Vec3 FullSystem::linearizeAll(bool fixLinearization) {
     /// state_state只有oob，in这些吧，都是enum，不是具体数值
     for (PointFrameResidual *r : activeResiduals) {
       PointHessian *ph = r->point;
-      if (ph->lastResiduals[0].first == r)
-        ph->lastResiduals[0].second = r->state_state;
-      else if (ph->lastResiduals[1].first == r)
-        ph->lastResiduals[1].second = r->state_state;
+      if (ph->lastResiduals[r->target_cid][0].first == r)
+        ph->lastResiduals[r->target_cid][0].second = r->state_state;
+      else if (ph->lastResiduals[r->target_cid][1].first == r)
+        ph->lastResiduals[r->target_cid][1].second = r->state_state;
     }
     //! residual创建时候都创建, 再去掉不好的
     int nResRemoved = 0;
@@ -192,10 +215,10 @@ Vec3 FullSystem::linearizeAll(bool fixLinearization) {
       for (PointFrameResidual *r : toRemove[i]) {
         PointHessian *ph = r->point;
         // 删除不好的lastResiduals
-        if (ph->lastResiduals[0].first == r)
-          ph->lastResiduals[0].first = 0;
-        else if (ph->lastResiduals[1].first == r)
-          ph->lastResiduals[1].first = 0;
+        if (ph->lastResiduals[r->target_cid][0].first == r)
+          ph->lastResiduals[r->target_cid][0].first = 0;
+        else if (ph->lastResiduals[r->target_cid][1].first == r)
+          ph->lastResiduals[r->target_cid][1].first = 0;
 
         for (unsigned int k = 0; k < ph->residuals.size(); k++)
           if (ph->residuals[k] == r) {
@@ -223,10 +246,10 @@ bool FullSystem::doStepFromBackup(float stepfacC, float stepfacT,
   //	float meanStepC=0,meanStepP=0,meanStepD=0;
   //	meanStepC += Hcalib.step.norm();
   //* 相当于步长了
-  Vec10 pstepfac;
+  VecState pstepfac;
   pstepfac.segment<3>(0).setConstant(stepfacT);
   pstepfac.segment<3>(3).setConstant(stepfacR);
-  pstepfac.segment<4>(6).setConstant(stepfacA);
+  pstepfac.segment<2 /* * kCameraNumUsed*/>(6).setConstant(stepfacA);
 
   float sumA = 0, sumB = 0, sumT = 0, sumR = 0, sumID = 0, numID = 0;
 
@@ -235,14 +258,16 @@ bool FullSystem::doStepFromBackup(float stepfacC, float stepfacT,
   if (setting_solverMode & SOLVER_MOMENTUM) {
     Hcalib.setValue(Hcalib.value_backup + Hcalib.step); // 内参的值进行update
     for (FrameHessian *fh : frameHessians) {
-      Vec10 step = fh->step;
+      VecState step = fh->step;
       step.head<6>() +=
           0.5f * (fh->step_backup
                       .head<6>()); //? 为什么加一半 答：这种解法很奇怪。。不管了
 
       fh->setState(fh->state_backup + step); // 位姿 光度 update
-      sumA += step[6] * step[6];             // 光度增量平方
-      sumB += step[7] * step[7];
+      for (int cid = 0; cid < 1 /*kCameraNumUsed*/; ++cid) {
+        sumA += step[6 + cid * 2] * step[6 + cid * 2]; // 光度增量平方
+        sumB += step[7 + cid * 2] * step[7 + cid * 2];
+      }
       sumT += step.segment<3>(0).squaredNorm(); // 平移增量
       sumR += step.segment<3>(3).squaredNorm(); // 旋转增量
 
@@ -261,8 +286,10 @@ bool FullSystem::doStepFromBackup(float stepfacC, float stepfacT,
     //* 相机内参, 光度参数更新
     for (FrameHessian *fh : frameHessians) {
       fh->setState(fh->state_backup + pstepfac.cwiseProduct(fh->step));
-      sumA += fh->step[6] * fh->step[6];
-      sumB += fh->step[7] * fh->step[7];
+      for (int cid = 0; cid < 1 /*kCameraNumUsed*/; ++cid) {
+        sumA += fh->step[6 + cid * 2] * fh->step[6 + cid * 2];
+        sumB += fh->step[7 + cid * 2] * fh->step[7 + cid * 2];
+      }
       sumT += fh->step.segment<3>(0).squaredNorm();
       sumR += fh->step.segment<3>(3).squaredNorm();
       //* 点的逆深度更新, 注意点逆深度没使用FEJ
@@ -277,8 +304,8 @@ bool FullSystem::doStepFromBackup(float stepfacC, float stepfacT,
     }
   }
 
-  sumA /= frameHessians.size();
-  sumB /= frameHessians.size();
+  sumA /= frameHessians.size(); // / kCameraNumUsed;
+  sumB /= frameHessians.size(); // / kCameraNumUsed;
   sumR /= frameHessians.size();
   sumT /= frameHessians.size();
   sumID /= numID;
@@ -403,14 +430,17 @@ float FullSystem::optimize(int mnumOptIts) {
   for (FrameHessian *fh : frameHessians)
     for (PointHessian *ph : fh->pointHessians) {
       for (PointFrameResidual *r : ph->residuals) {
+        // printf("new_res!!!\n");
         if (!r->efResidual->isLinearized) // 没有求线性误差
         {                                 // TODO
           // 这个会一直进入这个判断，只有要marg的点才会线性化残差，它的残差使用fej状态求的，不需要用最新状态
           activeResiduals.push_back(r); // 新加入的残差 //TODO r中包含host
                                         // target帧id，uv，idepth，Jac这些信息
+          // printf("cc\n");
           r->resetOOB(); // residual状态重置
-        } else
+        } else {
           numLRes++; //已经线性化过得计数
+        }
       }
       numPoints++;
     }
@@ -418,7 +448,7 @@ float FullSystem::optimize(int mnumOptIts) {
   if (!setting_debugout_runquiet)
     printf("OPTIMIZE %d pts, %d active res, %d lin res!\n", ef->nPoints,
            (int)activeResiduals.size(), numLRes);
-
+  // std::exit(-1);
   //[ ***step 2*** ] 线性化activeResiduals的残差, 计算边缘化的能量值
   //(然而这里都设成0了)
   //* 线性化, 参数: [true是进行固定线性化, 并去掉不好的残差]
@@ -428,6 +458,7 @@ float FullSystem::optimize(int mnumOptIts) {
       false); // TODO
               // 这里是第一次线性化，后面还没有优化，所以还没有剔除点的过程，对应pdf里“先第一次统一构建，再第二次里提出误差大的点”的说辞
   //? 和linearizeAll计算的有啥区别
+  // printf("check!!\n");
   double lastEnergyL =
       calcLEnergy(); // islinearized的量的能量 //TODO
                      // 还能通过显式的残差构建来算energy，部分状态用的是Fej（idp，pose，camera），部分状态用的是最新估计（gradient，ab），但host帧的b0用的是fej，算是一个比较强的prior吧
@@ -464,7 +495,8 @@ float FullSystem::optimize(int mnumOptIts) {
   //	double lambda = 1e-1;
   double lambda = minLambda;
   float stepsize = 1;
-  VecX previousX = VecX::Constant(CPARS + 8 * frameHessians.size(), NAN);
+  VecX previousX =
+      VecX::Constant(CPARS + STATE_DIM * frameHessians.size(), NAN);
   int numIterations = 0;
   for (int iteration = 0; iteration < mnumOptIts; iteration++) {
     dmvio::TimeMeasurement timeMeasurement("baIteration");
@@ -597,7 +629,7 @@ float FullSystem::optimize(int mnumOptIts) {
   // pose，所以只有01，12，23，34，45，以及56，56的connection是新加的，所以不用fix
   // linearization point，理解的对吗？ (scratch that)
   // TODO 代码和我的注释好像南辕北辙啊
-  Vec10 newStateZero = Vec10::Zero();
+  VecState newStateZero = VecState ::Zero();
   // TODO 至此最新进来的一个关键帧应该设置线性化点了，就像ppt里的f30状态那样
   newStateZero.segment<2>(6) = frameHessians.back()->get_state().segment<2>(6);
 
@@ -650,6 +682,8 @@ float FullSystem::optimize(int mnumOptIts) {
   }
 
   baIntegration->postOptimization(ef->frames);
+
+  // std::exit(-1);
 
   debugPlotTracking();
   //* 返回平均误差rmse
@@ -707,7 +741,7 @@ std::vector<VecX> FullSystem::getNullspaces(
   nullspaces_affA.clear();  // size: 1
   nullspaces_affB.clear();  // size: 1
 
-  int n = CPARS + frameHessians.size() * 8;
+  int n = CPARS + frameHessians.size() * (STATE_DIM);
   std::vector<VecX> nullspaces_x0_pre; // 所有的零空间
   //* 位姿的零空间
   for (int i = 0; i < 6; i++) // 第i个变量的零空间
@@ -715,23 +749,30 @@ std::vector<VecX> FullSystem::getNullspaces(
     VecX nullspace_x0(n);
     nullspace_x0.setZero();
     for (FrameHessian *fh : frameHessians) {
-      nullspace_x0.segment<6>(CPARS + fh->idx * 8) = fh->nullspaces_pose.col(i);
-      nullspace_x0.segment<3>(CPARS + fh->idx * 8) *=
+      nullspace_x0.segment<6>(CPARS + fh->idx * (STATE_DIM)) =
+          fh->nullspaces_pose.col(i);
+      nullspace_x0.segment<3>(CPARS + fh->idx * (STATE_DIM)) *=
           SCALE_XI_TRANS_INVERSE; // 去掉scale
-      nullspace_x0.segment<3>(CPARS + fh->idx * 8 + 3) *= SCALE_XI_ROT_INVERSE;
+      nullspace_x0.segment<3>(CPARS + fh->idx * (STATE_DIM) + 3) *=
+          SCALE_XI_ROT_INVERSE;
     }
     nullspaces_x0_pre.push_back(nullspace_x0);
     nullspaces_pose.push_back(nullspace_x0);
   }
   //* 光度参数a b的零空间
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 2 /* * kCameraNumUsed*/; i++) {
     VecX nullspace_x0(n);
     nullspace_x0.setZero();
     for (FrameHessian *fh : frameHessians) {
-      nullspace_x0.segment<2>(CPARS + fh->idx * 8 + 6) =
-          fh->nullspaces_affine.col(i).head<2>();
-      nullspace_x0[CPARS + fh->idx * 8 + 6] *= SCALE_A_INVERSE;
-      nullspace_x0[CPARS + fh->idx * 8 + 7] *= SCALE_B_INVERSE;
+      nullspace_x0.segment<2 /* * kCameraNumUsed*/>(CPARS +
+                                                    fh->idx * (STATE_DIM) + 6) =
+          fh->nullspaces_affine.col(i).head<2 /* * kCameraNumUsed*/>();
+      for (int cid = 0; cid < 1 /*kCameraNumUsed*/; ++cid) {
+        nullspace_x0[CPARS + fh->idx * (STATE_DIM) + 6 + cid * 2] *=
+            SCALE_A_INVERSE;
+        nullspace_x0[CPARS + fh->idx * (STATE_DIM) + 7 + cid * 2] *=
+            SCALE_B_INVERSE;
+      }
     }
     nullspaces_x0_pre.push_back(nullspace_x0);
     if (i == 0)
@@ -743,9 +784,12 @@ std::vector<VecX> FullSystem::getNullspaces(
   VecX nullspace_x0(n);
   nullspace_x0.setZero();
   for (FrameHessian *fh : frameHessians) {
-    nullspace_x0.segment<6>(CPARS + fh->idx * 8) = fh->nullspaces_scale;
-    nullspace_x0.segment<3>(CPARS + fh->idx * 8) *= SCALE_XI_TRANS_INVERSE;
-    nullspace_x0.segment<3>(CPARS + fh->idx * 8 + 3) *= SCALE_XI_ROT_INVERSE;
+    nullspace_x0.segment<6>(CPARS + fh->idx * (STATE_DIM)) =
+        fh->nullspaces_scale;
+    nullspace_x0.segment<3>(CPARS + fh->idx * (STATE_DIM)) *=
+        SCALE_XI_TRANS_INVERSE;
+    nullspace_x0.segment<3>(CPARS + fh->idx * (STATE_DIM) + 3) *=
+        SCALE_XI_ROT_INVERSE;
   }
   nullspaces_x0_pre.push_back(nullspace_x0);
   nullspaces_scale.push_back(nullspace_x0);

@@ -1,0 +1,174 @@
+[main]
+calib_cid = [0, 1]
+gray_cid = [0, 1]
+rgb_cid = []
+frame_mini_gap = 100000 #ns
+frame_gap = 30000000 #ns
+log_level = 0
+save_folder = "results"
+intr_folder = "intrinsic"
+extr_folder = "extrinsic"
+image_width = 2640
+image_height = 2464
+#image_width = 640
+#image_height = 480
+is_rgb = true
+is_gray_rgb = false
+calib_stage = 1 # GRAY_VI:0   RGB_VI:1    GRAY_RGB:1
+do_detection_only = false
+
+[dataset]
+dataSet = "/media/roger/Elements_SE/CI/D3_evt/rgb1"
+#dataSet = "/media/roger/Elements_SE/CI/test/quick_test2"
+#dataSet = "/media/roger/Elements_SE/CI/test/quick_test2_rgb"
+#dataSet = "/media/roger/Elements_SE/CI/rigid/rgb_calib/20240527/SLAMRecord/1_rgb"
+
+self_calib_bin_file_points = "self_calib_1012_sift_dense.bin"
+self_calib_bin_file_lines = "___self_calib_1019_lines_loose_thr.bin"
+
+skip_detection = false
+use_prior_marker_map = false
+prior_marker_map_path = "map_best.yaml"
+marker_map_vm_bin_file = "marker_map_vm_homo_warp_short_scale3_wo_preprocess_09_5_wo_gv_wo_gv_loose_inlier_full_ba.bin"
+
+
+
+cam_folder_prefix = "Camera"
+cam_folder_subfix = "images"
+cam_json = "data.json"
+board_type = 1   # Dot:0    AprilTag:1
+plate_num = 3
+detect_thread_num = 4
+imu_folder_name = "IMU0"
+imu_json_name = "data.json"
+
+[dot_plate]
+dot_bin_file = "dotInfo_rgb.bin"
+dot_bin_file_gray = "dotInfo_gray.bin"
+dot_bin_file_rgb = "dotInfo_rgb.bin"
+show_detect_picture = false
+black_dot = false
+adaptive_thresh = 0.9
+window_ratio = 10
+grid_spacing = 0.03
+grid_size = [30, 90]  # Array with two elements
+grid_seed = 92
+unique_size = 6
+conic_min_area = 4.0
+conic_symmetry = 0.25
+conic_min_aspect = 0.3
+
+
+[apriltag_plate]
+show_tag_detect = false
+apriltag_bin_file = "apriltag_rgb.bin"
+apriltag_bin_file_gray = "apriltag_gray.bin"
+apriltag_bin_file_rgb = "apriltag_rgb.bin"
+black_board = 1
+rows = 10
+cols = 10
+apriltag_start_id = 0
+tag_size = 0.08 # m
+tag_gap = 0.2 # ratio
+pattern_num = 3
+
+[calib_check]
+calib_check_cid = [0, 1, 2, 3]
+calib_file_name = "device_calibration_ucmrtp.xml"
+calib_check_result_folder = "calib_check_results"
+show_calib_check_img = false
+
+[vi_calib]
+#spline knot dt(ms)
+spline_dt=0.011
+spline_dt_rgb=0.033
+
+#to make sure every knot is set around image timestamp
+shift_imu_data=true
+
+#to make sure there's enough imu readings (maybe several seconds) before first image frame
+skip_first_frames_num=30
+
+# ratio of the knots whose weights are higher than other knots
+high_weight_knot_ratio=0.1
+
+# used in compute area
+power=2.0
+#bin_name="aprilTag.bin"
+#bin_name="aprilTag_opt_intr.bin"
+bin_name="aprilTag_deoutlier.bin"
+
+# reprojectError
+thresholdReprojectError=10.0#1.0
+
+# imu accel error threshold
+accel_error_threshold=10.5
+
+#imu gyro error threshold
+gyro_error_threshold=10.05
+
+# gravity norm
+g_norm=9.7946
+
+# use_sim or not
+use_sim=false
+# noise level in sim data
+noise_level=0.0
+
+# disturb level [deg], when set below zero, it means cam2plate poses are fixed
+disturb_level=0.1 # 0.5
+
+# fix plate and camera extrinsic or not
+fix_extr=true
+
+# use intr rot factor
+use_intr_rot_factor=true
+
+# intr rot factor weight
+intr_rot_factor_weight=1.0
+
+# res amplify ratio for line factors
+res_amplify_ratio=10.0
+
+# disable_reproj_factor or not
+disable_reproj_factor=false
+
+# use magic number in td
+use_magic_number=true
+
+#use_detected_corner or not to speed up calibration
+use_detected_corner=true
+
+#window size used in imu filtering
+window_size=-2 # 150 # 100 # 30 50 70 100 120 150 170
+
+#imu noise bak
+gyro_std=0.1
+gyro_std2=0.1
+gyro_std_high=0.025
+#
+acc_std=0.5
+acc_std2=0.5
+acc_std_high=0.1
+#
+g_std=1.0
+g_std2=1.0
+#
+pose_std=0.01
+pose_std2=0.01
+
+# compensate imu intrinsic
+comp_imu=true
+
+verbose=true
+
+opt_visual_scale=false
+opt_rolling_shutter=true
+fix_imu_intr=true
+opt_camera_intr=true
+disable_imu_factor=false
+fix_imu_bias=false
+
+four_cam_calib_file_name="/media/roger/Elements_SE/CI/test/quick_test2_rgb/device_calibration3.xml"
+is_imu_calibrated=false
+is_four_as_one=true

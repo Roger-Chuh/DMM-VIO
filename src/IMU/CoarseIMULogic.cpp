@@ -362,6 +362,7 @@ Sophus::SE3d dmvio::CoarseIMULogic::computeCoarseUpdate(
 
   // Apply update.
   newCoarseValues.reset(new gtsam::Values());
+  // TODO first 2 entries are for affine params
   int current_pos = 2;
   for (size_t i = 0; i < coarseOrdering.size(); i++) {
     gtsam::Key k = coarseOrdering[i];

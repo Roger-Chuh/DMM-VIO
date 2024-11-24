@@ -53,16 +53,22 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
                                   ImmaturePointTemporaryResidual *residuals) {
   ///[ ***step 1*** ] 初始化和其它关键帧的res(点在其它关键帧上投影)
   int nres = 0;
+  std::map<int, int> nres_to_target_cid;
   for (FrameHessian *fh : frameHessians) {
+    // TODO roger,
+    // 现在的实现是只在最新帧极线搜索，就不在host帧的其他cid上搜了，当然也可以搜，但感觉没什么必要
     if (fh != point->host) {
-      residuals[nres].state_NewEnergy = residuals[nres].state_energy = 0;
-      residuals[nres].state_NewState = ResState::OUTLIER;
-      residuals[nres].state_state = ResState::IN;
-      residuals[nres].target = fh;
-      nres++;
+      for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+        residuals[nres].state_NewEnergy = residuals[nres].state_energy = 0;
+        residuals[nres].state_NewState = ResState::OUTLIER;
+        residuals[nres].state_state = ResState::IN;
+        residuals[nres].target = fh;
+        nres_to_target_cid.emplace(std::make_pair(nres, target_cid));
+        nres++;
+      }
     }
   }
-  assert(nres == ((int)frameHessians.size()) - 1);
+  assert(nres == kCameraNumUsed * (((int)frameHessians.size()) - 1));
 
   bool print = false; // rand()%50==0;
 
@@ -72,8 +78,9 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
   float currentIdepth = (point->idepth_max + point->idepth_min) * 0.5f;
 
   for (int i = 0; i < nres; i++) {
-    lastEnergy += point->linearizeResidual(&Hcalib, 1000, residuals + i,
-                                           lastHdd, lastbd, currentIdepth);
+    lastEnergy +=
+        point->linearizeResidual(nres_to_target_cid.at(i), &Hcalib, 1000,
+                                 residuals + i, lastHdd, lastbd, currentIdepth);
     residuals[i].state_state = residuals[i].state_NewState;
     residuals[i].state_energy = residuals[i].state_NewEnergy;
   }
@@ -102,8 +109,9 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
     float newbd = 0;
     float newEnergy = 0;
     for (int i = 0; i < nres; i++)
-      newEnergy += point->linearizeResidual(&Hcalib, 1, residuals + i, newHdd,
-                                            newbd, newIdepth);
+      newEnergy +=
+          point->linearizeResidual(nres_to_target_cid.at(i), &Hcalib, 1,
+                                   residuals + i, newHdd, newbd, newIdepth);
 
     if (!std::isfinite(lastEnergy) || newHdd < setting_minIdepthH_act) {
       if (print)
@@ -155,16 +163,17 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
         long)(-1)); // yeah I'm like 99% sure this is OK on 32bit systems.
   }
 
-  PointHessian *p = new PointHessian(point, &Hcalib);
+  PointHessian *p = new PointHessian(point, &Hcalib, point->host_cid);
   if (!std::isfinite(p->energyTH)) {
     delete p;
     return (PointHessian *)((long)(-1));
   }
-
-  p->lastResiduals[0].first = 0;
-  p->lastResiduals[0].second = ResState::OOB;
-  p->lastResiduals[1].first = 0;
-  p->lastResiduals[1].second = ResState::OOB;
+  for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+    p->lastResiduals[target_cid][0].first = 0;
+    p->lastResiduals[target_cid][0].second = ResState::OOB;
+    p->lastResiduals[target_cid][1].first = 0;
+    p->lastResiduals[target_cid][1].second = ResState::OOB;
+  }
   p->setIdepthZero(currentIdepth);
   p->setIdepth(currentIdepth);
   p->setPointStatus(PointHessian::ACTIVE);
@@ -172,20 +181,22 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
   for (int i = 0; i < nres; i++)
     if (residuals[i].state_state == ResState::IN) {
       PointFrameResidual *r =
-          new PointFrameResidual(p, p->host, residuals[i].target);
+          new PointFrameResidual(p, p->host, residuals[i].target,
+                                 point->host_cid, nres_to_target_cid.at(i));
       r->state_NewEnergy = r->state_energy = 0;
       r->state_NewState = ResState::OUTLIER;
       r->setState(ResState::IN);
+      // TODO roger, 新建residuals，并且推到新激活的点里
       p->residuals.push_back(r);
 
       if (r->target == frameHessians.back()) {
-        p->lastResiduals[0].first = r;
-        p->lastResiduals[0].second = ResState::IN;
+        p->lastResiduals[nres_to_target_cid.at(i)][0].first = r;
+        p->lastResiduals[nres_to_target_cid.at(i)][0].second = ResState::IN;
       } else if (r->target == (frameHessians.size() < 2
                                    ? 0
                                    : frameHessians[frameHessians.size() - 2])) {
-        p->lastResiduals[1].first = r;
-        p->lastResiduals[1].second = ResState::IN;
+        p->lastResiduals[nres_to_target_cid.at(i)][1].first = r;
+        p->lastResiduals[nres_to_target_cid.at(i)][1].second = ResState::IN;
       }
     }
 

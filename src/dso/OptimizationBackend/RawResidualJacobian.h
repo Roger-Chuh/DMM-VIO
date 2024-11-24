@@ -28,6 +28,9 @@
 namespace dso {
 struct RawResidualJacobian {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  //  RawResidualJacobian() {}
+  RawResidualJacobian(const int &host_cid_, const int &target_cid_)
+      : host_cid(host_cid_), target_cid(target_cid_) {}
   // ================== new structure: save independently =============.
   VecNRf resF; // TODO 加权后的光度残差 //!< 每个patch的8个残差
 
@@ -58,5 +61,6 @@ struct RawResidualJacobian {
   Mat22f JabJIdx; // 2x2 //TODO 光度x梯度部分的小hessian
   // = Jab^T * Jab (inner product). Only as a shorthand.
   Mat22f Jab2; // 2x2 //TODO 光度x光度部分的小hessian
+  int host_cid, target_cid;
 };
 } // namespace dso

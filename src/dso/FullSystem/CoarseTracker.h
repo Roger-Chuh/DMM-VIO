@@ -39,6 +39,7 @@ namespace dso {
 struct CalibHessian;
 struct FrameHessian;
 struct PointFrameResidual;
+struct MultiCamera;
 
 class CoarseTracker {
 public:
@@ -48,9 +49,9 @@ public:
 
   ~CoarseTracker();
 
-  bool trackNewestCoarse(FrameHessian *newFrameHessian, SE3 &lastToNew_out,
-                         AffLight &aff_g2l_out, int coarsestLvl,
-                         Vec5 minResForAbort,
+  bool trackNewestCoarse(FrameHessian *lastRef, FrameHessian *newFrameHessian,
+                         SE3 &lastToNew_out, AffLight &aff_g2l_out,
+                         int coarsestLvl, Vec5 minResForAbort,
                          IOWrap::Output3DWrapper *wrap = 0);
 
   void setCoarseTrackingRef(std::vector<FrameHessian *> frameHessians);
@@ -59,18 +60,18 @@ public:
 
   bool debugPrint, debugPlot;
 
-  Mat33f K[PYR_LEVELS];
-  Mat33f Ki[PYR_LEVELS];
-  float fx[PYR_LEVELS];
-  float fy[PYR_LEVELS];
-  float fxi[PYR_LEVELS];
-  float fyi[PYR_LEVELS];
-  float cx[PYR_LEVELS];
-  float cy[PYR_LEVELS];
-  float cxi[PYR_LEVELS];
-  float cyi[PYR_LEVELS];
-  int w[PYR_LEVELS];
-  int h[PYR_LEVELS];
+  Mat33f K[PYR_LEVELS];  // * kCameraNumUsed];
+  Mat33f Ki[PYR_LEVELS]; // * kCameraNumUsed];
+  float fx[PYR_LEVELS];  // * kCameraNumUsed];
+  float fy[PYR_LEVELS];  // * kCameraNumUsed];
+  float fxi[PYR_LEVELS]; // * kCameraNumUsed];
+  float fyi[PYR_LEVELS]; // * kCameraNumUsed];
+  float cx[PYR_LEVELS];  // * kCameraNumUsed];
+  float cy[PYR_LEVELS];  // * kCameraNumUsed];
+  float cxi[PYR_LEVELS]; // * kCameraNumUsed];
+  float cyi[PYR_LEVELS]; // * kCameraNumUsed];
+  int w[PYR_LEVELS];     // * kCameraNumUsed];
+  int h[PYR_LEVELS];     // * kCameraNumUsed];
 
   void debugPlotIDepthMap(float *minID, float *maxID,
                           std::vector<IOWrap::Output3DWrapper *> &wraps) const;
@@ -79,6 +80,7 @@ public:
 
   FrameHessian *lastRef; //!< 参考帧
   AffLight lastRef_aff_g2l;
+  // std::array<AffLight, kCameraNumUsed> a_lastRef_aff_g2l;
   FrameHessian *newFrame; //!< 新来的一帧
   int refFrameID;         //!< 参考帧id
 
@@ -94,15 +96,16 @@ private:
   float *weightSums[PYR_LEVELS];
   float *weightSums_bak[PYR_LEVELS];
 
-  Vec6 calcResAndGS(int lvl, Mat88 &H_out, Vec8 &b_out, const SE3 &refToNew,
-                    AffLight aff_g2l, float cutoffTH);
+  Vec6 calcResAndGS(int lvl, MatState &H_out, VecState &b_out,
+                    const SE3 &refToNew, AffLight aff_g2l, float cutoffTH);
 
-  Vec6 calcRes(int lvl, const SE3 &refToNew, AffLight aff_g2l, float cutoffTH);
+  Vec6 calcRes(FrameHessian *lastRef, int lvl, const SE3 &refToNew_,
+               AffLight aff_g2l, float cutoffTH, bool show_image = false);
 
-  void calcGSSSE(int lvl, Mat88 &H_out, Vec8 &b_out, const SE3 &refToNew,
-                 AffLight aff_g2l);
+  void calcGSSSE(int lvl, MatState &H_out, VecState &b_out, const SE3 &refToNew,
+                 AffLight aff_g2l, int &N, MultiCamera *p_multi_camera);
 
-  void calcGS(int lvl, Mat88 &H_out, Vec8 &b_out, const SE3 &refToNew,
+  void calcGS(int lvl, MatState &H_out, VecState &b_out, const SE3 &refToNew,
               AffLight aff_g2l);
 
   // pc buffers
@@ -110,18 +113,26 @@ private:
   float *pc_v[PYR_LEVELS];      //!< 每层上的有逆深度点的坐标y
   float *pc_idepth[PYR_LEVELS]; //!< 每层上点的逆深度
   float *pc_color[PYR_LEVELS];  //!< 每层上点的颜色值
-  int pc_n[PYR_LEVELS];         //!< 每层上点的个数
+  int pc_n[PYR_LEVELS][kCameraNumUsed]; //!< 每层上点的个数
+  // int image_info_offset[PYR_LEVELS][kCameraNumUsed];
 
   // warped buffers
-  float *buf_warped_idepth;   //!< 投影得到的点的逆深度
-  float *buf_warped_u;        //!< 投影得到的归一化坐标
-  float *buf_warped_v;        //!< 同上
-  float *buf_warped_dx;       //!< 投影点的图像梯度
-  float *buf_warped_dy;       //!< 投影点的图像梯度
-  float *buf_warped_residual; //!< 投影得到的残差
-  float *buf_warped_weight;   //!< 投影的huber函数权重
-  float *buf_warped_refColor; //!< 投影点参考帧上的灰度值
-  int buf_warped_n;           //!< 投影点的个数
+  float *buf_warped_idepth; //[kCameraNumUsed * kCameraNumUsed];   //!<
+                            //投影得到的点的逆深度
+  float *buf_warped_u;      //[kCameraNumUsed * kCameraNumUsed];        //!<
+                            //投影得到的归一化坐标
+  float *buf_warped_v;  //[kCameraNumUsed * kCameraNumUsed];        //!< 同上
+  float *buf_warped_dx; //[kCameraNumUsed * kCameraNumUsed];       //!<
+                        //投影点的图像梯度
+  float *buf_warped_dy; //[kCameraNumUsed * kCameraNumUsed];       //!<
+                        //投影点的图像梯度
+  float *buf_warped_residual; //[kCameraNumUsed * kCameraNumUsed]; //!<
+                              //投影得到的残差
+  float *buf_warped_weight;   //[kCameraNumUsed * kCameraNumUsed];   //!<
+                              //投影的huber函数权重
+  float *buf_warped_refColor; //[kCameraNumUsed * kCameraNumUsed]; //!<
+                              //投影点参考帧上的灰度值
+  int buf_warped_n[kCameraNumUsed * kCameraNumUsed]; //!< 投影点的个数
 
   std::vector<float *> ptrToDelete; //!< 所有的申请的内存指针, 用于析构删除
   Accumulator9 acc;
@@ -138,7 +149,7 @@ public:
   ~CoarseDistanceMap();
 
   void makeDistanceMap(std::vector<FrameHessian *> frameHessians,
-                       FrameHessian *frame);
+                       FrameHessian *frame, const int &target_cid);
 
   void makeInlierVotes(std::vector<FrameHessian *> frameHessians);
 
@@ -146,28 +157,28 @@ public:
 
   float *fwdWarpedIDDistFinal; //!< 距离场的数值
 
-  Mat33f K[PYR_LEVELS];
-  Mat33f Ki[PYR_LEVELS];
-  float fx[PYR_LEVELS];
-  float fy[PYR_LEVELS];
-  float fxi[PYR_LEVELS];
-  float fyi[PYR_LEVELS];
-  float cx[PYR_LEVELS];
-  float cy[PYR_LEVELS];
-  float cxi[PYR_LEVELS];
-  float cyi[PYR_LEVELS];
-  int w[PYR_LEVELS];
-  int h[PYR_LEVELS];
+  Mat33f K[PYR_LEVELS];  // * kCameraNumUsed];
+  Mat33f Ki[PYR_LEVELS]; // * kCameraNumUsed];
+  float fx[PYR_LEVELS];  // * kCameraNumUsed];
+  float fy[PYR_LEVELS];  // * kCameraNumUsed];
+  float fxi[PYR_LEVELS]; // * kCameraNumUsed];
+  float fyi[PYR_LEVELS]; // * kCameraNumUsed];
+  float cx[PYR_LEVELS];  // * kCameraNumUsed];
+  float cy[PYR_LEVELS];  // * kCameraNumUsed];
+  float cxi[PYR_LEVELS]; // * kCameraNumUsed];
+  float cyi[PYR_LEVELS]; // * kCameraNumUsed];
+  int w[PYR_LEVELS];     // * kCameraNumUsed];
+  int h[PYR_LEVELS];     // * kCameraNumUsed];
 
-  void addIntoDistFinal(int u, int v);
+  void addIntoDistFinal(int u, int v, const int &target_cid);
 
 private:
   PointFrameResidual **coarseProjectionGrid;
   int *coarseProjectionGridNum;
-  Eigen::Vector2i *bfsList1; //!< 投影到frame的坐标
-  Eigen::Vector2i *bfsList2; //!< 和1轮换使用
+  Eigen::Vector2i *bfsList1[kCameraNumUsed]; //!< 投影到frame的坐标
+  Eigen::Vector2i *bfsList2[kCameraNumUsed]; //!< 和1轮换使用
 
-  void growDistBFS(int bfsNum);
+  void growDistBFS(int bfsNum, const int &target_cid);
 };
 
 } // namespace dso

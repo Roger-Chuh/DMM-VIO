@@ -88,13 +88,15 @@ public:
                       bool MT) {
     // sum up, splitting by bock in square.
     if (MT) {
+      // printf("use mt\n");
       MatXX Hs[NUM_THREADS];
       VecX bs[NUM_THREADS];
       for (int i = 0; i < NUM_THREADS; i++) {
         assert(nframes[0] == nframes[i]);
         //* 所有的优化变量维度
-        Hs[i] = MatXX::Zero(nframes[0] * 8 + CPARS, nframes[0] * 8 + CPARS);
-        bs[i] = VecX::Zero(nframes[0] * 8 + CPARS);
+        Hs[i] = MatXX::Zero(nframes[0] * STATE_DIM + CPARS,
+                            nframes[0] * STATE_DIM + CPARS);
+        bs[i] = VecX::Zero(nframes[0] * STATE_DIM + CPARS);
       }
 
       red->reduce(boost::bind(&AccumulatedTopHessianSSE::stitchDoubleInternal,
@@ -112,26 +114,29 @@ public:
       }
     } else // 不使用多线程
     {
-      H = MatXX::Zero(nframes[0] * 8 + CPARS, nframes[0] * 8 + CPARS);
-      b = VecX::Zero(nframes[0] * 8 + CPARS);
+      // printf("not use mt\n");
+      H = MatXX::Zero(nframes[0] * STATE_DIM + CPARS,
+                      nframes[0] * STATE_DIM + CPARS);
+      b = VecX::Zero(nframes[0] * STATE_DIM + CPARS);
       stitchDoubleInternal(&H, &b, EF, usePrior, 0, nframes[0] * nframes[0], 0,
                            -1);
     }
 
     // make diagonal by copying over parts.
     for (int h = 0; h < nframes[0]; h++) {
-      int hIdx = CPARS + h * 8;
-      H.block<CPARS, 8>(0, hIdx).noalias() =
-          H.block<8, CPARS>(hIdx, 0).transpose(); //! [内参, 位姿] 对称部分
+      int hIdx = CPARS + h * STATE_DIM;
+      H.block<CPARS, STATE_DIM>(0, hIdx).noalias() =
+          H.block<STATE_DIM, CPARS>(hIdx, 0)
+              .transpose(); //! [内参, 位姿] 对称部分
 
       for (int t = h + 1; t < nframes[0]; t++) {
-        int tIdx = CPARS + t * 8;
+        int tIdx = CPARS + t * STATE_DIM;
         //! 对于位姿, 相同两帧之间的Hessian需要加起来, 即对称位置的, (J差负号,
         //! 平方之后就好了)
-        H.block<8, 8>(hIdx, tIdx).noalias() +=
-            H.block<8, 8>(tIdx, hIdx).transpose();
-        H.block<8, 8>(tIdx, hIdx).noalias() =
-            H.block<8, 8>(hIdx, tIdx).transpose();
+        H.block<STATE_DIM, STATE_DIM>(hIdx, tIdx).noalias() +=
+            H.block<STATE_DIM, STATE_DIM>(tIdx, hIdx).transpose();
+        H.block<STATE_DIM, STATE_DIM>(tIdx, hIdx).noalias() =
+            H.block<STATE_DIM, STATE_DIM>(hIdx, tIdx).transpose();
       }
     }
   }

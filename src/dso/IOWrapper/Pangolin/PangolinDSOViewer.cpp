@@ -48,9 +48,9 @@ PangolinDSOViewer::PangolinDSOViewer(
 
   {
     boost::unique_lock<boost::mutex> lk(openImagesMutex);
-    internalVideoImg = new MinimalImageB3(w, h);
-    internalKFImg = new MinimalImageB3(w, h);
-    internalResImg = new MinimalImageB3(w, h);
+    internalVideoImg = new MinimalImageB3(w, this->h * kCameraNumUsed);
+    internalKFImg = new MinimalImageB3(w, this->h * kCameraNumUsed);
+    internalResImg = new MinimalImageB3(w, this->h * kCameraNumUsed);
     videoImgChanged = kfImgChanged = resImgChanged = true;
 
     internalVideoImg->setBlack();
@@ -78,9 +78,13 @@ PangolinDSOViewer::~PangolinDSOViewer() {
 void PangolinDSOViewer::run() {
   printf("START PANGOLIN!\n");
 
-  pangolin::CreateWindowAndBind("Main", 2 * w, 2 * h);
+  pangolin::CreateWindowAndBind("Main", 2 * w * kCameraNumUsed, 2 * h);
   const int UI_WIDTH = 180;
-
+#ifdef USE_MULTI_CAM
+  const int PointCloud_Start = 3 * UI_WIDTH;
+#else
+  const int PointCloud_Start = UI_WIDTH;
+#endif
   glEnable(GL_DEPTH_TEST);
 
   // 3D visualization
@@ -88,31 +92,42 @@ void PangolinDSOViewer::run() {
       pangolin::ProjectionMatrix(w, h, 400, 400, w / 2, h / 2, 0.1, 1000),
       pangolin::ModelViewLookAt(-0, -5, -10, 0, 0, 0, pangolin::AxisNegY));
 
+#ifdef USE_MULTI_CAM
   pangolin::View &Visualization3D_display =
       pangolin::CreateDisplay()
-          .SetBounds(0.0, 1.0, pangolin::Attach::Pix(UI_WIDTH), 1.0,
+          .SetBounds(0.0, 1.0, pangolin::Attach::Pix(PointCloud_Start), 1.0,
                      -w / (float)h)
           .SetHandler(new pangolin::Handler3D(Visualization3D_camera));
-
+#else
+  pangolin::View &Visualization3D_display =
+      pangolin::CreateDisplay()
+          .SetBounds(0.0, 0.3, pangolin::Attach::Pix(PointCloud_Start), 1.0,
+                     -w / (float)h)
+          .SetHandler(new pangolin::Handler3D(Visualization3D_camera));
+#endif
   // 3 images
-  pangolin::View &d_kfDepth =
-      pangolin::Display("imgKFDepth").SetAspect(w / (float)h);
+  pangolin::View &d_kfDepth = pangolin::Display("imgKFDepth")
+                                  .SetAspect(w / (float)(h * kCameraNumUsed));
 
   pangolin::View &d_video =
-      pangolin::Display("imgVideo").SetAspect(w / (float)h);
+      pangolin::Display("imgVideo").SetAspect(w / (float)(h * kCameraNumUsed));
 
-  pangolin::View &d_residual =
-      pangolin::Display("imgResidual").SetAspect(w / (float)h);
+  pangolin::View &d_residual = pangolin::Display("imgResidual")
+                                   .SetAspect(w / (float)(h * kCameraNumUsed));
 
-  pangolin::GlTexture texKFDepth(w, h, GL_RGB, false, 0, GL_RGB,
-                                 GL_UNSIGNED_BYTE);
-  pangolin::GlTexture texVideo(w, h, GL_RGB, false, 0, GL_RGB,
+  pangolin::GlTexture texKFDepth(w, h * kCameraNumUsed, GL_RGB, false, 0,
+                                 GL_RGB, GL_UNSIGNED_BYTE);
+  pangolin::GlTexture texVideo(w, h * kCameraNumUsed, GL_RGB, false, 0, GL_RGB,
                                GL_UNSIGNED_BYTE);
-  pangolin::GlTexture texResidual(w, h, GL_RGB, false, 0, GL_RGB,
-                                  GL_UNSIGNED_BYTE);
+  pangolin::GlTexture texResidual(w, h * kCameraNumUsed, GL_RGB, false, 0,
+                                  GL_RGB, GL_UNSIGNED_BYTE);
 
+  float ratio = 0.3;
+  if (kCameraNumUsed > 1) {
+    ratio = 0.3 * kCameraNumUsed;
+  }
   pangolin::CreateDisplay()
-      .SetBounds(0.0, 0.3, pangolin::Attach::Pix(UI_WIDTH), 1.0)
+      .SetBounds(0.0, 1.0, pangolin::Attach::Pix(UI_WIDTH), 1.0)
       .SetLayout(pangolin::LayoutEqual)
       .AddDisplay(d_kfDepth)
       .AddDisplay(d_video)
@@ -545,11 +560,16 @@ void PangolinDSOViewer::pushLiveFrame(FrameHessian *image) {
 
   boost::unique_lock<boost::mutex> lk(openImagesMutex);
 
-  for (int i = 0; i < w * h; i++)
-    internalVideoImg->data[i][0] = internalVideoImg->data[i][1] =
-        internalVideoImg->data[i][2] =
-            image->dI[i][0] * 0.8 > 255.0f ? 255.0 : image->dI[i][0] * 0.8;
-
+  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    for (int i = 0; i < w * h; i++) {
+      internalVideoImg->data[i + w * h * cid][0] =
+          internalVideoImg->data[i + w * h * cid][1] =
+              internalVideoImg->data[i + w * h * cid][2] =
+                  image->dI[i + w * h * cid][0] * 0.8 > 255.0f
+                      ? 255.0
+                      : image->dI[i + w * h * cid][0] * 0.8;
+    }
+  }
   videoImgChanged = true;
 }
 
@@ -574,7 +594,7 @@ void PangolinDSOViewer::pushDepthImage(MinimalImageB3 *image) {
     lastNMappingMs.pop_front();
   last_map = time_now;
 
-  memcpy(internalKFImg->data, image->data, w * h * 3);
+  memcpy(internalKFImg->data, image->data, w * h * 3 * kCameraNumUsed);
   kfImgChanged = true;
 }
 

@@ -183,15 +183,16 @@ void FullSystem::marginalizeFrame(FrameHessian *frame) {
       for (unsigned int i = 0; i < ph->residuals.size(); i++) {
         PointFrameResidual *r = ph->residuals[i];
         if (r->target == frame) {
-          if (ph->lastResiduals[0].first == r)
-            ph->lastResiduals[0].first = 0;
-          else if (ph->lastResiduals[1].first == r)
-            ph->lastResiduals[1].first = 0;
-
-          if (r->host->frameID < r->target->frameID)
+          if (ph->lastResiduals[r->target_cid][0].first == r) {
+            ph->lastResiduals[r->target_cid][0].first = 0;
+          } else if (ph->lastResiduals[r->target_cid][1].first == r) {
+            ph->lastResiduals[r->target_cid][1].first = 0;
+          }
+          if (r->host->frameID < r->target->frameID) {
             statistics_numForceDroppedResFwd++;
-          else
+          } else {
             statistics_numForceDroppedResBwd++;
+          }
 
           ef->dropResidual(r->efResidual);
           deleteOut<PointFrameResidual>(ph->residuals, i);

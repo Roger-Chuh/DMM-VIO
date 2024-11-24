@@ -35,7 +35,8 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   PhotometricUndistorter(std::string file, std::string noiseImage,
-                         std::string vignetteImage, int w_, int h_);
+                         std::string vignetteImage, int w_, int h_,
+                         bool is_yvr = false);
 
   ~PhotometricUndistorter();
 
@@ -45,10 +46,13 @@ public:
   // output will be written in [output].
   template <typename T>
   void processFrame(T *image_in, float exposure_time, float factor = 1);
+  template <typename T>
+  void processFrame2(T *image_in, float exposure_time, float factor = 1);
 
   void unMapFloatImage(float *image);
 
   ImageAndExposure *output;
+  bool is_yvr;
 
   float *getG() {
     if (!valid)
@@ -93,6 +97,10 @@ public:
   ImageAndExposure *undistort(const MinimalImage<T> *image_raw,
                               float exposure = 0, double timestamp = 0,
                               float factor = 1) const;
+  template <typename T>
+  ImageAndExposure *undistort2(const MinimalImage<T> *image_raw,
+                               float exposure = 0, double timestamp = 0,
+                               float factor = 1) const;
 
   static Undistort *getUndistorterForFile(std::string configFilename,
                                           std::string gammaFilename,

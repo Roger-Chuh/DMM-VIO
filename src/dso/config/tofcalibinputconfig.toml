@@ -1,0 +1,7 @@
+[tofcalib]
+verbose = false
+fixCamId = 0
+useBoardId = 0
+configPath = "/home/zk/yvr/yvrcalibration_dot/src/config/tofcalibconfig.toml"
+useCamsPnp = [6,7]
+xml_full_path = "/mnt/2D8D31184FFEAC8E/tofcalib/controller_2024-07-09-08-14-18/device_calibration_ucmrtp.xml"

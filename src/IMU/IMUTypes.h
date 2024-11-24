@@ -41,6 +41,7 @@ public:
 private:
   Eigen::Vector3d accData{};
   Eigen::Vector3d gyrData{};
+  int64_t timestamp_ns;
   double integrationTime; // time between this and previous IMU measurement.
 };
 

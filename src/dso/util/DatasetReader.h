@@ -41,6 +41,9 @@
 #include "IOWrapper/ImageRW.h"
 #include "util/Undistort.h"
 
+#include "../camera_model/calib_def.h"
+#include "../config/config.h"
+#include "../frontend/CameraDetection.h"
 #if HAS_ZIPLIB
 
 #include "zip.h"
@@ -100,10 +103,18 @@ class ImageFolderReader {
 public:
   ImageFolderReader(std::string path, std::string calibFile,
                     std::string gammaFile, std::string vignetteFile,
-                    bool use16BitPassed) {
+                    bool use16BitPassed, bool is_yvr_ = false, int width_in = 0,
+                    int height_in = 0,
+                    std::array<std::pair<cv::Mat, cv::Mat>, kCameraNumUsed>
+                        *p_cid_to_undist_map_ = nullptr,
+                    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>
+                        *p_vig_mat_ = nullptr) {
     this->path = path;
     this->calibfile = calibFile;
     use16Bit = use16BitPassed;
+    is_yvr = is_yvr_;
+    p_cid_to_undist_map = p_cid_to_undist_map_;
+    p_vig_mat = p_vig_mat_;
 
 #if HAS_ZIPLIB
     ziparchive = 0;
@@ -137,21 +148,28 @@ public:
       printf("ERROR: cannot read .zip archive, as compile without ziplib!\n");
       exit(1);
 #endif
-    } else
+    } else {
       getdir(path, files);
+    }
+    if (!is_yvr) {
+      undistort =
+          Undistort::getUndistorterForFile(calibFile, gammaFile, vignetteFile);
 
-    undistort =
-        Undistort::getUndistorterForFile(calibFile, gammaFile, vignetteFile);
+      widthOrg = undistort->getOriginalSize()[0];
+      heightOrg = undistort->getOriginalSize()[1];
+      width = undistort->getSize()[0];
+      height = undistort->getSize()[1];
 
-    widthOrg = undistort->getOriginalSize()[0];
-    heightOrg = undistort->getOriginalSize()[1];
-    width = undistort->getSize()[0];
-    height = undistort->getSize()[1];
-
-    // load timestamps if possible.
-    loadTimestamps();
-    printf("ImageFolderReader: got %d files in %s!\n", (int)files.size(),
-           path.c_str());
+      // load timestamps if possible.
+      loadTimestamps();
+      printf("ImageFolderReader: got %d files in %s!\n", (int)files.size(),
+             path.c_str());
+    } else {
+      widthOrg = width_in;
+      heightOrg = height_in;
+      width = width_in;
+      height = height_in;
+    }
   }
 
   ~ImageFolderReader() {
@@ -185,6 +203,11 @@ public:
     getCalibMono(K, w_out, h_out);
     setGlobalCalib(w_out, h_out, K);
   }
+  void setGlobalCalibration2(const Eigen::Matrix3f K, const int &width,
+                             const int &height) {
+
+    setGlobalCalib(width, height, K);
+  }
 
   int getNumImages() { return files.size(); }
 
@@ -206,6 +229,9 @@ public:
 
   ImageAndExposure *getImage(int id, bool forceLoadDirectly = false) {
     return getImage_internal(id, 0);
+  }
+  ImageAndExposure *getImage2(int id, bool forceLoadDirectly = false) {
+    return getImage_internal2(id, 0);
   }
 
   inline float *getPhotometricGamma() {
@@ -303,7 +329,120 @@ public:
     tr.close();
     return true;
   }
+  void loadIMUData2(const std::map<int64_t, ImuDataSingle> &imu_stack,
+                    dso::aligned_vector<CalibFrame> &frameInfo) {
+    p_input_data = &frameInfo;
+    ids.clear();
+    timestamps.clear();
+    exposures.clear();
+    for (int fid = 0; fid < frameInfo.size(); ++fid) {
+      ids.emplace_back(frameInfo[fid].timestamp_ns);
+      timestamps.emplace_back(frameInfo[fid].timestamp);
+      exposures.emplace_back(frameInfo[fid].cid_to_exposure_time.at(0));
+    }
 
+    {
+      // check if exposures are correct, (possibly skip)
+      bool exposuresGood = ((int)exposures.size() == (int)frameInfo.size());
+      for (int i = 0; i < (int)exposures.size(); i++) {
+        if (exposures[i] == 0) {
+          // fix!
+          float sum = 0, num = 0;
+          if (i > 0 && exposures[i - 1] > 0) {
+            sum += exposures[i - 1];
+            num++;
+          }
+          if (i + 1 < (int)exposures.size() && exposures[i + 1] > 0) {
+            sum += exposures[i + 1];
+            num++;
+          }
+
+          if (num > 0)
+            exposures[i] = sum / num;
+        }
+
+        if (exposures[i] == 0)
+          exposuresGood = false;
+      }
+
+      printf("image num: %d, timestamp num: %d\n", (int)frameInfo.size(),
+             (int)timestamps.size());
+      if ((int)frameInfo.size() != (int)timestamps.size()) {
+        printf("set timestamps and exposures to zero!\n");
+        exposures.clear();
+        timestamps.clear();
+      }
+
+      if ((int)frameInfo.size() != (int)exposures.size() || !exposuresGood) {
+        printf("set EXPOSURES to zero!\n");
+        exposures.clear();
+      }
+
+      printf("got %d images and %d timestamps and %d exposures.!\n",
+             (int)frameInfo.size(), (int)timestamps.size(),
+             (int)exposures.size());
+    }
+
+    double wx, wy, wz, ax, ay, az;
+    int startFrame = 0;
+    long long imuStamp = ids[startFrame];
+    for (size_t j = startFrame; j < frameInfo.size() - 1; j++) {
+      if (j > 10) {
+        // std::exit(3);
+      }
+      long long imageTimestamp = ids[j];
+      // std::cout << "fid: " << j << ", image_time: " << imageTimestamp <<
+      // std::endl;
+      long long nextTimestamp = ids[j + 1];
+
+      // data which is not implemented atm.
+      dmvio::IMUData imuData;
+      long long previousIMUTime = imageTimestamp; // imuStamp;
+
+      // Each frame should get the all IMU data with:
+      // thisTimestamp < imuStamp <= nextTimestamp
+      // std::cout << "######### fid: "<< j << ", thisTimestamp: " <<
+      // imageTimestamp << ", nextTimestamp: " << nextTimestamp << std::endl;
+      for (const std::pair<const int64_t, ImuDataSingle> &pair : imu_stack) {
+        imuStamp = pair.first;
+        if (imuStamp > imageTimestamp && imuStamp <= nextTimestamp) {
+          wx = pair.second.gyro(0);
+          wy = pair.second.gyro(1);
+          wz = pair.second.gyro(2);
+          ax = pair.second.acc(0);
+          ay = pair.second.acc(1);
+          az = pair.second.acc(2);
+
+          if (imuStamp > nextTimestamp) {
+            // If this happens we would have to interpolate IMU data which is
+            // not implemented at the moment.
+            assert(false);
+          }
+
+          Eigen::Vector3d accMeas, gyrMeas;
+          accMeas << ax, ay, az;
+          gyrMeas << wx, wy, wz;
+          // For each measurement GTSAM wants the time between it, and the
+          // previous measurement. The timestamps are in nanoseconds -> convert!
+          double integrationTime = (double)(imuStamp - previousIMUTime) * 1e-9;
+          // std::cout << "imuStamp: " << imuStamp  << ", previousIMUTime: " <<
+          // previousIMUTime << std::endl;
+          assert(integrationTime > 0.0);
+          if (integrationTime <= 0) {
+            printf("integrationTime: %f\n", integrationTime);
+          }
+          imuData.push_back(
+              dmvio::IMUMeasurement(accMeas, gyrMeas, integrationTime));
+
+          previousIMUTime = imuStamp;
+        }
+      }
+      //            assert(imuStamp ==
+      //                   nextTimestamp); // Otherwise we would need to
+      //                   interpolate IMU
+      imuDataAllFrames.push_back(imuData);
+    }
+  }
   void loadIMUData(std::string imuFile = "") {
     // Important: This IMU loading method expects that for each image there is
     // an IMU 'measurement' with exactly the same timestamp (the VI-sensor does
@@ -332,6 +471,8 @@ public:
       int startFrame = -1;
       for (size_t j = 0; j < getNumImages(); ++j) {
         long long imageTimestamp = ids[j];
+        // std::cout << "fid: " << j << ", image_time: " << imageTimestamp <<
+        // std::endl;
         while (imuStamp < imageTimestamp) {
           imuStream >> imuStamp >> wx >> wy >> wz >> ax >> ay >> az;
         }
@@ -360,6 +501,9 @@ public:
       // later accessing the imu data in the method getIMUData we output the imu
       // data between the given frame and the previous frame.
       for (size_t j = startFrame; j < getNumImages() - 1; j++) {
+        if (j > 40) {
+          // std::exit(2);
+        }
         long long imageTimestamp = ids[j];
         long long nextTimestamp = ids[j + 1];
 
@@ -371,6 +515,8 @@ public:
 
         // Each frame should get the all IMU data with:
         // thisTimestamp < imuStamp <= nextTimestamp
+        // std::cout << "######### fid: "<< j << ", thisTimestamp: " <<
+        // imageTimestamp << ", nextTimestamp: " << nextTimestamp << std::endl;
         while (imuStamp < nextTimestamp) {
           // Get next IMU-Data.
           imuStream >> imuStamp >> wx >> wy >> wz >> ax >> ay >> az;
@@ -387,6 +533,8 @@ public:
           // For each measurement GTSAM wants the time between it, and the
           // previous measurement. The timestamps are in nanoseconds -> convert!
           double integrationTime = (double)(imuStamp - previousIMUTime) * 1e-9;
+          // std::cout << "imuStamp: " << imuStamp  << ", previousIMUTime: " <<
+          // previousIMUTime << std::endl;
           imuData.push_back(
               dmvio::IMUMeasurement(accMeas, gyrMeas, integrationTime));
 
@@ -406,11 +554,49 @@ public:
   Undistort *undistort;
 
 private:
+  aligned_vector<dso::CalibFrame> *p_input_data = nullptr;
   MinimalImageB *getImageRaw_internal(int id, int unused) {
     assert(!use16Bit);
     if (!isZipped) {
       // CHANGE FOR ZIP FILE
       return IOWrap::readImageBW_8U(files[id]);
+    } else {
+#if HAS_ZIPLIB
+      if (databuffer == 0)
+        databuffer = new char[widthOrg * heightOrg * 6 + 10000];
+      zip_file_t *fle = zip_fopen(ziparchive, files[id].c_str(), 0);
+      long readbytes =
+          zip_fread(fle, databuffer, (long)widthOrg * heightOrg * 6 + 10000);
+
+      if (readbytes > (long)widthOrg * heightOrg * 6) {
+        printf("read %ld/%ld bytes for file %s. increase buffer!!\n", readbytes,
+               (long)widthOrg * heightOrg * 6 + 10000, files[id].c_str());
+        delete[] databuffer;
+        databuffer = new char[(long)widthOrg * heightOrg * 30];
+        fle = zip_fopen(ziparchive, files[id].c_str(), 0);
+        readbytes =
+            zip_fread(fle, databuffer, (long)widthOrg * heightOrg * 30 + 10000);
+
+        if (readbytes > (long)widthOrg * heightOrg * 30) {
+          printf("buffer still to small (read %ld/%ld). abort.\n", readbytes,
+                 (long)widthOrg * heightOrg * 30 + 10000);
+          exit(1);
+        }
+      }
+
+      return IOWrap::readStreamBW_8U(databuffer, readbytes);
+#else
+      printf("ERROR: cannot read .zip archive, as compile without ziplib!\n");
+      exit(1);
+#endif
+    }
+  }
+  MinimalImageB *getImageRaw_internal2(int id, int unused) {
+    assert(!use16Bit);
+    if (!isZipped) {
+      // CHANGE FOR ZIP FILE
+      return IOWrap::readImageBW_8U2(id, p_input_data, p_cid_to_undist_map,
+                                     p_vig_mat);
     } else {
 #if HAS_ZIPLIB
       if (databuffer == 0)
@@ -461,6 +647,41 @@ private:
       return ret2;
     }
   }
+  ImageAndExposure *getImage_internal2(int id, int unused) {
+    printf("use16Bit: %d\n", use16Bit);
+    if (use16Bit) {
+      MinimalImage<unsigned short> *minimg = IOWrap::readImageBW_16U(files[id]);
+      assert(minimg);
+      ImageAndExposure *ret2 = undistort->undistort<unsigned short>(
+          minimg, (exposures.size() == 0 ? 1.0f : exposures[id]),
+          (timestamps.size() == 0 ? 0.0 : timestamps[id]), 1.0f / 256.0f);
+      delete minimg;
+      return ret2;
+    } else {
+      MinimalImageB *minimg = getImageRaw_internal2(id, 0);
+#if 0
+            ImageAndExposure *ret2 = undistort->undistort2<unsigned char>(
+                    minimg, (exposures.size() == 0 ? 1.0f : exposures[id]),
+                    (timestamps.size() == 0 ? 0.0 : timestamps[id]));
+#else
+      // minimg->data;
+      //            ImageAndExposure *result = new ImageAndExposure(minimg->w,
+      //            minimg->h, (timestamps.size() == 0 ? 0.0 : timestamps[id]));
+      //            result->exposure_time = (exposures.size() == 0 ? 1.0f :
+      //            exposures[id]);
+      ImageAndExposure *result = new ImageAndExposure(minimg->w, minimg->h, 0);
+      result->exposure_time = (exposures.size() == 0 ? 1.0f : exposures[id]);
+      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+        for (int i = 0; i < minimg->w * minimg->h; i++) {
+          result->image[i + minimg->w * minimg->h * cid] =
+              float(1.0) * minimg->data[i + minimg->w * minimg->h * cid];
+        }
+      }
+#endif
+      delete minimg;
+      return result;
+    }
+  }
 
   inline void loadTimestamps() {
     std::ifstream tr;
@@ -481,10 +702,13 @@ private:
         ids.push_back(id);
         timestamps.push_back(stamp);
         exposures.push_back(exposure);
+        // std::cout << "timesFile: " << timesFile << std::endl;
+        // std::exit(4);
       } else if (2 == sscanf(buf, "%lld %lf", &id, &stamp)) {
         ids.push_back(id);
         timestamps.push_back(stamp);
         exposures.push_back(exposure);
+        //   std::exit(5);
       }
     }
     tr.close();
@@ -527,6 +751,7 @@ private:
 
     printf("got %d images and %d timestamps and %d exposures.!\n",
            (int)getNumImages(), (int)timestamps.size(), (int)exposures.size());
+    std::exit(6);
   }
 
   std::map<long long, dmvio::GTData> gtData;
@@ -548,6 +773,10 @@ private:
 
   bool isZipped;
   bool use16Bit;
+  bool is_yvr = false;
+  std::array<std::pair<cv::Mat, cv::Mat>, kCameraNumUsed> *p_cid_to_undist_map =
+      nullptr;
+  Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> *p_vig_mat = nullptr;
 
 #if HAS_ZIPLIB
   zip_t *ziparchive;

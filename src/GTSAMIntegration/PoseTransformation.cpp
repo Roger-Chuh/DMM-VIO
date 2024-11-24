@@ -130,12 +130,12 @@ std::pair<gtsam::Matrix, gtsam::Vector> dmvio::convertHAndBFromDSO(
   }
 
   int numFrames = (n - numCPARS) / 8;
-  assert(n == numFrames * 8 + numCPARS);
+  assert(n == numFrames * STATE_DIM + numCPARS);
 
   // Exchange rotation with translation for all frames (because the order is
   // different in GTSAM!) First exchange the rows.
   for (int i = 0; i < numFrames; ++i) {
-    int id = numCPARS + 8 * i;
+    int id = numCPARS + STATE_DIM * i;
 
     H.block(id, 0, 3, n) = HInput.block(id + 3, 0, 3, n);
     H.block(id + 3, 0, 3, n) = HInput.block(id, 0, 3, n);
@@ -146,7 +146,7 @@ std::pair<gtsam::Matrix, gtsam::Vector> dmvio::convertHAndBFromDSO(
 
   // Then exchange the column
   for (int i = 0; i < numFrames; ++i) {
-    int id = numCPARS + 8 * i;
+    int id = numCPARS + STATE_DIM * i;
     dso::MatXX tmp = H.block(0, id, n, 3);
     H.block(0, id, n, 3) = H.block(0, id + 3, n, 3);
     H.block(0, id + 3, n, 3) = tmp;
@@ -285,9 +285,12 @@ dmvio::convertCoarseHToGTSAM(PoseTransformation &transform,
   b.segment(2, 3) = bInput.segment(3, 3);
   b.segment(5, 3) = bInput.segment(0, 3);
   b.segment(0, 2) = bInput.segment(6, 2);
-
+  // TODO HInput is relative jacobian, Tcw
+  // TODO we need to output absolute jacobian T_w_ref(6), t_w_cur(6) and affine
+  // params(2) = 14
   // Compute Jacobian of frame and reference pose with respect to T_f_r
   gtsam::Matrix J(6, 12);
+  // TODO 等号左边左扰动，等号右边右扰动
   std::vector<gtsam::Matrix> derivatives = transform.getAllDerivatives(
       currentPose.matrix(), DerivativeDirection::RIGHT_TO_LEFT);
 
@@ -296,6 +299,7 @@ dmvio::convertCoarseHToGTSAM(PoseTransformation &transform,
 
   gtsam::Matrix JReal(8, 14);
   JReal.block(2, 2, 6, 12) = J;
+  // TODO rog, affine的雅可比在转系时保持不变，因为是纯图像层面的
   JReal.block(0, 2, 2, 12) = gtsam::Matrix::Zero(2, 12);
   JReal.block(0, 0, 2, 2) = gtsam::Matrix::Identity(2, 2);
   JReal.block(2, 0, 6, 2) = gtsam::Matrix::Zero(6, 2);

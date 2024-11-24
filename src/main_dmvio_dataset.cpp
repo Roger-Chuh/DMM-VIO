@@ -54,13 +54,25 @@
 #include "IOWrapper/OutputWrapper/SampleOutputWrapper.h"
 #include "IOWrapper/Pangolin/PangolinDSOViewer.h"
 
+#include "dso/camera_model/calib_xml.h"
+#include "dso/config/config.h"
+#include "dso/frontend/CameraDetection.h"
+#include <Eigen/Dense> // Eigen库的头文件
+#include <iostream>
+#include <opencv2/core/eigen.hpp>
+#include <opencv2/core/eigen.hpp> // OpenCV与Eigen的桥接头文件
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/opencv.hpp> // OpenCV的核心头文件，或者只包含<opencv2/core.hpp>
+#include <thread>
+
 std::string gtFile = "";
 std::string source = "";
 std::string imuFile = "";
 
-bool reverse = false;
+bool is_reverse = false;
 int start = 0;
-int end = 100000;
+int ending = 100000;
 int maxPreloadImages =
     0; // If set we only preload if there are less images to be loade.
 bool useSampleOutput = false;
@@ -70,7 +82,64 @@ using namespace dso;
 dmvio::MainSettings mainSettings;
 dmvio::IMUCalibration imuCalibration;
 dmvio::IMUSettings imuSettings;
+std::array<std::pair<cv::Mat, cv::Mat>, kCameraNumUsed> cid_to_undist_map;
+Mat3 K, Kinv;
+void GenUndistortionMap(MultiCamera &multi_camera, const int &width,
+                        const int &height, const int &cam_num) {
+  cv::Size image_size = cv::Size(width, height);
+  number_t fov_rad = 120.0 * kOur_PI / 180.0;
+  number_t focal =
+      static_cast<number_t>(width) / (2.0 * std::tan(fov_rad / 2.0));
+  K << focal, 0, 0.5 * static_cast<number_t>(width), 0, focal,
+      0.5 * static_cast<number_t>(height), 0, 0, 1;
+  Kinv = K.inverse();
+  Vec2 proj;
+  for (size_t cid = 0; cid < cam_num; ++cid) {
+    cid_to_undist_map[cid].first.create(image_size, CV_32FC1);
+    cid_to_undist_map[cid].second.create(image_size, CV_32FC1);
+    for (size_t col = 0; col < width; ++col) {
+      for (size_t row = 0; row < height; ++row) {
+        Vec3 uv =
+            Vec3(static_cast<number_t>(col), static_cast<number_t>(row), 1);
+        Vec3 bearing = Kinv * uv;
+        multi_camera.cid_to_cam.at(cid)->Project(bearing, proj);
+        cid_to_undist_map[cid].first.at<float>(row, col) =
+            static_cast<float>(proj.x());
+        cid_to_undist_map[cid].second.at<float>(row, col) =
+            static_cast<float>(proj.y());
+      }
+    }
+  }
+}
+void VigCorrection(
+    cv::Mat &image,
+    const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> &vig_mat) {
+  uint8_t raw_val;
+  float viged_val;
+  cv::Mat img_cv_after_vig = cv::Mat(image.rows, image.cols, CV_8UC1);
+  for (size_t col = 0; col < img_cv_after_vig.cols; ++col) {
+    for (size_t row = 0; row < img_cv_after_vig.rows; ++row) {
+      float vig = vig_mat(row, col);
+      // vig = 1.0;
+      raw_val = image.at<uint8_t>(row, col);
 
+      if (vig < 0.15) {
+        viged_val = 0;
+      } else {
+        viged_val = static_cast<float>(raw_val) / vig;
+        if (viged_val >= 255) {
+          viged_val = 255;
+        }
+      }
+      //      std::cout << "raw_val: " << static_cast<int>(raw_val) << ",
+      //      viged_val: " << viged_val << ", vig: " << vig
+      //                << std::endl;
+      img_cv_after_vig.at<uint8_t>(row, col) = static_cast<uint8_t>(viged_val);
+    }
+  }
+
+  image = img_cv_after_vig.clone();
+}
 void my_exit_handler(int s) {
   printf("Caught signal %d\n", s);
   exit(1);
@@ -88,6 +157,17 @@ void exitThread() {
 }
 
 void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
+  MultiCamera multi_camera;
+  multi_camera.cam_num = kCameraNumUsed;
+  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    multi_camera.cid_to_T01[cid].setIdentity();
+    multi_camera.cid_to_T01_SE3[cid].setRotationMatrix(Mat3::Identity());
+    multi_camera.cid_to_T01_SE3[cid].translation().setZero();
+    multi_camera.cid_to_T01_SE3_inv[cid] =
+        multi_camera.cid_to_T01_SE3[cid].inverse();
+    multi_camera.cid_to_T01_inv_Adj[cid] =
+        multi_camera.cid_to_T01_SE3_inv[cid].Adj();
+  }
 
   if (setting_photometricCalibration > 0 &&
       reader->getPhotometricGamma() == 0) {
@@ -97,13 +177,13 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
   }
 
   int lstart = start;
-  int lend = end;
+  int lend = ending;
   int linc = 1;
-  if (reverse) {
+  if (is_reverse) {
     assert(!setting_useIMU); // Reverse is not supported with IMU data at the
                              // moment!
     printf("REVERSE!!!!");
-    lstart = end - 1;
+    lstart = ending - 1;
     if (lstart >= reader->getNumImages())
       lstart = reader->getNumImages() - 1;
     lend = start;
@@ -119,8 +199,8 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
               << " because of non-realtime mode." << std::endl;
   }
 
-  FullSystem *fullSystem =
-      new FullSystem(linearizeOperation, imuCalibration, imuSettings);
+  FullSystem *fullSystem = new FullSystem(linearizeOperation, imuCalibration,
+                                          imuSettings, &multi_camera);
   fullSystem->setGammaFunction(reader->getPhotometricGamma());
 
   if (viewer != 0) {
@@ -249,8 +329,8 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
         for (IOWrap::Output3DWrapper *ow : wraps)
           ow->reset();
 
-        fullSystem =
-            new FullSystem(linearizeOperation, imuCalibration, imuSettings);
+        fullSystem = new FullSystem(linearizeOperation, imuCalibration,
+                                    imuSettings, &multi_camera);
         fullSystem->setGammaFunction(reader->getPhotometricGamma());
         fullSystem->outputWrapper = wraps;
 
@@ -331,6 +411,98 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
 }
 
 int main(int argc, char **argv) {
+
+  std::string config_path =
+      "/home/roger/work/dm-vio/dm-vio/src/dso/config/calibconfig_stage0.toml";
+  CalibIO::ConfigData configParams(config_path);
+  IMUState imu_state_temp, imu_state;
+  MultiCamera multi_camera, multi_camera_calibed, multi_camera_vi;
+  LoadXML(configParams.dataSet + "/results/device_calibration_gray_vi_5.xml",
+          multi_camera, imu_state_temp);
+  multi_camera.cids = {0};
+  multi_camera.cam_num = 1;
+  for (const int &cid : multi_camera.cids) {
+    multi_camera.cid_to_cam.at(cid)->PrintIntri();
+  }
+  multi_camera_calibed = multi_camera;
+
+  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    multi_camera.cid_to_T01[cid].setIdentity();
+    multi_camera.cid_to_T01_SE3[cid].setRotationMatrix(
+        multi_camera.cid_to_T01[cid].topLeftCorner<3, 3>());
+    multi_camera.cid_to_T01_SE3[cid].translation() =
+        multi_camera.cid_to_T01[cid].topRightCorner<3, 1>();
+    multi_camera.cid_to_T01_SE3_inv[cid] =
+        multi_camera.cid_to_T01_SE3[cid].inverse();
+    multi_camera.cid_to_T01_inv_Adj[cid] =
+        multi_camera.cid_to_T01_SE3_inv[cid].Adj();
+  }
+  aligned_vector<CalibFrame> frameInfo_bak, frameInfo, frameInfo_rgb;
+  aligned_vector<std::unordered_map<
+      int /*cid*/, std::unordered_map<int /*bid*/, aligned_vector<PointVM>>>>
+      frameInfoImageDataArranged;
+  CamCalib::CameraDetection detect(configParams);
+  CalibIO::ImuJsonData imuData;
+
+  if (configParams.calib_stage != dso::CalibIO::GRAY_RGB) {
+    detect.pipeline(frameInfo_bak, &imuData, false);
+  } else {
+    printf("doesn't support this stage, please check\n");
+    std::exit(-1);
+  }
+  for (CalibFrame &frame : frameInfo_bak) {
+    frame.is_used = 1;
+  }
+  int w = 640 * 1;
+  int h = 480 * 1;
+  int cid = 0;
+
+  bool show = false;
+
+  GenUndistortionMap(multi_camera_calibed, w, h, kCameraNumUsed);
+
+#if 0
+    std::string path_to_vig_img =
+            "/home/roger/work/smartgit/dot001/yvrcalibration_dot/vignette_0.png";  // "../../vignette_0.png";
+    cv::Mat vignette_img = cv::imread(path_to_vig_img, -1);
+    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> vig_mat;
+    vig_mat.resize(480, 640);
+    if (vignette_img.rows != 480 || vignette_img.cols != 640) {
+        printf("Vignette img size not equal to img size\n");
+        exit(-1);
+    }
+    for (int col = 0; col < 640; ++col) {
+        for (int row = 0; row < 480; ++row) {
+            vig_mat(row, col) = vignette_img.at<uint16_t>(row, col) / 65535.0;
+        }
+    }
+    std::array<cv::Mat, 4> show_mat_vec;
+    for (size_t i = 0; i < frameInfo_bak.size() /*&& key != 27*/; i++) {
+        //    cerr <<
+        //    "######################################################################################################"
+        //            "##################################################### FRAME: "
+        //         << i << ", cam_id: " << cam_id << endl;
+        for (int cam_id = 0; cam_id < kCameraNumUsed; ++cam_id) {
+            std::string image_path = frameInfo_bak[i].cid_to_img_file_path.at(cam_id);
+            // cerr << "Reading..." << image_path << endl;
+            // if (files[i].back() == '.') continue;  // skip . and ..
+            cv::Mat image = cv::imread(image_path, 0);
+            cv::Mat image_before = image.clone();
+            //VigCorrection(image, vig_mat);
+            cv::remap(image, image, cid_to_undist_map[cam_id].first, cid_to_undist_map[cam_id].second, cv::INTER_CUBIC);
+            cv::cvtColor(image, image, cv::COLOR_GRAY2BGR);
+            show_mat_vec[cam_id] = image.clone();
+        }
+        cv::Mat img1, img2, img_show;
+        cv::hconcat(show_mat_vec[1], show_mat_vec[2], img1);
+        cv::hconcat(show_mat_vec[0], show_mat_vec[3], img2);
+        cv::vconcat(img1, img2, img_show);
+        cv::imshow("Cam", img_show);
+
+        cv::waitKey(1);
+    }
+    //std::exit(-1);
+#endif
   setlocale(LC_ALL, "C");
 
 #ifdef DEBUG
@@ -351,11 +523,11 @@ int main(int argc, char **argv) {
   // IMUInitSettings.h
   settingsUtil->registerArg("files", source);
   settingsUtil->registerArg("start", start);
-  settingsUtil->registerArg("end", end);
+  settingsUtil->registerArg("end", ending);
   settingsUtil->registerArg("imuFile", imuFile);
   settingsUtil->registerArg("gtFile", gtFile);
   settingsUtil->registerArg("sampleoutput", useSampleOutput);
-  settingsUtil->registerArg("reverse", reverse);
+  settingsUtil->registerArg("reverse", is_reverse);
   settingsUtil->registerArg("use16Bit", use16Bit);
   settingsUtil->registerArg("maxPreloadImages", maxPreloadImages);
 
@@ -384,7 +556,7 @@ int main(int argc, char **argv) {
                             mainSettings.vignette, use16Bit);
   reader->loadIMUData(imuFile);
   reader->setGlobalCalibration();
-
+  // std::exit(2);
   if (!disableAllDisplay) {
     IOWrap::PangolinDSOViewer *viewer = new IOWrap::PangolinDSOViewer(
         wG[0], hG[0], false, settingsUtil, nullptr);

@@ -67,31 +67,42 @@ public:
   FrameHessian *host;
   int idxInImmaturePoints;
 
-  float quality; //!< 第二误差/第一误差 作为搜索质量, 越大越好
+  std::array<float, kCameraNumUsed>
+      quality; //!< 第二误差/第一误差 作为搜索质量, 越大越好
 
   float my_type;
 
   float idepth_min; //!< 逆深度范围
   float idepth_max;
 
+  int host_cid;
+  int host_level;
+  //  ImmaturePoint(int u_, int v_, FrameHessian *host_, float type,
+  //                CalibHessian *HCalib);
   ImmaturePoint(int u_, int v_, FrameHessian *host_, float type,
-                CalibHessian *HCalib);
+                CalibHessian *HCalib, const int &host_cid_,
+                const int &host_level_);
 
   ~ImmaturePoint();
 
-  ImmaturePointStatus traceOn(FrameHessian *frame,
+  ImmaturePointStatus traceOn(const int &target_cid, FrameHessian *frame,
                               const Mat33f &hostToFrame_KRKi,
                               const Vec3f &hostToFrame_Kt,
                               const Vec2f &hostToFrame_affine,
-                              CalibHessian *HCalib, bool debugPrint = false);
+                              CalibHessian *HCalib, bool debugPrint = false,
+                              int lvl = 0, bool is_first_frame = false,
+                              bool show_image = false);
 
-  ImmaturePointStatus lastTraceStatus; //!< 上一次跟踪状态
-  Vec2f lastTraceUV;                   //!< 上一次搜索得到的位置
-  float lastTracePixelInterval;        //!< 上一次的搜索范围长度
+  std::array<ImmaturePointStatus, kCameraNumUsed>
+      lastTraceStatus;                           //!< 上一次跟踪状态
+  std::array<Vec2f, kCameraNumUsed> lastTraceUV; //!< 上一次搜索得到的位置
+  std::array<float, kCameraNumUsed>
+      lastTracePixelInterval; //!< 上一次的搜索范围长度
 
   float idepth_GT;
 
-  double linearizeResidual(CalibHessian *HCalib, const float outlierTHSlack,
+  double linearizeResidual(const int &target_cid, CalibHessian *HCalib,
+                           const float outlierTHSlack,
                            ImmaturePointTemporaryResidual *tmpRes, float &Hdd,
                            float &bd, float idepth);
 

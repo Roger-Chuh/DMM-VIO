@@ -37,7 +37,7 @@
 namespace dso {
 struct CalibHessian;
 struct FrameHessian;
-
+class ImmaturePoint;
 struct Pnt {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -49,12 +49,16 @@ public:
   bool isGood;  //!< 点在新图像内, 相机前, 像素值有穷则好
   Vec2f energy; //!< [0]残差的平方, [1]正则化项(逆深度减一的平方)//
                 //!< (UenergyPhotometric, energyRegularizer)
+  int host_cid;
   bool isGood_new;
   float idepth_new; //!< 该点在新的一帧(当前帧)上的逆深度
   Vec2f energy_new; //!< 迭代计算的新的能量
 
   float iR;       //!< 逆深度的期望值
   float iRSumNum; //!< 子点逆深度信息矩阵之和
+
+  float iR_triangle;         //!< 逆深度的期望值
+  float idepth_new_triangle; //!< 逆深度的期望值
 
   float lastHessian;     //!< 逆深度的Hessian, 即协方差, dd*dd
   float lastHessian_new; //!< 新一次迭代的协方差
@@ -84,6 +88,8 @@ public:
 
   void setFirst(CalibHessian *HCalib, FrameHessian *newFrameHessian);
 
+  void setFirstStereo(CalibHessian *HCalib, FrameHessian *newFrameHessian);
+
   bool trackFrame(FrameHessian *newFrameHessian,
                   std::vector<IOWrap::Output3DWrapper *> &wraps);
 
@@ -91,35 +97,50 @@ public:
   bool fixAffine; //!< 是否优化光度参数
   bool printDebug;
 
-  Pnt *points[PYR_LEVELS]; //!< 每一层上的点类, 是第一帧提取出来的
-  int numPoints[PYR_LEVELS]; //!< 每一层的点数目
-  AffLight thisToNext_aff;   //!< 参考帧与当前帧之间光度系数
-  SE3 thisToNext;            //!< 参考帧与当前帧之间位姿
+  Pnt *points[PYR_LEVELS]; // * kCameraNumUsed]; //!< 每一层上的点类,
+                           // 是第一帧提取出来的
+  std::array<std::array<int, kCameraNumUsed>, PYR_LEVELS>
+      level_cid_to_numPoints; // * kCameraNumUsed]; //!< 每一层的点数目
+  std::array<std::array<int, kCameraNumUsed>, PYR_LEVELS> level_cid_to_npts;
+  std::array<std::array<int, kCameraNumUsed>, PYR_LEVELS>
+      level_cid_to_npts_success;
+  std::array<std::array<int, kCameraNumUsed>, PYR_LEVELS>
+      level_cid_to_npts_offset;
+  std::array<std::array<int, kCameraNumUsed>, PYR_LEVELS>
+      level_cid_to_npts_success_offset;
+  AffLight thisToNext_aff; //!< 参考帧与当前帧之间光度系数
+  SE3 thisToNext;          //!< 参考帧与当前帧之间位姿
 
   FrameHessian *firstFrame; //!< 第一帧
   FrameHessian *newFrame;   //!< track中新加入的帧
 private:
-  Mat33 K[PYR_LEVELS]; //!< camera参数
-  Mat33 Ki[PYR_LEVELS];
-  double fx[PYR_LEVELS];
-  double fy[PYR_LEVELS];
-  double fxi[PYR_LEVELS];
-  double fyi[PYR_LEVELS];
-  double cx[PYR_LEVELS];
-  double cy[PYR_LEVELS];
-  double cxi[PYR_LEVELS];
-  double cyi[PYR_LEVELS];
+  Mat33 K[PYR_LEVELS];    // * kCameraNumUsed]; //!< camera参数
+  Mat33 Ki[PYR_LEVELS];   // * kCameraNumUsed];
+  double fx[PYR_LEVELS];  // * kCameraNumUsed];
+  double fy[PYR_LEVELS];  // * kCameraNumUsed];
+  double fxi[PYR_LEVELS]; // * kCameraNumUsed];
+  double fyi[PYR_LEVELS]; // * kCameraNumUsed];
+  double cx[PYR_LEVELS];  // * kCameraNumUsed];
+  double cy[PYR_LEVELS];  // * kCameraNumUsed];
+  double cxi[PYR_LEVELS]; // * kCameraNumUsed];
+  double cyi[PYR_LEVELS]; // * kCameraNumUsed];
   int w[PYR_LEVELS];
   int h[PYR_LEVELS];
 
   void makeK(CalibHessian *HCalib);
 
+  double MultiViewTriangulation(const double &focal,
+                                const std::vector<Mat4> &poses,
+                                const std::vector<Vec3> &points,
+                                std::vector<std::pair<double, int>> &err_vec,
+                                VecX &errs, Vec3 &point_3d);
+
   bool snapped;  //!< 是否尺度收敛 (暂定)
   int snappedAt; //!< 尺度收敛在第几帧
 
   // pyramid images & levels on all levels
-  Eigen::Vector3f *dINew[PYR_LEVELS];
-  Eigen::Vector3f *dIFist[PYR_LEVELS];
+  Eigen::Vector3f *dINew[PYR_LEVELS];  // * kCameraNumUsed];
+  Eigen::Vector3f *dIFist[PYR_LEVELS]; // * kCameraNumUsed];
 
   Eigen::DiagonalMatrix<float, 8> wM;
 
@@ -131,17 +152,23 @@ private:
   /// 6dof + affine(a,b) + idepth = 9
   Accumulator9 acc9;   //!< Hessian 矩阵
   Accumulator9 acc9SC; //!< Schur部分Hessian
+  // Accumulator11 accE;
 
-  Vec3f dGrads[PYR_LEVELS]; //!<
+  Vec3f dGrads[PYR_LEVELS]; // * kCameraNumUsed]; //!<
 
   float alphaK;         //!< 2.5*2.5
   float alphaW;         //!< 150*150
   float regWeight;      //!< 对逆深度的加权值, 0.8
   float couplingWeight; //!< 1
 
-  Vec3f calcResAndGS(int lvl, Mat88f &H_out, Vec8f &b_out, Mat88f &H_out_sc,
-                     Vec8f &b_out_sc, const SE3 &refToNew,
-                     AffLight refToNew_aff, bool plot);
+  Vec3f calcResAndGS(int lvl, MatStatef &H_out, VecStatef &b_out,
+                     MatStatef &H_out_sc, VecStatef &b_out_sc,
+                     const SE3 &refToNew, AffLight refToNew_aff, bool plot,
+                     int &N, bool show_image = false);
+  Vec3f calcResAndGS_bak(int lvl, MatStatef &H_out, VecStatef &b_out,
+                         MatStatef &H_out_sc, VecStatef &b_out_sc,
+                         const SE3 &refToNew, AffLight refToNew_aff, bool plot,
+                         int &N, bool show_image = false);
 
   Vec3f calcEC(int lvl); // returns OLD NERGY, NEW ENERGY, NUM TERMS.
   void optReg(int lvl);

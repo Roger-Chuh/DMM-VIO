@@ -37,12 +37,15 @@
 namespace dso {
 
 PixelSelector::PixelSelector(int w, int h) {
-  randomPattern = new unsigned char[w * h];
+  randomPattern = new unsigned char[w * h * kCameraNumUsed];
   std::srand(3141592); // want to be deterministic.
-  for (int i = 0; i < w * h; i++)
-    randomPattern[i] = rand() & 0xFF; // 随机数, 取低8位
-
-  currentPotential = 3;
+  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    for (int i = 0; i < w * h; i++) {
+      randomPattern[i + w * h * cid] = rand() & 0xFF; // 随机数, 取低8位
+    }
+    currentPotential[cid] = 3;
+  }
+  // currentPotential = 3;
   // 32*32个块进行计算阈值
   // We create 32 blocks in width dimension, and adjust the number of blocks for
   // the height accordingly. Always use block size of 16.
@@ -58,9 +61,9 @@ PixelSelector::PixelSelector(int w, int h) {
 
   std::cout << "PixelSelector: Using block sizes: " << bW << ", " << bH << '\n';
 
-  gradHist = new int[100 * (1 + nbW) * (1 + nbH)];
-  ths = new float[(nbW) * (nbH) + 100];
-  thsSmoothed = new float[(nbW) * (nbH) + 100];
+  gradHist = new int[100 * (1 + nbW) * (1 + nbH) * kCameraNumUsed];
+  ths = new float[((nbW) * (nbH) + 100) * kCameraNumUsed];
+  thsSmoothed = new float[((nbW) * (nbH) + 100) * kCameraNumUsed];
 
   allowFast = false;
   gradHistFrame = 0;
@@ -96,7 +99,7 @@ int computeHistQuantil(int *hist, float below) {
 void PixelSelector::makeHists(const FrameHessian *const fh) {
   gradHistFrame = fh;
   float *mapmax0 = fh->absSquaredGrad[0]; //第0层梯度平方和
-                                          // weight and height
+  // weight and height
   int w = wG[0];
   int h = hG[0];
 #if 0
@@ -111,92 +114,97 @@ void PixelSelector::makeHists(const FrameHessian *const fh) {
   int w32 = nbW;
   int h32 = nbH;
   thsStep = w32;
+  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    for (int y = 0; y < h32; y++) {
+      for (int x = 0; x < w32; x++) { /// 一个格子的左上顶点的地址(top right
+                                      /// corner of the 32x32 grid)
+        float *map0 = mapmax0 + bW * x + bH * y * w + w * h * cid;
+        /// 新建一个指针hist0，指向gradHist（其实后面的操作就是在往gradHist里填值）
+        int *hist0 =
+            gradHist + 100 * (1 + nbW) * (1 + nbH) * cid; // + 50*(x+y*w32);
+        /// 这就是用来存直方图的bin count的吧
+        memset(hist0, 0, sizeof(int) * 50);
 
-  for (int y = 0; y < h32; y++)
-    for (int x = 0; x < w32;
-         x++) { /// 一个格子的左上顶点的地址(top right corner of the 32x32 grid)
-      float *map0 = mapmax0 + bW * x + bH * y * w;
-      /// 新建一个指针hist0，指向gradHist（其实后面的操作就是在往gradHist里填值）
-      int *hist0 = gradHist; // + 50*(x+y*w32);
-      /// 这就是用来存直方图的bin count的吧
-      memset(hist0, 0, sizeof(int) * 50);
-
-      for (int j = 0; j < bH; j++)
-        for (int i = 0; i < bW;
-             i++) {            /// it and jt are coords w.r.t. the whole image
-          int it = i + bW * x; // 该格里第(j,i)像素的整个图像坐标
-          int jt = j + bH * y;
-          /// again, w and h are width and height off the whole image
-          if (it > w - 2 || jt > h - 2 || it < 1 || jt < 1)
-            continue; //内
-                      /// the down right part of the 32x32 grid
+        for (int j = 0; j < bH; j++)
+          for (int i = 0; i < bW;
+               i++) {            /// it and jt are coords w.r.t. the whole image
+            int it = i + bW * x; // 该格里第(j,i)像素的整个图像坐标
+            int jt = j + bH * y;
+            /// again, w and h are width and height off the whole image
+            if (it > w - 2 || jt > h - 2 || it < 1 || jt < 1)
+              continue; //内
+                        /// the down right part of the 32x32 grid
 #if 0
-                        if (map0[i+j*w] > maxG2)
-                        maxG2 = map0[i+j*w];
+                            if (map0[i+j*w] > maxG2)
+                            maxG2 = map0[i+j*w];
 #endif
-          int g = sqrtf(map0[i + j * w]);
+            int g = sqrtf(map0[i + j * w]);
 #if 0
-                        if (float(g) > maxG2)
-                        maxG2 = float(g);
+                            if (float(g) > maxG2)
+                            maxG2 = float(g);
 #endif
-          // printf(", g: %d ",g);
-          /// 整张图的梯度被归一化到1~49了？
-          if (g > 48)
-            g = 48;       //? 为啥是48这个数，因为一共分为了50格
-          hist0[g + 1]++; // 1-49 存相应梯度个数
-          hist0[0]++;     // 所有的像素个数
+            // printf(", g: %d ",g);
+            /// 整张图的梯度被归一化到1~49了？
+            if (g > 48)
+              g = 48; //? 为啥是48这个数，因为一共分为了50格
+            hist0[g + 1]++; // 1-49 存相应梯度个数
+            hist0[0]++;     // 所有的像素个数
+          }
+        //		printf("maxG2: %f\n",maxG2);
+        // printf("\n");
+        // 得到每一block的阈值
+        // printf("hist0 size: %d\n",sizeof(hist0)/sizeof(int));
+        // printf("hist0 size: %d\n",hist0[49]);
+        ths[x + y * w32 + ((nbW) * (nbH) + 100) * cid] =
+            computeHistQuantil(hist0, setting_minGradHistCut) +
+            setting_minGradHistAdd;
+      }
+      // 使用3*3的窗口求平均值来平滑
+      for (int y = 0; y < h32; y++)
+        for (int x = 0; x < w32; x++) {
+          float sum = 0, num = 0;
+          if (x > 0) {
+            if (y > 0) {
+              num++;
+              sum += ths[x - 1 + (y - 1) * w32 + ((nbW) * (nbH) + 100) * cid];
+            }
+            if (y < h32 - 1) {
+              num++;
+              sum += ths[x - 1 + (y + 1) * w32 + ((nbW) * (nbH) + 100) * cid];
+            }
+            num++;
+            sum += ths[x - 1 + (y)*w32 + ((nbW) * (nbH) + 100) * cid];
+          }
+
+          if (x < w32 - 1) {
+            if (y > 0) {
+              num++;
+              sum += ths[x + 1 + (y - 1) * w32 + ((nbW) * (nbH) + 100) * cid];
+            }
+            if (y < h32 - 1) {
+              num++;
+              sum += ths[x + 1 + (y + 1) * w32 + ((nbW) * (nbH) + 100) * cid];
+            }
+            num++;
+            sum += ths[x + 1 + (y)*w32 + ((nbW) * (nbH) + 100) * cid];
+          }
+
+          if (y > 0) {
+            num++;
+            sum += ths[x + (y - 1) * w32 + ((nbW) * (nbH) + 100) * cid];
+          }
+          if (y < h32 - 1) {
+            num++;
+            sum += ths[x + (y + 1) * w32 + ((nbW) * (nbH) + 100) * cid];
+          }
+          num++;
+          sum += ths[x + y * w32 + ((nbW) * (nbH) + 100) * cid];
+
+          thsSmoothed[x + y * w32 + (nbH * nbW + 100) * cid] =
+              (sum / num) * (sum / num);
         }
-      //		printf("maxG2: %f\n",maxG2);
-      // printf("\n");
-      // 得到每一block的阈值
-      // printf("hist0 size: %d\n",sizeof(hist0)/sizeof(int));
-      // printf("hist0 size: %d\n",hist0[49]);
-      ths[x + y * w32] = computeHistQuantil(hist0, setting_minGradHistCut) +
-                         setting_minGradHistAdd;
     }
-  // 使用3*3的窗口求平均值来平滑
-  for (int y = 0; y < h32; y++)
-    for (int x = 0; x < w32; x++) {
-      float sum = 0, num = 0;
-      if (x > 0) {
-        if (y > 0) {
-          num++;
-          sum += ths[x - 1 + (y - 1) * w32];
-        }
-        if (y < h32 - 1) {
-          num++;
-          sum += ths[x - 1 + (y + 1) * w32];
-        }
-        num++;
-        sum += ths[x - 1 + (y)*w32];
-      }
-
-      if (x < w32 - 1) {
-        if (y > 0) {
-          num++;
-          sum += ths[x + 1 + (y - 1) * w32];
-        }
-        if (y < h32 - 1) {
-          num++;
-          sum += ths[x + 1 + (y + 1) * w32];
-        }
-        num++;
-        sum += ths[x + 1 + (y)*w32];
-      }
-
-      if (y > 0) {
-        num++;
-        sum += ths[x + (y - 1) * w32];
-      }
-      if (y < h32 - 1) {
-        num++;
-        sum += ths[x + (y + 1) * w32];
-      }
-      num++;
-      sum += ths[x + y * w32];
-
-      thsSmoothed[x + y * w32] = (sum / num) * (sum / num);
-    }
+  }
 }
 
 /********************************
@@ -213,11 +221,11 @@ void PixelSelector::makeHists(const FrameHessian *const fh) {
  *******************************/
 int PixelSelector::makeMaps(const FrameHessian *const fh, float *map_out,
                             float density, int recursionsLeft, bool plot,
-                            float thFactor) {
+                            float thFactor, int cid) {
   float numHave = 0;
-  float numWant = density;
+  float numWant = density / float(kCameraNumUsed);
   float quotia;
-  int idealPotential = currentPotential;
+  int idealPotential = currentPotential[cid];
 
   //	if(setting_pixelSelectionUseFast>0 && allowFast)
   //	{
@@ -252,35 +260,40 @@ int PixelSelector::makeMaps(const FrameHessian *const fh, float *map_out,
     //[ ***step 1*** ] 没有计算直方图, 以及选点的阈值, 则调用函数生成block阈值
     /// gradHistFrame的初值是赋成0的，只有调过一次makeHists(fh)，gradHistFrame才会被赋成fh,
     /// 所以要加上这个if判断
-    if (fh != gradHistFrame)
+    if (fh != gradHistFrame) {
+      //                for (int id = 0; id < kCameraNumUsed; ++id) {
       makeHists(fh); // 第一次进来，求梯度直方图的frame不是fh，则生成直方图
-
+      //                }
+    }
     // select!
     //[ ***step 2*** ] 在当前帧上选择符合条件的像素
     /// n: 第0, 1, 2层选点的个数
-    Eigen::Vector3i n = this->select(fh, map_out, currentPotential, thFactor);
+    //            for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    Eigen::Vector3i n =
+        this->select(fh, map_out, currentPotential[cid], thFactor, cid);
 
     // sub-select!
+
     numHave = n[0] + n[1] + n[2]; // 选择得到的点
     quotia = numWant / numHave;   // 得到的 与 想要的 比例
 
     // by default we want to over-sample by 40% just to be sure.
     //[ ***step 3*** ] 计算新的采像素点的, 范围大小, 相当于动态网格了,
     // pot越小取得点越多
-    float K =
-        numHave * (currentPotential + 1) *
-        (currentPotential + 1); // 相当于覆盖的面积, 每一个像素对应一个pot*pot
+    float K = numHave * (currentPotential[cid] + 1) *
+              (currentPotential[cid] +
+               1); // 相当于覆盖的面积, 每一个像素对应一个pot*pot
     idealPotential = sqrtf(K / numWant) - 1; // round down.
     if (idealPotential < 1)
       idealPotential = 1;
     //[ ***step 4*** ] 想要的数目和已经得到的数目,
     //大于或小于0.25都会重新采样一次
-    if (recursionsLeft > 0 && quotia > 1.25 && currentPotential > 1) {
+    if (recursionsLeft > 0 && quotia > 1.25 && currentPotential[cid] > 1) {
       // re-sample to get more points!
       // potential needs to be smaller
       /// 所谓potential其实就是提取特征点时的采样间隔，间隔越小，可能（在弱纹理区域）提取到更多的点
-      if (idealPotential >= currentPotential)  // idealPotential应该小
-        idealPotential = currentPotential - 1; // 减小,多采点
+      if (idealPotential >= currentPotential[cid])  // idealPotential应该小
+        idealPotential = currentPotential[cid] - 1; // 减小,多采点
 
       //		printf("PixelSelector: have %.2f%%, need %.2f%%.
       // RESAMPLE with pot %d -> %d.\n",
@@ -288,15 +301,15 @@ int PixelSelector::makeMaps(const FrameHessian *const fh, float *map_out,
       // 100*numWant/(float)(wG[0]*hG[0]),
       //				currentPotential,
       //				idealPotential);
-      currentPotential = idealPotential;
+      currentPotential[cid] = idealPotential;
       /// 递归，recursively？
-      return makeMaps(fh, map_out, density, recursionsLeft - 1, plot,
-                      thFactor); //递归
+      return makeMaps(fh, map_out, density, recursionsLeft - 1, plot, thFactor,
+                      cid); //递归
     } else if (recursionsLeft > 0 && quotia < 0.25) {
       // re-sample to get less points!
 
-      if (idealPotential <= currentPotential)  // idealPotential应该大
-        idealPotential = currentPotential + 1; // 增大, 少采点
+      if (idealPotential <= currentPotential[cid])  // idealPotential应该大
+        idealPotential = currentPotential[cid] + 1; // 增大, 少采点
 
       //		printf("PixelSelector: have %.2f%%, need %.2f%%.
       // RESAMPLE with pot %d -> %d.\n",
@@ -304,12 +317,13 @@ int PixelSelector::makeMaps(const FrameHessian *const fh, float *map_out,
       // 100*numWant/(float)(wG[0]*hG[0]),
       //				currentPotential,
       //				idealPotential);
-      currentPotential = idealPotential;
+      currentPotential[cid] = idealPotential;
       /// 递归，recursively？
-      return makeMaps(fh, map_out, density, recursionsLeft - 1, plot,
-                      thFactor); //递归
+      return makeMaps(fh, map_out, density, recursionsLeft - 1, plot, thFactor,
+                      cid); //递归
     }
   }
+  //        }
   //[ ***step 5*** ] 现在提取的还是多, 随机删除一些点
   int numHaveSub = numHave;
   if (quotia < 0.95) {
@@ -318,7 +332,7 @@ int PixelSelector::makeMaps(const FrameHessian *const fh, float *map_out,
     unsigned char charTH = 255 * quotia;
     for (int i = 0; i < wh; i++) {
       if (map_out[i] != 0) {
-        if (randomPattern[rn] > charTH) {
+        if (randomPattern[rn + wh * cid] > charTH) {
           map_out[i] = 0;
           numHaveSub--;
         }
@@ -333,7 +347,7 @@ int PixelSelector::makeMaps(const FrameHessian *const fh, float *map_out,
   // 100*numWant/(float)(wG[0]*hG[0]), 			currentPotential,
   // idealPotential,
   //			100*numHaveSub/(float)(wG[0]*hG[0]));
-  currentPotential = idealPotential; //???
+  currentPotential[cid] = idealPotential; //???
 
   // 画出选择结果
   if (plot) {
@@ -343,10 +357,10 @@ int PixelSelector::makeMaps(const FrameHessian *const fh, float *map_out,
     MinimalImageB3 img(w, h);
 
     for (int i = 0; i < w * h; i++) {
-      float c = fh->dI[i][0] * 0.7; // 像素值
+      float c = fh->dI[i + w * h * cid][0] * 0.7; // 像素值
       if (c > 255)
         c = 255;
-      img.at(i) = Vec3b(c, c, c);
+      img.at(i, cid) = Vec3b(c, c, c);
     }
     IOWrap::displayImage("Selector Image", &img);
     // 安照不同层数的像素, 画上不同颜色
@@ -354,11 +368,11 @@ int PixelSelector::makeMaps(const FrameHessian *const fh, float *map_out,
       for (int x = 0; x < w; x++) {
         int i = x + y * w;
         if (map_out[i] == 1)
-          img.setPixelCirc(x, y, Vec3b(0, 255, 0));
+          img.setPixelCirc(x, y, Vec3b(0, 255, 0), cid);
         else if (map_out[i] == 2)
-          img.setPixelCirc(x, y, Vec3b(255, 0, 0));
+          img.setPixelCirc(x, y, Vec3b(255, 0, 0), cid);
         else if (map_out[i] == 4)
-          img.setPixelCirc(x, y, Vec3b(0, 0, 255));
+          img.setPixelCirc(x, y, Vec3b(0, 0, 255), cid);
       }
     IOWrap::displayImage("Selector Pixels", &img);
   }
@@ -384,14 +398,15 @@ int PixelSelector::makeMaps(const FrameHessian *const fh, float *map_out,
 // TODO 这个选点到底是不同层上, 还是论文里提到的不同阈值, 不同block???
 
 Eigen::Vector3i PixelSelector::select(const FrameHessian *const fh,
-                                      float *map_out, int pot, float thFactor) {
+                                      float *map_out, int pot, float thFactor,
+                                      int cid) {
   // TODO 这个选点到底是不同层上, 还是论文里提到的不同阈值, 不同block???
   /// const 在*左, 指针内容不可改, 在*右指针不可改
   // 等价const Eigen::Vector3f * const
   Eigen::Vector3f const *const map0 = fh->dI;
   // 0, 1, 2层的梯度平方和
   /// tracking会在6个level做，detection只在[0 1 2] 3个level做
-  float *mapmax0 = fh->absSquaredGrad[0];
+  float *mapmax0 = fh->absSquaredGrad[0]; // todo roger,  * cameraNum
   float *mapmax1 = fh->absSquaredGrad[1];
   float *mapmax2 = fh->absSquaredGrad[2];
 
@@ -400,6 +415,8 @@ Eigen::Vector3i PixelSelector::select(const FrameHessian *const fh,
   int w1 = wG[1];
   int w2 = wG[2];
   int h = hG[0];
+  int h1 = hG[1];
+  int h2 = hG[2];
 
   //? 这个是为了什么呢,
   //! 随机选这16个对应方向上的梯度和阈值比较
@@ -433,10 +450,11 @@ Eigen::Vector3i PixelSelector::select(const FrameHessian *const fh,
   /// means gradient vector are collinear with the random direction)
   /// intuitively, we can regard all point like that are matched point and
   /// considered as selected point.
-
+  std::array<Eigen::Vector3i, kCameraNumUsed> ret;
+  // for (int cid = 0; cid < kCameraNumUsed; ++cid) {
   int n3 = 0, n2 = 0, n4 = 0;
   //* 第2层中, 每隔pot选一个点遍历
-  for (int y4 = 0; y4 < h; y4 += (4 * pot))
+  for (int y4 = 0; y4 < h; y4 += (4 * pot)) {
     for (int x4 = 0; x4 < w;
          x4 += (4 * pot)) { // 该点的邻域(向上取4pot或末尾余数)大小
       int my3 = std::min((4 * pot), h - y4);
@@ -444,7 +462,7 @@ Eigen::Vector3i PixelSelector::select(const FrameHessian *const fh,
       int bestIdx4 = -1;
       float bestVal4 = 0;
       // 随机系数
-      Vec2f dir4 = directions[randomPattern[n2] &
+      Vec2f dir4 = directions[randomPattern[n2 + w * h * cid] &
                               0xF]; // 取低4位, 0-15, 和directions对应
       //* 上面的领域范围内, 在第1层进行遍历, 每隔pot一个点
       for (int y3 = 0; y3 < my3; y3 += (2 * pot))
@@ -456,7 +474,7 @@ Eigen::Vector3i PixelSelector::select(const FrameHessian *const fh,
           int mx2 = std::min((2 * pot), w - x34);
           int bestIdx3 = -1;
           float bestVal3 = 0;
-          Vec2f dir3 = directions[randomPattern[n2] & 0xF];
+          Vec2f dir3 = directions[randomPattern[n2 + w * h * cid] & 0xF];
           //* 上面的邻域范围内, 变换到第0层, 每隔pot遍历
           //! 每个pot大小格里面一个大于阈值的最大的像素
           for (int y2 = 0; y2 < my2; y2 += pot)
@@ -467,7 +485,7 @@ Eigen::Vector3i PixelSelector::select(const FrameHessian *const fh,
               int mx1 = std::min(pot, w - x234);
               int bestIdx2 = -1;
               float bestVal2 = 0;
-              Vec2f dir2 = directions[randomPattern[n2] & 0xF];
+              Vec2f dir2 = directions[randomPattern[n2 + w * h * cid] & 0xF];
               //* 第0层中的,pot大小邻域内遍历
               for (int y1 = 0; y1 < my1; y1 += 1)
                 for (int x1 = 0; x1 < mx1; x1 += 1) {
@@ -483,13 +501,15 @@ Eigen::Vector3i PixelSelector::select(const FrameHessian *const fh,
                   //! 可以确定是每个grid, 32格大小
                   /// xf>>5 means xf/(2^5)
 
-                  float pixelTH0 = thsSmoothed[xf / bW + (yf / bH) * thsStep];
+                  float pixelTH0 = thsSmoothed[xf / bW + (yf / bH) * thsStep +
+                                               (nbW * nbH + 100) * cid];
                   float pixelTH1 = pixelTH0 * dw1;
                   float pixelTH2 = pixelTH1 * dw2;
 
-                  float ag0 = mapmax0[idx]; // 第0层梯度模
+                  float ag0 = mapmax0[idx + w * h * cid]; // 第0层梯度模
                   if (ag0 > pixelTH0 * thFactor) {
-                    Vec2f ag0d = map0[idx].tail<2>(); // 后两位是图像导数
+                    Vec2f ag0d =
+                        map0[idx + w * h * cid].tail<2>(); // 后两位是图像导数
                     float dirNorm = fabsf(
                         (float)(ag0d.dot(dir2))); // 以这个方向上的梯度来判断
                     if (!setting_selectDirectionDistribution)
@@ -507,9 +527,10 @@ Eigen::Vector3i PixelSelector::select(const FrameHessian *const fh,
                     continue; // 有了则不在其它层选点, 但是还会在该pot里选最大的
 
                   float ag1 = mapmax1[(int)(xf * 0.5f + 0.25f) +
-                                      (int)(yf * 0.5f + 0.25f) * w1]; // 第1层
+                                      (int)(yf * 0.5f + 0.25f) * w1 +
+                                      w1 * h1 * cid]; // 第1层
                   if (ag1 > pixelTH1 * thFactor) {
-                    Vec2f ag0d = map0[idx].tail<2>();
+                    Vec2f ag0d = map0[idx + w * h * cid].tail<2>();
                     float dirNorm = fabsf((float)(ag0d.dot(dir3)));
                     if (!setting_selectDirectionDistribution)
                       dirNorm = ag1;
@@ -524,9 +545,10 @@ Eigen::Vector3i PixelSelector::select(const FrameHessian *const fh,
                     continue;
 
                   float ag2 = mapmax2[(int)(xf * 0.25f + 0.125) +
-                                      (int)(yf * 0.25f + 0.125) * w2]; // 第2层
+                                      (int)(yf * 0.25f + 0.125) * w2 +
+                                      w2 * h2 * cid]; // 第2层
                   if (ag2 > pixelTH2 * thFactor) {
-                    Vec2f ag0d = map0[idx].tail<2>();
+                    Vec2f ag0d = map0[idx + w * h * cid].tail<2>();
                     float dirNorm = fabsf((float)(ag0d.dot(dir4)));
                     if (!setting_selectDirectionDistribution)
                       dirNorm = ag2;
@@ -560,8 +582,11 @@ Eigen::Vector3i PixelSelector::select(const FrameHessian *const fh,
         n4++;
       }
     }
+  }
+  ret[cid] = Eigen::Vector3i(n2, n3, n4);
+  //}
 
-  return Eigen::Vector3i(n2, n3, n4); // 第0, 1, 2层选点的个数
+  return Eigen::Vector3i(n2, n3, n4); // ret; // 第0, 1, 2层选点的个数
 }
 
 } // namespace dso

@@ -23,13 +23,23 @@
 
 #pragma once
 
+#include "../camera_model/calib_def.h"
 #include "util/MinimalImage.h"
 #include "util/NumType.h"
-
 namespace dso {
 namespace IOWrap {
-
+struct CalibFrame;
 MinimalImageB *readImageBW_8U(std::string filename);
+
+MinimalImageB *readImageBW_8U2(
+    int fid, aligned_vector<dso::CalibFrame> *p_input_data,
+    std::array<std::pair<cv::Mat, cv::Mat>, kCameraNumUsed>
+        *p_cid_to_undist_map,
+    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> *p_vig_mat);
+
+void VigCorrection(
+    cv::Mat &image,
+    const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> &vig_mat);
 
 MinimalImageB3 *readImageRGB_8U(std::string filename);
 

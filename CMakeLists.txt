@@ -19,6 +19,7 @@ find_package(Eigen3 REQUIRED)
 find_package(Boost COMPONENTS system thread filesystem chrono serialization date_time timer)
 find_package(GTSAM REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(toml11 REQUIRED)
 
 find_package(realsense2 QUIET)
 
@@ -44,7 +45,7 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 # flags
 add_definitions("-DENABLE_SSE")
 set(CMAKE_CXX_FLAGS
-    "${SSE_FLAGS}"
+    "${SSE_FLAGS} -g"
 )
 set(CMAKE_CXX_FLAGS_DEBUG
 	"-O2 -fno-omit-frame-pointer -DEIGEN_INITIALIZE_MATRICES_WITH_NAN -DDEBUG ${STACKTRACE_DEFINES}"
@@ -62,7 +63,24 @@ if (MSVC)
      set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
 endif (MSVC)
 
+#ADD_SUBDIRECTORY(toml11)
+
+#find_package(toml11 REQUIRED)
+
+include_directories(${TOML_INCLUDE_DIRS})
+link_directories(${TOML_LIBRARY_DIRS})
+
+message(INFO" toml include ${TOML_INCLUDE_DIRS}")
+message(INFO" toml lib ${TOML_LIBRARY_DIRS}")
+
 set(DSO_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/dso)
+
+file(GLOB_RECURSE camera_model_srcs "${DSO_SOURCE_DIR}/camera_model/*.cpp" "${DSO_SOURCE_DIR}/camera_model/*.cc")
+file(GLOB_RECURSE config_srcs "${DSO_SOURCE_DIR}/config/*.cpp" "${DSO_SOURCE_DIR}/config/*.cc")
+file(GLOB_RECURSE frontend_srcs "${DSO_SOURCE_DIR}/frontend/*.cpp" "${DSO_SOURCE_DIR}/frontend/*.cc")
+
+
+#include_directories(${PROJECT_SOURCE_DIR}/thirdparty/toml11/include/toml11)
 
 # DSO Source files
 set(dso_SOURCE_FILES
@@ -93,6 +111,13 @@ set(dso_SOURCE_FILES
 		${DSO_SOURCE_DIR}/camera_model/radial_tangential_camera.cpp
 		${DSO_SOURCE_DIR}/camera_model/ucm_rtp_camera.cpp
 		${DSO_SOURCE_DIR}/camera_model/ucm_rtp_th_camera.cpp
+		${DSO_SOURCE_DIR}/config/config.cpp
+		${DSO_SOURCE_DIR}/frontend/CameraDetection.cpp
+		${DSO_SOURCE_DIR}/frontend/orca_log.cpp
+		${DSO_SOURCE_DIR}/frontend/orca_log.cpp
+		${camera_model_srcs}
+		${config_srcs}
+		${frontend_srcs}
 		)
 
 set(dmvio_SOURCE_FILES
@@ -129,15 +154,21 @@ set(dmvio_SOURCE_FILES
 		src/live/DatasetSaver.cpp
 		)
 
+set(toml_include_dir ${PROJECT_SOURCE_DIR}/thirdparty/toml11/include/toml11)
+set(tinyxml_include_dir ${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2)
+set(tinyxml_lib_dir ${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.cpp)
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/src
-  ${PROJECT_SOURCE_DIR}/src/camera_model
+  #${PROJECT_SOURCE_DIR}/src/camera_model
   ${PROJECT_SOURCE_DIR}/src/dso
   ${PROJECT_SOURCE_DIR}/thirdparty/Sophus
   ${PROJECT_SOURCE_DIR}/thirdparty/sse2neon
   ${EIGEN3_INCLUDE_DIR}
   ${GTSAM_INCLUDE_DIR}
+  ${TOML_INCLUDE_DIR}
+  ${toml_include_dir}
+		${tinyxml_include_dir}
 ) 
 
 
@@ -184,8 +215,8 @@ else()
 endif()
 
 # compile main library.
-include_directories( ${CSPARSE_INCLUDE_DIR} ${CHOLMOD_INCLUDE_DIR} ${YAML_CPP_INCLUDE_DIR})
-add_library(dmvio ${camera_model_SOURCE_FILES} ${dso_SOURCE_FILES} ${dmvio_SOURCE_FILES} ${dso_opencv_SOURCE_FILES} ${dso_pangolin_SOURCE_FILES})
+include_directories( ${CSPARSE_INCLUDE_DIR} ${CHOLMOD_INCLUDE_DIR} ${YAML_CPP_INCLUDE_DIR} ${toml_include_dir} ${tinyxml_include_dir})
+add_library(dmvio ${dso_SOURCE_FILES} ${dmvio_SOURCE_FILES} ${dso_opencv_SOURCE_FILES} ${dso_pangolin_SOURCE_FILES} ${tinyxml_lib_dir})# toml11::toml11)
 
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin") # OSX
@@ -201,6 +232,10 @@ if (OpenCV_FOUND AND Pangolin_FOUND)
 	add_executable(dmvio_dataset ${PROJECT_SOURCE_DIR}/src/main_dmvio_dataset.cpp)
 	set(DMVIO_LINKED_LIBRARIES boost_system cxsparse ${BOOST_THREAD_LIBRARY} ${LIBZIP_LIBRARY} ${Pangolin_LIBRARIES} ${OpenCV_LIBS} gtsam ${YAML_CPP_LIBRARIES} ${STACKTRACE_LIBRARIES})
     target_link_libraries(dmvio_dataset dmvio ${DMVIO_LINKED_LIBRARIES})
+
+	add_executable(yvr_dataset ${PROJECT_SOURCE_DIR}/src/run_yvr_dataset.cpp)
+	set(DMVIO_LINKED_LIBRARIES boost_system cxsparse ${BOOST_THREAD_LIBRARY} ${LIBZIP_LIBRARY} ${Pangolin_LIBRARIES} ${OpenCV_LIBS} gtsam ${YAML_CPP_LIBRARIES} ${STACKTRACE_LIBRARIES})
+	target_link_libraries(yvr_dataset dmvio ${DMVIO_LINKED_LIBRARIES})
 
 	if(realsense2_FOUND)
 		message("--- compiling dmvio_t265.")

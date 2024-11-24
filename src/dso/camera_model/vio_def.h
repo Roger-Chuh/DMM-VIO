@@ -4,6 +4,8 @@
 
 #ifndef DMVIO_VIO_DEF_H
 #define DMVIO_VIO_DEF_H
+#include <Eigen/Core>
+#include <Eigen/Dense>
 #include <deque>
 #include <map>
 #include <set>

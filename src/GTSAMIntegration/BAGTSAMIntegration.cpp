@@ -102,7 +102,7 @@ void BAGTSAMIntegration::updateBAValues(std::vector<dso::EFFrame *> &frames) {
   eraseAndInsert(baValues, calibKey, calibVal);
 
   for (dso::EFFrame *h : frames) {
-    dso::Vec10 state = h->data->get_state();
+    dso::VecState state = h->data->get_state();
     // Transform pose with (even though at the moment this is just the
     // identity).
     gtsam::Pose3 pose(
@@ -229,7 +229,7 @@ dso::VecX BAGTSAMIntegration::computeBAUpdate(const dso::MatXX &inputH,
 
   // Exchange R and T (to convert it back to dso convention).
   for (dso::EFFrame *h : frames) {
-    int id = CPARS + 8 * h->idx;
+    int id = CPARS + STATE_DIM * h->idx;
 
     long fullId = h->data->shell->id;
     gtsam::Symbol poseKey('p', fullId);
@@ -345,7 +345,7 @@ void BAGTSAMIntegration::computeEvaluationPointValues(
 
   // Replace current value with FEJ value for poses and affine brightness.
   for (dso::EFFrame *h : frames) {
-    dso::Vec10 stateZero = h->data->get_state_zero();
+    dso::VecState stateZero = h->data->get_state_zero();
     Sophus::SE3d evalPoint = h->data->get_worldToCam_evalPT();
     gtsam::Pose3 pose(evalPoint.matrix());
     assert(stateZero.segment(0, 6).norm() == 0);

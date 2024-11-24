@@ -45,7 +45,16 @@ namespace dso {
 #define SOLVER_ORTHOGONALIZE_X_LATER (int)2048
 
 // ============== PARAMETERS TO BE DECIDED ON COMPILE TIME =================
+#define USE_MULTI_CAM
+#ifdef USE_MULTI_CAM
+#define kCameraNumUsed 4
+#else
+#define kCameraNumUsed 1
+#endif
 #define kCameraNum 4
+
+#define kImageWidth 640
+#define kImageHeight 480
 #define PYR_LEVELS 6
 //#define USE_INVERSE_COMPOSITIONAL
 //#define USE_ZNCC

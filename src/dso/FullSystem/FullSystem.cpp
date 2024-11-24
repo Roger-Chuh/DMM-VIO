@@ -81,7 +81,8 @@ boost::mutex FrameShell::shellPoseMutex{};
  *******************************/
 FullSystem::FullSystem(bool linearizeOperationPassed,
                        const dmvio::IMUCalibration &imuCalibration,
-                       dmvio::IMUSettings &imuSettings)
+                       dmvio::IMUSettings &imuSettings,
+                       MultiCamera *p_multi_camera)
     : linearizeOperation(linearizeOperationPassed),
       imuIntegration(&Hcalib, imuCalibration, imuSettings, linearizeOperation),
       secondKeyframeDone(false),
@@ -90,6 +91,7 @@ FullSystem::FullSystem(bool linearizeOperationPassed,
   setting_useGTSAMIntegration = setting_useIMU;
   baIntegration = imuIntegration.getBAGTSAMIntegration().get();
 
+  Hcalib.setMultiCamera(p_multi_camera);
   int retstat = 0;
   if (setting_logStuff) {
 
@@ -151,7 +153,7 @@ FullSystem::FullSystem(bool linearizeOperationPassed,
   assert(retstat !=
          293847); // shell正常执行结束返回这么个值,填充8~15位bit, 有趣
 
-  selectionMap = new float[wG[0] * hG[0]];
+  selectionMap = new float[wG[0] * hG[0] * kCameraNumUsed];
 
   coarseDistanceMap = new CoarseDistanceMap(wG[0], hG[0]);
   coarseTracker = new CoarseTracker(wG[0], hG[0], imuIntegration);
@@ -315,6 +317,10 @@ FullSystem::trackNewCoarse(FrameHessian *fh,
   FrameHessian *lastF = coarseTracker->lastRef; // 参考帧
 
   AffLight aff_last_2_l = AffLight(0, 0);
+  //  std::array<AffLight, kCameraNumUsed> a_aff_last_2_l;
+  //  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+  //      a_aff_last_2_l[cid] = AffLight(0, 0);
+  //  }
   //[ ***step 1*** ] 设置不同的运动状态
   // Seems to contain poses reference_to_newframe.
   std::vector<SE3, Eigen::aligned_allocator<SE3>> lastF_2_fh_tries;
@@ -332,6 +338,7 @@ FullSystem::trackNewCoarse(FrameHessian *fh,
         FrameShell *slast = allFrameHistory[i];
         if (slast->trackingWasGood) {
           aff_last_2_l = slast->aff_g2l;
+          //          a_aff_last_2_l = slast->cid_to_aff_g2l;
           break;
         }
         if (slast->trackingRef != lastF->shell) {
@@ -339,6 +346,9 @@ FullSystem::trackNewCoarse(FrameHessian *fh,
                        "ref available!"
                     << std::endl;
           aff_last_2_l = lastF->aff_g2l();
+          //          for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+          //              a_aff_last_2_l[cid] = lastF->aff_g2l(cid);
+          //          }
           break;
         }
       }
@@ -362,6 +372,7 @@ FullSystem::trackNewCoarse(FrameHessian *fh,
         lastF_2_slast = slast->camToWorld.inverse() *
                         lastF->shell->camToWorld; // 参考帧到上一帧运动
         aff_last_2_l = slast->aff_g2l;
+        //        a_aff_last_2_l = slast->cid_to_aff_g2l;
       }
       /// 匀速模型
       SE3 fh_2_slast =
@@ -503,6 +514,11 @@ FullSystem::trackNewCoarse(FrameHessian *fh,
   SE3 lastF_2_fh = SE3();
   AffLight aff_g2l = AffLight(0, 0);
 
+  //  std::array<AffLight, kCameraNumUsed> a_aff_g2l;
+  //  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+  //      a_aff_g2l[cid] = AffLight(0, 0);
+  //  }
+
   // as long as maxResForImmediateAccept is not reached, I'll continue through
   // the options. I'll keep track of the so-far best achieved residual for each
   // level in achievedRes.
@@ -520,9 +536,10 @@ FullSystem::trackNewCoarse(FrameHessian *fh,
   for (unsigned int i = 0; i < lastF_2_fh_tries.size(); i++) {
     //[ ***step 2*** ] 尝试不同的运动状态, 得到跟踪是否良好
     AffLight aff_g2l_this = aff_last_2_l; // 上一帧的赋值当前帧
+    //    std::array<AffLight, kCameraNumUsed> a_aff_g2l_this = a_aff_last_2_l;
     SE3 lastF_2_fh_this = lastF_2_fh_tries[i];
     bool trackingIsGood = coarseTracker->trackNewestCoarse(
-        fh, lastF_2_fh_this, aff_g2l_this, pyrLevelsUsed - 1,
+        lastF, fh, lastF_2_fh_this, aff_g2l_this, pyrLevelsUsed - 1,
         achievedRes); // in each level has to be at least as good as the last
                       // try.
     tryIterations++;
@@ -559,6 +576,7 @@ FullSystem::trackNewCoarse(FrameHessian *fh,
       // TODO average optical flow
       flowVecs = coarseTracker->lastFlowIndicators;
       aff_g2l = aff_g2l_this;
+      //      a_aff_g2l = a_aff_g2l_this;
       lastF_2_fh = lastF_2_fh_this;
       haveOneGood = true;
     }
@@ -628,7 +646,7 @@ FullSystem::trackNewCoarse(FrameHessian *fh,
 
 //@ 利用新的帧 fh 对关键帧中的ImmaturePoint进行更新
 /// multi-small-baseline-stereo, update idepth
-void FullSystem::traceNewCoarse(FrameHessian *fh) {
+void FullSystem::traceNewCoarse(FrameHessian *fh, bool is_first_frame) {
   dmvio::TimeMeasurement timeMeasurement("traceNewCoarse");
   boost::unique_lock<boost::mutex> lock(mapMutex);
 
@@ -643,11 +661,14 @@ void FullSystem::traceNewCoarse(FrameHessian *fh) {
   // 遍历关键帧
   for (FrameHessian *host : frameHessians) // go through all active frames
   {
-
-    SE3 hostToNew = fh->PRE_worldToCam * host->PRE_camToWorld;
-    Mat33f KRKi = K * hostToNew.rotationMatrix().cast<float>() * K.inverse();
-    Vec3f Kt = K * hostToNew.translation().cast<float>();
-
+    SE3 hostToNew_ = fh->PRE_worldToCam * host->PRE_camToWorld;
+    //    SE3 hostToNew =
+    //              fh->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() *
+    //                      hostToNew_ *
+    //                      fh->p_multi_camera->cid_to_T01_SE3[host_cid];
+    //    Mat33f KRKi = K * hostToNew.rotationMatrix().cast<float>() *
+    //    K.inverse(); Vec3f Kt = K * hostToNew.translation().cast<float>();
+    //
     Vec2f aff = AffLight::fromToVecExposure(host->ab_exposure, fh->ab_exposure,
                                             host->aff_g2l(), fh->aff_g2l())
                     .cast<float>();
@@ -657,21 +678,38 @@ void FullSystem::traceNewCoarse(FrameHessian *fh) {
       // TODO entrance
       /// deoutlier, update immaturePoints epipolar search interval [idepth_min
       /// and idepth_max]
-      ph->traceOn(fh, KRKi, Kt, aff, &Hcalib, false);
+      for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+        //        SE3 hostToNew_ = fh->PRE_worldToCam * host->PRE_camToWorld;
+        SE3 hostToNew =
+            fh->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() *
+            hostToNew_ * fh->p_multi_camera->cid_to_T01_SE3[ph->host_cid];
+        Mat33f KRKi =
+            K * hostToNew.rotationMatrix().cast<float>() * K.inverse();
+        Vec3f Kt = K * hostToNew.translation().cast<float>();
 
-      if (ph->lastTraceStatus == ImmaturePointStatus::IPS_GOOD)
-        trace_good++;
-      if (ph->lastTraceStatus == ImmaturePointStatus::IPS_BADCONDITION)
-        trace_badcondition++;
-      if (ph->lastTraceStatus == ImmaturePointStatus::IPS_OOB)
-        trace_oob++;
-      if (ph->lastTraceStatus == ImmaturePointStatus::IPS_OUTLIER)
-        trace_out++;
-      if (ph->lastTraceStatus == ImmaturePointStatus::IPS_SKIPPED)
-        trace_skip++;
-      if (ph->lastTraceStatus == ImmaturePointStatus::IPS_UNINITIALIZED)
-        trace_uninitialized++;
-      trace_total++;
+        //            Vec2f aff = AffLight::fromToVecExposure(host->ab_exposure,
+        //            fh->ab_exposure,
+        //                                                    host->aff_g2l(),
+        //                                                    fh->aff_g2l())
+        //                    .cast<float>();
+        ph->traceOn(target_cid, fh, KRKi, Kt, aff, &Hcalib, false);
+
+        if (ph->lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_GOOD)
+          trace_good++;
+        if (ph->lastTraceStatus[target_cid] ==
+            ImmaturePointStatus::IPS_BADCONDITION)
+          trace_badcondition++;
+        if (ph->lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_OOB)
+          trace_oob++;
+        if (ph->lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_OUTLIER)
+          trace_out++;
+        if (ph->lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_SKIPPED)
+          trace_skip++;
+        if (ph->lastTraceStatus[target_cid] ==
+            ImmaturePointStatus::IPS_UNINITIALIZED)
+          trace_uninitialized++;
+        trace_total++;
+      }
     }
   }
   //	printf("ADD: TRACE: %'d points. %'d (%.0f%%) good. %'d (%.0f%%) skip.
@@ -691,7 +729,7 @@ void FullSystem::activatePointsMT_Reductor(
     std::vector<ImmaturePoint *> *toOptimize, int min, int max, Vec10 *stats,
     int tid) {
   ImmaturePointTemporaryResidual *tr =
-      new ImmaturePointTemporaryResidual[frameHessians.size()];
+      new ImmaturePointTemporaryResidual[frameHessians.size() * kCameraNumUsed];
   /// normally min = 0, max = toOptimize.size()
   for (int k = min; k < max; k++) {
     (*optimized)[k] = optimizeImmaturePoint((*toOptimize)[k], 1, tr);
@@ -737,7 +775,9 @@ void FullSystem::activatePointsMT() {
 
   // make dist map.
   coarseDistanceMap->makeK(&Hcalib);
-  coarseDistanceMap->makeDistanceMap(frameHessians, newestHs);
+  for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+    coarseDistanceMap->makeDistanceMap(frameHessians, newestHs, target_cid);
+  }
 
   // coarseTracker->debugPlotDistMap("distMap");
 
@@ -749,80 +789,110 @@ void FullSystem::activatePointsMT() {
   {
     if (host == newestHs)
       continue;
-    // TODO 老帧上的点往最新关键帧投影，构造残差
-    SE3 fhToNew = newestHs->PRE_worldToCam * host->PRE_camToWorld;
-    // 第0层到1层
-    /// old[0] to new[1]
-    Mat33f KRKi =
-        (coarseDistanceMap->K[1] * fhToNew.rotationMatrix().cast<float>() *
-         coarseDistanceMap->Ki[0]);
-    Vec3f Kt = (coarseDistanceMap->K[1] * fhToNew.translation().cast<float>());
+    //    // TODO 老帧上的点往最新关键帧投影，构造残差
+    SE3 fhToNew_ = newestHs->PRE_worldToCam * host->PRE_camToWorld;
+    //    // 第0层到1层
+    //    /// old[0] to new[1]
+    //
+    //    // TODO roger, try all possible target cids
+    //    Mat33f KRKi =
+    //        (coarseDistanceMap->K[1] * fhToNew.rotationMatrix().cast<float>()
+    //        *
+    //         coarseDistanceMap->Ki[0]);
+    //    Vec3f Kt = (coarseDistanceMap->K[1] *
+    //    fhToNew.translation().cast<float>());
 
     for (unsigned int i = 0; i < host->immaturePoints.size(); i += 1) {
       ImmaturePoint *ph = host->immaturePoints[i];
       ph->idxInImmaturePoints = i;
-
-      // delete points that have never been traced successfully, or that are
-      // outlier on the last trace.
-      if (!std::isfinite(ph->idepth_max) ||
-          ph->lastTraceStatus == IPS_OUTLIER) {
-        //				immature_invalid_deleted++;
-        // remove point.
-        delete ph;
-        host->immaturePoints[i] = 0; // 指针赋零
-        continue;
-      }
-      //* 未成熟点的激活条件
-      // can activate only if this is true.
-      bool canActivate = (ph->lastTraceStatus == IPS_GOOD ||
-                          ph->lastTraceStatus == IPS_SKIPPED ||
-                          ph->lastTraceStatus == IPS_BADCONDITION ||
-                          ph->lastTraceStatus == IPS_OOB) &&
-                         ph->lastTracePixelInterval < 8 &&
-                         ph->quality > setting_minTraceQuality &&
-                         (ph->idepth_max + ph->idepth_min) > 0;
-
-      // if I cannot activate the point, skip it. Maybe also delete it.
-      if (!canActivate) {
-        //* 删除被边缘化帧上的, 和OOB点
-        // if point will be out afterwards, delete it instead.
-        if (ph->host->flaggedForMarginalization ||
-            ph->lastTraceStatus == IPS_OOB) {
-          //					immature_notReady_deleted++;
-          delete ph;
-          host->immaturePoints[i] = 0;
+      int in_valid_count = 0;
+      for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+        // delete points that have never been traced successfully, or that are
+        // outlier on the last trace.
+        if (!std::isfinite(ph->idepth_max) ||
+            ph->lastTraceStatus[target_cid] == IPS_OUTLIER) {
+          //				immature_invalid_deleted++;
+          // remove point.
+          in_valid_count++;
+          //                      delete ph;
+          //                      host->immaturePoints[i] = 0; // 指针赋零
+          continue;
         }
-        //				immature_notReady_skipped++;
-        continue;
-      }
+        //* 未成熟点的激活条件
+        // can activate only if this is true.
+        bool canActivate =
+            (ph->lastTraceStatus[target_cid] == IPS_GOOD ||
+             ph->lastTraceStatus[target_cid] == IPS_SKIPPED ||
+             ph->lastTraceStatus[target_cid] == IPS_BADCONDITION ||
+             ph->lastTraceStatus[target_cid] == IPS_OOB) &&
+            ph->lastTracePixelInterval[target_cid] < 8 &&
+            ph->quality[target_cid] > setting_minTraceQuality &&
+            (ph->idepth_max + ph->idepth_min) > 0;
 
-      // see if we need to activate point due to distance map.
-      Vec3f ptp = KRKi * Vec3f(ph->u, ph->v, 1) +
-                  Kt * (0.5f * (ph->idepth_max + ph->idepth_min));
-      /// reproject from old[0] to new[1]
-      int u = ptp[0] / ptp[2] + 0.5f;
-      int v = ptp[1] / ptp[2] + 0.5f;
-
-      if ((u > 0 && v > 0 && u < wG[1] && v < hG[1])) {
-        // 距离地图 + 小数点
-        // TODO
-        // TODO could we use KDTree instead?
-        // TODO we need calculate pair-wise distance between any reprojected
-        // points in 8 directions
-        float dist = coarseDistanceMap->fwdWarpedIDDistFinal[u + wG[1] * v] +
-                     (ptp[0] - floorf((float)(ptp[0])));
-        /// remember fwdWarpedIDDistFinal is updated in makeDistanceMap, which
-        /// stores all the search distances (index k in the loop [0..40]).
-        /// search distance plus the decimal part of ptp[0] which is x in world
-        /// cordinate w.r.t last frame.
-        if (dist >= currentMinActDist *
-                        ph->my_type) /// 点越多, 距离阈值越大 [my_type 1 2 4]
-        {
-          /// 每新activate一个点，那与这个点相关的distanceMap也要更新，很严谨
-          coarseDistanceMap->addIntoDistFinal(u, v);
-          toOptimize.push_back(ph);
+        // if I cannot activate the point, skip it. Maybe also delete it.
+        if (!canActivate) {
+          //* 删除被边缘化帧上的, 和OOB点
+          // if point will be out afterwards, delete it instead.
+          if (ph->host->flaggedForMarginalization ||
+              ph->lastTraceStatus[target_cid] == IPS_OOB) {
+            //					immature_notReady_deleted++;
+            in_valid_count++;
+            //                          delete ph;
+            //                          host->immaturePoints[i] = 0;
+          }
+          //				immature_notReady_skipped++;
+          continue;
         }
-      } else {
+        // TODO 老帧上的点往最新关键帧投影，构造残差
+        SE3 fhToNew =
+            newestHs->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() *
+            fhToNew_ * newestHs->p_multi_camera->cid_to_T01_SE3[ph->host_cid];
+        // 第0层到1层
+        /// old[0] to new[1]
+
+        // TODO roger, try all possible target cids
+        Mat33f KRKi =
+            (coarseDistanceMap->K[1] * fhToNew.rotationMatrix().cast<float>() *
+             coarseDistanceMap->Ki[0]);
+        Vec3f Kt =
+            (coarseDistanceMap->K[1] * fhToNew.translation().cast<float>());
+        // see if we need to activate point due to distance map.
+        Vec3f ptp = KRKi * Vec3f(ph->u, ph->v, 1) +
+                    Kt * (0.5f * (ph->idepth_max + ph->idepth_min));
+        /// reproject from old[0] to new[1]
+        int u = ptp[0] / ptp[2] + 0.5f;
+        int v = ptp[1] / ptp[2] + 0.5f;
+
+        if ((u > 0 && v > 0 && u < wG[1] && v < hG[1])) {
+          // 距离地图 + 小数点
+          // TODO
+          // TODO could we use KDTree instead?
+          // TODO we need calculate pair-wise distance between any reprojected
+          // points in 8 directions
+          float dist = coarseDistanceMap
+                           ->fwdWarpedIDDistFinal[u + wG[1] * v +
+                                                  wG[1] * hG[1] * target_cid] +
+                       (ptp[0] - floorf((float)(ptp[0])));
+          /// remember fwdWarpedIDDistFinal is updated in makeDistanceMap, which
+          /// stores all the search distances (index k in the loop [0..40]).
+          /// search distance plus the decimal part of ptp[0] which is x in
+          /// world cordinate w.r.t last frame.
+          // TODO roger,
+          // 这个阈值是4目共用的，可能某一目的数目会比较少，但整体点肯定是够的
+          if (dist >= currentMinActDist *
+                          ph->my_type) /// 点越多, 距离阈值越大 [my_type 1 2 4]
+          {
+            /// 每新activate一个点，那与这个点相关的distanceMap也要更新，很严谨
+            coarseDistanceMap->addIntoDistFinal(u, v, target_cid);
+            toOptimize.push_back(ph);
+          }
+        } else {
+          in_valid_count++;
+          //                      delete ph;
+          //                      host->immaturePoints[i] = 0;
+        }
+      }
+      if (in_valid_count == kCameraNumUsed) {
         delete ph;
         host->immaturePoints[i] = 0;
       }
@@ -837,20 +907,25 @@ void FullSystem::activatePointsMT() {
   std::vector<PointHessian *> optimized;
   optimized.resize(toOptimize.size());
   /// triangulate immature points to active points
-  if (multiThreading)
+  if (multiThreading) {
     treadReduce.reduce(boost::bind(&FullSystem::activatePointsMT_Reductor, this,
                                    &optimized, &toOptimize, _1, _2, _3, _4),
                        0, toOptimize.size(), 50);
-
-  else
+  } else {
     activatePointsMT_Reductor(&optimized, &toOptimize, 0, toOptimize.size(), 0,
                               0);
-
+  }
   //[ ***step 4*** ] 把PointHessian加入到能量函数, 删除收敛的未成熟点,
   //或不好的点
   for (unsigned k = 0; k < toOptimize.size(); k++) {
     PointHessian *newpoint = optimized[k];
     ImmaturePoint *ph = toOptimize[k];
+    int oob_count = 0;
+    for (int id = 0; id < kCameraNumUsed; ++id) {
+      if (ph->lastTraceStatus[id] == IPS_OOB) {
+        oob_count++;
+      }
+    }
 
     if (newpoint != 0 && newpoint != (PointHessian *)((long)(-1))) {
       newpoint->host->immaturePoints[ph->idxInImmaturePoints] = 0;
@@ -861,12 +936,17 @@ void FullSystem::activatePointsMT() {
                                  // 相当于正式把这个3d点加入到大优化中了
       /// pattern of 8 ? nah, it's usually 2 or 3
       // printf("newpoint->residuals: %d\n",newpoint->residuals.size());
-      for (PointFrameResidual *r : newpoint->residuals)
-        ef->insertResidual(r);
+      for (PointFrameResidual *r : newpoint->residuals) {
+        // TODO roger, 真细，之前花了力气算的factor是一个也不落下,
+        // 把历史帧上面的factor也存下来了
+        ef->insertResidual(r, Hcalib.p_multi_camera);
+      }
       assert(newpoint->efPoint != 0);
       delete ph;
-    } else if (newpoint == (PointHessian *)((long)(-1)) ||
-               ph->lastTraceStatus == IPS_OOB) {
+    } else if (
+        newpoint == (PointHessian *)((long)(-1)) ||
+        oob_count ==
+            kCameraNumUsed /*ph->lastTraceStatus[target_cid] == IPS_OOB*/) {
       // bug: 原来的顺序错误
       ph->host->immaturePoints[ph->idxInImmaturePoints] = 0;
       delete ph;
@@ -942,6 +1022,7 @@ void FullSystem::flagPointsForRemoval() {
           int ngoodRes = 0;
           for (PointFrameResidual *r : ph->residuals) {
             r->resetOOB();
+            // TODO roger, recalc jac
             r->linearize(
                 &Hcalib); // TODO
                           // (pose和内参用的fej，idp，ab和梯度用的最新状态的雅可比
@@ -1018,7 +1099,7 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
   //并存储所有帧
   // =========================== add into allFrameHistory
   // =========================
-  FrameHessian *fh = new FrameHessian();
+  FrameHessian *fh = new FrameHessian(Hcalib.p_multi_camera);
   FrameShell *shell = new FrameShell();
   shell->camToWorld =
       SE3(); // no lock required, as fh is not used anywhere yet.
@@ -1050,16 +1131,25 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
       // Only in this case no IMU-data is accumulated for the BA as this is the
       // first frame.
       dmvio::TimeMeasurement initMeasure("InitializerFirstFrame");
-      coarseInitializer->setFirst(&Hcalib, fh);
+      if (kCameraNumUsed == 1) {
+        coarseInitializer->setFirst(&Hcalib, fh);
+      } else {
+        coarseInitializer->setFirstStereo(&Hcalib, fh);
+      }
       if (setting_useIMU) {
         gravityInit.addMeasure(
             *imuData,
             Sophus::SE3d()); // TODO imu读数均值，作为重力方向初值，Rw0
       }
+      if (kCameraNumUsed > 1) {
+        // traceNewCoarse(fh, true);
+        // initializeFromInitializer(fh);
+      }
       for (IOWrap::Output3DWrapper *ow : outputWrapper)
         ow->publishSystemStatus(dmvio::VISUAL_INIT);
     } else {
       dmvio::TimeMeasurement initMeasure("InitializerOtherFrames");
+      // TODO roger, 会用到iR这个先验，很迷，尽量不用，因为把控不住
       bool initDone = coarseInitializer->trackFrame(fh, outputWrapper);
       if (setting_useIMU) {
         imuIntegration.addIMUDataToBA(*imuData);
@@ -1482,6 +1572,8 @@ void FullSystem::makeNonKeyFrame(FrameHessian *fh) {
         fh->shell->trackingRef->camToWorld * fh->shell->camToTrackingRef;
     /// 同时更新nullspace
     fh->setEvalPT_scaled(fh->shell->camToWorld.inverse(), fh->shell->aff_g2l);
+    //    fh->setEvalPT_scaled(fh->shell->camToWorld.inverse(),
+    //                         fh->shell->cid_to_aff_g2l);
   }
   // TODO entrance, overload "traceNewCoarse"
   traceNewCoarse(fh);
@@ -1555,18 +1647,27 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
     if (fh1 == fh)
       continue;
     for (PointHessian *ph : fh1->pointHessians) {
-      PointFrameResidual *r =
-          new PointFrameResidual(ph, fh1, fh); // 新建当前帧fh和之前帧之间的残差
-      /// 这时J只是开辟了空间，还没有赋值, 初值为0
-      //  printf("r->J->resF[0]: %f \n",r->J->resF[0]);
-      //  printf("r->J->resF(0): %f \n",r->J->resF(0));
-      r->setState(ResState::IN);
-      ph->residuals.push_back(r);
-      ef->insertResidual(r);
-      ph->lastResiduals[1] = ph->lastResiduals[0]; // 设置上上个残差
-      ph->lastResiduals[0] = std::pair<PointFrameResidual *, ResState>(
-          r, ResState::IN); // 当前的设置为上一个
-      numFwdResAdde += 1;
+      for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+        // TODO roger,
+        // TODO 先无脑给最新帧的每一个cid都配上一个residual，最多再价格标志。
+        PointFrameResidual *r = new PointFrameResidual(
+            ph, fh1, fh, ph->host_cid,
+            target_cid); // 新建当前帧fh和之前帧之间的残差
+        /// 这时J只是开辟了空间，还没有赋值, 初值为0
+        //  printf("r->J->resF[0]: %f \n",r->J->resF[0]);
+        //  printf("r->J->resF(0): %f \n",r->J->resF(0));
+        r->setState(ResState::IN);
+        // TODO roger, 对于sw内的stable点,
+        // 因为是最新帧，先无脑构建push进去，至于是不是inlier，优化时再判断
+        ph->residuals.push_back(r);
+        ef->insertResidual(r, Hcalib.p_multi_camera);
+        ph->lastResiduals[target_cid][1] =
+            ph->lastResiduals[target_cid][0]; // 设置上上个残差
+        ph->lastResiduals[target_cid][0] =
+            std::pair<PointFrameResidual *, ResState>(
+                r, ResState::IN); // 当前的设置为上一个
+        numFwdResAdde += 1;
+      }
     }
   }
 
@@ -1641,9 +1742,9 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
         &minIdJetVisTracker, &maxIdJetVisTracker, outputWrapper);
     coarseTracker_forNewKF->debugPlotIDepthMapFloat(outputWrapper);
   }
-
+  // for (int cid = 0; cid < kCameraNumUsed; ++cid) {
   debugPlot("post Optimize");
-
+  //}
   for (auto *ow : outputWrapper) {
     if (imuReady && !imuUsedBefore) {
       // Update state if this is the first time after IMU init.
@@ -1746,18 +1847,26 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
   double sumFirst = 0.0;
   double sumSecond = 0.0;
   int num = 0;
-  for (int i = 0; i < coarseInitializer->numPoints[0]; i++) {
-    //? iR的值到底是啥
-    sumID += coarseInitializer->points[0][i].iR; // 第0层点的中位值, 相当于
-    numID++;
+  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    for (int i = 0; i < coarseInitializer->level_cid_to_numPoints[0][cid];
+         i++) {
+      //? iR的值到底是啥
+      sumID +=
+          coarseInitializer
+              ->points[0][i + coarseInitializer
+                                  ->level_cid_to_npts_success_offset[0][cid]]
+              .iR; // 第0层点的中位值, 相当于
+      numID++;
+      num++;
+    }
   }
-
-  sumFirst /= num;
-  sumSecond /= num;
+  //  sumFirst /= num;
+  //  sumSecond /= num;
 
   float rescaleFactor = 1;
-
-  rescaleFactor = 1 / (sumID / numID);
+  if (kCameraNumUsed == 1) {
+    rescaleFactor = 1 / (sumID / numID);
+  }
   //[ ***step 4*** ] 设置第一帧和最新帧的待优化量, 参考帧
   SE3 firstToNew = coarseInitializer->thisToNext;
   std::cout << "Scaling with rescaleFactor: " << rescaleFactor << std::endl;
@@ -1766,44 +1875,54 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
   // randomly sub-select the points I need.
   // 目标点数 / 实际提取点数
   float keepPercentage =
-      setting_desiredPointDensity / coarseInitializer->numPoints[0];
+      setting_desiredPointDensity / numID; // coarseInitializer->numPoints[0];
 
   if (!setting_debugout_runquiet)
     printf("Initialization: keep %.1f%% (need %d, have %d)!\n",
            100 * keepPercentage, (int)(setting_desiredPointDensity),
-           coarseInitializer->numPoints[0]);
+           coarseInitializer
+                   ->level_cid_to_npts_success_offset[0][kCameraNumUsed - 1] +
+               coarseInitializer->level_cid_to_numPoints[0][kCameraNumUsed - 1]
+           /*numID */ /*coarseInitializer->numPoints[0]*/);
   //[ ***step 3*** ] 创建PointHessian, 点加入关键帧, 加入EnergyFunctional
-  for (int i = 0; i < coarseInitializer->numPoints[0]; i++) {
-    if (rand() / (float)RAND_MAX > keepPercentage)
-      continue; // 如果提取的点比较少, 不执行; 提取的多, 则随机干掉
+  for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
+    for (int i = 0; i < coarseInitializer->level_cid_to_numPoints[0][host_cid];
+         i++) {
+      if (rand() / (float)RAND_MAX > keepPercentage)
+        continue; // 如果提取的点比较少, 不执行; 提取的多, 则随机干掉
 
-    Pnt *point = coarseInitializer->points[0] + i;
-    ImmaturePoint *pt = new ImmaturePoint(point->u + 0.5f, point->v + 0.5f,
-                                          firstFrame, point->my_type, &Hcalib);
+      Pnt *point =
+          coarseInitializer->points[0] + i +
+          coarseInitializer->level_cid_to_npts_success_offset[0][host_cid];
+      ImmaturePoint *pt =
+          new ImmaturePoint(point->u + 0.5f, point->v + 0.5f, firstFrame,
+                            point->my_type, &Hcalib, host_cid, 0);
 
-    if (!std::isfinite(pt->energyTH)) {
+      if (!std::isfinite(pt->energyTH)) {
+        delete pt;
+        continue;
+      } // 点值无穷大
+
+      // 创建ImmaturePoint就为了创建PointHessian? 是为了接口统一吧
+      pt->idepth_max = pt->idepth_min = 1;
+      PointHessian *ph = new PointHessian(pt, &Hcalib, host_cid);
       delete pt;
-      continue;
-    } // 点值无穷大
+      // TODO roger, create patch, setFromImage, if fail, delete the point
+      if (!std::isfinite(ph->energyTH)) {
+        delete ph;
+        continue;
+      }
 
-    // 创建ImmaturePoint就为了创建PointHessian? 是为了接口统一吧
-    pt->idepth_max = pt->idepth_min = 1;
-    PointHessian *ph = new PointHessian(pt, &Hcalib);
-    delete pt;
-    if (!std::isfinite(ph->energyTH)) {
-      delete ph;
-      continue;
+      ph->setIdepthScaled(point->iR *
+                          rescaleFactor); //? 为啥设置的是scaled之后的
+      ph->setIdepthZero(ph->idepth); //! 设置初始先验值, 还有神奇的求零空间方法
+      ph->hasDepthPrior = true;
+      ph->setPointStatus(PointHessian::ACTIVE); // 激活点
+
+      firstFrame->pointHessians.push_back(ph);
+      ef->insertPoint(ph);
     }
-
-    ph->setIdepthScaled(point->iR * rescaleFactor); //? 为啥设置的是scaled之后的
-    ph->setIdepthZero(ph->idepth); //! 设置初始先验值, 还有神奇的求零空间方法
-    ph->hasDepthPrior = true;
-    ph->setPointStatus(PointHessian::ACTIVE); // 激活点
-
-    firstFrame->pointHessians.push_back(ph);
-    ef->insertPoint(ph);
   }
-
   // really no lock required, as we are initializing.
   {
     boost::unique_lock<boost::mutex> crlock(shellPoseMutex);
@@ -1826,7 +1945,7 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
   imuIntegration.finishCoarseTracking(*(newFrame->shell), true);
 
   initialized = true;
-  printf("INITIALIZE FROM INITIALIZER (%d pts)!\n",
+  printf("### ### INITIALIZE FROM INITIALIZER (%d pts)!\n",
          (int)firstFrame->pointHessians.size());
 }
 
@@ -1835,27 +1954,33 @@ void FullSystem::makeNewTraces(FrameHessian *newFrame, float *gtDepth) {
   pixelSelector->allowFast = true;
   // int numPointsTotal = makePixelStatus(newFrame->dI, selectionMap, wG[0],
   // hG[0], setting_desiredDensity);
-  int numPointsTotal = pixelSelector->makeMaps(newFrame, selectionMap,
-                                               setting_desiredImmatureDensity);
-
+  int numPointsTotal = 0;
+  // TODO roger, in LBA, we only detect new points at level 0
+  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    numPointsTotal += pixelSelector->makeMaps(
+        newFrame, selectionMap + wG[0] * hG[0] * cid,
+        setting_desiredImmatureDensity, 1, false, 1, cid);
+  }
   newFrame->pointHessians.reserve(numPointsTotal * 1.2f);
   // fh->pointHessiansInactive.reserve(numPointsTotal*1.2f);
   newFrame->pointHessiansMarginalized.reserve(numPointsTotal * 1.2f);
   newFrame->pointHessiansOut.reserve(numPointsTotal * 1.2f);
+  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    for (int y = patternPadding + 1; y < hG[0] - patternPadding - 2; y++)
+      for (int x = patternPadding + 1; x < wG[0] - patternPadding - 2; x++) {
+        int i = x + y * wG[0];
+        if (selectionMap[i + wG[0] * hG[0] * cid] == 0)
+          continue;
 
-  for (int y = patternPadding + 1; y < hG[0] - patternPadding - 2; y++)
-    for (int x = patternPadding + 1; x < wG[0] - patternPadding - 2; x++) {
-      int i = x + y * wG[0];
-      if (selectionMap[i] == 0)
-        continue;
-
-      ImmaturePoint *impt =
-          new ImmaturePoint(x, y, newFrame, selectionMap[i], &Hcalib);
-      if (!std::isfinite(impt->energyTH))
-        delete impt; // 投影得到的不是有穷数
-      else
-        newFrame->immaturePoints.push_back(impt);
-    }
+        ImmaturePoint *impt = new ImmaturePoint(
+            x, y, newFrame, selectionMap[i + wG[0] * hG[0] * cid], &Hcalib, cid,
+            0);
+        if (!std::isfinite(impt->energyTH))
+          delete impt; // 投影得到的不是有穷数
+        else
+          newFrame->immaturePoints.push_back(impt);
+      }
+  }
   // printf("MADE %d IMMATURE POINTS!\n", (int)newFrame->immaturePoints.size());
 }
 
@@ -1930,23 +2055,23 @@ void FullSystem::printEigenValLine() {
                                           ef->lastHS.cols() - CPARS);
   MatXX Ha = ef->lastHS.bottomRightCorner(ef->lastHS.cols() - CPARS,
                                           ef->lastHS.cols() - CPARS);
-  int n = Hp.cols() / 8;
-  assert(Hp.cols() % 8 == 0);
+  int n = Hp.cols() / STATE_DIM;
+  assert(Hp.cols() % STATE_DIM == 0);
 
   // sub-select
   for (int i = 0; i < n; i++) {
-    MatXX tmp6 = Hp.block(i * 8, 0, 6, n * 8);
-    Hp.block(i * 6, 0, 6, n * 8) = tmp6;
+    MatXX tmp6 = Hp.block(i * STATE_DIM, 0, 6, n * STATE_DIM);
+    Hp.block(i * 6, 0, 6, n * STATE_DIM) = tmp6;
 
-    MatXX tmp2 = Ha.block(i * 8 + 6, 0, 2, n * 8);
+    MatXX tmp2 = Ha.block(i * STATE_DIM + 6, 0, 2, n * STATE_DIM);
     Ha.block(i * 2, 0, 2, n * 8) = tmp2;
   }
   for (int i = 0; i < n; i++) {
-    MatXX tmp6 = Hp.block(0, i * 8, n * 8, 6);
-    Hp.block(0, i * 6, n * 8, 6) = tmp6;
+    MatXX tmp6 = Hp.block(0, i * STATE_DIM, n * STATE_DIM, 6);
+    Hp.block(0, i * 6, n * STATE_DIM, 6) = tmp6;
 
-    MatXX tmp2 = Ha.block(0, i * 8 + 6, n * 8, 2);
-    Ha.block(0, i * 2, n * 8, 2) = tmp2;
+    MatXX tmp2 = Ha.block(0, i * STATE_DIM + 6, n * STATE_DIM, 2);
+    Ha.block(0, i * 2, n * STATE_DIM, 2) = tmp2;
   }
 
   VecX eigenvaluesAll = ef->lastHS.eigenvalues().real();

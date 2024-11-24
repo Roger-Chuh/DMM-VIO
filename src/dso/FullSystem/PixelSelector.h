@@ -200,7 +200,7 @@ inline int gridMaxSelection(Eigen::Vector3f *grads, bool *map_out, int w, int h,
 
 inline int makePixelStatus(Eigen::Vector3f *grads, bool *map, int w, int h,
                            float desiredDensity, int recsLeft = 5,
-                           float THFac = 1) {
+                           float THFac = 1, int cid = 0) {
   if (sparsityFactor < 1)
     sparsityFactor = 1; // 网格的大小, 在网格内选择最大的
 
@@ -261,7 +261,7 @@ inline int makePixelStatus(Eigen::Vector3f *grads, bool *map, int w, int h,
     // re-evaluate.
     sparsityFactor = newSparsity;
     return makePixelStatus(grads, map, w, h, desiredDensity, recsLeft - 1,
-                           THFac);
+                           THFac, cid);
   }
 }
 

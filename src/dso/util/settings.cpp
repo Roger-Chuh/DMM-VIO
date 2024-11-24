@@ -209,7 +209,7 @@ float freeDebugParam4 = 1;
 float freeDebugParam5 = 1;
 
 bool debugSaveImages = false; // true;//false;
-bool multiThreading = true;
+bool multiThreading = false;  // true;
 bool disableAllDisplay = false;
 bool setting_logStuff = true;
 

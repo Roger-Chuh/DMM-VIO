@@ -21,10 +21,10 @@
  */
 
 #include "IMUSettings.h"
+#include "../dso/camera_model/calib_def.h"
 #include "yaml-cpp/yaml.h"
 #include <fstream>
 #include <iostream>
-
 using namespace dmvio;
 
 IMUCalibration::IMUCalibration() { initDefault(); }
@@ -87,6 +87,31 @@ void IMUCalibration::loadFromFile(std::string settingsFilename) {
               << std::endl;
   }
 
+  std::cout << "Used noise values: " << sigma_between_b_a << " "
+            << sigma_between_b_g << " " << accel_sigma << " " << gyro_sigma
+            << std::endl;
+}
+void IMUCalibration::loadFromFile2(const dso::IMUState &imu_state) {
+  Eigen::Matrix4d Tbc0 = imu_state.Tbc0;
+
+  T_cam_imu = Sophus::SE3d(Tbc0).inverse();
+
+  //    if (config["accelerometer_random_walk"] ||
+  //    config["gyroscope_random_walk"] ||
+  //        config["accelerometer_noise_density"] ||
+  //        config["gyroscope_noise_density"]) {
+  //        std::cout << "WARNING IMPORTANT: Passing IMU noise values via the
+  //        IMU "
+  //                     "camchain.yaml file is not supported any"
+  //                     " more! Please pass them via the settings file or as a
+  //                     " "commandline parameter!"
+  //                  << std::endl;
+  //    }
+
+  gyro_sigma = 7.8e-5 * 1;
+  accel_sigma = 6.5e-4 * 10;
+  sigma_between_b_g = 4.0e-5;
+  sigma_between_b_a = 7.3e-4;
   std::cout << "Used noise values: " << sigma_between_b_a << " "
             << sigma_between_b_g << " " << accel_sigma << " " << gyro_sigma
             << std::endl;
