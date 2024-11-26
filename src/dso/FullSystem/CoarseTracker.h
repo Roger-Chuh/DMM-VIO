@@ -117,21 +117,32 @@ private:
   // int image_info_offset[PYR_LEVELS][kCameraNumUsed];
 
   // warped buffers
-  float *buf_warped_idepth; //[kCameraNumUsed * kCameraNumUsed];   //!<
-                            //投影得到的点的逆深度
-  float *buf_warped_u;      //[kCameraNumUsed * kCameraNumUsed];        //!<
-                            //投影得到的归一化坐标
-  float *buf_warped_v;  //[kCameraNumUsed * kCameraNumUsed];        //!< 同上
-  float *buf_warped_dx; //[kCameraNumUsed * kCameraNumUsed];       //!<
-                        //投影点的图像梯度
-  float *buf_warped_dy; //[kCameraNumUsed * kCameraNumUsed];       //!<
-                        //投影点的图像梯度
-  float *buf_warped_residual; //[kCameraNumUsed * kCameraNumUsed]; //!<
-                              //投影得到的残差
-  float *buf_warped_weight;   //[kCameraNumUsed * kCameraNumUsed];   //!<
-                              //投影的huber函数权重
-  float *buf_warped_refColor; //[kCameraNumUsed * kCameraNumUsed]; //!<
-                              //投影点参考帧上的灰度值
+  float *buf_warped_idepth[kCameraNumUsed *
+                           kCameraNumUsed]; //[kCameraNumUsed * kCameraNumUsed];
+                                            ////!< 投影得到的点的逆深度
+  float *buf_warped_u[kCameraNumUsed *
+                      kCameraNumUsed]; //[kCameraNumUsed * kCameraNumUsed]; //!<
+                                       //投影得到的归一化坐标
+  float *buf_warped_v[kCameraNumUsed *
+                      kCameraNumUsed]; //[kCameraNumUsed * kCameraNumUsed]; //!<
+                                       //同上
+  float *buf_warped_dx[kCameraNumUsed *
+                       kCameraNumUsed]; //[kCameraNumUsed * kCameraNumUsed];
+                                        ////!< 投影点的图像梯度
+  float *buf_warped_dy[kCameraNumUsed *
+                       kCameraNumUsed]; //[kCameraNumUsed * kCameraNumUsed];
+                                        ////!< 投影点的图像梯度
+  float
+      *buf_warped_residual[kCameraNumUsed *
+                           kCameraNumUsed]; //[kCameraNumUsed * kCameraNumUsed];
+                                            ////!< 投影得到的残差
+  float *buf_warped_weight[kCameraNumUsed *
+                           kCameraNumUsed]; //[kCameraNumUsed * kCameraNumUsed];
+                                            ////!< 投影的huber函数权重
+  float
+      *buf_warped_refColor[kCameraNumUsed *
+                           kCameraNumUsed]; //[kCameraNumUsed * kCameraNumUsed];
+                                            ////!< 投影点参考帧上的灰度值
   int buf_warped_n[kCameraNumUsed * kCameraNumUsed]; //!< 投影点的个数
 
   std::vector<float *> ptrToDelete; //!< 所有的申请的内存指针, 用于析构删除

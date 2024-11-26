@@ -806,6 +806,7 @@ void FullSystem::activatePointsMT() {
       ImmaturePoint *ph = host->immaturePoints[i];
       ph->idxInImmaturePoints = i;
       int in_valid_count = 0;
+      int large_distance_count = 0;
       for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
         // delete points that have never been traced successfully, or that are
         // outlier on the last trace.
@@ -884,7 +885,8 @@ void FullSystem::activatePointsMT() {
           {
             /// 每新activate一个点，那与这个点相关的distanceMap也要更新，很严谨
             coarseDistanceMap->addIntoDistFinal(u, v, target_cid);
-            toOptimize.push_back(ph);
+            large_distance_count++;
+            // toOptimize.push_back(ph);
           }
         } else {
           in_valid_count++;
@@ -895,6 +897,10 @@ void FullSystem::activatePointsMT() {
       if (in_valid_count == kCameraNumUsed) {
         delete ph;
         host->immaturePoints[i] = 0;
+      } else {
+        if (large_distance_count > 0) {
+          toOptimize.push_back(ph);
+        }
       }
     }
   }
@@ -936,10 +942,22 @@ void FullSystem::activatePointsMT() {
                                  // 相当于正式把这个3d点加入到大优化中了
       /// pattern of 8 ? nah, it's usually 2 or 3
       // printf("newpoint->residuals: %d\n",newpoint->residuals.size());
+
+      std::map<int, int> fid_to_res_hit_count;
+      for (PointFrameResidual *r : newpoint->residuals) {
+        if (fid_to_res_hit_count.find(r->target->idx) ==
+            fid_to_res_hit_count.end()) {
+          fid_to_res_hit_count.emplace(r->target->idx, 0);
+        }
+        // fid_to_res_count.at(r->target->idx)++;
+      }
+
       for (PointFrameResidual *r : newpoint->residuals) {
         // TODO roger, 真细，之前花了力气算的factor是一个也不落下,
         // 把历史帧上面的factor也存下来了
-        ef->insertResidual(r, Hcalib.p_multi_camera);
+        ef->insertResidual(r, Hcalib.p_multi_camera,
+                           fid_to_res_hit_count.at(r->target->idx) == 0);
+        fid_to_res_hit_count.at(r->target->idx)++;
       }
       assert(newpoint->efPoint != 0);
       delete ph;
@@ -1660,7 +1678,7 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
         // TODO roger, 对于sw内的stable点,
         // 因为是最新帧，先无脑构建push进去，至于是不是inlier，优化时再判断
         ph->residuals.push_back(r);
-        ef->insertResidual(r, Hcalib.p_multi_camera);
+        ef->insertResidual(r, Hcalib.p_multi_camera, target_cid == 0);
         ph->lastResiduals[target_cid][1] =
             ph->lastResiduals[target_cid][0]; // 设置上上个残差
         ph->lastResiduals[target_cid][0] =
@@ -1698,20 +1716,27 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
   // =========================== Figure Out if INITIALIZATION FAILED
   // =========================
   //* 所有的关键帧数小于4，认为还是初始化，此时残差太大认为初始化失败
+  printf("init rmse: %f\n", rmse);
   if (allKeyFramesHistory.size() <= 4) {
     if (allKeyFramesHistory.size() == 2 &&
         rmse > 20 * benchmark_initializerSlackFactor) {
-      printf("I THINK INITIALIZATINO FAILED! Resetting.\n");
+      printf(
+          "I THINK INITIALIZATINO FAILED! Resetting. rmse: %f, sw_size: %d\n",
+          rmse, allKeyFramesHistory.size());
       initFailed = true; // 优化后的能量函数太大, 认为是跟丢了
     }
     if (allKeyFramesHistory.size() == 3 &&
         rmse > 13 * benchmark_initializerSlackFactor) {
-      printf("I THINK INITIALIZATINO FAILED! Resetting.\n");
+      printf(
+          "I THINK INITIALIZATINO FAILED! Resetting. rmse: %f, sw_size: %d\n",
+          rmse, allKeyFramesHistory.size());
       initFailed = true;
     }
     if (allKeyFramesHistory.size() == 4 &&
         rmse > 9 * benchmark_initializerSlackFactor) {
-      printf("I THINK INITIALIZATINO FAILED! Resetting.\n");
+      printf(
+          "I THINK INITIALIZATINO FAILED! Resetting. rmse: %f, sw_size: %d\n",
+          rmse, allKeyFramesHistory.size());
       initFailed = true;
     }
   }
@@ -1877,14 +1902,53 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
   float keepPercentage =
       setting_desiredPointDensity / numID; // coarseInitializer->numPoints[0];
 
-  if (!setting_debugout_runquiet)
+  if (!setting_debugout_runquiet) {
+    int point_count = 0;
+    for (int id = 0; id < kCameraNumUsed; ++id) {
+      point_count += coarseInitializer->level_cid_to_numPoints[0][id];
+    }
     printf("Initialization: keep %.1f%% (need %d, have %d)!\n",
-           100 * keepPercentage, (int)(setting_desiredPointDensity),
-           coarseInitializer
+           100 * keepPercentage, (int)(setting_desiredPointDensity), point_count
+           /*coarseInitializer
                    ->level_cid_to_npts_success_offset[0][kCameraNumUsed - 1] +
-               coarseInitializer->level_cid_to_numPoints[0][kCameraNumUsed - 1]
+           coarseInitializer->level_cid_to_numPoints[0][kCameraNumUsed - 1]*/
            /*numID */ /*coarseInitializer->numPoints[0]*/);
+  }
   //[ ***step 3*** ] 创建PointHessian, 点加入关键帧, 加入EnergyFunctional
+//#define CHECK_INIT
+#ifdef CHECK_INIT
+  std::cout << "Hcalib.intr:\n" << Hcalib.intr << std::endl;
+  MinimalImageB3 *img_host;
+  MinimalImageB3 *img_target;
+
+  img_host = new MinimalImageB3(wG[0], hG[0]);
+  img_target = new MinimalImageB3(wG[0], hG[0]);
+
+  for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+    Vec3f *colorRef = firstFrame->dI + wG[0] * hG[0] * cam;
+    for (int i = 0; i < wG[0] * hG[0]; i++) {
+      // BRIGHTNESS TRANSFER
+      float colL = (*(colorRef + i))[0];
+      if (colL < 0)
+        colL = 0;
+      if (colL > 255)
+        colL = 255;
+      img_host->at(i, cam) = Vec3b(colL, colL, colL);
+    }
+  }
+  for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+    Eigen::Vector3f *colorCur = newFrame->dI + cam * wG[0] * hG[0];
+    for (int i = 0; i < wG[0] * hG[0]; i++) {
+      // BRIGHTNESS TRANSFER
+      float colL = (*(colorCur + i))[0];
+      if (colL < 0)
+        colL = 0;
+      if (colL > 255)
+        colL = 255;
+      img_target->at(i, cam) = Vec3b(colL, colL, colL);
+    }
+  }
+#endif
   for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
     for (int i = 0; i < coarseInitializer->level_cid_to_numPoints[0][host_cid];
          i++) {
@@ -1894,9 +1958,19 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
       Pnt *point =
           coarseInitializer->points[0] + i +
           coarseInitializer->level_cid_to_npts_success_offset[0][host_cid];
-      ImmaturePoint *pt =
-          new ImmaturePoint(point->u + 0.5f, point->v + 0.5f, firstFrame,
-                            point->my_type, &Hcalib, host_cid, 0);
+      // TODO roger, like SetFromImage in orca, 判断这个坐标纹理是否充分
+      if (!point->isGood) {
+        continue;
+      }
+      assert(point->host_cid == host_cid);
+      ImmaturePoint *pt;
+      if (kCameraNumUsed == 1 || true) {
+        pt = new ImmaturePoint(point->u + 0.5f, point->v + 0.5f, firstFrame,
+                               point->my_type, &Hcalib, host_cid, 0);
+      } else {
+        pt = new ImmaturePoint(point->u, point->v, firstFrame, point->my_type,
+                               &Hcalib, host_cid, 0);
+      }
 
       if (!std::isfinite(pt->energyTH)) {
         delete pt;
@@ -1904,7 +1978,11 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
       } // 点值无穷大
 
       // 创建ImmaturePoint就为了创建PointHessian? 是为了接口统一吧
-      pt->idepth_max = pt->idepth_min = 1;
+      if (kCameraNumUsed == 1) {
+        pt->idepth_max = pt->idepth_min = 1;
+      } else {
+        pt->idepth_max = pt->idepth_min = point->idepth;
+      }
       PointHessian *ph = new PointHessian(pt, &Hcalib, host_cid);
       delete pt;
       // TODO roger, create patch, setFromImage, if fail, delete the point
@@ -1912,17 +1990,98 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
         delete ph;
         continue;
       }
-
-      ph->setIdepthScaled(point->iR *
-                          rescaleFactor); //? 为啥设置的是scaled之后的
+      if (kCameraNumUsed == 1) {
+        ph->setIdepthScaled(point->iR *
+                            rescaleFactor); //? 为啥设置的是scaled之后的
+      } else {
+        ph->setIdepthScaled(point->idepth *
+                            rescaleFactor); //? 为啥设置的是scaled之后的
+      }
       ph->setIdepthZero(ph->idepth); //! 设置初始先验值, 还有神奇的求零空间方法
       ph->hasDepthPrior = true;
       ph->setPointStatus(PointHessian::ACTIVE); // 激活点
 
       firstFrame->pointHessians.push_back(ph);
       ef->insertPoint(ph);
+#ifdef CHECK_INIT
+      img_host->setPixel9(point->u + 0.5, point->v + 0.5, makeRainbow3B(1),
+                          host_cid);
+      img_host->setPixelCirc(point->u + 0.5, point->v + 0.5, makeRainbow3B(1),
+                             host_cid);
+
+      for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+        SE3 refToNew =
+            newFrame->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() *
+            firstToNew * newFrame->p_multi_camera->cid_to_T01_SE3[host_cid];
+        Mat33f RKi =
+            (refToNew.rotationMatrix() * Hcalib.intr_inv).cast<float>();
+        Vec3f t = refToNew.translation().cast<float>();
+        Vec3f pt = RKi * Vec3f(point->u, point->v, 1) +
+                   t * point->idepth * rescaleFactor;
+        //        std::cout << "point->idepth * rescaleFactor: "
+        //                  << point->idepth * rescaleFactor << std::endl;
+        float u = pt[0] / pt[2];
+        float v = pt[1] / pt[2];
+        float new_idepth = point->idepth * rescaleFactor / pt[2];
+        // 像素坐标pj
+        float Ku = float(Hcalib.intr(0, 0)) * u + float(Hcalib.intr(0, 2));
+        float Kv = float(Hcalib.intr(1, 1)) * v + float(Hcalib.intr(1, 2));
+        //        std::cout << "init, "
+        //                  << ", u: " << Ku << ", v: " << Kv
+        //                  << ", idepth: " << new_idepth << std::endl;
+        if (!(Ku > 1 && Kv > 1 && Ku < wG[0] - 2 && Kv < hG[0] - 2 &&
+              new_idepth > 0)) {
+          //                isGood = false;
+          //                break;
+          continue;
+        }
+        //        img_target->setPixel9(Ku + 0.5, Kv + 0.5, makeRainbow3B(1),
+        //        target_cid);
+        img_target->setPixelCirc(Ku + 0.5, Kv + 0.5, makeRainbow3B(1),
+                                 target_cid);
+      }
+      /////////////////////////////////////////////////////////////////////////////
+      for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+        SE3 refToNew =
+            newFrame->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() *
+            firstToNew * newFrame->p_multi_camera->cid_to_T01_SE3[host_cid];
+        Mat33f RKi =
+            (refToNew.rotationMatrix() * Hcalib.intr_inv).cast<float>();
+        Vec3f t = refToNew.translation().cast<float>();
+        Vec3f pt = RKi * Vec3f(ph->u, ph->v, 1) + t * ph->idepth_zero_scaled;
+        float u = pt[0] / pt[2];
+        float v = pt[1] / pt[2];
+        float new_idepth = ph->idepth_zero_scaled / pt[2];
+        // 像素坐标pj
+        float Ku = float(Hcalib.intr(0, 0)) * u + float(Hcalib.intr(0, 2));
+        float Kv = float(Hcalib.intr(1, 1)) * v + float(Hcalib.intr(1, 2));
+
+        //        std::cout << "LBA, "
+        //                  << ", u: " << Ku << ", v: " << Kv
+        //                  << ", idepth: " << new_idepth << std::endl;
+        if (!(Ku > 1 && Kv > 1 && Ku < wG[0] - 2 && Kv < hG[0] - 2 &&
+              new_idepth > 0)) {
+          //                isGood = false;
+          //                break;
+          continue;
+        }
+        img_target->setPixel9(Ku + 0.5, Kv + 0.5, makeRainbow3B(0.1),
+                              target_cid);
+        //        img_target->setPixelCirc(Ku + 0.5, Kv + 0.5,
+        //        makeRainbow3B(0.1),
+        //                                 target_cid);
+      }
+
+#endif
     }
   }
+#ifdef CHECK_INIT
+  IOWrap::displayImage("host", img_host);
+  IOWrap::displayImage("target", img_target);
+  IOWrap::waitKey(0);
+  delete img_host;
+  delete img_target;
+#endif
   // really no lock required, as we are initializing.
   {
     boost::unique_lock<boost::mutex> crlock(shellPoseMutex);

@@ -88,14 +88,14 @@ public:
 
   ~EnergyFunctional();
 
-  EFResidual *insertResidual(PointFrameResidual *r,
-                             MultiCamera *p_multi_camera);
+  EFResidual *insertResidual(PointFrameResidual *r, MultiCamera *p_multi_camera,
+                             bool add_connection = true);
 
   EFFrame *insertFrame(FrameHessian *fh, CalibHessian *Hcalib);
 
   EFPoint *insertPoint(PointHessian *ph);
 
-  void dropResidual(EFResidual *r);
+  void dropResidual(EFResidual *r, bool delete_connection = true);
 
   void marginalizeFrame(EFFrame *fh);
 

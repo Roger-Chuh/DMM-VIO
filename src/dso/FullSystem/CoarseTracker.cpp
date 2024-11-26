@@ -87,24 +87,16 @@ CoarseTracker::CoarseTracker(int ww, int hh,
   }
 
   // warped buffers
-  //  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-  buf_warped_idepth = allocAligned<4, float>(
-      ww * hh * kCameraNumUsed * kCameraNumUsed, ptrToDelete);
-  buf_warped_u = allocAligned<4, float>(
-      ww * hh * kCameraNumUsed * kCameraNumUsed, ptrToDelete);
-  buf_warped_v = allocAligned<4, float>(
-      ww * hh * kCameraNumUsed * kCameraNumUsed, ptrToDelete);
-  buf_warped_dx = allocAligned<4, float>(
-      ww * hh * kCameraNumUsed * kCameraNumUsed, ptrToDelete);
-  buf_warped_dy = allocAligned<4, float>(
-      ww * hh * kCameraNumUsed * kCameraNumUsed, ptrToDelete);
-  buf_warped_residual = allocAligned<4, float>(
-      ww * hh * kCameraNumUsed * kCameraNumUsed, ptrToDelete);
-  buf_warped_weight = allocAligned<4, float>(
-      ww * hh * kCameraNumUsed * kCameraNumUsed, ptrToDelete);
-  buf_warped_refColor = allocAligned<4, float>(
-      ww * hh * kCameraNumUsed * kCameraNumUsed, ptrToDelete);
-  //  }
+  for (int cid = 0; cid < kCameraNumUsed * kCameraNumUsed; ++cid) {
+    buf_warped_idepth[cid] = allocAligned<4, float>(ww * hh, ptrToDelete);
+    buf_warped_u[cid] = allocAligned<4, float>(ww * hh, ptrToDelete);
+    buf_warped_v[cid] = allocAligned<4, float>(ww * hh, ptrToDelete);
+    buf_warped_dx[cid] = allocAligned<4, float>(ww * hh, ptrToDelete);
+    buf_warped_dy[cid] = allocAligned<4, float>(ww * hh, ptrToDelete);
+    buf_warped_residual[cid] = allocAligned<4, float>(ww * hh, ptrToDelete);
+    buf_warped_weight[cid] = allocAligned<4, float>(ww * hh, ptrToDelete);
+    buf_warped_refColor[cid] = allocAligned<4, float>(ww * hh, ptrToDelete);
+  }
   newFrame = 0;
   lastRef = 0;
   debugPlot = debugPrint = true;
@@ -386,20 +378,26 @@ void CoarseTracker::calcGSSSE(int lvl, MatState &H_out, VecState &b_out,
       N += n;
       assert(n % 4 == 0);
       for (int i = 0; i < n; i += 4) {
-        __m128 dx =
-            _mm_mul_ps(_mm_load_ps(buf_warped_dx + host_cid * kCameraNumUsed +
-                                   target_cid + i),
-                       fxl); //! dx*fx
-        __m128 dy =
-            _mm_mul_ps(_mm_load_ps(buf_warped_dy + host_cid * kCameraNumUsed +
-                                   target_cid + i),
-                       fyl); //! dy*fy
-        __m128 u = _mm_load_ps(buf_warped_u + host_cid * kCameraNumUsed +
-                               target_cid + i);
-        __m128 v = _mm_load_ps(buf_warped_v + host_cid * kCameraNumUsed +
-                               target_cid + i);
-        __m128 id = _mm_load_ps(buf_warped_idepth + host_cid * kCameraNumUsed +
-                                target_cid + i);
+        //        printf("i: %d, n: %d, index: %lld, value: %f, target_cid: %d,
+        //        "
+        //               "host_cid: %d\n",
+        //               i, n, host_cid * kCameraNumUsed + target_cid + i,
+        //               buf_warped_dx[host_cid * kCameraNumUsed +
+        //               target_cid][i], target_cid, host_cid);
+        __m128 dx = _mm_mul_ps(
+            _mm_load_ps(buf_warped_dx[host_cid * kCameraNumUsed + target_cid] +
+                        i),
+            fxl); //! dx*fx
+        __m128 dy = _mm_mul_ps(
+            _mm_load_ps(buf_warped_dy[host_cid * kCameraNumUsed + target_cid] +
+                        i),
+            fyl); //! dy*fy
+        __m128 u = _mm_load_ps(
+            buf_warped_u[host_cid * kCameraNumUsed + target_cid] + i);
+        __m128 v = _mm_load_ps(
+            buf_warped_v[host_cid * kCameraNumUsed + target_cid] + i);
+        __m128 id = _mm_load_ps(
+            buf_warped_idepth[host_cid * kCameraNumUsed + target_cid] + i);
 
         acc.updateSSE_eighted(
             _mm_mul_ps(id, dx), // 对位移x导数
@@ -418,15 +416,19 @@ void CoarseTracker::calcGSSSE(int lvl, MatState &H_out, VecState &b_out,
                 _mm_mul_ps(
                     dx, _mm_add_ps(one, _mm_mul_ps(u, u)))), // 对旋转xi_2求导
             _mm_sub_ps(_mm_mul_ps(u, dy), _mm_mul_ps(v, dx)), // 对旋转xi_3求导
-            _mm_mul_ps(a, _mm_sub_ps(b0, _mm_load_ps(buf_warped_refColor +
-                                                     host_cid * kCameraNumUsed +
-                                                     target_cid +
-                                                     i))), // 对目标帧a求导
-            minusOne, // 对目标帧b求导
-            _mm_load_ps(buf_warped_residual + host_cid * kCameraNumUsed +
-                        target_cid + i), // 残差
-            _mm_load_ps(buf_warped_weight + host_cid * kCameraNumUsed +
-                        target_cid + i)); // huber权重
+            _mm_mul_ps(
+                a, _mm_sub_ps(
+                       b0, _mm_load_ps(
+                               buf_warped_refColor[host_cid * kCameraNumUsed +
+                                                   target_cid] +
+                               i))), // 对目标帧a求导
+            minusOne,                // 对目标帧b求导
+            _mm_load_ps(
+                buf_warped_residual[host_cid * kCameraNumUsed + target_cid] +
+                i), // 残差
+            _mm_load_ps(
+                buf_warped_weight[host_cid * kCameraNumUsed + target_cid] +
+                i)); // huber权重
       }
     }
     acc.finish();
@@ -502,7 +504,7 @@ void CoarseTracker::calcGSSSE(int lvl, MatState &H_out, VecState &b_out,
 
 //@ 计算当前位姿投影得到的残差(能量值), 并进行一些统计
 //! 构造尽量多的点, 有助于跟踪
-#define SHOW_TRACK_RES
+//#define SHOW_TRACK_RES
 Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
                             const SE3 &refToNew_, AffLight aff_g2l,
                             float cutoffTH, bool show_image) {
@@ -513,6 +515,7 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
   float sumSquaredShiftT = 0;
   float sumSquaredShiftRT = 0;
   float sumSquaredShiftNum = 0;
+  int numTermsInWarpedSum = 0;
   for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
     for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
       int numTermsInWarped = 0;
@@ -572,44 +575,7 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
         float v = pt[1] / pt[2];
         float Ku = fxl * u + cxl; // 像素坐标
         float Kv = fyl * v + cyl;
-#ifdef SHOW_TRACK_RES
-        MinimalImageB3 *img_host;
-        MinimalImageB3 *img_target;
-        if (show_image) {
-          img_host = new MinimalImageB3(wG[lvl], hG[lvl]);
-          img_target = new MinimalImageB3(wG[lvl], hG[lvl]);
 
-          refFrameID;
-
-          for (int i = 0; i < wG[lvl] * hG[lvl]; i++) {
-            // BRIGHTNESS TRANSFER
-            float colL =
-                (*(lastRef->dIp[lvl] + wG[lvl] * hG[lvl] * host_cid + i))[0];
-            if (colL < 0)
-              colL = 0;
-            if (colL > 255)
-              colL = 255;
-            img_host->at(i, host_cid) = Vec3b(colL, colL, colL);
-            colL =
-                (*(newFrame->dIp[lvl] + wG[lvl] * hG[lvl] * target_cid + i))[0];
-            if (colL < 0)
-              colL = 0;
-            if (colL > 255)
-              colL = 255;
-            img_target->at(i, target_cid) = Vec3b(colL, colL, colL);
-          }
-
-          img_host->setPixel9(x + 0.5, y + 0.5, makeRainbow3B(1), host_cid);
-          img_target->setPixel9(Ku + 0.5, Kv + 0.5, makeRainbow3B(1),
-                                target_cid);
-          IOWrap::displayImage("host", img_host);
-          IOWrap::displayImage("target", img_target);
-          IOWrap::waitKey(0);
-
-          delete img_host;
-          delete img_target;
-        }
-#endif
         float new_idepth = id / pt[2]; // 当前帧上的深度
 
         if (lvl == 0 && i % 32 == 0) //* 第0层 每隔32个点
@@ -676,27 +642,87 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
           E += hw * residual * residual * (2 - hw);
           numTermsInE++;
           // TODO 为凑雅可比buffer一些中间变量，这些变量不一定有明确物理含义
-          buf_warped_idepth[numTermsInWarped + address_offset] = new_idepth;
-          buf_warped_u[numTermsInWarped + address_offset] = u;
-          buf_warped_v[numTermsInWarped + address_offset] = v;
-          buf_warped_dx[numTermsInWarped + address_offset] = hitColor[1];
-          buf_warped_dy[numTermsInWarped + address_offset] = hitColor[2];
-          buf_warped_residual[numTermsInWarped + address_offset] = residual;
-          buf_warped_weight[numTermsInWarped + address_offset] = hw;
-          buf_warped_refColor[numTermsInWarped + address_offset] = lpc_color[i];
+          buf_warped_idepth[host_cid * kCameraNumUsed + target_cid]
+                           [numTermsInWarped /* + address_offset*/] =
+                               new_idepth;
+          buf_warped_u[host_cid * kCameraNumUsed + target_cid]
+                      [numTermsInWarped /* + address_offset*/] = u;
+          buf_warped_v[host_cid * kCameraNumUsed + target_cid]
+                      [numTermsInWarped /* + address_offset*/] = v;
+          buf_warped_dx[host_cid * kCameraNumUsed + target_cid]
+                       [numTermsInWarped /* + address_offset*/] = hitColor[1];
+          buf_warped_dy[host_cid * kCameraNumUsed + target_cid]
+                       [numTermsInWarped /* + address_offset*/] = hitColor[2];
+          buf_warped_residual[host_cid * kCameraNumUsed + target_cid]
+                             [numTermsInWarped /* + address_offset*/] =
+                                 residual;
+          buf_warped_weight[host_cid * kCameraNumUsed + target_cid]
+                           [numTermsInWarped /* + address_offset*/] = hw;
+          buf_warped_refColor[host_cid * kCameraNumUsed + target_cid]
+                             [numTermsInWarped /* + address_offset*/] =
+                                 lpc_color[i];
+#ifdef SHOW_TRACK_RES
+          show_image = i % 300 == 0;
+          MinimalImageB3 *img_host;
+          MinimalImageB3 *img_target;
+          if (show_image && (Ku > 15 && Kv > 15 && Ku < wl - 15 &&
+                             Kv < hl - 15 && new_idepth > 0)) {
+            img_host = new MinimalImageB3(wG[lvl], hG[lvl]);
+            img_target = new MinimalImageB3(wG[lvl], hG[lvl]);
+
+            refFrameID;
+
+            for (int i = 0; i < wG[lvl] * hG[lvl]; i++) {
+              // BRIGHTNESS TRANSFER
+              float colL =
+                  (*(lastRef->dIp[lvl] + wG[lvl] * hG[lvl] * host_cid + i))[0];
+              if (colL < 0)
+                colL = 0;
+              if (colL > 255)
+                colL = 255;
+              img_host->at(i, host_cid) = Vec3b(colL, colL, colL);
+              colL = (*(newFrame->dIp[lvl] + wG[lvl] * hG[lvl] * target_cid +
+                        i))[0];
+              if (colL < 0)
+                colL = 0;
+              if (colL > 255)
+                colL = 255;
+              img_target->at(i, target_cid) = Vec3b(colL, colL, colL);
+            }
+
+            img_host->setPixel9(x + 0.5, y + 0.5, makeRainbow3B(1), host_cid);
+            img_target->setPixel9(Ku + 0.5, Kv + 0.5, makeRainbow3B(1),
+                                  target_cid);
+            IOWrap::displayImage("host", img_host);
+            IOWrap::displayImage("target", img_target);
+            IOWrap::waitKey(0);
+
+            delete img_host;
+            delete img_target;
+          }
+#endif
           numTermsInWarped++;
         }
       }
+      numTermsInWarpedSum += numTermsInWarped;
       //* 16字节对齐, 填充上
       while (numTermsInWarped % 4 != 0) {
-        buf_warped_idepth[numTermsInWarped + address_offset] = 0;
-        buf_warped_u[numTermsInWarped + address_offset] = 0;
-        buf_warped_v[numTermsInWarped + address_offset] = 0;
-        buf_warped_dx[numTermsInWarped + address_offset] = 0;
-        buf_warped_dy[numTermsInWarped + address_offset] = 0;
-        buf_warped_residual[numTermsInWarped + address_offset] = 0;
-        buf_warped_weight[numTermsInWarped + address_offset] = 0;
-        buf_warped_refColor[numTermsInWarped + address_offset] = 0;
+        buf_warped_idepth[host_cid * kCameraNumUsed + target_cid]
+                         [numTermsInWarped /* + address_offset*/] = 0;
+        buf_warped_u[host_cid * kCameraNumUsed + target_cid]
+                    [numTermsInWarped /* + address_offset*/] = 0;
+        buf_warped_v[host_cid * kCameraNumUsed + target_cid]
+                    [numTermsInWarped /* + address_offset*/] = 0;
+        buf_warped_dx[host_cid * kCameraNumUsed + target_cid]
+                     [numTermsInWarped /* + address_offset*/] = 0;
+        buf_warped_dy[host_cid * kCameraNumUsed + target_cid]
+                     [numTermsInWarped /* + address_offset*/] = 0;
+        buf_warped_residual[host_cid * kCameraNumUsed + target_cid]
+                           [numTermsInWarped /* + address_offset*/] = 0;
+        buf_warped_weight[host_cid * kCameraNumUsed + target_cid]
+                         [numTermsInWarped /* + address_offset*/] = 0;
+        buf_warped_refColor[host_cid * kCameraNumUsed + target_cid]
+                           [numTermsInWarped /* + address_offset*/] = 0;
         numTermsInWarped++;
       }
       buf_warped_n[host_cid * kCameraNumUsed + target_cid] = numTermsInWarped;
@@ -1173,12 +1199,13 @@ void CoarseTracker::debugPlotIDepthMap(
       }
     }
     int wl = w[lvl];
+    int hl = h[lvl];
     for (int cid = 0; cid < kCameraNumUsed; ++cid) {
       for (int y = 3; y < h[lvl] - 3; y++) {
         for (int x = 3; x < wl - 3; x++) {
           int idx = x + y * wl;
           float sid = 0, nid = 0;
-          float *bp = idepth[lvl] + idx;
+          float *bp = idepth[lvl] + idx + cid * wl * hl;
 
           if (bp[0] > 0) {
             sid += bp[0];

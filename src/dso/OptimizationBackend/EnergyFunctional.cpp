@@ -103,14 +103,14 @@ void EnergyFunctional::setAdjointsF(CalibHessian *Hcalib) {
 
       AH.block<3, STATE_DIM>(0, 0) *= SCALE_XI_TRANS;
       AH.block<3, STATE_DIM>(3, 0) *= SCALE_XI_ROT;
-      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      for (int cid = 0; cid < 1 /*kCameraNumUsed*/; ++cid) {
         AH.block<1, STATE_DIM>(6 + 2 * cid, 0) *= SCALE_A;
         AH.block<1, STATE_DIM>(7 + 2 * cid, 0) *= SCALE_B;
       }
 
       AT.block<3, STATE_DIM>(0, 0) *= SCALE_XI_TRANS;
       AT.block<3, STATE_DIM>(3, 0) *= SCALE_XI_ROT;
-      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      for (int cid = 0; cid < 1 /*kCameraNumUsed*/; ++cid) {
         AT.block<1, STATE_DIM>(6 + 2 * cid, 0) *=
             SCALE_A; //? 已经是乘过的, 怎么又乘一遍
         AT.block<1, STATE_DIM>(7 + 2 * cid, 0) *= SCALE_B;
@@ -438,7 +438,7 @@ void EnergyFunctional::calcLEnergyPt(int min, int max, Vec10 *stats, int tid) {
   Accumulator11 E;
   E.initialize();
   VecCf dc = cDeltaF;
-  printf("min: %d, max: %d\n", min, max);
+  // printf("min: %d, max: %d\n", min, max);
   for (int i = min; i < max; i++) {
     EFPoint *p = allPoints[i];
     float dd = p->deltaF;
@@ -554,7 +554,8 @@ double EnergyFunctional::calcLEnergyF_MT() {
 
 //@ 向能量函数中插入一残差, 更新连接图关系
 EFResidual *EnergyFunctional::insertResidual(PointFrameResidual *r,
-                                             MultiCamera *p_multi_camera) {
+                                             MultiCamera *p_multi_camera,
+                                             bool add_connection) {
   EFResidual *efr =
       new EFResidual(r, r->point->efPoint, r->host->efFrame, r->target->efFrame,
                      r->host_cid, r->target_cid, p_multi_camera);
@@ -569,8 +570,10 @@ EFResidual *EnergyFunctional::insertResidual(PointFrameResidual *r,
   // 两帧之间的res计数加一
   // TODO
   // 这个点是刚通过pose固定的光度优化得到的，把这个残差记下来可以在大优化中少计算一点吧？甚至还可以用它计算一些分布用于判断outlier或关键帧什么的?
-  connectivityMap[(((uint64_t)efr->host->frameID) << 32) +
-                  ((uint64_t)efr->target->frameID)][0]++;
+  if (add_connection) {
+    connectivityMap[(((uint64_t)efr->host->frameID) << 32) +
+                    ((uint64_t)efr->target->frameID)][0]++;
+  }
 
   nResiduals++;
   r->efResidual = efr;
@@ -654,7 +657,7 @@ EFPoint *EnergyFunctional::insertPoint(PointHessian *ph) {
 }
 
 //@ 丢掉一个residual, 并更新关系
-void EnergyFunctional::dropResidual(EFResidual *r) {
+void EnergyFunctional::dropResidual(EFResidual *r, bool delete_connection) {
   EFPoint *p = r->point;
   assert(r == p->residualsAll[r->idxInAll]);
 
@@ -670,8 +673,10 @@ void EnergyFunctional::dropResidual(EFResidual *r) {
     r->host->data->shell->statistics_outlierResOnThis++;
 
   // residual关键减一
-  connectivityMap[(((uint64_t)r->host->frameID) << 32) +
-                  ((uint64_t)r->target->frameID)][0]--;
+  if (delete_connection) {
+    connectivityMap[(((uint64_t)r->host->frameID) << 32) +
+                    ((uint64_t)r->target->frameID)][0]--;
+  }
   nResiduals--;
   r->data->efResidual = 0; // pointframehessian指向该残差的指针
   delete r;
@@ -851,10 +856,18 @@ void EnergyFunctional::marginalizePointsF() {
       EFPoint *p = f->points[i];
       if (p->stateFlag == EFPointStatus::PS_MARGINALIZE) {
         p->priorF *= setting_idepthFixPriorMargFac; //? 这是干啥 ???
-        for (EFResidual *r : p->residualsAll)
-          if (r->isActive()) // 边缘化残差计数
-            connectivityMap[(((uint64_t)r->host->frameID) << 32) +
-                            ((uint64_t)r->target->frameID)][1]++;
+        std::set<int> target_fids;
+        // TODO roger,
+        // 要把这个点的所有vm都删掉，所以理论上删除每个fid上第一次出现的就行了
+        for (EFResidual *r : p->residualsAll) {
+          if (r->isActive()) { // 边缘化残差计数
+            if (!target_fids.count(r->target->idx)) {
+              connectivityMap[(((uint64_t)r->host->frameID) << 32) +
+                              ((uint64_t)r->target->frameID)][1]++;
+              target_fids.emplace(r->target->idx);
+            }
+          }
+        }
         allPointsToMarg.push_back(p);
       }
     }
@@ -922,8 +935,25 @@ void EnergyFunctional::dropPointsF() {
 
 //@ 从EFFrame中移除一个点p
 void EnergyFunctional::removePoint(EFPoint *p) {
-  for (EFResidual *r : p->residualsAll)
-    dropResidual(r); // 丢掉改点的所有残差
+  std::map<int, int> fid_to_res_hit_count;
+  for (EFResidual *r : p->residualsAll) {
+    if (fid_to_res_hit_count.find(r->target->idx) ==
+        fid_to_res_hit_count.end()) {
+      fid_to_res_hit_count.emplace(r->target->idx, 0);
+    }
+    // fid_to_res_count.at(r->target->idx)++;
+  }
+  // TODO roger,
+  // 要删除这个点的所有res，
+  // 所以这个点的每个res在所有target帧上第一次出现时才要触发delete_connection
+  // 要删除这个pid在某fid的所有cid上存在过的痕迹
+  for (EFResidual *r : p->residualsAll) {
+    assert(fid_to_res_hit_count.find(r->target->idx) !=
+           fid_to_res_hit_count.end());
+    dropResidual(r, fid_to_res_hit_count.at(r->target->idx) ==
+                        0); // 丢掉改点的所有残差
+    fid_to_res_hit_count.at(r->target->idx)++;
+  }
 
   EFFrame *h = p->host;
   h->points[p->idxInPoints] = h->points.back();

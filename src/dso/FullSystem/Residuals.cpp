@@ -111,30 +111,36 @@ double PointFrameResidual::linearize(CalibHessian *HCalib) {
                               ->idx]); // 得到这个目标帧在主帧上的一些预计算参数
                                        //                              host_cid;
   //                              target_cid;
-
+  //  std::cout << "T_th:\n" << precalc->PRE_RTll << std::endl;
+  //  std::cout << "t_th:\n" << precalc->PRE_tTll << std::endl;
   float energyLeft = 0;
   const Eigen::Vector3f *dIl = target->dI + wG[0] * hG[0] * target_cid;
   const Eigen::Vector3f *host_dIl = host->dI + wG[0] * hG[0] * host_cid;
+  bool show_image = true; //  host_cid == 0 && target_cid == 0;
 #ifdef SHOW_IMAGE
-  MinimalImageB3 *img_host = new MinimalImageB3(wG[0], hG[0]);
-  MinimalImageB3 *img_target = new MinimalImageB3(wG[0], hG[0]);
-
-  for (int i = 0; i < wG[0] * hG[0]; i++) {
-    // BRIGHTNESS TRANSFER
-    float colL = host_dIl[i][0];
-    if (colL < 0)
-      colL = 0;
-    if (colL > 255)
-      colL = 255;
-    img_host->at(i) = Vec3b(colL, colL, colL);
-    colL = dIl[i][0];
-    if (colL < 0)
-      colL = 0;
-    if (colL > 255)
-      colL = 255;
-    img_target->at(i) = Vec3b(colL, colL, colL);
+  MinimalImageB3 *img_host;
+  MinimalImageB3 *img_target;
+  if (show_image) {
+    img_host = new MinimalImageB3(wG[0], hG[0]);
+    img_target = new MinimalImageB3(wG[0], hG[0]);
+    for (int i = 0; i < wG[0] * hG[0]; i++) {
+      // BRIGHTNESS TRANSFER
+      float colL = host_dIl[i][0];
+      if (colL < 0)
+        colL = 0;
+      if (colL > 255)
+        colL = 255;
+      img_host->at(i, host_cid) = Vec3b(colL, colL, colL);
+      colL = dIl[i][0];
+      if (colL < 0)
+        colL = 0;
+      if (colL > 255)
+        colL = 255;
+      img_target->at(i, target_cid) = Vec3b(colL, colL, colL);
+    }
+    img_host->setPixel9(point->u + 0.5, point->v + 0.5, makeRainbow3B(1),
+                        host_cid);
   }
-  img_host->setPixel9(point->u + 0.5, point->v + 0.5, makeRainbow3B(1));
 #endif
   // const float* const Il = target->I;
   // const Mat33f &PRE_KRKiTll_orig = precalc->PRE_KRKiTll; // todo relative
@@ -411,7 +417,9 @@ double PointFrameResidual::linearize(CalibHessian *HCalib) {
     }
 
 #ifdef SHOW_IMAGE
-    img_target->setPixel9(Ku + 0.5, Kv + 0.5, makeRainbow3B(1));
+    if (show_image) {
+      img_target->setPixel9(Ku + 0.5, Kv + 0.5, makeRainbow3B(1), target_cid);
+    }
 #endif
 
     Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
@@ -538,13 +546,16 @@ double PointFrameResidual::linearize(CalibHessian *HCalib) {
     //		if(!std::isfinite((float)hitColor[0]))
     //		{ state_NewState = ResState::OOB; return state_energy; }
 #ifdef SHOW_IMAGE
-    std::cout << "idx: " << idx << ", hostColor: " << hostColor.transpose()
-              << ", hitColor: " << hitColor.transpose()
-              << ", affLL: " << affLL.transpose()
-              << ", color[idx]: " << color[idx] << std::endl;
-    IOWrap::displayImage("host", img_host);
-    IOWrap::displayImage("target", img_target);
-    IOWrap::waitKey(0);
+    if (show_image) {
+      std::cout << "idx: " << idx << ", hostColor: " << hostColor.transpose()
+                << ", hitColor: " << hitColor.transpose()
+                << ", affLL: " << affLL.transpose()
+                << ", color[idx]: " << color[idx]
+                << ", gray_diff: " << hostColor[0] - hitColor[0] << std::endl;
+      IOWrap::displayImage("host", img_host);
+      IOWrap::displayImage("target", img_target);
+      // IOWrap::waitKey(0);
+    }
 #endif
 #ifndef USE_ZNCC
     float w = sqrtf(
@@ -704,6 +715,13 @@ double PointFrameResidual::linearize(CalibHessian *HCalib) {
     }
     cnt++;
   }
+#ifdef SHOW_IMAGE
+  if (show_image) {
+    IOWrap::waitKey(0);
+    delete img_host;
+    delete img_target;
+  }
+#endif
 
   J->JIdx2(0, 0) = JIdxJIdx_00; // TODO gradient related 2x2, top left
   J->JIdx2(0, 1) = JIdxJIdx_10; // TODO 梯度x梯度部分的小hessian
@@ -735,7 +753,7 @@ double PointFrameResidual::linearize(CalibHessian *HCalib) {
   return energyLeft;
 }
 
-void PointFrameResidual::debugPlot() {
+void PointFrameResidual::debugPlot(int cid) {
   if (state_state == ResState::OOB)
     return;
   Vec3b cT = Vec3b(0, 0, 0);

@@ -219,10 +219,25 @@ Vec3 FullSystem::linearizeAll(bool fixLinearization) {
           ph->lastResiduals[r->target_cid][0].first = 0;
         else if (ph->lastResiduals[r->target_cid][1].first == r)
           ph->lastResiduals[r->target_cid][1].first = 0;
+        int target_fid = r->target->idx;
+        int remaining_good_res_on_this_fid = 0;
+        for (unsigned int k = 0; k < ph->residuals.size(); k++) {
+          if (ph->residuals[k]->target->idx == target_fid) {
+            if (ph->residuals[k] == r) {
 
+            } else {
+              remaining_good_res_on_this_fid++;
+            }
+          }
+        }
         for (unsigned int k = 0; k < ph->residuals.size(); k++)
+          // TODO roger,
+          // 要删除这个残差，
+          // 所以只有这个残差是这个fid上的最后一个res时才要触发delete_connection
+          // 且能break
           if (ph->residuals[k] == r) {
-            ef->dropResidual(r->efResidual);
+            ef->dropResidual(r->efResidual,
+                             remaining_good_res_on_this_fid == 0);
             deleteOut<PointFrameResidual>(ph->residuals,
                                           k); // residuals删除第k个
             nResRemoved++;

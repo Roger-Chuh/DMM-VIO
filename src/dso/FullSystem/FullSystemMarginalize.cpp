@@ -180,9 +180,15 @@ void FullSystem::marginalizeFrame(FrameHessian *frame) {
       continue;
 
     for (PointHessian *ph : fh->pointHessians) {
+      std::set<int> target_ids;
+      int cur_fid_vm_hit_count = 0;
       for (unsigned int i = 0; i < ph->residuals.size(); i++) {
         PointFrameResidual *r = ph->residuals[i];
         if (r->target == frame) {
+          // TODO roger,
+          // 要删除这一帧上的所有cid上的res，
+          // 所以只有pid在该feid第一次出现的的res要触发delete_connection,
+          // 且不能break
           if (ph->lastResiduals[r->target_cid][0].first == r) {
             ph->lastResiduals[r->target_cid][0].first = 0;
           } else if (ph->lastResiduals[r->target_cid][1].first == r) {
@@ -194,11 +200,19 @@ void FullSystem::marginalizeFrame(FrameHessian *frame) {
             statistics_numForceDroppedResBwd++;
           }
 
-          ef->dropResidual(r->efResidual);
+          bool delete_connection = false;
+          if (!target_ids.count(frame->idx)) {
+            delete_connection = true;
+            target_ids.emplace(frame->idx);
+          }
+          // ef->dropResidual(r->efResidual, delete_connection);
+          ef->dropResidual(r->efResidual, cur_fid_vm_hit_count == 0);
           deleteOut<PointFrameResidual>(ph->residuals, i);
-          break;
+          // break;
+          cur_fid_vm_hit_count++;
         }
       }
+      assert(cur_fid_vm_hit_count <= kCameraNumUsed);
     }
   }
 
@@ -222,7 +236,7 @@ void FullSystem::marginalizeFrame(FrameHessian *frame) {
   deleteOutOrder<FrameHessian>(frameHessians, frame);
   for (unsigned int i = 0; i < frameHessians.size(); i++)
     frameHessians[i]->idx = i;
-
+#if 1
   int numDel = 0;
   for (auto it = ef->connectivityMap.begin();
        it != ef->connectivityMap.end();) {
@@ -235,7 +249,7 @@ void FullSystem::marginalizeFrame(FrameHessian *frame) {
       it++;
     }
   }
-
+#endif
   setPrecalcValues();
   ef->setAdjointsF(&Hcalib);
 }

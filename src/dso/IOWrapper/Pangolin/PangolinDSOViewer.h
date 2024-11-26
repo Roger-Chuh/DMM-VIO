@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include "../../camera_model/camera_base.h"
 #include "IOWrapper/Output3DWrapper.h"
 #include "boost/thread.hpp"
 #include "util/MinimalImage.h"
@@ -39,6 +40,8 @@ class TransformDSOToIMU;
 }
 
 namespace dso {
+
+struct MultiCamera;
 
 class FrameHessian;
 
@@ -62,7 +65,8 @@ public:
 
   PangolinDSOViewer(int w, int h, bool startRunThread = true,
                     std::shared_ptr<dmvio::SettingsUtil> settingsUtil = nullptr,
-                    std::shared_ptr<double> normalizeCamSize = nullptr);
+                    std::shared_ptr<double> normalizeCamSize = nullptr,
+                    MultiCamera *p_multi_camera_ = nullptr);
 
   virtual ~PangolinDSOViewer();
 
@@ -170,6 +174,7 @@ private:
   std::shared_ptr<double> normalizeCamSize;
 
   std::shared_ptr<dmvio::SettingsUtil> settingsUtil;
+  MultiCamera *p_multi_camera = nullptr;
 };
 
 } // namespace IOWrap

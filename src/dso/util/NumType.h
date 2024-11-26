@@ -137,7 +137,8 @@ typedef Eigen::Matrix<double, 4, 8> Mat48;
 typedef Eigen::Matrix<double, 4, 4> Mat44;
 
 typedef Eigen::Matrix<float, MAX_RES_PER_POINT, 1> VecNRf;
-typedef Eigen::Matrix<float, MAX_RES_PER_POINT * kCameraNumUsed, 1> VecBigf;
+typedef Eigen::Matrix<float, MAX_RES_PER_POINT /* * kCameraNumUsed*/, 1>
+    VecBigf;
 typedef Eigen::Matrix<float, 12, 1> Vec12f;
 typedef Eigen::Matrix<float, 2, 6> Mat26f;
 typedef Eigen::Matrix<float, 1, 8> Mat18f;

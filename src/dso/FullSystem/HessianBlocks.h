@@ -429,6 +429,14 @@ struct CalibHessian {
     value_zero = value;
     value_minus_value_zero.setZero();
 
+    intr.setIdentity();
+    intr(0, 0) = fxG[0];
+    intr(1, 1) = fyG[0];
+    intr(0, 2) = cxG[0];
+    intr(1, 2) = cyG[0];
+
+    intr_inv = intr.inverse();
+
     instanceCounter++;
     //响应函数
     for (int i = 0; i < 256; i++)
@@ -532,6 +540,8 @@ struct CalibHessian {
     return Binv[c + 1] - Binv[c];
   }
   MultiCamera *p_multi_camera;
+  Mat3 intr;
+  Mat3 intr_inv;
 };
 
 //* 点Hessian

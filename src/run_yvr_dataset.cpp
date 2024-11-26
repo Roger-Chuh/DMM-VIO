@@ -754,7 +754,7 @@ int main(int argc, char **argv) {
         cv::vconcat(img1, img2, img_show);
         cv::imshow("Cam", img_show);
 
-        cv::waitKey(1);
+        cv::waitKey(0);
     }
 #endif
   // std::exit(-1);
@@ -817,7 +817,7 @@ int main(int argc, char **argv) {
   // std::exit(2);
   if (!disableAllDisplay) {
     IOWrap::PangolinDSOViewer *viewer = new IOWrap::PangolinDSOViewer(
-        wG[0], hG[0], false, settingsUtil, nullptr);
+        wG[0], hG[0], false, settingsUtil, nullptr, &multi_camera_calibed);
 
     boost::thread runThread = boost::thread(boost::bind(run, reader, viewer));
 

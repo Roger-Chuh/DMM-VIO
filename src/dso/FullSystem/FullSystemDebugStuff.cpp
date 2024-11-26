@@ -93,7 +93,7 @@ void FullSystem::debugPlotTracking() {
         if (ph->status == PointHessian::ACTIVE ||
             ph->status == PointHessian::MARGINALIZED) {
           for (PointFrameResidual *r : ph->residuals)
-            r->debugPlot();
+            r->debugPlot(cid);
           f->debugImage->setPixel9(ph->u + 0.5, ph->v + 0.5,
                                    makeRainbow3B(ph->idepth_scaled), cid);
         }

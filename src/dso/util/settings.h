@@ -47,6 +47,7 @@ namespace dso {
 // ============== PARAMETERS TO BE DECIDED ON COMPILE TIME =================
 #define USE_MULTI_CAM
 #ifdef USE_MULTI_CAM
+//#define FIX_ZERO_TRANS_IN_INIT
 #define kCameraNumUsed 4
 #else
 #define kCameraNumUsed 1

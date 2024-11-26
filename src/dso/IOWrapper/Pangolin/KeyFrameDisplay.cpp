@@ -40,7 +40,8 @@
 namespace dso {
 namespace IOWrap {
 
-KeyFrameDisplay::KeyFrameDisplay() {
+KeyFrameDisplay::KeyFrameDisplay(MultiCamera *p_multi_camera_) {
+  p_multi_camera = p_multi_camera_;
   originalInputSparse = 0;
   numSparseBufferSize = 0;
   numSparsePoints = 0;
@@ -116,6 +117,7 @@ void KeyFrameDisplay::setFromKF(FrameHessian *fh, CalibHessian *HCalib) {
     for (int i = 0; i < patternNum; i++)
       pc[numSparsePoints].color[i] = p->color[i];
 
+    pc[numSparsePoints].cid = p->host_cid;
     pc[numSparsePoints].u = p->u;
     pc[numSparsePoints].v = p->v;
     pc[numSparsePoints].idpeth = (p->idepth_max + p->idepth_min) * 0.5f;
@@ -129,6 +131,7 @@ void KeyFrameDisplay::setFromKF(FrameHessian *fh, CalibHessian *HCalib) {
   for (PointHessian *p : fh->pointHessians) {
     for (int i = 0; i < patternNum; i++)
       pc[numSparsePoints].color[i] = p->color[i];
+    pc[numSparsePoints].cid = p->host_cid;
     pc[numSparsePoints].u = p->u;
     pc[numSparsePoints].v = p->v;
     pc[numSparsePoints].idpeth = p->idepth_scaled;
@@ -143,6 +146,7 @@ void KeyFrameDisplay::setFromKF(FrameHessian *fh, CalibHessian *HCalib) {
   for (PointHessian *p : fh->pointHessiansMarginalized) {
     for (int i = 0; i < patternNum; i++)
       pc[numSparsePoints].color[i] = p->color[i];
+    pc[numSparsePoints].cid = p->host_cid;
     pc[numSparsePoints].u = p->u;
     pc[numSparsePoints].v = p->v;
     pc[numSparsePoints].idpeth = p->idepth_scaled;
@@ -156,6 +160,7 @@ void KeyFrameDisplay::setFromKF(FrameHessian *fh, CalibHessian *HCalib) {
   for (PointHessian *p : fh->pointHessiansOut) {
     for (int i = 0; i < patternNum; i++)
       pc[numSparsePoints].color[i] = p->color[i];
+    pc[numSparsePoints].cid = p->host_cid;
     pc[numSparsePoints].u = p->u;
     pc[numSparsePoints].v = p->v;
     pc[numSparsePoints].idpeth = p->idepth_scaled;
@@ -243,12 +248,19 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH,
       int dx = patternP[pnt][0];
       int dy = patternP[pnt][1];
 
-      tmpVertexBuffer[vertexBufferNumPoints][0] =
-          ((originalInputSparse[i].u + dx) * fxi + cxi) * depth;
-      tmpVertexBuffer[vertexBufferNumPoints][1] =
-          ((originalInputSparse[i].v + dy) * fyi + cyi) * depth;
-      tmpVertexBuffer[vertexBufferNumPoints][2] =
-          depth * (1 + 2 * fxi * (rand() / (float)RAND_MAX - 0.5f));
+      Vec3 xyz_ci =
+          Vec3(((originalInputSparse[i].u + dx) * fxi + cxi) * depth,
+               ((originalInputSparse[i].v + dy) * fyi + cyi) * depth,
+               depth * (1 + 2 * fxi * (rand() / (float)RAND_MAX - 0.5f)));
+      Vec3 xyz_c0 =
+          p_multi_camera->cid_to_T01_SE3[originalInputSparse[i].cid] * xyz_ci;
+
+      tmpVertexBuffer[vertexBufferNumPoints][0] = xyz_c0[0];
+      //((originalInputSparse[i].u + dx) * fxi + cxi) * depth;
+      tmpVertexBuffer[vertexBufferNumPoints][1] = xyz_c0[1];
+      //((originalInputSparse[i].v + dy) * fyi + cyi) * depth;
+      tmpVertexBuffer[vertexBufferNumPoints][2] = xyz_c0[2];
+      // depth * (1 + 2 * fxi * (rand() / (float)RAND_MAX - 0.5f));
 
       if (my_displayMode == 0) {
         if (originalInputSparse[i].status == 0) {

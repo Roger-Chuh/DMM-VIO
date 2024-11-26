@@ -39,9 +39,9 @@ namespace IOWrap {
 PangolinDSOViewer::PangolinDSOViewer(
     int w, int h, bool startRunThread,
     std::shared_ptr<dmvio::SettingsUtil> settingsUtilPassed,
-    std::shared_ptr<double> normalizeCamSize)
+    std::shared_ptr<double> normalizeCamSize, MultiCamera *p_multi_camera_)
     : HCalib(0), settingsUtil(std::move(settingsUtilPassed)),
-      normalizeCamSize(normalizeCamSize) {
+      normalizeCamSize(normalizeCamSize), p_multi_camera(p_multi_camera_) {
   this->w = w;
   this->h = h;
   running = true;
@@ -59,8 +59,8 @@ PangolinDSOViewer::PangolinDSOViewer(
   }
 
   {
-    currentCam = new KeyFrameDisplay();
-    currentGTCam = new KeyFrameDisplay();
+    currentCam = new KeyFrameDisplay(p_multi_camera);
+    currentGTCam = new KeyFrameDisplay(p_multi_camera);
   }
 
   needReset = false;
@@ -101,7 +101,7 @@ void PangolinDSOViewer::run() {
 #else
   pangolin::View &Visualization3D_display =
       pangolin::CreateDisplay()
-          .SetBounds(0.0, 0.3, pangolin::Attach::Pix(PointCloud_Start), 1.0,
+          .SetBounds(0.0, 1.0, pangolin::Attach::Pix(UI_WIDTH), 1.0,
                      -w / (float)h)
           .SetHandler(new pangolin::Handler3D(Visualization3D_camera));
 #endif
@@ -126,12 +126,21 @@ void PangolinDSOViewer::run() {
   if (kCameraNumUsed > 1) {
     ratio = 0.3 * kCameraNumUsed;
   }
+#if 0 // def USE_MULTI_CAM
   pangolin::CreateDisplay()
-      .SetBounds(0.0, 1.0, pangolin::Attach::Pix(UI_WIDTH), 1.0)
+      .SetBounds(0.0, 0.9, pangolin::Attach::Pix(UI_WIDTH), 1.0)
       .SetLayout(pangolin::LayoutEqual)
       .AddDisplay(d_kfDepth)
       .AddDisplay(d_video)
       .AddDisplay(d_residual);
+#else
+  pangolin::CreateDisplay()
+      .SetBounds(0.0, 0.3, pangolin::Attach::Pix(UI_WIDTH), 1.0)
+      .SetLayout(pangolin::LayoutEqual)
+      .AddDisplay(d_kfDepth)
+      .AddDisplay(d_video)
+      .AddDisplay(d_residual);
+#endif
 
   // parameter reconfigure gui
   pangolin::CreatePanel("ui").SetBounds(0.0, 1.0, 0.0,
@@ -174,7 +183,7 @@ void PangolinDSOViewer::run() {
   pangolin::Var<int> settings_nCandidates(
       "ui.pointCandidates", setting_desiredImmatureDensity, 50, 5000, false);
   pangolin::Var<int> settings_nMaxFrames("ui.maxFrames", setting_maxFrames, 10,
-                                         15, false);
+                                         30, false);
   // pangolin::Var<int> settings_nMaxFrames("ui.maxFrames",setting_maxFrames,
   // 20,40, false);
   pangolin::Var<double> settings_kfFrequency(
@@ -495,14 +504,16 @@ void PangolinDSOViewer::publishGraph(
     totalMargFwd += p.second[1];
 
     uint64_t inverseKey = (((uint64_t)target) << 32) + ((uint64_t)host);
-    Eigen::Vector2i st = connectivity.at(inverseKey);
-    connections[runningID].bwdAct = st[0];
-    connections[runningID].bwdMarg = st[1];
+    if (connectivity.find(inverseKey) != connectivity.end() || true) {
+      Eigen::Vector2i st = connectivity.at(inverseKey);
+      connections[runningID].bwdAct = st[0];
+      connections[runningID].bwdMarg = st[1];
 
-    totalActBwd += st[0];
-    totalMargBwd += st[1];
+      totalActBwd += st[0];
+      totalMargBwd += st[1];
 
-    runningID++;
+      runningID++;
+    }
   }
 
   model3DMutex.unlock();
@@ -518,7 +529,7 @@ void PangolinDSOViewer::publishKeyframes(std::vector<FrameHessian *> &frames,
   boost::unique_lock<boost::mutex> lk(model3DMutex);
   for (FrameHessian *fh : frames) {
     if (keyframesByKFID.find(fh->frameID) == keyframesByKFID.end()) {
-      KeyFrameDisplay *kfd = new KeyFrameDisplay();
+      KeyFrameDisplay *kfd = new KeyFrameDisplay(p_multi_camera);
       keyframesByKFID[fh->frameID] = kfd;
       keyframes.push_back(kfd);
     }

@@ -104,7 +104,7 @@ public:
 
   void applyRes(bool copyJacobians);
 
-  void debugPlot();
+  void debugPlot(int cid);
 
   void printRows(std::vector<VecX> &v, VecX &r, int nFrames, int nPoints, int M,
                  int res);

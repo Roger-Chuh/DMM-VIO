@@ -28,14 +28,15 @@
 
 #undef Success
 
+#include "../../camera_model/camera_base.h"
 #include "util/NumType.h"
 #include <Eigen/Core>
-#include <pangolin/pangolin.h>
-
 #include <fstream>
+#include <pangolin/pangolin.h>
 #include <sstream>
 
 namespace dso {
+struct MultiCamera;
 class CalibHessian;
 
 class FrameHessian;
@@ -51,6 +52,7 @@ template <int ppp> struct InputPointSparse {
   float idepth_hessian;
   float relObsBaseline;
   int numGoodRes;
+  int cid;
   unsigned char color[ppp];
   unsigned char status;
 };
@@ -66,7 +68,7 @@ class KeyFrameDisplay {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-  KeyFrameDisplay();
+  KeyFrameDisplay(MultiCamera *p_multi_camera_);
 
   ~KeyFrameDisplay();
 
@@ -118,6 +120,7 @@ private:
   int numGLBufferGoodPoints;
   pangolin::GlBuffer vertexBuffer;
   pangolin::GlBuffer colorBuffer;
+  MultiCamera *p_multi_camera = nullptr;
 };
 
 } // namespace IOWrap
