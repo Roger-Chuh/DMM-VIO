@@ -45,7 +45,7 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 # flags
 add_definitions("-DENABLE_SSE")
 set(CMAKE_CXX_FLAGS
-    "${SSE_FLAGS} -g"
+    "${SSE_FLAGS}"
 )
 set(CMAKE_CXX_FLAGS_DEBUG
 	"-O2 -fno-omit-frame-pointer -DEIGEN_INITIALIZE_MATRICES_WITH_NAN -DDEBUG ${STACKTRACE_DEFINES}"

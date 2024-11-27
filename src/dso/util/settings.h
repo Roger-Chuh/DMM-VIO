@@ -48,6 +48,10 @@ namespace dso {
 #define USE_MULTI_CAM
 #ifdef USE_MULTI_CAM
 //#define FIX_ZERO_TRANS_IN_INIT
+#define DISABLE_CROSS_CID_ALIGN
+#ifndef DISABLE_CROSS_CID_ALIGN
+#define USE_HACK
+#endif
 #define kCameraNumUsed 4
 #else
 #define kCameraNumUsed 1

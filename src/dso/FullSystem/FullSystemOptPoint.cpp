@@ -180,6 +180,11 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
 
   for (int i = 0; i < nres; i++)
     if (residuals[i].state_state == ResState::IN) {
+#ifdef DISABLE_CROSS_CID_ALIGN
+      if (p->host_cid != nres_to_target_cid.at(i)) {
+        continue;
+      }
+#endif
       PointFrameResidual *r =
           new PointFrameResidual(p, p->host, residuals[i].target,
                                  point->host_cid, nres_to_target_cid.at(i));

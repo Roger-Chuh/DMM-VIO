@@ -377,7 +377,7 @@ bool CoarseInitializer::trackFrame(
     return snapped && frameID > snappedAt + 5;
   } else {
     // snapped = true;
-    return snapped;
+    return snapped && frameID >= snappedAt + 0;
   }
 }
 
@@ -406,7 +406,11 @@ void CoarseInitializer::debugPlot(
       Pnt *point = points[lvl] + i + level_cid_to_npts_success_offset[lvl][cid];
       if (point->isGood) {
         nid++;
+#ifndef USE_MULTI_CAM
         sid += point->iR;
+#else
+        sid += point->idepth;
+#endif
       }
     }
     float fac = nid / sid;
@@ -420,7 +424,12 @@ void CoarseInitializer::debugPlot(
 
       else
         iRImg.setPixel9(point->u + 0.5f, point->v + 0.5f,
-                        makeRainbow3B(point->iR * fac), point->host_cid);
+#ifndef USE_MULTI_CAM
+                        makeRainbow3B(point->iR * fac),
+#else
+                        makeRainbow3B(point->idepth * fac),
+#endif
+                        point->host_cid);
     }
   }
   // IOWrap::displayImage("idepth-R", &iRImg, false);

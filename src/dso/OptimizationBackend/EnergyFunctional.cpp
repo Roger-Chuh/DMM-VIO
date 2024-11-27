@@ -570,6 +570,10 @@ EFResidual *EnergyFunctional::insertResidual(PointFrameResidual *r,
   // 两帧之间的res计数加一
   // TODO
   // 这个点是刚通过pose固定的光度优化得到的，把这个残差记下来可以在大优化中少计算一点吧？甚至还可以用它计算一些分布用于判断outlier或关键帧什么的?
+#ifdef USE_HACK
+  add_connection = r->host_cid == r->target_cid == 0;
+#endif
+
   if (add_connection) {
     connectivityMap[(((uint64_t)efr->host->frameID) << 32) +
                     ((uint64_t)efr->target->frameID)][0]++;
@@ -672,7 +676,10 @@ void EnergyFunctional::dropResidual(EFResidual *r, bool delete_connection) {
   else
     r->host->data->shell->statistics_outlierResOnThis++;
 
-  // residual关键减一
+    // residual关键减一
+#ifdef USE_HACK
+  delete_connection = r->host_cid == r->target_cid == 0;
+#endif
   if (delete_connection) {
     connectivityMap[(((uint64_t)r->host->frameID) << 32) +
                     ((uint64_t)r->target->frameID)][0]--;
@@ -861,7 +868,13 @@ void EnergyFunctional::marginalizePointsF() {
         // 要把这个点的所有vm都删掉，所以理论上删除每个fid上第一次出现的就行了
         for (EFResidual *r : p->residualsAll) {
           if (r->isActive()) { // 边缘化残差计数
-            if (!target_fids.count(r->target->idx)) {
+            if (
+#ifndef USE_HACK
+                !target_fids.count(r->target->idx)
+#else
+                r->host_cid == r->target_cid == 0
+#endif
+            ) {
               connectivityMap[(((uint64_t)r->host->frameID) << 32) +
                               ((uint64_t)r->target->frameID)][1]++;
               target_fids.emplace(r->target->idx);

@@ -955,6 +955,11 @@ void FullSystem::activatePointsMT() {
       for (PointFrameResidual *r : newpoint->residuals) {
         // TODO roger, 真细，之前花了力气算的factor是一个也不落下,
         // 把历史帧上面的factor也存下来了
+#ifdef DISABLE_CROSS_CID_ALIGN
+        if (ph->host_cid != r->target_cid) {
+          continue;
+        }
+#endif
         ef->insertResidual(r, Hcalib.p_multi_camera,
                            fid_to_res_hit_count.at(r->target->idx) == 0);
         fid_to_res_hit_count.at(r->target->idx)++;
@@ -1666,6 +1671,11 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
       continue;
     for (PointHessian *ph : fh1->pointHessians) {
       for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+#ifdef DISABLE_CROSS_CID_ALIGN
+        if (ph->host_cid != target_cid) {
+          continue;
+        }
+#endif
         // TODO roger,
         // TODO 先无脑给最新帧的每一个cid都配上一个residual，最多再价格标志。
         PointFrameResidual *r = new PointFrameResidual(

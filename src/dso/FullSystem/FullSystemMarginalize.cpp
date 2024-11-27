@@ -244,12 +244,17 @@ void FullSystem::marginalizeFrame(FrameHessian *frame) {
     int target = (int)(it->first & (uint64_t)0xFFFFFFFF);
     if (host == frameID || target == frameID) {
       numDel++;
+      std::cout << "host_fid: " << host << ", target_fid: " << target
+                << ", info: " << it->second.transpose() << std::endl;
       it = ef->connectivityMap.erase(it);
     } else {
       it++;
     }
   }
 #endif
+  printf("====================================================================="
+         "=========== MARG FRAME, all frames: %d, all kfs: %d\n",
+         frameHessians.size(), allKeyFramesHistory.size());
   setPrecalcValues();
   ef->setAdjointsF(&Hcalib);
 }

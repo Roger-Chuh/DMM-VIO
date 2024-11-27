@@ -81,7 +81,7 @@ void PangolinDSOViewer::run() {
   pangolin::CreateWindowAndBind("Main", 2 * w * kCameraNumUsed, 2 * h);
   const int UI_WIDTH = 180;
 #ifdef USE_MULTI_CAM
-  const int PointCloud_Start = 3 * UI_WIDTH;
+  const int PointCloud_Start = 1 * UI_WIDTH;
 #else
   const int PointCloud_Start = UI_WIDTH;
 #endif
@@ -126,9 +126,9 @@ void PangolinDSOViewer::run() {
   if (kCameraNumUsed > 1) {
     ratio = 0.3 * kCameraNumUsed;
   }
-#if 0 // def USE_MULTI_CAM
+#ifdef USE_MULTI_CAM
   pangolin::CreateDisplay()
-      .SetBounds(0.0, 0.9, pangolin::Attach::Pix(UI_WIDTH), 1.0)
+      .SetBounds(0.0, 1.0, pangolin::Attach::Pix(UI_WIDTH), 0.5)
       .SetLayout(pangolin::LayoutEqual)
       .AddDisplay(d_kfDepth)
       .AddDisplay(d_video)
