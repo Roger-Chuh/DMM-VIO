@@ -645,6 +645,7 @@ float ImmaturePoint::calcResidual(CalibHessian *HCalib,
 }
 
 ///@ 计算当前点逆深度的残差, 正规方程(H和b), 残差状态
+#define SHOW_POINT_OPT
 double ImmaturePoint::linearizeResidual(const int &target_cid,
                                         CalibHessian *HCalib,
                                         const float outlierTHSlack,
@@ -670,6 +671,36 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
 
   Vec2f affLL = precalc->PRE_aff_mode;
 
+#ifdef SHOW_POINT_OPT
+  bool show_image = true;
+  MinimalImageB3 *img_host;
+  MinimalImageB3 *img_target;
+  if (show_image) {
+    img_host = new MinimalImageB3(wG[0], hG[0]);
+    img_target = new MinimalImageB3(wG[0], hG[0]);
+
+    for (int i = 0; i < wG[0] * hG[0]; i++) {
+      // BRIGHTNESS TRANSFER
+      float colL = (*(host->dI + wG[0] * hG[0] * host_cid + i))[0];
+      if (colL < 0)
+        colL = 0;
+      if (colL > 255)
+        colL = 255;
+      img_host->at(i, host_cid) = Vec3b(colL, colL, colL);
+      colL = (*(dIl + i))[0];
+      if (colL < 0)
+        colL = 0;
+      if (colL > 255)
+        colL = 255;
+      img_target->at(i, target_cid) = Vec3b(colL, colL, colL);
+    }
+
+    img_host->setPixel9(this->u + 0.5, this->u + 0.5, makeRainbow3B(1),
+                        host_cid);
+  }
+
+#endif
+
   for (int idx = 0; idx < patternNum; idx++) {
     int dx = patternP[idx][0];
     int dy = patternP[idx][1];
@@ -685,6 +716,20 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
       return tmpRes->state_energy;
     }
 
+#ifdef SHOW_POINT_OPT
+    if (show_image) {
+      if (idx == 0 && (Ku > 15 && Kv > 15 && Ku < wG[0] - 15 &&
+                       Kv < hG[0] - 15 && new_idepth > 0)) {
+        img_target->setPixel9(Ku + 0.5, Kv + 0.5, makeRainbow3B(1), target_cid);
+        IOWrap::displayImage("host", img_host);
+        IOWrap::displayImage("target", img_target);
+        IOWrap::waitKey(0);
+      }
+
+      delete img_host;
+      delete img_target;
+    }
+#endif
     /// dIl传进来只是为了得到数据的地址,用以指向角点4邻域内的数据，它的内容并不参与计算，指针妙用
     Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
 

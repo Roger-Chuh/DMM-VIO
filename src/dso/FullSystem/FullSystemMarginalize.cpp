@@ -189,10 +189,10 @@ void FullSystem::marginalizeFrame(FrameHessian *frame) {
           // 要删除这一帧上的所有cid上的res，
           // 所以只有pid在该feid第一次出现的的res要触发delete_connection,
           // 且不能break
-          if (ph->lastResiduals[r->target_cid][0].first == r) {
-            ph->lastResiduals[r->target_cid][0].first = 0;
-          } else if (ph->lastResiduals[r->target_cid][1].first == r) {
-            ph->lastResiduals[r->target_cid][1].first = 0;
+          if (ph->lastResiduals[0].first == r) {
+            ph->lastResiduals[0].first = 0;
+          } else if (ph->lastResiduals[1].first == r) {
+            ph->lastResiduals[1].first = 0;
           }
           if (r->host->frameID < r->target->frameID) {
             statistics_numForceDroppedResFwd++;
@@ -208,7 +208,7 @@ void FullSystem::marginalizeFrame(FrameHessian *frame) {
           // ef->dropResidual(r->efResidual, delete_connection);
           ef->dropResidual(r->efResidual, cur_fid_vm_hit_count == 0);
           deleteOut<PointFrameResidual>(ph->residuals, i);
-          // break;
+          break;
           cur_fid_vm_hit_count++;
         }
       }

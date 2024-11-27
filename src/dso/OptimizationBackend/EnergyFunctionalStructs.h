@@ -61,23 +61,30 @@ public:
   //    assert(((long)J) % 16 == 0);
   //  }
   inline EFResidual(PointFrameResidual *org, EFPoint *point_, EFFrame *host_,
-                    EFFrame *target_, int host_cid_, int target_cid_,
+                    EFFrame *target_, int host_cid_, /*int target_cid_,*/
                     MultiCamera *p_multi_camera_)
       : data(org), point(point_), host(host_), target(target_),
-        host_cid(host_cid_), target_cid(target_cid_),
+        host_cid(host_cid_), /*target_cid(target_cid_),*/
         p_multi_camera(p_multi_camera_) {
-    isLinearized = false;
-    isActiveAndIsGoodNEW = false;
-    J = new RawResidualJacobian(host_cid, target_cid);
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      isLinearized[cid] = false;
+      isActiveAndIsGoodNEW[cid] = false;
+      J[cid] = new RawResidualJacobian(host_cid, cid /*target_cid*/);
+      assert(((long)(J[cid])) % 16 == 0);
+    }
     assert(((long)this) % 16 == 0);
-    assert(((long)J) % 16 == 0);
+    // assert(((long)J) % 16 == 0);
   }
 
-  inline ~EFResidual() { delete J; }
+  inline ~EFResidual() {
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      delete J[cid];
+    }
+  }
 
-  void takeDataF();
+  void takeDataF(int cid);
 
-  void fixLinearizationF(EnergyFunctional *ef);
+  void fixLinearizationF(EnergyFunctional *ef, int cid);
 
   MultiCamera *p_multi_camera;
   // structural pointers
@@ -88,19 +95,21 @@ public:
   EFFrame *target;        //!< 目标
   int idxInAll;           //!< 所有残差中的id
 
-  RawResidualJacobian *J; //!< 用来计算jacob, res值
+  RawResidualJacobian *J[kCameraNumUsed]; //!< 用来计算jacob, res值
 
-  VecNRf res_toZeroF; //!< 更新delta后的线性残差
-  VecStatef JpJdF;    //!< 逆深度Jaco和位姿+光度Jaco的Hessian
+  std::array<VecNRf, kCameraNumUsed> res_toZeroF; //!< 更新delta后的线性残差
+  std::array<VecStatef, kCameraNumUsed>
+      JpJdF; //!< 逆深度Jaco和位姿+光度Jaco的Hessian
 
   int host_cid, target_cid;
   // status.
-  bool isLinearized; //!< 计算完成res_toZeroF
+  std::array<bool, kCameraNumUsed> isLinearized; //!< 计算完成res_toZeroF
 
   // if residual is not OOB & not OUTLIER & should be used during accumulations
-  bool isActiveAndIsGoodNEW; //!< 激活的还可以参与优化
-  inline const bool &isActive() const {
-    return isActiveAndIsGoodNEW;
+  std::array<bool, kCameraNumUsed>
+      isActiveAndIsGoodNEW; //!< 激活的还可以参与优化
+  inline const bool &isActive(const int &cid) const {
+    return isActiveAndIsGoodNEW[cid];
   } //!< 是不是激活的取决于残差状态
 };
 
@@ -114,7 +123,8 @@ public:
 
   EFPoint(PointHessian *d, EFFrame *host_, const int &host_cid_,
           const int &target_cid_ = -1)
-      : data(d), host(host_), host_cid(host_cid_), target_cid(target_cid_) {
+      : data(d), host(host_),
+        host_cid(host_cid_) /*, target_cid(target_cid_)*/ {
     takeData();
     stateFlag = EFPointStatus::PS_GOOD;
   }
@@ -136,7 +146,7 @@ public:
   std::vector<EFResidual *> residualsAll; //!< 该点的所有残差
 
   int host_cid;
-  int target_cid;
+  // int target_cid;
 
   float bdSumF;    //!< 当前残差 + 边缘化先验残差
   float HdiF;      //!< 逆深度hessian的逆, 协方差

@@ -151,26 +151,28 @@ void CoarseTracker::makeCoarseDepthL0(
 
   //[ ***step 1*** ] 计算其它点在最新帧投影第0层上的各个像素的逆深度权重,
   //和加权逆深度
-  for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
-    for (FrameHessian *fh : frameHessians) {
-      for (PointHessian *ph : fh->pointHessians) {
-        // 点的上一次残差正常
-        //* 优化之后上一次不好的置为0，用来指示，而点是没有删除的，残差删除了
-        if (ph->lastResiduals[target_cid][0].first != 0 &&
-            ph->lastResiduals[target_cid][0].second == ResState::IN) {
-          PointFrameResidual *r = ph->lastResiduals[target_cid][0].first;
-          assert(r->target_cid == target_cid);
+  // for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+  for (FrameHessian *fh : frameHessians) {
+    for (PointHessian *ph : fh->pointHessians) {
+      // 点的上一次残差正常
+      //* 优化之后上一次不好的置为0，用来指示，而点是没有删除的，残差删除了
+      for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+        if (ph->lastResiduals[0].first != 0 &&
+            ph->lastResiduals[0].second[target_cid] == ResState::IN) {
+          printf("hit\n");
+          PointFrameResidual *r = ph->lastResiduals[0].first;
+          // assert(r->target_cid == target_cid);
           // if (r->target_cid != target_cid) {
           // continue;
           //}
-          assert(r->efResidual->isActive() &&
+          assert(r->efResidual->isActive(target_cid) &&
                  r->target ==
                      lastRef); // 点的残差是好的, 上一次优化的target是这次的ref
           // TODO roger,
           // 我其实是知道这个r是往哪个相机投影得到的，所以centerProjectedTo不需要用array，都已经具体到残差r了，肯定不需要用array了
-          int u = r->centerProjectedTo[0] + 0.5f; // 四舍五入
-          int v = r->centerProjectedTo[1] + 0.5f;
-          float new_idepth = r->centerProjectedTo[2];
+          int u = r->centerProjectedTo[target_cid][0] + 0.5f; // 四舍五入
+          int v = r->centerProjectedTo[target_cid][1] + 0.5f;
+          float new_idepth = r->centerProjectedTo[target_cid][2];
           float weight =
               sqrtf(1e-3 / (ph->efPoint->HdiF + 1e-12)); // 协方差逆做权重
 
@@ -180,7 +182,8 @@ void CoarseTracker::makeCoarseDepthL0(
         }
       }
     }
-
+  }
+  for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
     //[ ***step 2*** ] 从下层向上层生成逆深度和权重
     for (int lvl = 1; lvl < pyrLevelsUsed; lvl++) {
       int lvlm1 = lvl - 1;
@@ -504,7 +507,7 @@ void CoarseTracker::calcGSSSE(int lvl, MatState &H_out, VecState &b_out,
 
 //@ 计算当前位姿投影得到的残差(能量值), 并进行一些统计
 //! 构造尽量多的点, 有助于跟踪
-//#define SHOW_TRACK_RES
+#define SHOW_TRACK_RES
 Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
                             const SE3 &refToNew_, AffLight aff_g2l,
                             float cutoffTH, bool show_image) {
@@ -557,6 +560,7 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
       }
       //* 投影在ref帧上的点
       int nl = pc_n[lvl][host_cid];
+      printf("nl: %d\n", nl);
       float *lpc_u = pc_u[lvl] + wl * hl * host_cid;
       float *lpc_v = pc_v[lvl] + wl * hl * host_cid;
       float *lpc_idepth = pc_idepth[lvl] + wl * hl * host_cid;
@@ -662,7 +666,7 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
                              [numTermsInWarped /* + address_offset*/] =
                                  lpc_color[i];
 #ifdef SHOW_TRACK_RES
-          show_image = i % 300 == 0;
+          show_image = true; // i % 300 == 0;
           MinimalImageB3 *img_host;
           MinimalImageB3 *img_target;
           if (show_image && (Ku > 15 && Kv > 15 && Ku < wl - 15 &&
@@ -811,8 +815,10 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
     //    for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
     //      for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid)
     //      {
+    printf("aa\n");
     resOld = calcRes(lastRef, lvl, refToNew_current, aff_g2l_current,
                      setting_coarseCutoffTH * levelCutoffRepeat, lvl == 0);
+    printf("bb\n");
     //      }
     //    }
     //* 保证大于阈值的点小于60%

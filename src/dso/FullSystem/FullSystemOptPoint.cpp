@@ -108,11 +108,11 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
     float newHdd = 0;
     float newbd = 0;
     float newEnergy = 0;
-    for (int i = 0; i < nres; i++)
+    for (int i = 0; i < nres; i++) {
       newEnergy +=
           point->linearizeResidual(nres_to_target_cid.at(i), &Hcalib, 1,
                                    residuals + i, newHdd, newbd, newIdepth);
-
+    }
     if (!std::isfinite(lastEnergy) || newHdd < setting_minIdepthH_act) {
       if (print)
         printf("OptPoint: Not well-constrained (%d res, H=%.1f). E=%f. SKIP!\n",
@@ -120,7 +120,7 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
       return 0;
     }
 
-    if (print)
+    if (print || true)
       printf("%s %d (L %.2f) %s: %f -> %f (idepth %f)!\n",
              (true || newEnergy < lastEnergy) ? "ACCEPT" : "REJECT", iteration,
              log10(lambda), "", lastEnergy, newEnergy, newIdepth);
@@ -168,43 +168,123 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
     delete p;
     return (PointHessian *)((long)(-1));
   }
+  std::array<ResState, kCameraNumUsed> res_state_out{};
   for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
-    p->lastResiduals[target_cid][0].first = 0;
-    p->lastResiduals[target_cid][0].second = ResState::OOB;
-    p->lastResiduals[target_cid][1].first = 0;
-    p->lastResiduals[target_cid][1].second = ResState::OOB;
+    res_state_out[target_cid] = ResState::OOB;
   }
+
+  p->lastResiduals[0].first = 0;
+  p->lastResiduals[0].second = res_state_out;
+  p->lastResiduals[1].first = 0;
+  p->lastResiduals[1].second = res_state_out;
+
   p->setIdepthZero(currentIdepth);
   p->setIdepth(currentIdepth);
   p->setPointStatus(PointHessian::ACTIVE);
 
-  for (int i = 0; i < nres; i++)
+  std::array<ResState, kCameraNumUsed> res_state{};
+  for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+    res_state[target_cid] = ResState::IN;
+  }
+
+#ifndef USE_BUNDLED_RES
+  for (int i = 0; i < nres; i++) {
     if (residuals[i].state_state == ResState::IN) {
 #ifdef DISABLE_CROSS_CID_ALIGN
       if (p->host_cid != nres_to_target_cid.at(i)) {
         continue;
       }
 #endif
-      PointFrameResidual *r =
-          new PointFrameResidual(p, p->host, residuals[i].target,
-                                 point->host_cid, nres_to_target_cid.at(i));
-      r->state_NewEnergy = r->state_energy = 0;
-      r->state_NewState = ResState::OUTLIER;
-      r->setState(ResState::IN);
-      // TODO roger, 新建residuals，并且推到新激活的点里
-      p->residuals.push_back(r);
+      // TODO roger, 这个res是可能属于同一个pid的，要注意
+      PointFrameResidual *r = new PointFrameResidual(
+          p, p->host, residuals[i].target,
+          point->host_cid /*, nres_to_target_cid.at(i)*/);
+      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+        r->state_NewEnergy[cid] = r->state_energy[cid] = 0;
+        r->state_NewState[cid] = ResState::OUTLIER;
+        r->setState(ResState::IN, cid);
+        // TODO roger, 新建residuals，并且推到新激活的点里
+        // p->residuals.push_back(r);
 
+        //            if (r->target == frameHessians.back()) {
+        //                p->lastResiduals[nres_to_target_cid.at(i)][0].first =
+        //                r;
+        //                p->lastResiduals[nres_to_target_cid.at(i)][0].second =
+        //                ResState::IN;
+        //            } else if (r->target == (frameHessians.size() < 2
+        //                                     ? 0
+        //                                     :
+        //                                     frameHessians[frameHessians.size()
+        //                                     - 2])) {
+        //                p->lastResiduals[nres_to_target_cid.at(i)][1].first =
+        //                r;
+        //                p->lastResiduals[nres_to_target_cid.at(i)][1].second =
+        //                ResState::IN;
+        //            }
+      }
       if (r->target == frameHessians.back()) {
-        p->lastResiduals[nres_to_target_cid.at(i)][0].first = r;
-        p->lastResiduals[nres_to_target_cid.at(i)][0].second = ResState::IN;
+        p->lastResiduals[0].first = r;
+        p->lastResiduals[0].second = res_state; // ResState::IN;
       } else if (r->target == (frameHessians.size() < 2
                                    ? 0
                                    : frameHessians[frameHessians.size() - 2])) {
-        p->lastResiduals[nres_to_target_cid.at(i)][1].first = r;
-        p->lastResiduals[nres_to_target_cid.at(i)][1].second = ResState::IN;
+        p->lastResiduals[1].first = r;
+        p->lastResiduals[1].second = res_state; // ResState::IN;
       }
+      p->residuals.push_back(r);
     }
+  }
+#else
+  for (int i = 0; i < nres; i += kCameraNumUsed) {
+    int inlier_count = 0;
+    for (int idx = i; idx < i + kCameraNumUsed; ++idx) {
+      if (residuals[i + idx].state_state == ResState::IN) {
+        inlier_count++;
+      }
+      assert(residuals[i].target == residuals[i + idx].target);
+    }
+    if (inlier_count > 0 /*residuals[i].state_state == ResState::IN*/) {
+      // TODO roger, 这个res是可能属于同一个pid的，要注意
+      PointFrameResidual *r = new PointFrameResidual(
+          p, p->host, residuals[i].target,
+          point->host_cid /*, nres_to_target_cid.at(i)*/);
+      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+        r->state_NewEnergy[cid] = r->state_energy[cid] = 0;
+        r->state_NewState[cid] = ResState::OUTLIER;
+        r->setState(ResState::IN, cid);
+        // TODO roger, 新建residuals，并且推到新激活的点里
+        // p->residuals.push_back(r);
 
+        //            if (r->target == frameHessians.back()) {
+        //                p->lastResiduals[nres_to_target_cid.at(i)][0].first =
+        //                r;
+        //                p->lastResiduals[nres_to_target_cid.at(i)][0].second =
+        //                ResState::IN;
+        //            } else if (r->target == (frameHessians.size() < 2
+        //                                     ? 0
+        //                                     :
+        //                                     frameHessians[frameHessians.size()
+        //                                     - 2])) {
+        //                p->lastResiduals[nres_to_target_cid.at(i)][1].first =
+        //                r;
+        //                p->lastResiduals[nres_to_target_cid.at(i)][1].second =
+        //                ResState::IN;
+        //            }
+      }
+      if (r->target == frameHessians.back()) {
+        printf("point with good res\n");
+        p->lastResiduals[0].first = r;
+        p->lastResiduals[0].second = res_state; // ResState::IN;
+      } else if (r->target == (frameHessians.size() < 2
+                                   ? 0
+                                   : frameHessians[frameHessians.size() - 2])) {
+        p->lastResiduals[1].first = r;
+        p->lastResiduals[1].second = res_state; // ResState::IN;
+      }
+      p->residuals.push_back(r);
+    }
+  }
+#endif
   if (print)
     printf("point activated!\n");
 

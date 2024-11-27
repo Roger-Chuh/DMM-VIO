@@ -50,124 +50,126 @@ void AccumulatedTopHessianSSE::addPoint(
   // std::cout << "p->residualsAll: " << p->residualsAll.size() << std::endl;
   for (EFResidual *r : p->residualsAll) // 对该点所有残差遍历一遍
   {
-    //* 这个和运行的mode不一样, 又混了.....
-    if (mode == 0) // 只计算新加入的残差
-    {
-      if (r->isLinearized || !r->isActive()) {
-        // printf("continue 1\n");
-        continue;
+    for (int cid_now = 0; cid_now < kCameraNumUsed; ++cid_now) {
+      //* 这个和运行的mode不一样, 又混了.....
+      if (mode == 0) // 只计算新加入的残差
+      {
+        if (r->isLinearized[cid_now] || !r->isActive(cid_now)) {
+          // printf("continue 1\n");
+          continue;
+        }
       }
-    }
-    if (mode == 1) // bug: 这个条件就一直满足 计算旧的残差, 之前计算过得
-    {
-      // TODO 会一直continue， mode == 1时没什么用
-      // TODO 只要是active的那一定是isLinearized (not necessary) (must be)
-      /*//TODO 详见code below
-       * if(r->efResidual->isActive())
-                  {
-                      r->efResidual->fixLinearizationF(ef);
-                      ngoodRes++;
-                  }
-       */
-      if (!r->isLinearized || !r->isActive()) {
-        // printf("continue 2\n");
-        continue;
+      if (mode == 1) // bug: 这个条件就一直满足 计算旧的残差, 之前计算过得
+      {
+        // TODO 会一直continue， mode == 1时没什么用
+        // TODO 只要是active的那一定是isLinearized (not necessary) (must be)
+        /*//TODO 详见code below
+         * if(r->efResidual->isActive())
+                    {
+                        r->efResidual->fixLinearizationF(ef);
+                        ngoodRes++;
+                    }
+         */
+        if (!r->isLinearized[cid_now] || !r->isActive(cid_now)) {
+          // printf("continue 2\n");
+          continue;
+        }
       }
-    }
-    if (mode == 2) // 边缘化计算的情况
-    {
-      if (!r->isActive()) {
-        // printf("continue 3\n");
-        continue;
+      if (mode == 2) // 边缘化计算的情况
+      {
+        if (!r->isActive(cid_now)) {
+          // printf("continue 3\n");
+          continue;
+        }
+        assert(r->isLinearized[cid_now]);
       }
-      assert(r->isLinearized);
-    }
-    // if(mode == 1)
-    // {
-    // 	printf("yeah I'm IN !");
-    // }
+      // if(mode == 1)
+      // {
+      // 	printf("yeah I'm IN !");
+      // }
 
-    RawResidualJacobian *rJ = r->J; // 导数
-    //* ID 来控制不同帧之间的变量, 区分出相同两帧 但是host target角色互换的
-    int htIDX = r->hostIDX + r->targetIDX * nframes[tid];
-    Mat18f dp =
-        ef->adHTdeltaF[htIDX]; // 位姿+光度a b
-                               // std::cout << "dp: " << dp << std::endl;
-    VecNRf resApprox;
-    if (mode == 0)
-      resApprox = rJ->resF; // TODO 还没做线性化，即还没有雅可比
-    if (mode == 2) {        // 边缘化时使用的
-      resApprox = r->res_toZeroF; //!< 更新delta后的线性残差
-    }
-    // std::cout << "resApprox: " << resApprox.transpose() << std::endl;
-    if (mode == 1) {
-      // compute Jp*delta
-      // TODO fixLinearization = true
-      //* 因为计算的是旧的, 由于更新需要重新计算
-      // TODO compute Jp*delta, pose idp camera的变化带来的投影点的像素变化
-      __m128 Jp_delta_x = _mm_set1_ps(rJ->Jpdxi[0].dot(dp.head<6>()) +
-                                      rJ->Jpdc[0].dot(dc) + rJ->Jpdd[0] * dd);
-      __m128 Jp_delta_y = _mm_set1_ps(rJ->Jpdxi[1].dot(dp.head<6>()) +
-                                      rJ->Jpdc[1].dot(dc) + rJ->Jpdd[1] * dd);
-      __m128 delta_a = _mm_set1_ps((float)(dp[6]));
-      __m128 delta_b = _mm_set1_ps((float)(dp[7]));
+      RawResidualJacobian *rJ = r->J[cid_now]; // 导数
+      //* ID 来控制不同帧之间的变量, 区分出相同两帧 但是host target角色互换的
+      int htIDX = r->hostIDX + r->targetIDX * nframes[tid];
+      Mat18f dp = ef->adHTdeltaF[htIDX]; // 位姿+光度a b
+      // std::cout << "dp: " << dp << std::endl;
+      VecNRf resApprox;
+      if (mode == 0)
+        resApprox = rJ->resF; // TODO 还没做线性化，即还没有雅可比
+      if (mode == 2) {        // 边缘化时使用的
+        resApprox = r->res_toZeroF[cid_now]; //!< 更新delta后的线性残差
+      }
+      // std::cout << "resApprox: " << resApprox.transpose() << std::endl;
+      if (mode == 1) {
+        // compute Jp*delta
+        // TODO fixLinearization = true
+        //* 因为计算的是旧的, 由于更新需要重新计算
+        // TODO compute Jp*delta, pose idp camera的变化带来的投影点的像素变化
+        __m128 Jp_delta_x = _mm_set1_ps(rJ->Jpdxi[0].dot(dp.head<6>()) +
+                                        rJ->Jpdc[0].dot(dc) + rJ->Jpdd[0] * dd);
+        __m128 Jp_delta_y = _mm_set1_ps(rJ->Jpdxi[1].dot(dp.head<6>()) +
+                                        rJ->Jpdc[1].dot(dc) + rJ->Jpdd[1] * dd);
+        __m128 delta_a = _mm_set1_ps((float)(dp[6]));
+        __m128 delta_b = _mm_set1_ps((float)(dp[7]));
 
-      for (int i = 0; i < patternNum; i += 4) {
-        // PATTERN: rtz = resF - [JI*Jp Ja]*delta.
-        //! PATTERN: rtz = res_toZeroF - [JI*Jp Ja]*delta.
-        //! rtz = res_toZeroF - [JI] * [Jp * delta_pose_camera_idp].
-        //! rtz = res_toZeroF - [Jab] * [delta_ab].
-        // TODO * 线性更新b值, 边缘化量, 每次在res_toZeroF上减
-        __m128 rtz = _mm_load_ps(((float *)&r->res_toZeroF) + i);
-        // TODO rtz = rtz
-        // 这是加法，add
-        rtz = _mm_add_ps(rtz, _mm_mul_ps(_mm_load_ps(((float *)(rJ->JIdx)) + i),
+        for (int i = 0; i < patternNum; i += 4) {
+          // PATTERN: rtz = resF - [JI*Jp Ja]*delta.
+          //! PATTERN: rtz = res_toZeroF - [JI*Jp Ja]*delta.
+          //! rtz = res_toZeroF - [JI] * [Jp * delta_pose_camera_idp].
+          //! rtz = res_toZeroF - [Jab] * [delta_ab].
+          // TODO * 线性更新b值, 边缘化量, 每次在res_toZeroF上减
+          __m128 rtz = _mm_load_ps(((float *)&r->res_toZeroF) + i);
+          // TODO rtz = rtz
+          // 这是加法，add
+          rtz =
+              _mm_add_ps(rtz, _mm_mul_ps(_mm_load_ps(((float *)(rJ->JIdx)) + i),
                                          Jp_delta_x));
-        rtz = _mm_add_ps(
-            rtz,
-            _mm_mul_ps(_mm_load_ps(((float *)(rJ->JIdx + 1)) + i), Jp_delta_y));
-        rtz = _mm_add_ps(
-            rtz, _mm_mul_ps(_mm_load_ps(((float *)(rJ->JabF)) + i), delta_a));
-        rtz = _mm_add_ps(
-            rtz,
-            _mm_mul_ps(_mm_load_ps(((float *)(rJ->JabF + 1)) + i), delta_b));
-        _mm_store_ps(((float *)&resApprox) + i, rtz);
+          rtz = _mm_add_ps(
+              rtz, _mm_mul_ps(_mm_load_ps(((float *)(rJ->JIdx + 1)) + i),
+                              Jp_delta_y));
+          rtz = _mm_add_ps(
+              rtz, _mm_mul_ps(_mm_load_ps(((float *)(rJ->JabF)) + i), delta_a));
+          rtz = _mm_add_ps(
+              rtz,
+              _mm_mul_ps(_mm_load_ps(((float *)(rJ->JabF + 1)) + i), delta_b));
+          _mm_store_ps(((float *)&resApprox) + i, rtz);
+        }
       }
+
+      // need to compute JI^T * r, and Jab^T * r. (both are 2-vectors).
+      Vec2f JI_r(0, 0);
+      Vec2f Jab_r(0, 0);
+      float rr = 0;
+      for (int i = 0; i < patternNum; i++) {
+        JI_r[0] += resApprox[i] * rJ->JIdx[0][i];
+        JI_r[1] += resApprox[i] * rJ->JIdx[1][i];
+        Jab_r[0] += resApprox[i] * rJ->JabF[0][i]; // TODO accumulate b = J^T *
+        // res
+        Jab_r[1] += resApprox[i] * rJ->JabF[1][i];
+        rr += resApprox[i] * resApprox[i];
+      }
+
+      // TODO * 计算hessian 更新10*10矩阵, [位姿+相机参数] , 累加的过程
+      acc[tid][htIDX].update(rJ->Jpdc[0].data(), rJ->Jpdxi[0].data(),
+                             rJ->Jpdc[1].data(), rJ->Jpdxi[1].data(),
+                             rJ->JIdx2(0, 0), rJ->JIdx2(0, 1), rJ->JIdx2(1, 1));
+      //* 计算 3*3 矩阵, [光度a, 光度b, 残差r]
+      acc[tid][htIDX].updateBotRight(rJ->Jab2(0, 0), rJ->Jab2(0, 1), Jab_r[0],
+                                     rJ->Jab2(1, 1), Jab_r[1], rr);
+      //* 计算 10*3 矩阵, [位姿+相机参数]*[光度a, 光度b, 残差r]
+      acc[tid][htIDX].updateTopRight(
+          rJ->Jpdc[0].data(), rJ->Jpdxi[0].data(), rJ->Jpdc[1].data(),
+          rJ->Jpdxi[1].data(), rJ->JabJIdx(0, 0), rJ->JabJIdx(0, 1),
+          rJ->JabJIdx(1, 0), rJ->JabJIdx(1, 1), JI_r[0], JI_r[1]);
+
+      Vec2f Ji2_Jpdd = rJ->JIdx2 * rJ->Jpdd;
+      bd_acc += JI_r[0] * rJ->Jpdd[0] + JI_r[1] * rJ->Jpdd[1]; //* 残差*逆深度J
+      Hdd_acc += Ji2_Jpdd.dot(rJ->Jpdd); //* 光度对逆深度hessian
+      Hcd_acc += rJ->Jpdc[0] * Ji2_Jpdd[0] +
+                 rJ->Jpdc[1] * Ji2_Jpdd[1]; //* 光度对内参J*光度对逆深度J
+
+      nres[tid]++;
     }
-
-    // need to compute JI^T * r, and Jab^T * r. (both are 2-vectors).
-    Vec2f JI_r(0, 0);
-    Vec2f Jab_r(0, 0);
-    float rr = 0;
-    for (int i = 0; i < patternNum; i++) {
-      JI_r[0] += resApprox[i] * rJ->JIdx[0][i];
-      JI_r[1] += resApprox[i] * rJ->JIdx[1][i];
-      Jab_r[0] += resApprox[i] * rJ->JabF[0][i]; // TODO accumulate b = J^T *
-                                                 // res
-      Jab_r[1] += resApprox[i] * rJ->JabF[1][i];
-      rr += resApprox[i] * resApprox[i];
-    }
-
-    // TODO * 计算hessian 更新10*10矩阵, [位姿+相机参数] , 累加的过程
-    acc[tid][htIDX].update(rJ->Jpdc[0].data(), rJ->Jpdxi[0].data(),
-                           rJ->Jpdc[1].data(), rJ->Jpdxi[1].data(),
-                           rJ->JIdx2(0, 0), rJ->JIdx2(0, 1), rJ->JIdx2(1, 1));
-    //* 计算 3*3 矩阵, [光度a, 光度b, 残差r]
-    acc[tid][htIDX].updateBotRight(rJ->Jab2(0, 0), rJ->Jab2(0, 1), Jab_r[0],
-                                   rJ->Jab2(1, 1), Jab_r[1], rr);
-    //* 计算 10*3 矩阵, [位姿+相机参数]*[光度a, 光度b, 残差r]
-    acc[tid][htIDX].updateTopRight(
-        rJ->Jpdc[0].data(), rJ->Jpdxi[0].data(), rJ->Jpdc[1].data(),
-        rJ->Jpdxi[1].data(), rJ->JabJIdx(0, 0), rJ->JabJIdx(0, 1),
-        rJ->JabJIdx(1, 0), rJ->JabJIdx(1, 1), JI_r[0], JI_r[1]);
-
-    Vec2f Ji2_Jpdd = rJ->JIdx2 * rJ->Jpdd;
-    bd_acc += JI_r[0] * rJ->Jpdd[0] + JI_r[1] * rJ->Jpdd[1]; //* 残差*逆深度J
-    Hdd_acc += Ji2_Jpdd.dot(rJ->Jpdd); //* 光度对逆深度hessian
-    Hcd_acc += rJ->Jpdc[0] * Ji2_Jpdd[0] +
-               rJ->Jpdc[1] * Ji2_Jpdd[1]; //* 光度对内参J*光度对逆深度J
-
-    nres[tid]++;
   }
   // std::cout << 'Hdd_acc:\n' << Hdd_acc << std::endl;
   if (mode == 0) {

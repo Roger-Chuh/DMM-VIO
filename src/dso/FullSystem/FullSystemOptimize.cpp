@@ -54,54 +54,59 @@ void FullSystem::linearizeAll_Reductor(
   for (int k = min; k < max;
        k++) { /// 对每一个host点（landmark）遍历，算出他们的光度误差
     PointFrameResidual *r = activeResiduals[k];
-    (*stats)[0] += r->linearize(&Hcalib); // 线性化得到能量
-
-    if (fixLinearization) // 固定线性化（优化后执行）
-    {
-      r->applyRes(true); // 把值给efResidual
-
-      if (r->efResidual->isActive()) // 残差是in的
-      {
-        if (r->isNew) { // TODO 理解无穷远点
-          PointHessian *p = r->point;
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      (*stats)[0] += r->linearize(&Hcalib, cid); // 线性化得到能量
+    }
+    if (fixLinearization) { // 固定线性化（优化后执行）
+      int active_count = 0;
+      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+        r->applyRes(true, cid); // 把值给efResidual
+      }
+      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+        if (r->efResidual->isActive(cid)) { // 残差是in的
+          if (r->isNew[cid]) {              // TODO 理解无穷远点
+            PointHessian *p = r->point;
 #if 0
-          Vec3f ptp_inf =
-              r->host->targetPrecalc[r->target->idx].PRE_KRKiTll *
-              Vec3f(p->u, p->v, 1); // projected point assuming infinite depth.
-          Vec3f ptp = ptp_inf +
-                      r->host->targetPrecalc[r->target->idx].PRE_KtTll *
-                          p->idepth_scaled; // projected point with real depth.
+                Vec3f ptp_inf =
+                    r->host->targetPrecalc[r->target->idx].PRE_KRKiTll *
+                    Vec3f(p->u, p->v, 1); // projected point assuming infinite depth.
+                Vec3f ptp = ptp_inf +
+                            r->host->targetPrecalc[r->target->idx].PRE_KtTll *
+                                p->idepth_scaled; // projected point with real depth.
 #else
-          // printf("[host target] : [%d %d]\n", r->host_cid, r->target_cid);
-          // std::cout<<"r->host->targetPrecalc[r->target->idx]\n"
-          //           "                  .a_PRE_KRKiTll[r->host_cid *
-          //           kCameraNumUsed +
-          //           r->target_cid]:\n"<<r->host->targetPrecalc[r->target->idx]
-          //        .a_PRE_KRKiTll[r->host_cid * kCameraNumUsed +
-          //        r->target_cid]<<std::endl;
-          //            std::cout<<"delta
-          //            Tc0:\n"<<r->host->targetPrecalc[r->target->idx]
-          //                             .PRE_KRKiTll<<std::endl;
-          Vec3f ptp_inf =
-              r->host->targetPrecalc[r->target->idx]
-                  .a_PRE_KRKiTll[r->host_cid * kCameraNumUsed + r->target_cid] *
-              Vec3f(p->u, p->v, 1); // projected point assuming infinite depth.
-          Vec3f ptp = ptp_inf +
-                      r->host->targetPrecalc[r->target->idx]
-                              .a_PRE_KtTll[r->host_cid * kCameraNumUsed +
-                                           r->target_cid] *
-                          p->idepth_scaled; // projected point with real depth.
+            // printf("[host target] : [%d %d]\n", r->host_cid, r->target_cid);
+            // std::cout<<"r->host->targetPrecalc[r->target->idx]\n"
+            //           "                  .a_PRE_KRKiTll[r->host_cid *
+            //           kCameraNumUsed +
+            //           r->target_cid]:\n"<<r->host->targetPrecalc[r->target->idx]
+            //        .a_PRE_KRKiTll[r->host_cid * kCameraNumUsed +
+            //        r->target_cid]<<std::endl;
+            //            std::cout<<"delta
+            //            Tc0:\n"<<r->host->targetPrecalc[r->target->idx]
+            //                             .PRE_KRKiTll<<std::endl;
+            Vec3f ptp_inf =
+                r->host->targetPrecalc[r->target->idx]
+                    .a_PRE_KRKiTll[r->host_cid * kCameraNumUsed + cid] *
+                Vec3f(p->u, p->v,
+                      1); // projected point assuming infinite depth.
+            Vec3f ptp =
+                ptp_inf +
+                r->host->targetPrecalc[r->target->idx]
+                        .a_PRE_KtTll[r->host_cid * kCameraNumUsed + cid] *
+                    p->idepth_scaled; // projected point with real depth.
 #endif
-          float relBS = 0.01 * ((ptp_inf.head<2>() / ptp_inf[2]) -
-                                (ptp.head<2>() / ptp[2]))
-                                   .norm(); // 0.01 = one pixel.
+            float relBS = 0.01 * ((ptp_inf.head<2>() / ptp_inf[2]) -
+                                  (ptp.head<2>() / ptp[2]))
+                                     .norm(); // 0.01 = one pixel.
 
-          if (relBS > p->maxRelBaseline) {
-            p->maxRelBaseline = relBS; // 正比于点的基线长度
+            if (relBS > p->maxRelBaseline) {
+              p->maxRelBaseline = relBS; // 正比于点的基线长度
+            }
+            p->numGoodResiduals++;
           }
-          p->numGoodResiduals++;
         }
-      } else { //* tid线程的id
+      }
+      if (active_count == 0) { //* tid线程的id
         // 删除OOB, Outlier
         // printf("outlier??\n");
         toRemove[tid].push_back(activeResiduals[k]); // 残差太大则移除
@@ -117,7 +122,9 @@ void FullSystem::applyRes_Reductor(bool copyJacobians, int min, int max,
   for (int k = min; k < max; k++) {
     // todo
     // 因为是刚把activeResidual线性化的，所以这里还是为activeResidual拷贝雅可比和residual
-    activeResiduals[k]->applyRes(true);
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      activeResiduals[k]->applyRes(true, cid);
+    }
   }
 }
 
@@ -129,13 +136,20 @@ void FullSystem::setNewFrameEnergyTH() {
   allResVec.reserve(activeResiduals.size() * 2);
   FrameHessian *newFrame = frameHessians.back();
 
-  for (PointFrameResidual *r : activeResiduals)
-    if (r->state_NewEnergyWithOutlier >= 0 &&
-        r->target == newFrame) // 新的帧上残差
-    {
-      allResVec.push_back(r->state_NewEnergyWithOutlier);
+  for (PointFrameResidual *r : activeResiduals) {
+    float energy_count = 0;
+    float energy_sum = 0;
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      if (r->state_NewEnergyWithOutlier[cid] >= 0 &&
+          r->target == newFrame) { // 新的帧上残差
+        energy_sum += r->state_NewEnergyWithOutlier[cid];
+        energy_count += 1;
+      }
     }
-
+    if (energy_count > 0) {
+      allResVec.push_back(energy_sum / energy_count);
+    }
+  }
   if (allResVec.size() == 0) {
     newFrame->frameEnergyTH = 12 * 12 * patternNum;
     return; // should never happen, but lets make sure.
@@ -203,10 +217,10 @@ Vec3 FullSystem::linearizeAll(bool fixLinearization) {
     /// state_state只有oob，in这些吧，都是enum，不是具体数值
     for (PointFrameResidual *r : activeResiduals) {
       PointHessian *ph = r->point;
-      if (ph->lastResiduals[r->target_cid][0].first == r)
-        ph->lastResiduals[r->target_cid][0].second = r->state_state;
-      else if (ph->lastResiduals[r->target_cid][1].first == r)
-        ph->lastResiduals[r->target_cid][1].second = r->state_state;
+      if (ph->lastResiduals[0].first == r)
+        ph->lastResiduals[0].second = r->state_state;
+      else if (ph->lastResiduals[1].first == r)
+        ph->lastResiduals[1].second = r->state_state;
     }
     //! residual创建时候都创建, 再去掉不好的
     int nResRemoved = 0;
@@ -215,10 +229,10 @@ Vec3 FullSystem::linearizeAll(bool fixLinearization) {
       for (PointFrameResidual *r : toRemove[i]) {
         PointHessian *ph = r->point;
         // 删除不好的lastResiduals
-        if (ph->lastResiduals[r->target_cid][0].first == r)
-          ph->lastResiduals[r->target_cid][0].first = 0;
-        else if (ph->lastResiduals[r->target_cid][1].first == r)
-          ph->lastResiduals[r->target_cid][1].first = 0;
+        if (ph->lastResiduals[0].first == r)
+          ph->lastResiduals[0].first = 0;
+        else if (ph->lastResiduals[1].first == r)
+          ph->lastResiduals[1].first = 0;
         int target_fid = r->target->idx;
         int remaining_good_res_on_this_fid = 0;
         for (unsigned int k = 0; k < ph->residuals.size(); k++) {
@@ -446,13 +460,23 @@ float FullSystem::optimize(int mnumOptIts) {
     for (PointHessian *ph : fh->pointHessians) {
       for (PointFrameResidual *r : ph->residuals) {
         // printf("new_res!!!\n");
-        if (!r->efResidual->isLinearized) // 没有求线性误差
-        {                                 // TODO
+        int active_count = 0;
+        for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+          if (!r->efResidual->isLinearized[cid]) {
+            active_count++;
+          }
+        }
+        assert(active_count == 0 || active_count == kCameraNumUsed);
+        if (active_count >
+            0 /* !r->efResidual->isLinearized*/) { // 没有求线性误差
+                                                   // TODO
           // 这个会一直进入这个判断，只有要marg的点才会线性化残差，它的残差使用fej状态求的，不需要用最新状态
           activeResiduals.push_back(r); // 新加入的残差 //TODO r中包含host
                                         // target帧id，uv，idepth，Jac这些信息
           // printf("cc\n");
-          r->resetOOB(); // residual状态重置
+          for (int cid_ = 0; cid_ < kCameraNumUsed; ++cid_) {
+            r->resetOOB(cid_); // residual状态重置
+          }
         } else {
           numLRes++; //已经线性化过得计数
         }

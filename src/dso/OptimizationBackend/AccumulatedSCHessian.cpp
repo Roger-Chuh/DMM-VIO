@@ -32,9 +32,13 @@ namespace dso {
 void AccumulatedSCHessianSSE::addPoint(EFPoint *p, bool shiftPriorToZero,
                                        int tid) {
   int ngoodres = 0;
-  for (EFResidual *r : p->residualsAll)
-    if (r->isActive())
-      ngoodres++;
+  for (EFResidual *r : p->residualsAll) {
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      if (r->isActive(cid)) {
+        ngoodres++;
+      }
+    }
+  }
   if (ngoodres == 0) {
     p->HdiF = 0;
     p->bdSumF = 0;
@@ -66,25 +70,84 @@ void AccumulatedSCHessianSSE::addPoint(EFPoint *p, bool shiftPriorToZero,
   accbc[tid].update(Hcd, p->bdSumF * p->HdiF);
 
   assert(std::isfinite((float)(p->HdiF)));
-
+#if 0
   int nFrames2 = nframes[tid] * nframes[tid];
   for (EFResidual *r1 : p->residualsAll) {
-    if (!r1->isActive())
+    int active_count1 = kCameraNumUsed;
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      if (!r1->isActive(cid)) {
+        active_count1--;
+        // continue;
+      }
+    }
+    if (active_count1 == 0) {
       continue;
+    }
     int r1ht = r1->hostIDX + r1->targetIDX * nframes[tid];
 
     for (EFResidual *r2 : p->residualsAll) {
-      if (!r2->isActive())
+      int active_count2 = kCameraNumUsed;
+      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+        if (!r2->isActive(cid)) {
+          active_count2--;
+          // continue;
+        }
+      }
+      if (active_count2 == 0) {
         continue;
+      }
       //! Hfd_1 * Hdd_inv * Hfd_2^T,  f = [xi, a b]位姿 光度
-      accD[tid][r1ht + r2->targetIDX * nFrames2].update(r1->JpJdF, r2->JpJdF,
-                                                        p->HdiF);
+      for (int cid1 = 0; cid1 < kCameraNumUsed; ++cid1) {
+        if (!r1->isActive(cid1)) {
+          continue;
+        }
+        for (int cid2 = 0; cid2 < kCameraNumUsed; ++cid2) {
+          if (!r2->isActive(cid2)) {
+            continue;
+          }
+          accD[tid][r1ht + r2->targetIDX * nFrames2].update(
+              r1->JpJdF[cid1], r2->JpJdF[cid2], p->HdiF);
+        }
+      }
     }
-    //!< Hfd * Hdd_inv * Hcd^T
-    accE[tid][r1ht].update(r1->JpJdF, Hcd, p->HdiF);
-    //! Hfd * Hdd_inv * bd
-    accEB[tid][r1ht].update(r1->JpJdF, p->HdiF * p->bdSumF);
+
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      if (!r1->isActive(cid)) {
+        continue;
+      }
+      //!< Hfd * Hdd_inv * Hcd^T
+      accE[tid][r1ht].update(r1->JpJdF[cid], Hcd, p->HdiF);
+      //! Hfd * Hdd_inv * bd
+      accEB[tid][r1ht].update(r1->JpJdF[cid], p->HdiF * p->bdSumF);
+    }
   }
+#else
+
+  int nFrames2 = nframes[tid] * nframes[tid];
+  for (EFResidual *r1 : p->residualsAll) {
+    for (int cid11 = 0; cid11 < kCameraNumUsed; ++cid11) {
+      if (!r1->isActive(cid11)) {
+        continue;
+      }
+      int r1ht = r1->hostIDX + r1->targetIDX * nframes[tid];
+      for (EFResidual *r2 : p->residualsAll) {
+        for (int cid22 = 0; cid22 < kCameraNumUsed; ++cid22) {
+          if (!r2->isActive(cid22)) {
+            continue;
+          }
+          //! Hfd_1 * Hdd_inv * Hfd_2^T,  f = [xi, a b]位姿 光度
+
+          accD[tid][r1ht + r2->targetIDX * nFrames2].update(
+              r1->JpJdF[cid11], r2->JpJdF[cid22], p->HdiF);
+        }
+      }
+      //!< Hfd * Hdd_inv * Hcd^T
+      accE[tid][r1ht].update(r1->JpJdF[cid11], Hcd, p->HdiF);
+      //! Hfd * Hdd_inv * bd
+      accEB[tid][r1ht].update(r1->JpJdF[cid11], p->HdiF * p->bdSumF);
+    }
+  }
+#endif
 }
 
 //@ 从累加器里面得到 hessian矩阵Schur complement

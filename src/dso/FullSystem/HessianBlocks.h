@@ -611,8 +611,12 @@ struct PointHessian {
   std::vector<PointFrameResidual *>
       residuals; // only contains good residuals (not OOB and not OUTLIER).
   // Arbitrary order.
-  std::array<std::array<std::pair<PointFrameResidual *, ResState>, 2>,
-             kCameraNumUsed>
+  //  std::array<std::array<std::pair<PointFrameResidual *, ResState>, 2>,
+  //             kCameraNumUsed>
+  //      lastResiduals; //[2]; // contains information about residuals to the
+  //      last
+  std::array<
+      std::pair<PointFrameResidual *, std::array<ResState, kCameraNumUsed>>, 2>
       lastResiduals; //[2]; // contains information about residuals to the last
                      // two
   // (!) frames. ([0] = latest, [1] = the one before).
@@ -635,11 +639,22 @@ struct PointHessian {
                     const std::vector<FrameHessian *> &toMarg) const {
     int visInToMarg = 0;
     for (PointFrameResidual *r : residuals) {
-      if (r->state_state != ResState::IN)
+      int in_count = kCameraNumUsed;
+      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+        if (r->state_state[cid] != ResState::IN) {
+          in_count--;
+          // continue;
+        }
+      }
+      if (in_count == 0) {
         continue;
-      for (FrameHessian *k : toMarg)
-        if (r->target == k)
+      }
+      // TODO roger, only need good residuals
+      for (FrameHessian *k : toMarg) {
+        if (r->target == k) {
           visInToMarg++; // 在要边缘化掉的帧被观测的数量
+        }
+      }
     }
     //[1]: 原本是很好的一个点，但是边缘化一帧后，残差变太少了, 边缘化or丢掉
     if ((int)residuals.size() >=
@@ -654,11 +669,11 @@ struct PointHessian {
     int oob_count = 0;
     int outlier_count = 0;
     for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-      if (lastResiduals[cid][0].second == ResState::OOB) {
+      if (lastResiduals[0].second[cid] == ResState::OOB) {
         oob_count++;
       }
-      if (lastResiduals[cid][0].second == ResState::OUTLIER &&
-          lastResiduals[cid][1].second == ResState::OUTLIER) {
+      if (lastResiduals[0].second[cid] == ResState::OUTLIER &&
+          lastResiduals[1].second[cid] == ResState::OUTLIER) {
         outlier_count++;
       }
     }
@@ -666,12 +681,18 @@ struct PointHessian {
         kCameraNumUsed /*lastResiduals[0].second == ResState::OOB*/)
       return true; //上一帧是OOB
     //[3]: 残差比较少, 新加入的, 不边缘化
-    if (residuals.size() < 2 * kCameraNumUsed)
+    if (residuals.size() < 2
+#ifndef USE_BUNDLED_RES
+                               * kCameraNumUsed
+#endif
+    ) {
       return false;
+    }
     //[4]: 前两帧投影都是外点, 边缘化or丢掉
     if (outlier_count == kCameraNumUsed/*lastResiduals[0].second == ResState::OUTLIER &&
-        lastResiduals[1].second == ResState::OUTLIER*/)
+        lastResiduals[1].second == ResState::OUTLIER*/) {
       return true; //前两帧都是外点
+    }
     return false;
   }
 

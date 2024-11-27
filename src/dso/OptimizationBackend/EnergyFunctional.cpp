@@ -373,8 +373,10 @@ void EnergyFunctional::resubstituteFPt(const VecCf &xc, Mat1Statef *xAd,
 
     int ngoodres = 0;
     for (EFResidual *r : p->residualsAll) {
-      if (r->isActive()) {
-        ngoodres++;
+      for (int cid_ = 0; cid_ < kCameraNumUsed; ++cid_) {
+        if (r->isActive(cid_)) {
+          ngoodres++;
+        }
       }
     }
     if (ngoodres == 0) {
@@ -386,16 +388,18 @@ void EnergyFunctional::resubstituteFPt(const VecCf &xc, Mat1Statef *xAd,
     // b -= xc.dot(p->Hcd_accAF); //* 减去逆深度和内参
 
     for (EFResidual *r : p->residualsAll) {
-      if (!r->isActive())
-        continue;
-      //* 减去逆深度和位姿 光度参数
-      // TODO
-      // 因为用了fej，就要恢复到之前的线性化点，又因为雅可比是在相对pose下求得的，所以就有了之前的把绝对pose增量（Ttw,
-      // Thw）转成相对pose增量（Tth）的操作
-      // TODO 全都能呼应上
-      // TODO idp都是被shcur掉的得用类似orca里线特征使用的implicit schur trick
-      b -= xAd[r->hostIDX * nFrames + r->targetIDX] *
-           r->JpJdF; //! 绝对变相对的, xAd是转置了的
+      for (int cid_ = 0; cid_ < kCameraNumUsed; ++cid_) {
+        if (!r->isActive(cid_))
+          continue;
+        //* 减去逆深度和位姿 光度参数
+        // TODO
+        // 因为用了fej，就要恢复到之前的线性化点，又因为雅可比是在相对pose下求得的，所以就有了之前的把绝对pose增量（Ttw,
+        // Thw）转成相对pose增量（Tth）的操作
+        // TODO 全都能呼应上
+        // TODO idp都是被shcur掉的得用类似orca里线特征使用的implicit schur trick
+        b -= xAd[r->hostIDX * nFrames + r->targetIDX] *
+             r->JpJdF[cid_]; //! 绝对变相对的, xAd是转置了的
+      }
     }
     // TODO 已知pose ab的增量，求idp的增量, implicit schur trick
     p->data->step = -b * p->HdiF; // 逆深度的增量
@@ -449,78 +453,79 @@ void EnergyFunctional::calcLEnergyPt(int min, int max, Vec10 *stats, int tid) {
      * 0.000000, dd: 0.000000, dd: 0.000000, dd: 0.000000, dd: 0.000000, dd:
      * 0.000000, dd: 0.000000, dd: 0.000000, dd: 0.000000, dd: 0.000000, dd:
      * 0.000000, dd: 0.000000, dd: 0.000000, */
-    for (
-        EFResidual *r :
-        p->residualsAll) // TODO
-                         // 遍历这一个host点在滑窗内所有帧上形成的残差，增量重投影点加权求和
+    for (EFResidual *r : p->residualsAll) // TODO
+    // 遍历这一个host点在滑窗内所有帧上形成的残差，增量重投影点加权求和
     {
-      if (!r->isLinearized || !r->isActive())
-        continue; // 同时满足
-      // TODO 1x8 vector
-      // TODO roger, 但pose的增量是Tc0的
-      // TODO roger,
-      // 这里已经转成相对增量了，但是是Tc0间的相对增量，并不是Tcjci间的相对增量，还要再转一下
-      Mat1Statef dp = adHTdeltaF[r->hostIDX + nFrames * r->targetIDX];
-      // TODO T10 = Tc0cj * Tcjci * Tc0ci^-1
-      // todo roger, convert delta_Tc0c0 to delta_Tcjci
-      // Note: Adj(inv(T1)) = inv(Adj(T1))
-      // 我想多了，状态量就是delta T0，不是delta T_cjci
+      for (int cid_ = 0; cid_ < kCameraNumUsed; ++cid_) {
+        if (!r->isLinearized[cid_] || !r->isActive(cid_))
+          continue; // 同时满足
+        // TODO 1x8 vector
+        // TODO roger, 但pose的增量是Tc0的
+        // TODO roger,
+        // 这里已经转成相对增量了，但是是Tc0间的相对增量，并不是Tcjci间的相对增量，还要再转一下
+        Mat1Statef dp = adHTdeltaF[r->hostIDX + nFrames * r->targetIDX];
+        // TODO T10 = Tc0cj * Tcjci * Tc0ci^-1
+        // todo roger, convert delta_Tc0c0 to delta_Tcjci
+        // Note: Adj(inv(T1)) = inv(Adj(T1))
+        // 我想多了，状态量就是delta T0，不是delta T_cjci
 
-      // dp.block<1, 6>(0, 0) =
-      // ((r->p_multi_camera->cid_to_T01_inv_Adj[r->target_cid] * dp.block<1,
-      // 6>(0, 0).transpose().cast<double>())).transpose().cast<float>();
-      RawResidualJacobian *rJ = r->J;
+        // dp.block<1, 6>(0, 0) =
+        // ((r->p_multi_camera->cid_to_T01_inv_Adj[r->target_cid] * dp.block<1,
+        // 6>(0, 0).transpose().cast<double>())).transpose().cast<float>();
+        RawResidualJacobian *rJ = r->J[cid_];
 
-      // compute Jp*delta
-      // TODO 在idp，pose，内参的扰动下，像素投影点的增量
-      // TODO roger, 注意，这里的Jac是Tcjci，但pose的增量是Tc0的，还是要转移一下
-      float Jp_delta_x_1 = rJ->Jpdxi[0].dot(dp.head<6>()) +
-                           rJ->Jpdc[0].dot(dc) + rJ->Jpdd[0] * dd;
+        // compute Jp*delta
+        // TODO 在idp，pose，内参的扰动下，像素投影点的增量
+        // TODO roger,
+        // 注意，这里的Jac是Tcjci，但pose的增量是Tc0的，还是要转移一下
+        float Jp_delta_x_1 = rJ->Jpdxi[0].dot(dp.head<6>()) +
+                             rJ->Jpdc[0].dot(dc) + rJ->Jpdd[0] * dd;
 
-      float Jp_delta_y_1 = rJ->Jpdxi[1].dot(dp.head<6>()) +
-                           rJ->Jpdc[1].dot(dc) + rJ->Jpdd[1] * dd;
+        float Jp_delta_y_1 = rJ->Jpdxi[1].dot(dp.head<6>()) +
+                             rJ->Jpdc[1].dot(dc) + rJ->Jpdd[1] * dd;
 
-      __m128 Jp_delta_x = _mm_set1_ps(Jp_delta_x_1);
-      __m128 Jp_delta_y = _mm_set1_ps(Jp_delta_y_1);
-      __m128 delta_a = _mm_set1_ps((float)(dp[6]));
-      __m128 delta_b = _mm_set1_ps((float)(dp[7]));
+        __m128 Jp_delta_x = _mm_set1_ps(Jp_delta_x_1);
+        __m128 Jp_delta_y = _mm_set1_ps(Jp_delta_y_1);
+        __m128 delta_a = _mm_set1_ps((float)(dp[6]));
+        __m128 delta_b = _mm_set1_ps((float)(dp[7]));
 
-      for (int i = 0; i + 3 < patternNum; i += 4) {
-        // PATTERN: E = (2*res_toZeroF + J*delta) * J*delta.
-        //! PATTERN: E = (2*resb_toZeroF + J*delta) * J*delta.
-        //! E = (f(x0)+J*dx)^2 = dx*H*dx + 2*J*dx*f(x0) + f(x0)^2 丢掉常数
-        //! f(x0)^2 E = (f(x0)+J*dx)^2 = dx*JtJ*dx + 2*J*dx*f(x0) + f(x0)^2
-        //! //TODO 丢掉常数 f(x0)^2
-        //! ,难怪，或者我们认为f(x0)=0，我们认为在线性化点处的残差（能量）为0
-        __m128 Jdelta =
-            _mm_mul_ps(_mm_load_ps(((float *)(rJ->JIdx)) + i), Jp_delta_x);
-        Jdelta = _mm_add_ps(
-            Jdelta,
-            _mm_mul_ps(_mm_load_ps(((float *)(rJ->JIdx + 1)) + i), Jp_delta_y));
-        Jdelta = _mm_add_ps(
-            Jdelta,
-            _mm_mul_ps(_mm_load_ps(((float *)(rJ->JabF)) + i), delta_a));
-        Jdelta = _mm_add_ps(
-            Jdelta,
-            _mm_mul_ps(_mm_load_ps(((float *)(rJ->JabF + 1)) + i), delta_b));
+        for (int i = 0; i + 3 < patternNum; i += 4) {
+          // PATTERN: E = (2*res_toZeroF + J*delta) * J*delta.
+          //! PATTERN: E = (2*resb_toZeroF + J*delta) * J*delta.
+          //! E = (f(x0)+J*dx)^2 = dx*H*dx + 2*J*dx*f(x0) + f(x0)^2 丢掉常数
+          //! f(x0)^2 E = (f(x0)+J*dx)^2 = dx*JtJ*dx + 2*J*dx*f(x0) + f(x0)^2
+          //! //TODO 丢掉常数 f(x0)^2
+          //! ,难怪，或者我们认为f(x0)=0，我们认为在线性化点处的残差（能量）为0
+          __m128 Jdelta =
+              _mm_mul_ps(_mm_load_ps(((float *)(rJ->JIdx)) + i), Jp_delta_x);
+          Jdelta = _mm_add_ps(
+              Jdelta, _mm_mul_ps(_mm_load_ps(((float *)(rJ->JIdx + 1)) + i),
+                                 Jp_delta_y));
+          Jdelta = _mm_add_ps(
+              Jdelta,
+              _mm_mul_ps(_mm_load_ps(((float *)(rJ->JabF)) + i), delta_a));
+          Jdelta = _mm_add_ps(
+              Jdelta,
+              _mm_mul_ps(_mm_load_ps(((float *)(rJ->JabF + 1)) + i), delta_b));
 
-        __m128 r0 = _mm_load_ps(((float *)&r->res_toZeroF) + i);
-        r0 = _mm_add_ps(r0, r0);
-        r0 = _mm_add_ps(r0, Jdelta);
-        Jdelta = _mm_mul_ps(Jdelta, r0);
-        E.updateSSENoShift(Jdelta);
-      }
-      // 128位对齐, 多出来部分
-      for (int i = ((patternNum >> 2) << 2); i < patternNum; i++) {
-        // TODO 在像素投影点的扰动下，梯度，ab的变化带来的光度残差的增量
-        float Jdelta = rJ->JIdx[0][i] * Jp_delta_x_1 +
-                       rJ->JIdx[1][i] * Jp_delta_y_1 + rJ->JabF[0][i] * dp[6] +
-                       rJ->JabF[1][i] * dp[7];
-        // Jdelta
-        // TODO 丢掉常数 f(x0)^2
-        // ,难怪，或者我们认为f(x0)=0，我们认为在线性化点处的残差（能量）为0
-        E.updateSingleNoShift(
-            (float)(Jdelta * (Jdelta + 2 * r->res_toZeroF[i])));
+          __m128 r0 = _mm_load_ps(((float *)&r->res_toZeroF) + i);
+          r0 = _mm_add_ps(r0, r0);
+          r0 = _mm_add_ps(r0, Jdelta);
+          Jdelta = _mm_mul_ps(Jdelta, r0);
+          E.updateSSENoShift(Jdelta);
+        }
+        // 128位对齐, 多出来部分
+        for (int i = ((patternNum >> 2) << 2); i < patternNum; i++) {
+          // TODO 在像素投影点的扰动下，梯度，ab的变化带来的光度残差的增量
+          float Jdelta = rJ->JIdx[0][i] * Jp_delta_x_1 +
+                         rJ->JIdx[1][i] * Jp_delta_y_1 +
+                         rJ->JabF[0][i] * dp[6] + rJ->JabF[1][i] * dp[7];
+          // Jdelta
+          // TODO 丢掉常数 f(x0)^2
+          // ,难怪，或者我们认为f(x0)=0，我们认为在线性化点处的残差（能量）为0
+          E.updateSingleNoShift(
+              (float)(Jdelta * (Jdelta + 2 * r->res_toZeroF[cid_][i])));
+        }
       }
     }
     E.updateSingle(p->deltaF * p->deltaF * p->priorF); // 逆深度先验
@@ -558,7 +563,7 @@ EFResidual *EnergyFunctional::insertResidual(PointFrameResidual *r,
                                              bool add_connection) {
   EFResidual *efr =
       new EFResidual(r, r->point->efPoint, r->host->efFrame, r->target->efFrame,
-                     r->host_cid, r->target_cid, p_multi_camera);
+                     r->host_cid, /*r->target_cid,*/ p_multi_camera);
   efr->idxInAll =
       r->point->efPoint->residualsAll.size(); // 在这个点的所有残差的id
   r->point->efPoint->residualsAll.push_back(
@@ -573,12 +578,15 @@ EFResidual *EnergyFunctional::insertResidual(PointFrameResidual *r,
 #ifdef USE_HACK
   add_connection = r->host_cid == r->target_cid == 0;
 #endif
-
+#ifndef USE_BUNDLED_RES
   if (add_connection) {
     connectivityMap[(((uint64_t)efr->host->frameID) << 32) +
                     ((uint64_t)efr->target->frameID)][0]++;
   }
-
+#else
+  connectivityMap[(((uint64_t)efr->host->frameID) << 32) +
+                  ((uint64_t)efr->target->frameID)][0] += kCameraNumUsed;
+#endif
   nResiduals++;
   r->efResidual = efr;
   return efr;
@@ -671,19 +679,25 @@ void EnergyFunctional::dropResidual(EFResidual *r, bool delete_connection) {
   p->residualsAll.pop_back(); // 弹出最有一个
 
   // 计数
-  if (r->isActive())
-    r->host->data->shell->statistics_goodResOnThis++;
-  else
-    r->host->data->shell->statistics_outlierResOnThis++;
-
-    // residual关键减一
+  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    if (r->isActive(cid))
+      r->host->data->shell->statistics_goodResOnThis++;
+    else
+      r->host->data->shell->statistics_outlierResOnThis++;
+  }
+  // residual关键减一
 #ifdef USE_HACK
   delete_connection = r->host_cid == r->target_cid == 0;
 #endif
+#ifndef USE_BUNDLED_RES
   if (delete_connection) {
     connectivityMap[(((uint64_t)r->host->frameID) << 32) +
                     ((uint64_t)r->target->frameID)][0]--;
   }
+#else
+  connectivityMap[(((uint64_t)r->host->frameID) << 32) +
+                  ((uint64_t)r->target->frameID)][0] -= kCameraNumUsed;
+#endif
   nResiduals--;
   r->data->efResidual = 0; // pointframehessian指向该残差的指针
   delete r;
@@ -867,6 +881,7 @@ void EnergyFunctional::marginalizePointsF() {
         // TODO roger,
         // 要把这个点的所有vm都删掉，所以理论上删除每个fid上第一次出现的就行了
         for (EFResidual *r : p->residualsAll) {
+#ifndef USE_BUNDLED_RES
           if (r->isActive()) { // 边缘化残差计数
             if (
 #ifndef USE_HACK
@@ -880,6 +895,19 @@ void EnergyFunctional::marginalizePointsF() {
               target_fids.emplace(r->target->idx);
             }
           }
+#else
+          int active_res_count = 0;
+          for (int cid_ = 0; cid_ < kCameraNumUsed; ++cid_) {
+            if (r->isActive(cid_)) {
+              active_res_count++;
+            }
+          }
+          if (active_res_count > 0) {
+            connectivityMap[(((uint64_t)r->host->frameID) << 32) +
+                            ((uint64_t)r->target->frameID)][1] +=
+                kCameraNumUsed;
+          }
+#endif
         }
         allPointsToMarg.push_back(p);
       }

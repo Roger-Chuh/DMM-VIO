@@ -56,31 +56,39 @@ public:
 
   int host_cid;
 
-  int target_cid;
+  // int target_cid;
 
   static int instanceCounter;
 
-  ResState state_state;    //!< 上一次的残差状态
-  double state_energy;     //!< 上一次的能量值
-  ResState state_NewState; //!< 新的一次计算的状态
-  double state_NewEnergy; //!< 新的能量, 如果大于阈值则把等于阈值
-  double state_NewEnergyWithOutlier; //!< 可能具有外点的能量, 可能大于阈值
+  std::array<ResState, kCameraNumUsed> state_state; //!< 上一次的残差状态
+  std::array<double, kCameraNumUsed> state_energy;  //!< 上一次的能量值
+  std::array<ResState, kCameraNumUsed> state_NewState; //!< 新的一次计算的状态
+  std::array<double, kCameraNumUsed>
+      state_NewEnergy; //!< 新的能量, 如果大于阈值则把等于阈值
+  std::array<double, kCameraNumUsed>
+      state_NewEnergyWithOutlier; //!< 可能具有外点的能量, 可能大于阈值
 
-  void setState(ResState s) { state_state = s; }
+  void setState(ResState s, int cid) {
+    //      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    state_state[cid] = s;
+    //      }
+  }
 
-  PointHessian *point;    //!< 点
-  FrameHessian *host;     //!< 主帧
-  FrameHessian *target;   //!< 目标帧
-  RawResidualJacobian *J; //!< 残差对变量的各种雅克比
+  PointHessian *point;                    //!< 点
+  FrameHessian *host;                     //!< 主帧
+  FrameHessian *target;                   //!< 目标帧
+  RawResidualJacobian *J[kCameraNumUsed]; //!< 残差对变量的各种雅克比
 
-  bool isNew;
+  std::array<bool, kCameraNumUsed> isNew;
 
   //    Eigen::Vector2f projectedTo[MAX_RES_PER_POINT * kCameraNumUsed]; //!<
   //    各个patch的投影坐标 std::array<Vec3f, kCameraNumUsed> centerProjectedTo;
   //    //!< patch的中心点投影 [像素x, 像素y, 新帧逆深度]
-  Eigen::Vector2f projectedTo[MAX_RES_PER_POINT]; //!< 各个patch的投影坐标
-  Vec3f centerProjectedTo; //!< patch的中心点投影 [像素x, 像素y, 新帧逆深度]
-                           //!< 用来初始化新点的逆深度
+  std::array<Eigen::Vector2f, kCameraNumUsed>
+      projectedTo[MAX_RES_PER_POINT]; //!< 各个patch的投影坐标
+  std::array<Vec3f, kCameraNumUsed>
+      centerProjectedTo; //!< patch的中心点投影 [像素x, 像素y, 新帧逆深度]
+                         //!< 用来初始化新点的逆深度
 
   ~PointFrameResidual();
 
@@ -90,19 +98,22 @@ public:
   //                     FrameHessian *target_);
 
   PointFrameResidual(PointHessian *point_, FrameHessian *host_,
-                     FrameHessian *target_, const int &host_cid_,
-                     const int &target_cid_);
+                     FrameHessian *target_, const int &host_cid_/*,
+                     const int &target_cid_*/);
 
-  double linearize(CalibHessian *HCalib);
+  double linearize(CalibHessian *HCalib, int target_cid_now);
 
-  void resetOOB() {
-    state_NewEnergy = state_energy = 0;
-    state_NewState = ResState::OUTLIER;
+  void resetOOB(int cid) {
+    //    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    state_NewEnergy[cid] = state_energy[cid] = 0;
+    state_NewState[cid] = ResState::OUTLIER;
+    setState(ResState::IN, cid);
+    //    }
 
-    setState(ResState::IN);
+    // setState(ResState::IN);
   };
 
-  void applyRes(bool copyJacobians);
+  void applyRes(bool copyJacobians, int cid);
 
   void debugPlot(int cid);
 

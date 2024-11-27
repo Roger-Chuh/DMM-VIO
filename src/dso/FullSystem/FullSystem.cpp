@@ -692,7 +692,8 @@ void FullSystem::traceNewCoarse(FrameHessian *fh, bool is_first_frame) {
         //                                                    host->aff_g2l(),
         //                                                    fh->aff_g2l())
         //                    .cast<float>();
-        ph->traceOn(target_cid, fh, KRKi, Kt, aff, &Hcalib, false);
+        ph->traceOn(target_cid, fh, KRKi, Kt, aff, &Hcalib, false, 0, false,
+                    false);
 
         if (ph->lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_GOOD)
           trace_good++;
@@ -728,6 +729,8 @@ void FullSystem::activatePointsMT_Reductor(
     std::vector<PointHessian *> *optimized,
     std::vector<ImmaturePoint *> *toOptimize, int min, int max, Vec10 *stats,
     int tid) {
+  printf("do pose only point opt, toOptimize: %d, frameHessians: %d\n",
+         toOptimize->size(), frameHessians.size());
   ImmaturePointTemporaryResidual *tr =
       new ImmaturePointTemporaryResidual[frameHessians.size() * kCameraNumUsed];
   /// normally min = 0, max = toOptimize.size()
@@ -1044,20 +1047,21 @@ void FullSystem::flagPointsForRemoval() {
           flag_in++;
           int ngoodRes = 0;
           for (PointFrameResidual *r : ph->residuals) {
-            r->resetOOB();
-            // TODO roger, recalc jac
-            r->linearize(
-                &Hcalib); // TODO
-                          // (pose和内参用的fej，idp，ab和梯度用的最新状态的雅可比
-                          // )
-            r->efResidual->isLinearized = false;
-            r->applyRes(true);
-            // 如果是激活(可参与优化)的残差, 则给fix住, 计算res_toZeroF //TODO
-            // 雅可比不包含逆深度的部分 dim = 8, 6 dof pose + 2 dof affine
-            if (r->efResidual->isActive()) // TODO 只有是内点时才会继续
-            {
-              r->efResidual->fixLinearizationF(ef);
-              ngoodRes++;
+            for (int cid_ = 0; cid_ < kCameraNumUsed; ++cid_) {
+              r->resetOOB(cid_);
+              // TODO roger, recalc jac
+              r->linearize(&Hcalib, cid_); // TODO
+              // (pose和内参用的fej，idp，ab和梯度用的最新状态的雅可比
+              // )
+              r->efResidual->isLinearized[cid_] = false;
+              r->applyRes(true, cid_);
+              // 如果是激活(可参与优化)的残差, 则给fix住, 计算res_toZeroF //TODO
+              // 雅可比不包含逆深度的部分 dim = 8, 6 dof pose + 2 dof affine
+              if (r->efResidual->isActive(cid_)) // TODO 只有是内点时才会继续
+              {
+                r->efResidual->fixLinearizationF(ef, cid_);
+                ngoodRes++;
+              }
             }
           }
           //* 如果逆深度的协方差很大直接扔掉, 小的边缘化掉
@@ -1670,32 +1674,46 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
     if (fh1 == fh)
       continue;
     for (PointHessian *ph : fh1->pointHessians) {
+      //      for (int target_cid = 0; target_cid < kCameraNumUsed;
+      //      ++target_cid) {
+      //#ifdef DISABLE_CROSS_CID_ALIGN
+      //        if (ph->host_cid != target_cid) {
+      //          continue;
+      //        }
+      //#endif
+      // TODO roger,
+      // TODO 先无脑给最新帧的每一个cid都配上一个residual，最多再价格标志。
+      PointFrameResidual *r = new PointFrameResidual(
+            ph, fh1, fh, ph->host_cid/*,
+            target_cid*/); // 新建当前帧fh和之前帧之间的残差
+      /// 这时J只是开辟了空间，还没有赋值, 初值为0
+      //  printf("r->J->resF[0]: %f \n",r->J->resF[0]);
+      //  printf("r->J->resF(0): %f \n",r->J->resF(0));
+      //        for (int target_cid = 0; target_cid < kCameraNumUsed;
+      //        ++target_cid) {
+      //            r->setState(ResState::IN, target_cid);
+      //        }
+      // TODO roger, 对于sw内的stable点,
+      // 因为是最新帧，先无脑构建push进去，至于是不是inlier，优化时再判断
+      ph->residuals.push_back(r);
+      ef->insertResidual(r, Hcalib.p_multi_camera, true);
+      ph->lastResiduals[1] = ph->lastResiduals[0];
+      std::array<ResState, kCameraNumUsed> res_state{};
       for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
-#ifdef DISABLE_CROSS_CID_ALIGN
-        if (ph->host_cid != target_cid) {
-          continue;
-        }
-#endif
-        // TODO roger,
-        // TODO 先无脑给最新帧的每一个cid都配上一个residual，最多再价格标志。
-        PointFrameResidual *r = new PointFrameResidual(
-            ph, fh1, fh, ph->host_cid,
-            target_cid); // 新建当前帧fh和之前帧之间的残差
-        /// 这时J只是开辟了空间，还没有赋值, 初值为0
-        //  printf("r->J->resF[0]: %f \n",r->J->resF[0]);
-        //  printf("r->J->resF(0): %f \n",r->J->resF(0));
-        r->setState(ResState::IN);
-        // TODO roger, 对于sw内的stable点,
-        // 因为是最新帧，先无脑构建push进去，至于是不是inlier，优化时再判断
-        ph->residuals.push_back(r);
-        ef->insertResidual(r, Hcalib.p_multi_camera, target_cid == 0);
-        ph->lastResiduals[target_cid][1] =
-            ph->lastResiduals[target_cid][0]; // 设置上上个残差
-        ph->lastResiduals[target_cid][0] =
-            std::pair<PointFrameResidual *, ResState>(
-                r, ResState::IN); // 当前的设置为上一个
-        numFwdResAdde += 1;
+        r->setState(ResState::IN, target_cid);
+        // 设置上上个残差
+        res_state[target_cid] = ResState::IN;
+
+        //                            r, ResState::IN);
+        //                    std::pair<PointFrameResidual *, ResState>(
+        //                            r, ResState::IN); // 当前的设置为上一个
       }
+      ph->lastResiduals[0] =
+          std::pair<PointFrameResidual *, std::array<ResState, kCameraNumUsed>>(
+              r, res_state);
+
+      numFwdResAdde += 1;
+      //}
     }
   }
 
@@ -1771,6 +1789,7 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
     // TODO
     // 之前插入新关键帧，两个tracker指针内容交换了一下，这里给_forNewKF赋上新的内容
     coarseTracker_forNewKF->makeK(&Hcalib);
+    // TODO roger, make reference depth map
     coarseTracker_forNewKF->setCoarseTrackingRef(frameHessians);
 
     coarseTracker_forNewKF->debugPlotIDepthMap(
