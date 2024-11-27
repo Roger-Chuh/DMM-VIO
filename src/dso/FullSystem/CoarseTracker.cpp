@@ -151,15 +151,17 @@ void CoarseTracker::makeCoarseDepthL0(
 
   //[ ***step 1*** ] 计算其它点在最新帧投影第0层上的各个像素的逆深度权重,
   //和加权逆深度
-  // for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
-  for (FrameHessian *fh : frameHessians) {
-    for (PointHessian *ph : fh->pointHessians) {
-      // 点的上一次残差正常
-      //* 优化之后上一次不好的置为0，用来指示，而点是没有删除的，残差删除了
-      for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+  for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+    for (FrameHessian *fh : frameHessians) {
+      for (PointHessian *ph : fh->pointHessians) {
+        // 点的上一次残差正常
+        //* 优化之后上一次不好的置为0，用来指示，而点是没有删除的，残差删除了
+        //      for (int target_cid = 0; target_cid < kCameraNumUsed;
+        //      ++target_cid) {
+        // printf("enter:\n");
         if (ph->lastResiduals[0].first != 0 &&
             ph->lastResiduals[0].second[target_cid] == ResState::IN) {
-          printf("hit\n");
+          // printf("hit\n");
           PointFrameResidual *r = ph->lastResiduals[0].first;
           // assert(r->target_cid == target_cid);
           // if (r->target_cid != target_cid) {
@@ -182,8 +184,8 @@ void CoarseTracker::makeCoarseDepthL0(
         }
       }
     }
-  }
-  for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+    //  }
+    //  for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
     //[ ***step 2*** ] 从下层向上层生成逆深度和权重
     for (int lvl = 1; lvl < pyrLevelsUsed; lvl++) {
       int lvlm1 = lvl - 1;
@@ -507,7 +509,7 @@ void CoarseTracker::calcGSSSE(int lvl, MatState &H_out, VecState &b_out,
 
 //@ 计算当前位姿投影得到的残差(能量值), 并进行一些统计
 //! 构造尽量多的点, 有助于跟踪
-#define SHOW_TRACK_RES
+//#define SHOW_TRACK_RES
 Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
                             const SE3 &refToNew_, AffLight aff_g2l,
                             float cutoffTH, bool show_image) {
@@ -560,7 +562,7 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
       }
       //* 投影在ref帧上的点
       int nl = pc_n[lvl][host_cid];
-      printf("nl: %d\n", nl);
+      // printf("nl: %d\n", nl);
       float *lpc_u = pc_u[lvl] + wl * hl * host_cid;
       float *lpc_v = pc_v[lvl] + wl * hl * host_cid;
       float *lpc_idepth = pc_idepth[lvl] + wl * hl * host_cid;
@@ -761,6 +763,7 @@ void CoarseTracker::setCoarseTrackingRef(
     std::vector<FrameHessian *> frameHessians) {
   assert(frameHessians.size() > 0);
   lastRef = frameHessians.back();
+  printf("change tracking ref\n");
   makeCoarseDepthL0(frameHessians); // 生成逆深度估值
 
   refFrameID = lastRef->shell->id;

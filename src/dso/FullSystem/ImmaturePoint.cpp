@@ -645,7 +645,7 @@ float ImmaturePoint::calcResidual(CalibHessian *HCalib,
 }
 
 ///@ 计算当前点逆深度的残差, 正规方程(H和b), 残差状态
-#define SHOW_POINT_OPT
+//#define SHOW_POINT_OPT
 double ImmaturePoint::linearizeResidual(const int &target_cid,
                                         CalibHessian *HCalib,
                                         const float outlierTHSlack,
@@ -710,12 +710,9 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
     Vec3f KliP;
     /// kidding me ? new_idepth was never used, not to mention it's not even the
     /// ACTUAL new_idepth in target frame
-    if (!projectPoint(this->u, this->v, idepth, dx, dy, HCalib, PRE_RTll,
-                      PRE_tTll, drescale, u, v, Ku, Kv, KliP, new_idepth)) {
-      tmpRes->state_NewState = ResState::OOB;
-      return tmpRes->state_energy;
-    }
-
+    bool projectedd =
+        projectPoint(this->u, this->v, idepth, dx, dy, HCalib, PRE_RTll,
+                     PRE_tTll, drescale, u, v, Ku, Kv, KliP, new_idepth);
 #ifdef SHOW_POINT_OPT
     if (show_image) {
       if (idx == 0 && (Ku > 15 && Kv > 15 && Ku < wG[0] - 15 &&
@@ -725,11 +722,18 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
         IOWrap::displayImage("target", img_target);
         IOWrap::waitKey(0);
       }
-
-      delete img_host;
-      delete img_target;
+      if (idx == 0) {
+        delete img_host;
+        delete img_target;
+      }
     }
 #endif
+
+    if (!projectedd) {
+      tmpRes->state_NewState = ResState::OOB;
+      return tmpRes->state_energy;
+    }
+
     /// dIl传进来只是为了得到数据的地址,用以指向角点4邻域内的数据，它的内容并不参与计算，指针妙用
     Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
 
@@ -740,6 +744,7 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
     /// pattern of 8, so there should be 8 residuals contributing to 1
     /// photometric factor
     float residual = hitColor[0] - (affLL[0] * color[idx] + affLL[1]);
+    // printf("idx: %d, residual: %f\n", idx, residual);
 
     float hw = fabsf(residual) < setting_huberTH
                    ? 1

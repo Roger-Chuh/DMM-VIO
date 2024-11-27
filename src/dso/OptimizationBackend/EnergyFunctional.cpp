@@ -964,6 +964,7 @@ void EnergyFunctional::dropPointsF() {
     for (int i = 0; i < (int)f->points.size(); i++) {
       EFPoint *p = f->points[i];
       if (p->stateFlag == EFPointStatus::PS_DROP) {
+        // printf("drop point\n");
         removePoint(p);
         i--;
       }

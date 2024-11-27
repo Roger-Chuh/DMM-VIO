@@ -788,6 +788,7 @@ void FullSystem::activatePointsMT() {
   toOptimize.reserve(20000); // 待激活的点
 
   //[ ***step 2*** ] 处理未成熟点, 激活/删除/跳过
+  int fid = 0;
   for (FrameHessian *host : frameHessians) // go through all active frames
   {
     if (host == newestHs)
@@ -804,7 +805,9 @@ void FullSystem::activatePointsMT() {
     //         coarseDistanceMap->Ki[0]);
     //    Vec3f Kt = (coarseDistanceMap->K[1] *
     //    fhToNew.translation().cast<float>());
-
+    printf("activating points, fid: %d, immature points: %d\n", fid,
+           host->immaturePoints.size());
+    fid++;
     for (unsigned int i = 0; i < host->immaturePoints.size(); i += 1) {
       ImmaturePoint *ph = host->immaturePoints[i];
       ph->idxInImmaturePoints = i;
@@ -1717,6 +1720,22 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
     }
   }
 
+  if (false) {
+    printf("frameHessians: %d\n", frameHessians.size());
+    int fid = 0;
+    for (FrameHessian *fh : frameHessians) {
+      printf("fid: %d, points: %d\n", fid, fh->pointHessians.size());
+      for (unsigned int i = 0; i < fh->pointHessians.size(); i++) {
+        PointHessian *ph = fh->pointHessians[i];
+        if (ph == 0)
+          continue;
+        std::cout << "before opt, ph->residuals: " << ph->residuals.size()
+                  << std::endl;
+      }
+      fid++;
+    }
+  }
+
   timeMeasurementAddFrame.end();
 
   ///[ ***step 6*** ] 激活所有关键帧上的部分未成熟点(构造新的残差)
@@ -1741,27 +1760,48 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
       frameHessians.back()->frameEnergyTH; // 这两个不是一个值么???
   float rmse = optimize(setting_maxOptIterations);
 
+  if (false) {
+    printf("frameHessians: %d\n", frameHessians.size());
+    int fid = 0;
+    for (FrameHessian *fh : frameHessians) {
+      printf("fid: %d, points: %d\n", fid, fh->pointHessians.size());
+      for (unsigned int i = 0; i < fh->pointHessians.size(); i++) {
+        PointHessian *ph = fh->pointHessians[i];
+        if (ph == 0)
+          continue;
+        std::cout << "after opt, ph->residuals: " << ph->residuals.size()
+                  << std::endl;
+      }
+      fid++;
+    }
+  }
+
   // =========================== Figure Out if INITIALIZATION FAILED
   // =========================
   //* 所有的关键帧数小于4，认为还是初始化，此时残差太大认为初始化失败
   printf("init rmse: %f\n", rmse);
+#ifndef USE_MULTI_CAM
+  std::vector<float> init_rmse_thr = {20, 13, 9};
+#else
+  std::vector<float> init_rmse_thr = {20, 15, 15};
+#endif
   if (allKeyFramesHistory.size() <= 4) {
     if (allKeyFramesHistory.size() == 2 &&
-        rmse > 20 * benchmark_initializerSlackFactor) {
+        rmse > init_rmse_thr[0] /*20*/ * benchmark_initializerSlackFactor) {
       printf(
           "I THINK INITIALIZATINO FAILED! Resetting. rmse: %f, sw_size: %d\n",
           rmse, allKeyFramesHistory.size());
       initFailed = true; // 优化后的能量函数太大, 认为是跟丢了
     }
     if (allKeyFramesHistory.size() == 3 &&
-        rmse > 13 * benchmark_initializerSlackFactor) {
+        rmse > init_rmse_thr[1] /*13*/ * benchmark_initializerSlackFactor) {
       printf(
           "I THINK INITIALIZATINO FAILED! Resetting. rmse: %f, sw_size: %d\n",
           rmse, allKeyFramesHistory.size());
       initFailed = true;
     }
     if (allKeyFramesHistory.size() == 4 &&
-        rmse > 9 * benchmark_initializerSlackFactor) {
+        rmse > init_rmse_thr[2] /*9*/ * benchmark_initializerSlackFactor) {
       printf(
           "I THINK INITIALIZATINO FAILED! Resetting. rmse: %f, sw_size: %d\n",
           rmse, allKeyFramesHistory.size());
@@ -1829,6 +1869,8 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
   // =========================== add new Immature points & new residuals
   // =========================
   // TODO [detect new points]
+  // TODO roger make new traces
+  printf("make new traces\n");
   makeNewTraces(
       fh,
       0); // TODO 刚去掉了一些点，现在肯定要再提一些点,

@@ -62,9 +62,21 @@ void FullSystem::linearizeAll_Reductor(
       for (int cid = 0; cid < kCameraNumUsed; ++cid) {
         r->applyRes(true, cid); // 把值给efResidual
       }
+      // TODO roger, 重写，把对相机的循环放到最外围，
+      // 不行，这里要决定该ph是否为outlier，
+      // 必须要先在内部对所有cid遍历完，统计active的个数。再决定它是不是外点
+      // TODO roger, 像这种倒是可以先在最外围把cid遍历，
+      // 尽量模仿原来不用bunddled_res的处理逻辑，不容易出错，
+      // 因为有可能Hb堆叠的顺序也有讲究
+      // 像AccumulatedSCHessianSSE::addPoint(EFPoint这种倒是可以先在最外围把cid遍历，
+      // 尽量模仿原来不用bunddled_res的处理逻辑，不容易出错，
+      // 因为有可能Hb堆叠的顺序也有讲究，
+      // 就像AccumulatedSCHessianSSE::addPoint(EFPoint 一样，
+      // 这个就是模仿原作者的叠加顺序写的【虽然我最开始的写法可能也没错】
       for (int cid = 0; cid < kCameraNumUsed; ++cid) {
         if (r->efResidual->isActive(cid)) { // 残差是in的
-          if (r->isNew[cid]) {              // TODO 理解无穷远点
+          active_count++;
+          if (r->isNew[cid]) { // TODO 理解无穷远点
             PointHessian *p = r->point;
 #if 0
                 Vec3f ptp_inf =
@@ -108,7 +120,7 @@ void FullSystem::linearizeAll_Reductor(
       }
       if (active_count == 0) { //* tid线程的id
         // 删除OOB, Outlier
-        // printf("outlier??\n");
+        // printf("possible outlier??\n");
         toRemove[tid].push_back(activeResiduals[k]); // 残差太大则移除
       }
     }
@@ -756,7 +768,7 @@ void FullSystem::removeOutliers() {
       PointHessian *ph = fh->pointHessians[i];
       if (ph == 0)
         continue;
-
+      // std::cout << "ph->residuals: " << ph->residuals.size() << std::endl;
       if (ph->residuals.size() == 0) // 如果该点的残差数为0, 则丢掉
       {
         fh->pointHessiansOut.push_back(ph);

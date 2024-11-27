@@ -120,11 +120,11 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
       return 0;
     }
 
-    if (print || true)
-      printf("%s %d (L %.2f) %s: %f -> %f (idepth %f)!\n",
-             (true || newEnergy < lastEnergy) ? "ACCEPT" : "REJECT", iteration,
-             log10(lambda), "", lastEnergy, newEnergy, newIdepth);
-
+    if (print /*|| true*/) {
+      printf("%s %d (L %.2f) %s: %f -> %f (idepth %f)!, step: %f\n",
+             (newEnergy < lastEnergy) ? "ACCEPT" : "REJECT", iteration,
+             log10(lambda), "", lastEnergy, newEnergy, newIdepth, step);
+    }
     if (newEnergy < lastEnergy) {
       currentIdepth = newIdepth;
       lastHdd = newHdd;
@@ -237,11 +237,11 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
 #else
   for (int i = 0; i < nres; i += kCameraNumUsed) {
     int inlier_count = 0;
-    for (int idx = i; idx < i + kCameraNumUsed; ++idx) {
+    for (int idx = 0; idx < kCameraNumUsed; ++idx) {
       if (residuals[i + idx].state_state == ResState::IN) {
+        assert(residuals[i].target == residuals[i + idx].target);
         inlier_count++;
       }
-      assert(residuals[i].target == residuals[i + idx].target);
     }
     if (inlier_count > 0 /*residuals[i].state_state == ResState::IN*/) {
       // TODO roger, 这个res是可能属于同一个pid的，要注意
@@ -272,7 +272,7 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
         //            }
       }
       if (r->target == frameHessians.back()) {
-        printf("point with good res\n");
+        // printf("point with good res\n");
         p->lastResiduals[0].first = r;
         p->lastResiduals[0].second = res_state; // ResState::IN;
       } else if (r->target == (frameHessians.size() < 2
