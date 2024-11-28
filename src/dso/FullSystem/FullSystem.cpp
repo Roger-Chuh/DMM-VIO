@@ -150,6 +150,10 @@ FullSystem::FullSystem(bool linearizeOperationPassed,
     calibLog = 0;
   }
 
+  poseLog = new std::ofstream();
+  poseLog->open("output_dm_vio.txt", std::ios::trunc | std::ios::out);
+  poseLog->precision(12);
+
   assert(retstat !=
          293847); // shell正常执行结束返回这么个值,填充8~15位bit, 有趣
 
@@ -216,6 +220,9 @@ FullSystem::~FullSystem() {
     nullspacesLog->close();
     delete nullspacesLog;
   }
+
+  poseLog->close();
+  delete poseLog;
 
   delete[] selectionMap;
 
@@ -1138,6 +1145,9 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
   // id等于当当前keyfraem size
   shell->marginalizedAt = shell->id = allFrameHistory.size();
   shell->timestamp = image->timestamp;
+#ifdef USE_MULTI_CAM
+  shell->timestamp_eval = image->timestamp_eval;
+#endif
   shell->incoming_id = id;
   fh->shell = shell;
   allFrameHistory.push_back(shell);
@@ -1289,6 +1299,13 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
       output_ostr_ << std::fixed << fh->shell->timestamp << " " << p.x() << " "
                    << p.y() << " " << p.z() << " " << q.x() << " " << q.y()
                    << " " << q.z() << " " << q.w() << std::endl;
+
+#ifdef USE_MULTI_CAM
+      // printf("exposure: %f\n", image->exposure_time);
+      (*poseLog) << std::fixed << static_cast<double>(fh->shell->timestamp_eval)
+                 << " " << p.x() << " " << p.y() << " " << p.z() << " " << q.x()
+                 << " " << q.y() << " " << q.z() << " " << q.w() << std::endl;
+#endif
     }
     dso::Vec4 tres = std::move(pair.first);
     bool forceNoKF = !pair.second; // If coarse tracking was bad don't make KF.

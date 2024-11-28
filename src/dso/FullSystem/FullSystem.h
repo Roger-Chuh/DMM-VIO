@@ -284,6 +284,8 @@ private:
 
   std::ofstream *coarseTrackingLog;
 
+  std::ofstream *poseLog;
+
   // statistics
   long int statistics_lastNumOptIts;
   long int statistics_numDroppedPoints;

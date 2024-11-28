@@ -35,6 +35,7 @@ public:
   float *image; // irradiance. between 0 and 256
   int w, h;     // width and height;
   double timestamp;
+  double timestamp_eval = 0;
   float exposure_time; // exposure time in ms.
   inline ImageAndExposure(int w_, int h_, double timestamp_ = 0)
       : w(w_), h(h_), timestamp(timestamp_) {

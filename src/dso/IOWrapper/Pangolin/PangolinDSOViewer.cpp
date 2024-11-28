@@ -128,11 +128,12 @@ void PangolinDSOViewer::run() {
   }
 #ifdef USE_MULTI_CAM
   pangolin::CreateDisplay()
-      .SetBounds(0.0, 1.0, pangolin::Attach::Pix(UI_WIDTH), 0.5)
+      .SetBounds(0.0, 1.0, pangolin::Attach::Pix(UI_WIDTH),
+                 0.5) // (float)(w * kCameraNumUsed) / (float)(h))
       .SetLayout(pangolin::LayoutEqual)
       .AddDisplay(d_kfDepth)
-      .AddDisplay(d_video)
-      .AddDisplay(d_residual);
+      .AddDisplay(d_video);
+  //.AddDisplay(d_residual);
 #else
   pangolin::CreateDisplay()
       .SetBounds(0.0, 0.3, pangolin::Attach::Pix(UI_WIDTH), 1.0)
@@ -160,7 +161,9 @@ void PangolinDSOViewer::run() {
   pangolin::Var<bool> settings_show3D("ui.show3D", true, true);
   pangolin::Var<bool> settings_showLiveDepth("ui.showDepth", true, true);
   pangolin::Var<bool> settings_showLiveVideo("ui.showVideo", true, true);
+#ifndef USE_MULTI_CAM
   pangolin::Var<bool> settings_showLiveResidual("ui.showResidual", false, true);
+#endif
 
   pangolin::Var<bool> settings_showFramesWindow("ui.showFramesWindow", false,
                                                 true);
@@ -187,7 +190,7 @@ void PangolinDSOViewer::run() {
   // pangolin::Var<int> settings_nMaxFrames("ui.maxFrames",setting_maxFrames,
   // 20,40, false);
   pangolin::Var<double> settings_kfFrequency(
-      "ui.kfFrequency", setting_kfGlobalWeight, 0.1, 3, false);
+      "ui.kfFrequency", setting_kfGlobalWeight, 0.001, 3, false);
   pangolin::Var<double> settings_gradHistAdd(
       "ui.minGradAdd", setting_minGradHistAdd, 0, 15, false);
 
@@ -321,8 +324,11 @@ void PangolinDSOViewer::run() {
     setting_render_display3D = settings_show3D.Get();
     setting_render_displayDepth = settings_showLiveDepth.Get();
     setting_render_displayVideo = settings_showLiveVideo.Get();
+#ifndef USE_MULTI_CAM
     setting_render_displayResidual = settings_showLiveResidual.Get();
-
+#else
+    setting_render_displayResidual = false;
+#endif
     setting_render_renderWindowFrames = settings_showFramesWindow.Get();
     setting_render_plotTrackingFull = settings_showFullTracking.Get();
     setting_render_displayCoarseTrackingFull =

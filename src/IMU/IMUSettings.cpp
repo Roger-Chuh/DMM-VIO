@@ -108,10 +108,16 @@ void IMUCalibration::loadFromFile2(const dso::IMUState &imu_state) {
   //                  << std::endl;
   //    }
 
-  gyro_sigma = 7.8e-5 * 1;
-  accel_sigma = 6.5e-4 * 10;
-  sigma_between_b_g = 4.0e-5;
-  sigma_between_b_a = 7.3e-4;
+  gyro_sigma = 7.8e-5 * 100;
+  accel_sigma = 6.5e-4 * 100;
+  sigma_between_b_g = 4.0e-5 * 10;
+  sigma_between_b_a = 7.3e-4 * 10;
+
+  //  accel_sigma = 0.224;
+  //  gyro_sigma = 0.01280;
+  //  sigma_between_b_a = 0.0430;
+  //  sigma_between_b_g = 0.00110;
+
   std::cout << "Used noise values: " << sigma_between_b_a << " "
             << sigma_between_b_g << " " << accel_sigma << " " << gyro_sigma
             << std::endl;

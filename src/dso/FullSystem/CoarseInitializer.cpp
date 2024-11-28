@@ -1057,6 +1057,13 @@ Vec3f CoarseInitializer::calcResAndGS_bak(int lvl, MatStatef &H_out,
                Vec2(hitColor[1], hitColor[2]).transpose() *
                d_uv_d_pose_fwd_jac_use.cast<double>())
                   .cast<float>();
+          Vec6f d_res_d_pose_inverse_comp_use =
+              (static_cast<double>(hw) *
+               Vec2(hostColor[1], hostColor[2]).transpose() *
+               d_uv_d_pose_inverse_comp_use.cast<double>())
+                  .cast<float>();
+          assert(std::abs(hostColor[1] - grad_new_host(cnt, 0)) == 0);
+          assert(std::abs(hostColor[2] - grad_new_host(cnt, 1)) == 0);
 #else
           show.row(1) = show.row(0) - hw *
                                           Vec2f(grad_new_target(cnt, 0),
@@ -1886,6 +1893,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
         delete img_target;
       }
 #endif
+      // printf("cc\n");
       assert(host_target_info_size == host_info.rows());
       int patch_num = host_info.rows();
       // assert(patch_num == MAX_RES_PER_POINT * kCameraNumUsed);
@@ -1893,10 +1901,13 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
 
         for (int id = 0; id < kCameraNumUsed; ++id) {
           if (cam_info[id] > 0) {
+            // printf("id: %d\n", id);
             host_val_mean = a_host_info[id].col(0).sum() /
                             static_cast<float>(a_target_info[id].rows());
             target_val_mean = a_target_info[id].col(0).sum() /
                               static_cast<float>(a_target_info[id].rows());
+            // printf("host_val_mean: %f, target_val_mean: %f\n", host_val_mean,
+            // target_val_mean);
 
             ones.conservativeResize(a_target_info[id].rows(), 1);
             ones.setOnes();
@@ -1946,8 +1957,9 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
 #endif
           }
         }
-
+        // printf("dddd\n");
         host_val_mean = host_info.col(0).sum() / patch_num;
+        // printf("ee\n");
         target_val_mean = target_info.col(0).sum() / patch_num;
 
         ones.conservativeResize(patch_num, 1);
@@ -1981,6 +1993,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
                           target_info.rightCols(2); // "new" gradient: 8x2
         host_info.col(0) *= setting_variableScale;
         target_info.col(0) *= setting_variableScale;
+        // printf("ff\n");
 #else
         grad_new_host = host_info.rightCols(2);     // "new" gradient: 8x2
         grad_new_target = target_info.rightCols(2); // "new" gradient: 8x2
@@ -2430,17 +2443,24 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
           energy += hw * residual * residual * (2 - hw);
 #else
           float residual_bak = hitColor[0] - r2new_aff[0] * rlR - r2new_aff[1];
+          // printf("gg\n");
           float residual = 1 * (a_target_info[target_cid](idx, 0) -
                                 a_host_info[target_cid](idx, 0));
-          // printf("residual: %f\n", residual);
+          if (lvl <= 1 && false) {
+            printf("residual: %f, idx: %d, host_val: %f, target_val: %f\n",
+                   residual, idx, a_host_info[target_cid](idx, 0),
+                   a_target_info[target_cid](idx, 0));
+          }
 
-          assert(!std::isnan(residual));
+          // assert(!std::isnan(residual));
 
           if (std::isnan(residual)) {
             // isGood = false;
             is_bad_res_count++;
             // break_inner_loop = true;
-            continue
+            cnt++;
+            cnt_each_cam++;
+            continue;
           }
 
           // printf("residual: %f\n", residual);
@@ -2507,6 +2527,17 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
                Vec2(hitColor[1], hitColor[2]).transpose() *
                d_uv_d_pose_fwd_jac_use.cast<double>())
                   .cast<float>();
+          Vec6f d_res_d_pose_inverse_comp_use =
+              (static_cast<double>(hw) *
+               Vec2(a_grad_new_host[target_cid](idx, 0),
+                    a_grad_new_host[target_cid](idx, 1))
+                   .transpose() *
+               d_uv_d_pose_inverse_comp_use.cast<double>())
+                  .cast<float>();
+          assert(std::abs(a_grad_new_host[target_cid](idx, 0) - hostColor[1]) ==
+                 0);
+          assert(std::abs(a_grad_new_host[target_cid](idx, 1) - hostColor[2]) ==
+                 0);
 #else
           show.row(1) =
               show.row(0) - hw *
@@ -2529,7 +2560,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
           Vec6f d_res_d_pose_fwd_jac_use =
               (static_cast<double>(hw) *
                Vec2(a_grad_new_target[target_cid](idx, 0),
-                    a_grad_new_target[target + cid](idx, 1))
+                    a_grad_new_target[target_cid](idx, 1))
                    .transpose() *
                d_uv_d_pose_fwd_jac_use.cast<double>())
                   .cast<float>();
@@ -2540,6 +2571,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
                    .transpose() *
                d_uv_d_pose_inverse_comp_use.cast<double>())
                   .cast<float>();
+          // printf("hh, idx: %d\n", idx);
 #endif
 
           Vec3f d_uv_d_idp_show;
@@ -2563,7 +2595,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
 #else
           d_uv_d_idp_show(1) = d_uv_d_idp_show(0) -
                                hw *
-                                   Vec2f(agrad_new_target[target_cid](idx, 0),
+                                   Vec2f(a_grad_new_target[target_cid](idx, 0),
                                          a_grad_new_target[target_cid](idx, 1))
                                        .transpose() *
                                    d_uv_d_pt3d * trans;
@@ -2576,7 +2608,9 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
           float d_res_d_idp_fwd_jac =
               hw *
               Vec2f(a_grad_new_target[target_cid](
-                        index_to_count.at(idx + MAX_RES_PER_POINT * target_cid),
+                        idx /*index_to_count.at(idx + MAX_RES_PER_POINT *
+                               target_cid)*/
+                        ,
                         0),
                     a_grad_new_target[target_cid](idx, 1))
                   .transpose() *
@@ -2816,6 +2850,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
           cnt++;
           cnt_each_cam++;
         }
+        // printf("ii\n");
         a_cnt[target_cid] = cnt_each_cam;
         assert(cnt_each_cam == a_count[target_cid]);
         assert(cnt_each_cam == a_target_info[target_cid].rows());

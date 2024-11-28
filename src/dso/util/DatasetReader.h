@@ -676,6 +676,7 @@ private:
       //            exposures[id]);
       ImageAndExposure *result = new ImageAndExposure(minimg->w, minimg->h, 0);
       result->exposure_time = (exposures.size() == 0 ? 1.0f : exposures[id]);
+      result->timestamp_eval = timestamps[id];
       for (int cid = 0; cid < kCameraNumUsed; ++cid) {
         for (int i = 0; i < minimg->w * minimg->h; i++) {
           result->image[i + minimg->w * minimg->h * cid] =

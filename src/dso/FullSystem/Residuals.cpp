@@ -542,8 +542,8 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
     if (std::isnan(residual)) {
       //            isGood = false;
       //            break;
-      state_NewState = ResState::OOB;
-      return state_energy;
+      state_NewState[target_cid_now] = ResState::OOB;
+      return state_energy[target_cid_now];
     }
 #endif
     Vec3f hostColor =
@@ -629,11 +629,11 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
 #endif
 #else
 #ifndef USE_ZNCC
-      J->JIdx[0][idx] = affLL[0] * hostColor[1];
-      J->JIdx[1][idx] = affLL[0] * hostColor[2];
+      J[target_cid_now]->JIdx[0][idx] = affLL[0] * hostColor[1];
+      J[target_cid_now]->JIdx[1][idx] = affLL[0] * hostColor[2];
 #else
-      J->JIdx[0][idx] = affLL[0] * grad_new_host(cnt, 0);
-      J->JIdx[1][idx] = affLL[0] * grad_new_host(cnt, 1);
+      J[target_cid_now]->JIdx[0][idx] = affLL[0] * grad_new_host(cnt, 0);
+      J[target_cid_now]->JIdx[1][idx] = affLL[0] * grad_new_host(cnt, 1);
 #endif
 #endif
 

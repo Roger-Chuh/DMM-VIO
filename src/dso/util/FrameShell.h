@@ -35,9 +35,10 @@ namespace dso {
 class FrameShell {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  int id;           // INTERNAL ID, starting at zero.
-  int incoming_id;  // ID passed into DSO
-  double timestamp; // timestamp passed into DSO.
+  int id;                    // INTERNAL ID, starting at zero.
+  int incoming_id;           // ID passed into DSO
+  double timestamp;          // timestamp passed into DSO.
+  double timestamp_eval = 0; // timestamp passed into DSO.
 
   // set once after tracking
   SE3 camToTrackingRef;

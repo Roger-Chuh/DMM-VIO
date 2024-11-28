@@ -68,9 +68,9 @@ float setting_maxShiftWeightT = 0.04f * (640 + 480);
 float setting_maxShiftWeightR = 0.0f * (640 + 480);
 float setting_maxShiftWeightRT = 0.02f * (640 + 480);
 float setting_kfGlobalWeight =
-    0.05; // 0.5; // 1;   // general weight on threshold, the larger the more
-          // KF's are
-          // taken (e.g., 2 = double the amount of KF's).
+    0.1; // 0.5; // 1;   // general weight on threshold, the larger the more
+         // KF's are
+         // taken (e.g., 2 = double the amount of KF's).
 float setting_maxAffineWeight = 2;
 
 /* initial hessian values to fix unobservable dimensions / priors on affine
