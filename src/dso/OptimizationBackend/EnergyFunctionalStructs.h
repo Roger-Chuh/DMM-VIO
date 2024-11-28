@@ -78,7 +78,7 @@ public:
 
   inline ~EFResidual() {
     for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-      delete J[cid];
+      delete[] J[cid];
     }
   }
 

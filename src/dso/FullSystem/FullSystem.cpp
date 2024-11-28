@@ -1339,6 +1339,19 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
            timeSinceLastKeyframe > setting_maxTimeBetweenKeyframes) ||
           forceKF;
 
+      printf("setting_kfGlobalWeight: %f, thr: %f, [2 * first_res cur_res]: "
+             "[%f %f]\n",
+             setting_kfGlobalWeight,
+             setting_kfGlobalWeight * setting_maxShiftWeightT *
+                     sqrtf((double)tres[1]) / (wG[0] + hG[0]) +
+                 setting_kfGlobalWeight * setting_maxShiftWeightR *
+                     sqrtf((double)tres[2]) / (wG[0] + hG[0]) +
+                 setting_kfGlobalWeight * setting_maxShiftWeightRT *
+                     sqrtf((double)tres[3]) / (wG[0] + hG[0]) +
+                 setting_kfGlobalWeight * setting_maxAffineWeight *
+                     fabs(logf((float)refToFh[0])),
+             2 * coarseTracker->firstCoarseRMSE, tres[0]);
+
       if (needToMakeKF && !setting_debugout_runquiet) {
         std::cout << "Time since last keyframe: " << timeSinceLastKeyframe
                   << std::endl;

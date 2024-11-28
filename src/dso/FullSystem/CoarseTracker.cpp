@@ -584,7 +584,8 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
 
         float new_idepth = id / pt[2]; // 当前帧上的深度
 
-        if (lvl == 0 && i % 32 == 0) //* 第0层 每隔32个点
+        if (lvl == 0 && i % 32 == 0 &&
+            host_cid == target_cid) //* 第0层 每隔32个点
         {
           //* 只正的平移 // translation only (positive)
           Vec3f ptT = Ki[lvl] * Vec3f(x, y, 1) + t * id;

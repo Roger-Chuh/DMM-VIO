@@ -61,8 +61,9 @@ PointFrameResidual::~PointFrameResidual() {
   assert(efResidual == 0);
   instanceCounter--;
   for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-    delete J[cid];
+    delete[] J[cid];
   }
+  // delete[] J;
 }
 
 // PointFrameResidual::PointFrameResidual(PointHessian *point_,

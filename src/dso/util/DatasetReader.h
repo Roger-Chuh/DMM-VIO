@@ -179,8 +179,13 @@ public:
     if (databuffer != 0)
       delete databuffer;
 #endif
-
-    delete undistort;
+    // delete p_cid_to_undist_map;
+    // delete p_vig_mat;
+    printf("DELETE UNDISTORT!\n");
+    if (undistort != 0) {
+      delete undistort;
+    }
+    printf("UNDISTORT destroyed!\n");
   };
 
   Eigen::VectorXf getOriginalCalib() {
@@ -551,7 +556,7 @@ public:
   }
 
   // undistorter. [0] always exists, [1-2] only when MT is enabled.
-  Undistort *undistort;
+  Undistort *undistort = 0;
 
 private:
   aligned_vector<dso::CalibFrame> *p_input_data = nullptr;

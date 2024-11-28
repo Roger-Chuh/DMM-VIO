@@ -244,6 +244,7 @@ void FullSystem::marginalizeFrame(FrameHessian *frame) {
     int target = (int)(it->first & (uint64_t)0xFFFFFFFF);
     if (host == frameID || target == frameID) {
       numDel++;
+      assert(it->second[0] == 0);
       std::cout << "host_fid: " << host << ", target_fid: " << target
                 << ", info: " << it->second.transpose() << std::endl;
       it = ef->connectivityMap.erase(it);
