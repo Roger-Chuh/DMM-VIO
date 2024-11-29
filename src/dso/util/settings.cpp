@@ -178,8 +178,8 @@ bool setting_selectDirectionDistribution = true;
 
 /* settings controling initial immature point tracking */
 float setting_maxPixSearch =
-    0.027; // max length of the ep. line segment searched during immature point
-           // tracking. relative to image resolution.
+    0.027; // max length of the ep. line segment searched during
+           // immature point tracking. relative to image resolution.
 float setting_minTraceQuality = 3;
 int setting_minTraceTestRadius = 2;
 int setting_GNItsOnPointActivation = 3;

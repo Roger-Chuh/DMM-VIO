@@ -207,6 +207,13 @@ ImmaturePointStatus ImmaturePoint::traceOn(
              ptpMin[2], idepth_min, idepth_max);
     lastTraceUV[target_cid] = Vec2f(-1, -1);
     lastTracePixelInterval[target_cid] = 0;
+#ifdef SHOW_TRACEON
+    if (show_image) {
+      delete img_host;
+      delete img_target;
+      printf("return 1\n");
+    }
+#endif
     return lastTraceStatus[target_cid] = ImmaturePointStatus::IPS_OOB;
   }
 
@@ -225,6 +232,13 @@ ImmaturePointStatus ImmaturePoint::traceOn(
         printf("OOB uMax  %f %f - %f %f!\n", u, v, uMax, vMax);
       lastTraceUV[target_cid] = Vec2f(-1, -1);
       lastTracePixelInterval[target_cid] = 0;
+#ifdef SHOW_TRACEON
+      if (show_image) {
+        delete img_host;
+        delete img_target;
+        printf("return 2\n");
+      }
+#endif
       return lastTraceStatus[target_cid] = ImmaturePointStatus::IPS_OOB;
     }
 
@@ -240,6 +254,13 @@ ImmaturePointStatus ImmaturePoint::traceOn(
       lastTraceUV[target_cid] =
           Vec2f(uMax + uMin, vMax + vMin) * 0.5; // 直接设为中值
       lastTracePixelInterval[target_cid] = dist;
+#ifdef SHOW_TRACEON
+      if (show_image) {
+        delete img_host;
+        delete img_target;
+        printf("return 3\n");
+      }
+#endif
       return lastTraceStatus[target_cid] =
                  ImmaturePointStatus::IPS_SKIPPED; //跳过
     }
@@ -268,6 +289,13 @@ ImmaturePointStatus ImmaturePoint::traceOn(
         printf("OOB uMax-coarse %f %f %f!\n", uMax, vMax, ptpMax[2]);
       lastTraceUV[target_cid] = Vec2f(-1, -1);
       lastTracePixelInterval[target_cid] = 0;
+#ifdef SHOW_TRACEON
+      if (show_image) {
+        delete img_host;
+        delete img_target;
+        printf("return 4\n");
+      }
+#endif
       return lastTraceStatus[target_cid] = ImmaturePointStatus::IPS_OOB;
     }
     assert(dist > 0);
@@ -276,11 +304,19 @@ ImmaturePointStatus ImmaturePoint::traceOn(
   //? 为什么是这个值呢??? 0.75 - 1.5
   /// 这个值是两个帧上深度的比值, 它的变化太大就是前后尺度变化太大了
   // set OOB if scale change too big.
-  if (!(idepth_min < 0 || (ptpMin[2] > 0.75 && ptpMin[2] < 1.5))) {
+  if (!(idepth_min < 0 ||
+        (ptpMin[2] > 0.5 /*0.75*/ && ptpMin[2] < 2.0 /*1.5*/))) {
     if (debugPrint)
       printf("OOB SCALE %f %f %f!\n", uMax, vMax, ptpMin[2]);
     lastTraceUV[target_cid] = Vec2f(-1, -1);
     lastTracePixelInterval[target_cid] = 0;
+#ifdef SHOW_TRACEON
+    if (show_image) {
+      delete img_host;
+      delete img_target;
+      printf("return 5\n");
+    }
+#endif
     return lastTraceStatus[target_cid] = ImmaturePointStatus::IPS_OOB;
   }
 
@@ -307,6 +343,13 @@ ImmaturePointStatus ImmaturePoint::traceOn(
       printf("NO SIGNIFICANT IMPROVMENT (%f)!\n", errorInPixel);
     lastTraceUV[target_cid] = Vec2f(uMax + uMin, vMax + vMin) * 0.5;
     lastTracePixelInterval[target_cid] = dist;
+#ifdef SHOW_TRACEON
+    if (show_image) {
+      delete img_host;
+      delete img_target;
+      printf("return 6\n");
+    }
+#endif
     return lastTraceStatus[target_cid] = ImmaturePointStatus::IPS_BADCONDITION;
   }
 
@@ -344,15 +387,22 @@ ImmaturePointStatus ImmaturePoint::traceOn(
 
     lastTracePixelInterval[target_cid] = 0;
     lastTraceUV[target_cid] = Vec2f(-1, -1);
+#ifdef SHOW_TRACEON
+    if (show_image) {
+      delete img_host;
+      delete img_target;
+      printf("return 7\n");
+    }
+#endif
     return lastTraceStatus[target_cid] = ImmaturePointStatus::IPS_OOB;
   }
 
   //* 沿着级线搜索误差最小的位置
-  float errors[100];
+  float errors[100]; //[150];
   float bestU = 0, bestV = 0, bestEnergy = 1e10;
   int bestIdx = -1;
-  if (numSteps >= 100)
-    numSteps = 99;
+  if (numSteps >= 100 /*150*/)
+    numSteps = 99; //[149]
 
   for (int i = 0; i < numSteps; i++) {
     float energy = 0;
@@ -434,6 +484,13 @@ ImmaturePointStatus ImmaturePoint::traceOn(
           printf("OOB uMax  %f %f - %f %f!\n", posU, posV, uMax, vMax);
         lastTraceUV[target_cid] = Vec2f(-1, -1);
         lastTracePixelInterval[target_cid] = 0;
+#ifdef SHOW_TRACEON
+        if (show_image) {
+          delete img_host;
+          delete img_target;
+          printf("return 8\n");
+        }
+#endif
         return lastTraceStatus[target_cid] = ImmaturePointStatus::IPS_OOB;
       }
 
@@ -525,10 +582,25 @@ ImmaturePointStatus ImmaturePoint::traceOn(
 
     lastTracePixelInterval[target_cid] = 0;
     lastTraceUV[target_cid] = Vec2f(-1, -1);
-    if (lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_OUTLIER)
+    if (lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_OUTLIER) {
+#ifdef SHOW_TRACEON
+      if (show_image) {
+        delete img_host;
+        delete img_target;
+        printf("return 9\n");
+      }
+#endif
       return lastTraceStatus[target_cid] = ImmaturePointStatus::IPS_OOB;
-    else
+    } else {
+#ifdef SHOW_TRACEON
+      if (show_image) {
+        delete img_host;
+        delete img_target;
+        printf("return 10\n");
+      }
+#endif
       return lastTraceStatus[target_cid] = ImmaturePointStatus::IPS_OUTLIER;
+    }
   }
 
   //[ ***step 5*** ] 根据得到的最优位置重新计算逆深度的范围
@@ -564,6 +636,13 @@ ImmaturePointStatus ImmaturePoint::traceOn(
 
     lastTracePixelInterval[target_cid] = 0;
     lastTraceUV[target_cid] = Vec2f(-1, -1);
+#ifdef SHOW_TRACEON
+    if (show_image) {
+      delete img_host;
+      delete img_target;
+      printf("return 11\n");
+    }
+#endif
     return lastTraceStatus[target_cid] = ImmaturePointStatus::IPS_OUTLIER;
   }
 #ifdef SHOW_TRACEON

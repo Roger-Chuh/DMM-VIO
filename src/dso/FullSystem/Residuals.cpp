@@ -105,6 +105,7 @@ PointFrameResidual::PointFrameResidual(PointHessian *point_,
 double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
   // printf("fx fy cx cy: [%f %f %f %f]\n", HCalib->fxl(), HCalib->fyl(),
   // HCalib->cxl(), HCalib->cyl());
+  J[target_cid_now]->ResetValues();
   state_NewEnergyWithOutlier[target_cid_now] = -1;
 
   if (state_state[target_cid_now] == ResState::OOB) {
@@ -492,7 +493,7 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
     ws2 = 2.0 / (r2 + 2.0);
 
 #ifdef USE_ZNCC_WEIGHT
-    if (zncc < 0.8) {
+    if (zncc < -111110.5 /*0.8*/) {
       state_NewState[target_cid_now] = ResState::OOB;
       return state_energy[target_cid_now];
     }
@@ -505,6 +506,8 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
 
   int cnt = 0;
   float residual;
+  bool has_nan_res = false;
+  int continued_count = 0;
   for (int idx = 0; idx < patternNum; idx++) {
     float Ku, Kv;
     //? 为啥这里使用idepth_scaled, 上面使用的是zero； 答：
@@ -540,8 +543,14 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
         hitColor[0] - (float)(affLL[0] * color[idx] + affLL[1]);
     float residual = 1 * (target_info(cnt, 0) - host_info(cnt, 0));
     if (std::isnan(residual)) {
+      continued_count++;
       //            isGood = false;
       //            break;
+      if (!has_nan_res) {
+        has_nan_res = true;
+      }
+      cnt++;
+      continue;
       state_NewState[target_cid_now] = ResState::OOB;
       return state_energy[target_cid_now];
     }
@@ -727,6 +736,7 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
     }
     cnt++;
   }
+  assert(cnt == count);
 #ifdef SHOW_IMAGE
   if (show_image) {
     IOWrap::waitKey(0);
@@ -751,9 +761,37 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
   J[target_cid_now]->Jab2(1, 1) = JabJab_11;
 
   state_NewEnergyWithOutlier[target_cid_now] = energyLeft;
+  if (has_nan_res && false) {
+    std::cout << "continued_count: " << continued_count << std::endl;
+    std::cout << "J[target_cid_now]->JIdx2:\n"
+              << J[target_cid_now]->JIdx2 << std::endl;
+    std::cout << "J[target_cid_now]->JabJIdx:\n"
+              << J[target_cid_now]->JabJIdx << std::endl;
+    std::cout << "J[target_cid_now]->Jab2:\n"
+              << J[target_cid_now]->Jab2 << std::endl;
+    std::cout << "J[target_cid_now]->JabF:\n"
+              << J[target_cid_now]->JabF[0] << std::endl;
+    std::cout << "J[target_cid_now]->resF:\n"
+              << J[target_cid_now]->resF << std::endl;
+    std::cout << "J[target_cid_now]->Jpdxi:\n"
+              << J[target_cid_now]->Jpdxi[0] << std::endl;
+    std::cout << "J[target_cid_now]->Jpdc:\n"
+              << J[target_cid_now]->Jpdc[0] << std::endl;
+    std::cout << "J[target_cid_now]->Jpdd:\n"
+              << J[target_cid_now]->Jpdd << std::endl;
+    std::cout << "J[target_cid_now]->JIdx:\n"
+              << J[target_cid_now]->JIdx[0] << std::endl;
+
+    std::cout << "energyLeft: \n" << energyLeft << std::endl;
+    // std::exit(31);
+  }
   //* 大于阈值则视为有外点
+#ifndef USE_ZNCC
+  assert(continued_count == 0);
+#endif
   if (energyLeft > std::max<float>(host->frameEnergyTH,
-                                   target->frameEnergyTH) /*|| wJI2_sum < 2*/) {
+                                   target->frameEnergyTH) /*|| wJI2_sum < 2*/
+      || continued_count == MAX_RES_PER_POINT) {
     // printf("residual: %f, energyLeft: %f, host->frameEnergyTH: %f,
     // target->frameEnergyTH: %f\n", residual, energyLeft, host->frameEnergyTH,
     // target->frameEnergyTH);

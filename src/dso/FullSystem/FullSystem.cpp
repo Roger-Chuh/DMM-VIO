@@ -1811,9 +1811,17 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
   //* 所有的关键帧数小于4，认为还是初始化，此时残差太大认为初始化失败
   printf("init rmse: %f\n", rmse);
 #ifndef USE_MULTI_CAM
+#ifndef USE_ZNCC
   std::vector<float> init_rmse_thr = {20, 13, 9};
 #else
+  std::vector<float> init_rmse_thr = {25, 20, 20};
+#endif
+#else
+#ifndef USE_ZNCC
   std::vector<float> init_rmse_thr = {20, 15, 15};
+#else
+  std::vector<float> init_rmse_thr = {25, 20, 20};
+#endif
 #endif
   if (allKeyFramesHistory.size() <= 4) {
     if (allKeyFramesHistory.size() == 2 &&

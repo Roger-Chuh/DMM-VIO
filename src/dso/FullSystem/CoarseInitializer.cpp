@@ -1571,6 +1571,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
     //  E.initialize();
 
     int npts = level_cid_to_numPoints[lvl][host_cid];
+    printf("npts: %d\n", npts);
     Pnt *ptsl = points[lvl] + level_cid_to_npts_success_offset[lvl][host_cid];
     for (int i = 0; i < npts; i++) {
       VecBigf dp0 = VecBigf::Zero();
@@ -3614,7 +3615,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
         npts += level_cid_to_npts[lvl][cid];
         //      }
       }
-      // printf("lvl: %d, npts: %d\n", lvl, npts);
+      printf("lvl: %d, npts: %d\n", lvl, npts);
       // 如果点非空, 则释放空间, 创建新的
       if (points[lvl] != 0 && cid == 0) {
         delete[] points[lvl];
@@ -3657,6 +3658,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
             //            std::endl;
             ImmaturePoint *pt =
                 new ImmaturePoint(x, y, firstFrame, my_type, HCalib, cid, lvl);
+            // pt->idepth_min = 4;
             if (pt->energyTH == NAN) {
               delete pt;
               continue;
@@ -3713,6 +3715,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
                 //                       pt->idepth_min)), point_3d_ccs[2]);
                 float idepth_mean = 0.5 * (pt->idepth_max + pt->idepth_min);
                 if (point_3d_ccs[2] < 0.01 || idepth_mean < 0.01) {
+                  // printf("failed epipolar search\n");
                   delete pt;
                   continue;
                 }
@@ -3726,7 +3729,9 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
                 }
                 pl[nl].idepth = pl[nl].iR_triangle;
                 pl[nl].iR = pl[nl].iR_triangle;
+                // printf("success epipolar search\n");
               } else {
+                // printf("failed in crosss image epipolar search\n");
                 // pl[nl].idepth = pl[nl].iR_triangle = 1;
                 // pl[nl].iR = pl[nl].iR_triangle = 1;
                 delete pt;
@@ -3792,6 +3797,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
           level_cid_to_npts_offset[lvl][cid];
       //    }
       //      printf("level end\n");
+      // std::exit(1);
     }
   }
 #ifdef SHOW_DETECTION_RES

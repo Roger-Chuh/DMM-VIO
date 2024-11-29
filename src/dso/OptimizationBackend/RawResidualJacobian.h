@@ -31,6 +31,21 @@ struct RawResidualJacobian {
   //  RawResidualJacobian() {}
   RawResidualJacobian(const int &host_cid_, const int &target_cid_)
       : host_cid(host_cid_), target_cid(target_cid_) {}
+  void ResetValues() {
+    resF.setZero();
+    Jpdxi[0].setZero();
+    Jpdxi[1].setZero();
+    Jpdc[0].setZero();
+    Jpdc[1].setZero();
+    Jpdd.setZero();
+    JIdx[0].setZero();
+    JIdx[1].setZero();
+    JabF[0].setZero();
+    JabF[1].setZero();
+    JIdx2.setZero();
+    JabJIdx.setZero();
+    Jab2.setZero();
+  }
   // ================== new structure: save independently =============.
   VecNRf resF; // TODO 加权后的光度残差 //!< 每个patch的8个残差
 

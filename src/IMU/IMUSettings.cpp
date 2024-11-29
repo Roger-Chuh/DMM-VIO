@@ -108,10 +108,10 @@ void IMUCalibration::loadFromFile2(const dso::IMUState &imu_state) {
   //                  << std::endl;
   //    }
 
-  gyro_sigma = 7.8e-5 * 100;
-  accel_sigma = 6.5e-4 * 100;
-  sigma_between_b_g = 4.0e-5 * 10;
-  sigma_between_b_a = 7.3e-4 * 10;
+  gyro_sigma = 7.8e-5 * 1;
+  accel_sigma = 6.5e-4 * 1;
+  sigma_between_b_g = 4.0e-5 * 1;
+  sigma_between_b_a = 7.3e-4 * 1;
 
   //  accel_sigma = 0.224;
   //  gyro_sigma = 0.01280;
