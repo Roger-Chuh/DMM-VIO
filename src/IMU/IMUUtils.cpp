@@ -70,13 +70,13 @@ dmvio::getPriorsAndAddValuesForTransform(
     const IMUTransformPriorSettings &settings, gtsam::Values &values) {
   std::vector<gtsam::NonlinearFactor::shared_ptr> ret;
   int symInd = transform.getSymbolInd();
-  if (transform.optimizeScale()) {
+  if (transform.optimizeScale() /*|| true*/) {
     gtsam::Key scaleKey = gtsam::Symbol('s', symInd);
     ScaleGTSAM sim(transform.getScale());
     values.insert(scaleKey, sim);
   }
 
-  if (transform.optimizeGravity()) {
+  if (transform.optimizeGravity() /*|| true*/) {
     gtsam::Key gravityKey = Symbol('g', symInd);
     gtsam::Rot3 initialRot(transform.getR_dsoW_metricW().matrix());
     gtsam::Rot3 zeroRot; // Initialize with current transform but set prior to
@@ -94,7 +94,7 @@ dmvio::getPriorsAndAddValuesForTransform(
     ret.push_back(rotationPrior);
   }
 
-  if (transform.optimizeExtrinsics()) {
+  if (transform.optimizeExtrinsics() /*|| true*/) {
     gtsam::Key extrinsicsKey = Symbol('i', symInd);
     gtsam::Pose3 initialExtr(transform.getT_cam_imu().matrix());
     values.insert(extrinsicsKey, initialExtr);

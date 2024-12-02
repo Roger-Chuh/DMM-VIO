@@ -159,6 +159,8 @@ dso::VecX BAGTSAMIntegration::computeBAUpdate(const dso::MatXX &inputH,
   };
   int nonFixedSize =
       std::accumulate(baOrdering.begin(), baOrdering.end(), 0, accumFun);
+  // printf("H size: rows: %d, cols: %d, nonFixedSize: %d\n",
+  // gtsamHb.first.rows(), gtsamHb.first.cols(), nonFixedSize);
   gtsam::Matrix HFull = gtsamHb.first.topLeftCorner(nonFixedSize, nonFixedSize);
   gtsam::Vector bFull = gtsamHb.second.head(nonFixedSize);
 

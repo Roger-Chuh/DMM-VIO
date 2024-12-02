@@ -121,17 +121,18 @@ void dmvio::BAIMULogic::updateBAOrdering(std::vector<dso::EFFrame *> &frames,
   bool addScaleKey = optimizeScale && !scaleFixed;
   // To fix the scale we simply don't add it to the ordering.  The
   // BAGTSAMIntegration will fix all keys which are not in the ordering.
-  if (addScaleKey) {
+  if (addScaleKey /*|| true*/) {
     gtsam::Symbol scaleKey('s', index);
     ordering->push_back(scaleKey);
     baDimMap[scaleKey] = 1;
   }
-  if (optimizeGravity) {
+  if (optimizeGravity /*|| true*/) {
     gtsam::Symbol gravityKey('g', index);
     ordering->push_back(gravityKey);
     baDimMap[gravityKey] = 3;
   }
-  if (imuSettings.setting_optIMUExtrinsics && optimizeIMUExtrinsics) {
+  if (imuSettings.setting_optIMUExtrinsics &&
+      optimizeIMUExtrinsics /*|| true*/) {
     gtsam::Symbol extrinsicsKey('i', index);
     ordering->push_back(extrinsicsKey);
     baDimMap[extrinsicsKey] = 6;
@@ -528,12 +529,23 @@ BAIMULogic::computeFactorForCoarseGraphAndMarginalCovariances() {
   gtsam::Ordering
       uncertOrdering; // This contains all keys for which we need uncertainty
                       // (but which shall not be in the factor).
-  gtsam::Key scaleKey = gtsam::Symbol('s', transformDSOToIMU->getSymbolInd());
-  gtsam::Key gravKey = gtsam::Symbol('g', transformDSOToIMU->getSymbolInd());
+  gtsam::Key scaleKey;
+  if (optimizeScale || true) {
+    scaleKey = gtsam::Symbol('s', transformDSOToIMU->getSymbolInd());
+    // uncertOrdering.push_back(scaleKey);
+  }
+  gtsam::Key gravKey;
+  if (optimizeGravity || true) {
+    gravKey = gtsam::Symbol('g', transformDSOToIMU->getSymbolInd());
+    // uncertOrdering.push_back(gravKey);
+  }
   gtsam::Key newestPoseKey = gtsam::Symbol('p', currKeyframeId);
-  uncertOrdering.push_back(scaleKey);
-  uncertOrdering.push_back(gravKey);
-
+  if (optimizeScale || true) {
+    uncertOrdering.push_back(scaleKey);
+  }
+  if (optimizeGravity || true) {
+    uncertOrdering.push_back(gravKey);
+  }
   gtsam::Ordering ordering;
   ordering.insert(ordering.end(), uncertOrdering.begin(), uncertOrdering.end());
   ordering.insert(ordering.end(), factorOrdering.begin(), factorOrdering.end());

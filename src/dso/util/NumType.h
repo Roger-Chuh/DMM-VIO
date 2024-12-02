@@ -218,6 +218,8 @@ struct MultiCamera {
   std::array<Mat6, kCameraNumUsed>
       cid_to_T01_inv_Adj; // T01.inverse().Adj() [t R]
 
+  SE3 Tbc0;
+
   std::array<Mat3, kCameraNumUsed> cid_to_K;
   std::array<AffLight, kCameraNumUsed> cid_to_affine_light;
   Mat3 K;

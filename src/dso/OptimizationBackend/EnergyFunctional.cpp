@@ -882,7 +882,7 @@ void EnergyFunctional::marginalizePointsF() {
         // 要把这个点的所有vm都删掉，所以理论上删除每个fid上第一次出现的就行了
         for (EFResidual *r : p->residualsAll) {
 #ifndef USE_BUNDLED_RES
-          if (r->isActive()) { // 边缘化残差计数
+          if (r->isActive(0)) { // 边缘化残差计数
             if (
 #ifndef USE_HACK
                 !target_fids.count(r->target->idx)

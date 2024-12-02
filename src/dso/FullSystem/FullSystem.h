@@ -158,6 +158,8 @@ public:
   void printResult(std::string file, bool onlyLogKFPoses, bool saveMetricPoses,
                    bool useCamToTrackingRef);
 
+  void getMetricScaleTwc(FrameShell *fs, SE3 Tbc0);
+
   void debugPlot(std::string name, int cid = 0);
 
   void printFrameLifetimes();

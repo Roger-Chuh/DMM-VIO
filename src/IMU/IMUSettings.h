@@ -30,6 +30,7 @@
 #include <gtsam/inference/Ordering.h>
 #include <sophus/se3.hpp>
 #include <util/SettingsUtil.h>
+//#include "../dso/util/settings.h"
 
 namespace dmvio {
 
@@ -63,10 +64,18 @@ public:
 
   // ----------- BA Settings -----------
   // Settings regarding dynamic photometric weight.
+#ifndef USE_MULTI_CAM
 #ifndef USE_ZNCC
   double dynamicWeightRMSEThresh = 8.0;
 #else
   double dynamicWeightRMSEThresh = 8.0; // 2;//8.0;//4;//8.0;
+#endif
+#else
+#ifndef USE_ZNCC
+  double dynamicWeightRMSEThresh = 15; // 8.0;
+#else
+  double dynamicWeightRMSEThresh = 15; // 8.0; // 2;//8.0;//4;//8.0;
+#endif
 #endif
   bool updateDynamicWeightDuringOptimization =
       true; // false;//true;//false;//true;
@@ -83,7 +92,7 @@ public:
   int numMeasurementsGravityInit = 40;
 
   // Settings what to optimize in the main BA.
-  bool setting_optScaleBA = true;
+  bool setting_optScaleBA = true; // false;//true;
   bool setting_optGravity = true;
   bool setting_optIMUExtrinsics = false;
 
@@ -106,7 +115,7 @@ public:
              // is very far from optimum.
 
   // ----------- Settings for Coarse Tracking -----------
-  bool fixKeyframeDuringCoarseTracking = true;
+  bool fixKeyframeDuringCoarseTracking = true; // false;//true;
   bool addVisualToCoarseGraphIfTrackingBad =
       false; // Add visual factor even if tracking is bad.
 

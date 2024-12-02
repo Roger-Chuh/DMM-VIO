@@ -148,6 +148,9 @@ TransformDSOToIMU::getAllDerivatives(const PoseTransformation::PoseType &pose,
       // TODO
       // 因为这个sim3只优化scale，所以，旋转和平移部分的我置零就行，妙啊，或者只传scale相关的雅可比进去
       analyticDerivs.push_back(scaleJ.topRightCorner<6, 1>());
+    } else {
+      //      gtsam::Matrix66 scaleJ = gtsam::Matrix66::Zero();
+      //      analyticDerivs.push_back(scaleJ.topRightCorner<6, 1>());
     }
     if (*optGravity) {
       // TODO d_preint_err_d_T_metricW_imu 转到 d_preint_err_d_gravity
@@ -165,11 +168,16 @@ TransformDSOToIMU::getAllDerivatives(const PoseTransformation::PoseType &pose,
       }
       // TODO 2dof gravity opt, the third col is always 0, not very elegent
       analyticDerivs.push_back(gravityJac.topLeftCorner<6, 3>());
+    } else {
+      //      gtsam::Matrix66 gravityJac = gtsam::Matrix66::Zero();
+      //      analyticDerivs.push_back(gravityJac.topLeftCorner<6, 3>());
     }
     if (*optT_cam_imu) {
       // Derivative is one.
       // TODO d_preint_err_d_T_metricW_imu 转到 d_preint_err_d_T_cam_imu
       analyticDerivs.push_back(gtsam::Matrix66::Identity());
+    } else {
+      //      analyticDerivs.push_back(gtsam::Matrix66::Zero());
     }
 
 #ifndef DEBUG

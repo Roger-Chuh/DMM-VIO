@@ -108,19 +108,27 @@ void IMUCalibration::loadFromFile2(const dso::IMUState &imu_state) {
   //                  << std::endl;
   //    }
 
-  gyro_sigma = 7.8e-5 * 1;
-  accel_sigma = 6.5e-4 * 1;
-  sigma_between_b_g = 4.0e-5 * 1;
-  sigma_between_b_a = 7.3e-4 * 1;
+  // gyro_sigma = 7.8e-5 * 1;
+  // accel_sigma = 6.5e-4 * 10;
+  // sigma_between_b_g = 4.0e-5 * 1;
+  // sigma_between_b_a = 7.3e-4 * 1;
+  integration_sigma = 0.1;
 
-  //  accel_sigma = 0.224;
-  //  gyro_sigma = 0.01280;
-  //  sigma_between_b_a = 0.0430;
-  //  sigma_between_b_g = 0.00110;
+  accel_sigma = 0.524; // 0.524;
+  gyro_sigma = 0.01280;
+  sigma_between_b_a = 0.0430;
+  sigma_between_b_g = 0.00110;
 
-  std::cout << "Used noise values: " << sigma_between_b_a << " "
+  // Old defaults for EuRoC.
+  //  sigma_between_b_a = 0.00447213;
+  //  sigma_between_b_g = 0.0014142;
+  //  accel_sigma = 0.316227;
+  //  gyro_sigma = 0.1;
+  //  integration_sigma = 0.316227;s
+
+  std::cout << "yvr, Used noise values: " << sigma_between_b_a << " "
             << sigma_between_b_g << " " << accel_sigma << " " << gyro_sigma
-            << std::endl;
+            << ", integration_sigma: " << integration_sigma << std::endl;
 }
 
 void IMUCalibration::saveToFile(std::string filename) {

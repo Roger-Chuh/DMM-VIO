@@ -265,17 +265,21 @@ do_detection_only = false
 # mapping group dvt2
 #dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/dvt2/D3HDXD2D4363000200@DVT2@20241120/20241120/9F_calibRoom/controller_2024-11-20-11-26-41"
 
-#dataSet = "/media/roger/Elements_SE/CI/gt/20240531/1"
+dataSet = "/media/roger/Elements_SE/CI/gt/20240531/5"
 #dataSet = "/media/roger/Elements_SE/CI/gt2/SLAMRecord/5"
 
-dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000059/SLAMRecord/sc1"
+
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D2/D2HD432713D9000999/SLAMRecord/dmvio/vio"
+
+
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D3HDXD2D4231000059/SLAMRecord/sc1"
 #dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/dvt2/D3HDXD2D4363000200@DVT2@20241120/20241120/1F_outdoor/controller_2024-11-20-10-53-17"
 #dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/SLAMRecord/flat_marker/1"
 
 # man heng
 #dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/online_camera_calibration/6m/controller_2024-10-08-17-23-20"
 #dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/online_camera_calibration/6m/controller_2024-10-08-17-25-06"
-#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/online_camera_calibration/manheng/controller_2024-10-10-16-13-44"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/dvt2/D3HDXD2D4363000200@DVT2@20241121_1/20241121/博新静安办公室/controller_2024-11-21-12-42-07"
 
 # check Tbc
 #dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/checkTbc/1"

@@ -160,7 +160,8 @@ void CoarseTracker::makeCoarseDepthL0(
         //      ++target_cid) {
         // printf("enter:\n");
         if (ph->lastResiduals[0].first != 0 &&
-            ph->lastResiduals[0].second[target_cid] == ResState::IN) {
+            ph->lastResiduals[0].second[target_cid] ==
+                ResState::IN /*&& ph->host_cid == target_cid*/) {
           // printf("hit\n");
           PointFrameResidual *r = ph->lastResiduals[0].first;
           // assert(r->target_cid == target_cid);
@@ -1157,9 +1158,14 @@ void CoarseTracker::debugPlotIDepthMap(
 
   {
     std::vector<float> allID; // TODO idepth numbers, sorted
-    for (int i = 0; i < h[lvl] * w[lvl]; i++) {
-      if (idepth[lvl][i] > 0)
-        allID.push_back(idepth[lvl][i]);
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      for (int i = 0; i < h[lvl] * w[lvl]; i++) {
+        if (idepth[lvl][i + cid * w[lvl] * h[lvl]] > 0) {
+          assert((idepth[lvl] + cid * w[lvl] * h[lvl])[i] ==
+                 idepth[lvl][i + cid * w[lvl] * h[lvl]]);
+          allID.push_back((idepth[lvl] + cid * w[lvl] * h[lvl])[i]);
+        }
+      }
     }
     std::sort(allID.begin(), allID.end());
     int n = allID.size() - 1;
@@ -1169,6 +1175,8 @@ void CoarseTracker::debugPlotIDepthMap(
 
     float minID_new = allID[(int)(n * 0.05)];
     float maxID_new = allID[(int)(n * 0.95)];
+    // float minID_new = allID[(int)(n * 0.2)];
+    // float maxID_new = allID[(int)(n * 0.8)];
 
     float minID, maxID;
     minID = minID_new;

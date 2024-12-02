@@ -673,6 +673,10 @@ int main(int argc, char **argv) {
   }
   multi_camera_calibed = multi_camera;
 
+  multi_camera_calibed.Tbc0.setRotationMatrix(
+      imu_state_temp.Tbc0.topLeftCorner<3, 3>());
+  multi_camera_calibed.Tbc0.translation() =
+      imu_state_temp.Tbc0.topRightCorner<3, 1>();
   for (int cid = 0; cid < kCameraNumUsed; ++cid) {
     // multi_camera.cid_to_T01[cid].setIdentity();
     multi_camera_calibed.cid_to_T01_SE3[cid].setRotationMatrix(

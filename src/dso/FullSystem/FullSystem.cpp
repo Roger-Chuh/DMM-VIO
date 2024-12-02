@@ -266,6 +266,23 @@ void FullSystem::setGammaFunction(float *BInv) {
   Hcalib.B[255] = 255;
 }
 
+void FullSystem::getMetricScaleTwc(FrameShell *fs, SE3 Tbc0) {
+
+  //        boost::unique_lock<boost::mutex> lock(trackMutex);
+  //        boost::unique_lock<boost::mutex> crlock(shellPoseMutex);
+  Sophus::SE3 camToWorld = fs->camToWorld;
+  // Sophus::SE3 camToFirst = firstPose.inverse() * camToWorld;
+  SE3 Twb_first =
+      Sophus::SE3d(imuIntegration.getTransformDSOToIMU().transformPose(
+          camToWorld.inverse().matrix()));
+  SE3 Twc0_first = Twb_first * Tbc0;
+  Eigen::Vector3f p = Twc0_first.translation().cast<float>();
+  Eigen::Quaternionf q = Twc0_first.unit_quaternion().cast<float>();
+  (*poseLog) << std::fixed << static_cast<double>(fs->timestamp_eval) << " "
+             << p.x() << " " << p.y() << " " << p.z() << " " << q.x() << " "
+             << q.y() << " " << q.z() << " " << q.w() << std::endl;
+}
+
 void FullSystem::printResult(std::string file, bool onlyLogKFPoses,
                              bool saveMetricPoses, bool useCamToTrackingRef) {
   boost::unique_lock<boost::mutex> lock(trackMutex);
@@ -1302,9 +1319,18 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
 
 #ifdef USE_MULTI_CAM
       // printf("exposure: %f\n", image->exposure_time);
-      (*poseLog) << std::fixed << static_cast<double>(fh->shell->timestamp_eval)
-                 << " " << p.x() << " " << p.y() << " " << p.z() << " " << q.x()
-                 << " " << q.y() << " " << q.z() << " " << q.w() << std::endl;
+      if (!setting_useIMU) {
+        printf("print vo pose...\n");
+        (*poseLog) << std::fixed
+                   << static_cast<double>(fh->shell->timestamp_eval) << " "
+                   << p.x() << " " << p.y() << " " << p.z() << " " << q.x()
+                   << " " << q.y() << " " << q.z() << " " << q.w() << std::endl;
+      } else {
+        printf("imuUsedBefore: %d, print vio pose...\n", imuUsedBefore);
+        if (imuUsedBefore) {
+          getMetricScaleTwc(fh->shell, (*fh->p_multi_camera).Tbc0);
+        }
+      }
 #endif
     }
     dso::Vec4 tres = std::move(pair.first);

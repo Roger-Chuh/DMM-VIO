@@ -60,7 +60,7 @@ public:
   void registerArgs(dmvio::SettingsUtil &set, std::string prefix);
 
   // Delay of the graph used for the PGBA.
-  int delay = 100;
+  int delay = 100; // 10;//100;
 
   double scaleUncertaintyThresh = 1.0; // Threshold for first init to succeed.
   double reinitScaleUncertaintyThresh =
