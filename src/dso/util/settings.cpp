@@ -107,8 +107,8 @@ float setting_maxLogAffFacInWindow =
 int setting_minFrames = 5; // min frames in window.
 int setting_maxFrames = 7; // 12; // 7; // max frames in window.
 int setting_minFrameAge = 1;
-int setting_maxOptIterations = 6; // max GN iterations.
-int setting_minOptIterations = 1; // min GN iterations.
+int setting_maxOptIterations = 10; // 6; // max GN iterations.
+int setting_minOptIterations = 5;  // 1; // min GN iterations.
 float setting_thOptIterations =
     1.2; // factor on break threshold for GN iteration (larger = break earlier)
 
