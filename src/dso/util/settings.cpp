@@ -64,9 +64,9 @@ float setting_keyframesPerSecond =
 bool setting_realTimeMaxKF =
     false; // if true, takes as many KF's as possible (will break the system if
            // the camera stays stationary)
-float setting_maxShiftWeightT = 0.04f * (640 + 480);
+float setting_maxShiftWeightT = 0.1f * (640 + 480);
 float setting_maxShiftWeightR = 0.0f * (640 + 480);
-float setting_maxShiftWeightRT = 0.02f * (640 + 480);
+float setting_maxShiftWeightRT = 0.01f * (640 + 480);
 float setting_kfGlobalWeight =
     0.01; // 0.5; // 1;   // general weight on threshold, the larger the more
           // KF's are

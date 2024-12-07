@@ -88,7 +88,7 @@ Mat3 K, Kinv;
 void GenUndistortionMap(MultiCamera &multi_camera, const int &width,
                         const int &height, const int &cam_num) {
   cv::Size image_size = cv::Size(width, height);
-  number_t fov_rad = 120.0 * kOur_PI / 180.0;
+  number_t fov_rad = 100.0 * kOur_PI / 180.0;
   number_t focal =
       static_cast<number_t>(width) / (2.0 * std::tan(fov_rad / 2.0));
   K << focal, 0, 0.5 * static_cast<number_t>(width), 0, focal,
