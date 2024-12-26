@@ -100,7 +100,7 @@ bool CoarseInitializer::trackFrame(
   alphaK =
       2.5 *
       2.5; // 2.5*2.5;//0.0150*0.0150;//0.005*0.005;//0.010*0.010;//0.0150*0.0150;//*freeDebugParam1*freeDebugParam1;
-  alphaW = 150 * 150; //*freeDebugParam2*freeDebugParam2;
+  alphaW = 150 * 150;     //*freeDebugParam2*freeDebugParam2;
 #endif
   regWeight = 0.8;    //*freeDebugParam4;
   couplingWeight = 1; //*freeDebugParam5;
@@ -137,6 +137,8 @@ bool CoarseInitializer::trackFrame(
             ptsl[i].iR =
                 ptsl[i].iR_triangle; // TODO 每个点的深度初值都赋1，hessian赋0
             ptsl[i].idepth_new = ptsl[i].idepth_new_triangle;
+            //            ptsl[i].idepth_new = ptsl[i].idepth_new_triangle =
+            //                ptsl[i].iR_triangle;
           }
           ptsl[i].lastHessian = 0;
           assert(ptsl[i].host_cid == cid);
@@ -162,7 +164,7 @@ bool CoarseInitializer::trackFrame(
     printf("---------------------------------------------\n");
     //[ ***step 3*** ] 使用计算过的上一层来初始化下一层
     // 顶层未初始化到, reset来完成
-    if (lvl < pyrLevelsUsed - 1 && kCameraNumUsed == 1) {
+    if (lvl < pyrLevelsUsed - 1 /*&& kCameraNumUsed == 1*/) {
       /// from coarse image to fine image, hence "down"
       propagateDown(lvl + 1);
     }
@@ -305,7 +307,7 @@ bool CoarseInitializer::trackFrame(
         //               alphaK, point_count, resNew[1]);
 
         //? 这是啥   答：应该是位移足够大，才开始优化IR
-        if (resNew[1] ==
+        if (/*kCameraNumUsed > 1 || */resNew[1] ==
             alphaK * static_cast<float>(point_count)
                 /*(level_cid_to_numPoints[lvl][kCameraNumUsed - 1] +
                  level_cid_to_npts_success_offset[lvl][kCameraNumUsed -
@@ -324,7 +326,7 @@ bool CoarseInitializer::trackFrame(
         refToNew_aff_current = refToNew_aff_new;
         refToNew_current = refToNew_new;
         applyStep(lvl);
-        if (kCameraNumUsed == 1) {
+        if (kCameraNumUsed == 1 || true) {
           optReg(lvl); // 更新iR
         }
         lambda *= 0.5;
@@ -359,10 +361,11 @@ bool CoarseInitializer::trackFrame(
             << refToNew_current.matrix3x4() << std::endl;
   thisToNext = refToNew_current;
   thisToNext_aff = refToNew_aff_current;
-
-  for (int i = 0; i < pyrLevelsUsed - 1; i++)
+#if 1 // ndef USE_MULTI_CAM
+  for (int i = 0; i < pyrLevelsUsed - 1; i++) {
     propagateUp(i);
-
+  }
+#endif
   frameID++;
   if (!snapped)
     snappedAt = 0;
@@ -377,7 +380,7 @@ bool CoarseInitializer::trackFrame(
     return snapped && frameID > snappedAt + 5;
   } else {
     // snapped = true;
-    return snapped && frameID >= snappedAt + 0;
+    return snapped && frameID >= snappedAt + 5; // 0;
   }
 }
 
@@ -409,7 +412,7 @@ void CoarseInitializer::debugPlot(
 #ifndef USE_MULTI_CAM
         sid += point->iR;
 #else
-        sid += point->idepth;
+        sid += point->iR; // point->idepth;
 #endif
       }
     }
@@ -418,18 +421,19 @@ void CoarseInitializer::debugPlot(
     for (int i = 0; i < npts; i++) {
       Pnt *point = points[lvl] + level_cid_to_npts_success_offset[lvl][cid] + i;
 
-      if (!point->isGood)
+      if (!point->isGood) {
         iRImg.setPixel9(point->u + 0.5f, point->v + 0.5f, Vec3b(0, 0, 0),
                         point->host_cid);
-
-      else
+      } else {
+        // printf("good point\n");
         iRImg.setPixel9(point->u + 0.5f, point->v + 0.5f,
 #ifndef USE_MULTI_CAM
                         makeRainbow3B(point->iR * fac),
 #else
-                        makeRainbow3B(point->idepth * fac),
+                        makeRainbow3B(point->iR /*point->idepth*/ * fac),
 #endif
                         point->host_cid);
+      }
     }
   }
   // IOWrap::displayImage("idepth-R", &iRImg, false);
@@ -437,7 +441,7 @@ void CoarseInitializer::debugPlot(
     ow->pushDepthImage(&iRImg);
   }
 
-  if (false) {
+  if (true) {
     Mat3 intr = Mat3::Identity();
     intr(0, 0) = fx[0];
     intr(1, 1) = fy[0];
@@ -483,7 +487,7 @@ void CoarseInitializer::debugPlot(
             points[0] + i + level_cid_to_npts_success_offset[0][host_cid];
         // TODO roger, like SetFromImage in orca, 判断这个坐标纹理是否充分
         if (!point->isGood) {
-          // continue;
+          continue;
         }
         if (point->isGood) {
           img_host->setPixel9(point->u + 0.5, point->v + 0.5, makeRainbow3B(1),
@@ -520,14 +524,16 @@ void CoarseInitializer::debugPlot(
             //                break;
             continue;
           }
-          if (point->isGood) {
+          if (point->isGood && point->is_valid_project[target_cid]) {
             img_target->setPixel9(Ku + 0.5, Kv + 0.5, makeRainbow3B(1),
                                   target_cid);
             img_target->setPixelCirc(Ku + 0.5, Kv + 0.5, makeRainbow3B(1),
                                      target_cid);
           } else {
-            img_target->setPixel9(Ku + 0.5, Kv + 0.5, makeRainbow3B(10),
-                                  target_cid);
+            if (false) {
+              img_target->setPixel9(Ku + 0.5, Kv + 0.5, makeRainbow3B(10),
+                                    target_cid);
+            }
             //            img_target->setPixelCirc(Ku + 0.5, Kv + 0.5,
             //            makeRainbow3B(10),
             //                                     target_cid);
@@ -537,7 +543,7 @@ void CoarseInitializer::debugPlot(
     }
     IOWrap::displayImage("host", img_host);
     IOWrap::displayImage("target", img_target);
-    IOWrap::waitKey(0);
+    IOWrap::waitKey(1);
     delete img_host;
     delete img_target;
   }
@@ -1365,6 +1371,7 @@ Vec3f CoarseInitializer::calcResAndGS_bak(int lvl, MatStatef &H_out,
         } else {
           // 最开始初始化都是成1
           /// res = 1 - idepth_new
+#if 1 // ndef USE_MULTI_CAM
           if (kCameraNumUsed == 1) {
             point->energy_new[1] =
                 (point->idepth_new - 1) * (point->idepth_new - 1); //? 什么原理?
@@ -1373,6 +1380,9 @@ Vec3f CoarseInitializer::calcResAndGS_bak(int lvl, MatStatef &H_out,
                 (point->idepth_new - point->iR_triangle) *
                 (point->idepth_new - point->iR_triangle); //? 什么原理?
           }
+#else
+          point->energy_new[1] = 0;
+#endif
           EAlpha.updateSingle((float)(point->energy_new[1]));
           // E.updateSingle((float)(point->energy_new[1]));
         }
@@ -1422,6 +1432,7 @@ Vec3f CoarseInitializer::calcResAndGS_bak(int lvl, MatStatef &H_out,
         // (1-idepth)^2了;
         // res = (point->idepth_new - 1); J = 1
         // b = Jt*res = 1 * res = res;
+#if 1 // ndef USE_MULTI_CAM
         if (kCameraNumUsed == 1) {
           JbBuffer_new[i + h[0] * w[0] * host_cid][8] +=
               alphaOpt * (point->idepth_new - 1);
@@ -1442,7 +1453,7 @@ Vec3f CoarseInitializer::calcResAndGS_bak(int lvl, MatStatef &H_out,
           }
           JbBuffer_new[i + h[0] * w[0] * host_cid][9] += couplingWeight;
         }
-
+#endif
         /// refer to the equation (17) in DSO, here JbBuffer_new[i][9] is
         /// H^{-1}_{\beta \beta}
         if (kCameraNumUsed == 1) {
@@ -2025,6 +2036,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
       is_bad_res_count = 0;
       energy = 0;
       for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+        a_cnt[target_cid] = 0;
         if (host_cid != target_cid) {
           // continue;
         }
@@ -2874,12 +2886,27 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
         point->isGood = false;
         point->isGood_new = false;
         point->energy_new = point->energy; //上一次的给当前次的
+        printf("bbbbb, energy: %f, good_cam_num: %d\n", energy, good_cam_num);
+        for (int target_cid_ = 0; target_cid_ < kCameraNumUsed; ++target_cid_) {
+          point->is_valid_project[target_cid_] = false;
+        }
         continue;
       }
-
+      // printf("aaaaa\n");
       // 内点则加进能量函数
       // add into energy.
       /// energy = sum(weight * residual * residual * (2 - weight));
+      for (int target_cid_ = 0; target_cid_ < kCameraNumUsed; ++target_cid_) {
+        if (a_cnt[target_cid_] > 0) {
+          if (a_cnt[target_cid_] != MAX_RES_PER_POINT) {
+            printf("a_cnt[target_cid_]: %d\n", a_cnt[target_cid_]);
+            std::exit(2);
+          }
+          point->is_valid_project[target_cid_] = true;
+        } else {
+          point->is_valid_project[target_cid_] = false;
+        }
+      }
       E.updateSingle(energy);
       point->isGood_new = true;
       point->energy_new[0] = energy;
@@ -2960,6 +2987,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
         } else {
           // 最开始初始化都是成1
           /// res = 1 - idepth_new
+#if 1 // ndef USE_MULTI_CAM
           if (kCameraNumUsed == 1) {
             point->energy_new[1] =
                 (point->idepth_new - 1) * (point->idepth_new - 1); //? 什么原理?
@@ -2968,6 +2996,9 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
                 (point->idepth_new - point->iR_triangle) *
                 (point->idepth_new - point->iR_triangle); //? 什么原理?
           }
+#else
+          point->energy_new[1] = 0;
+#endif
           EAlpha.updateSingle((float)(point->energy_new[1]));
           // E.updateSingle((float)(point->energy_new[1]));
         }
@@ -3026,6 +3057,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
         // (1-idepth)^2了;
         // res = (point->idepth_new - 1); J = 1
         // b = Jt*res = 1 * res = res;
+#if 1 // ndef USE_MULTI_CAM
         if (kCameraNumUsed == 1) {
           JbBuffer_new[i + h[0] * w[0] * host_cid][8] +=
               alphaOpt * (point->idepth_new - 1);
@@ -3046,7 +3078,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
           }
           JbBuffer_new[i + h[0] * w[0] * host_cid][9] += couplingWeight;
         }
-
+#endif
         /// refer to the equation (17) in DSO, here JbBuffer_new[i][9] is
         /// H^{-1}_{\beta \beta}
         if (kCameraNumUsed == 1) {
@@ -3160,7 +3192,7 @@ float CoarseInitializer::rescale() {
 //* 计算旧的和新的逆深度与iR的差值, 返回旧的差, 新的差, 数目
 ///? iR到底是啥呢     答：IR是逆深度的均值，尺度收敛到IR
 Vec3f CoarseInitializer::calcEC(int lvl) {
-  if (!snapped) {
+  if (!snapped /*|| kCameraNum > 1*/) {
     int point_count = 0;
     for (int id = 0; id < kCameraNumUsed; ++id) {
       point_count += level_cid_to_numPoints[lvl][id];
@@ -3848,6 +3880,9 @@ void CoarseInitializer::resetPoints(int lvl) {
     // int npts = level_cid_to_npts[lvl][cid];
     int npts = level_cid_to_numPoints[lvl][cid];
     for (int i = 0; i < npts; i++) { // 重置
+      for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+        pts[i].is_valid_project[target_cid] = false;
+      }
       pts[i].energy.setZero();
       pts[i].idepth_new = pts[i].idepth;
       assert(pts[i].host_cid == cid);
@@ -3863,12 +3898,16 @@ void CoarseInitializer::resetPoints(int lvl) {
           snd += pts[pts[i].neighbours[n]].iR;
           sn += 1;
         }
-
+#if 1 // ndef USE_MULTI_CAM
         if (sn > 0) {
           pts[i].isGood = true;
           /// normalize idepth to 1
           pts[i].iR = pts[i].idepth = pts[i].idepth_new = snd / sn;
         }
+#else
+        pts[i].isGood = true;
+        pts[i].iR = pts[i].idepth;
+#endif
       }
     }
   }
@@ -3932,12 +3971,20 @@ void CoarseInitializer::applyStep(int lvl) {
       if (!pts[i].isGood) {
         // TODO roger,
         // iR比iR_triangulate更好，因为iR是融合了周围idp均值的，会更稳定一些
+#if 1 // ndef USE_MULTI_CAM
         pts[i].idepth = pts[i].idepth_new = pts[i].iR;
+#else
+        pts[i].idepth = pts[i].idepth_new = pts[i].idepth_new_triangle =
+            pts[i].iR_triangle;
+#endif
         continue;
       }
       pts[i].energy = pts[i].energy_new;
       pts[i].isGood = pts[i].isGood_new;
       pts[i].idepth = pts[i].idepth_new;
+#if 0 // def USE_MULTI_CAM
+      pts[i].iR_triangle = pts[i].idepth_new_triangle = pts[i].idepth_new;
+#endif
       pts[i].lastHessian = pts[i].lastHessian_new;
     }
   }

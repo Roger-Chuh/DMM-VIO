@@ -63,7 +63,7 @@ namespace dso {
 
 #define kImageWidth 640
 #define kImageHeight 480
-#define PYR_LEVELS 6
+#define PYR_LEVELS 6 // 3
 //#define USE_INVERSE_COMPOSITIONAL
 //#define USE_ZNCC
 

@@ -53,6 +53,7 @@ public:
   bool isGood_new;
   float idepth_new; //!< 该点在新的一帧(当前帧)上的逆深度
   Vec2f energy_new; //!< 迭代计算的新的能量
+  std::array<bool, kCameraNumUsed> is_valid_project;
 
   float iR;       //!< 逆深度的期望值
   float iRSumNum; //!< 子点逆深度信息矩阵之和
