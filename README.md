@@ -1,3 +1,30 @@
+# FYI
+we extend the original DM-VIO to multi-camera support.
+
+references:
+1. https://github.com/alalagong/DSO
+2. https://github.com/JingeTu/StereoDSO
+3. https://github.com/JiatianWu/stereo-dso
+4. https://github.com/RonaldSun/VI-Stereo-DSO
+
+# Online Demo (*www.bilibili.com/video/BV1fFfaYuEw8/*)
+
+
+
+# Snapshots from Online Demo:
+
+point cloud with multi camera(edges are very sharp)
+![Image of multi-camera mode](pointcloud_multi.png)
+point cloud with single camera(edges are very blurry)
+![Image of mono-camera mode](pointcloud_mono.png)
+
+
+
+
+#
+
+
+
 <h1 align="center">DM-VIO: Delayed Marginalization<br/> Visual-Inertial Odometry </h1>
 
 <p align="center">
