@@ -458,6 +458,9 @@ float FullSystem::optimize(int mnumOptIts) {
     mnumOptIts = 20; // 迭代次数
   if (frameHessians.size() < 4)
     mnumOptIts = 15;
+  if (mnumOptIts < setting_minOptIterations) {
+    mnumOptIts = setting_minOptIterations + 3;
+  }
 
   // get statistics and active residuals.
   //[ ***step 1*** ] 找出未线性化(边缘化)的残差, 加入activeResiduals

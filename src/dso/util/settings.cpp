@@ -67,10 +67,14 @@ bool setting_realTimeMaxKF =
 float setting_maxShiftWeightT = 0.1f * (640 + 480);
 float setting_maxShiftWeightR = 0.0f * (640 + 480);
 float setting_maxShiftWeightRT = 0.01f * (640 + 480);
+#ifdef USE_MULTI_CAM
 float setting_kfGlobalWeight =
-    0.01; // 0.5; // 1;   // general weight on threshold, the larger the more
+    0.05; // 0.5; // 1;   // general weight on threshold, the larger the more
           // KF's are
           // taken (e.g., 2 = double the amount of KF's).
+#else
+float setting_kfGlobalWeight = 1.0f;
+#endif
 float setting_maxAffineWeight = 2;
 
 /* initial hessian values to fix unobservable dimensions / priors on affine

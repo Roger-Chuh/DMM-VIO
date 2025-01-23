@@ -90,8 +90,13 @@ bool CoarseInitializer::trackFrame(
   // 新的一帧, 在跟踪之前显示的
   for (IOWrap::Output3DWrapper *ow : wraps)
     ow->pushLiveFrame(newFrameHessian);
-
-  int maxIterations[] = {5, 5, 10, 30, 50};
+#ifndef USE_MULTI_CAM
+  // int maxIterations[] = {5, 5, 10, 30, 50, 50, 50, 50};
+  int maxIterations[] = {10, 20, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
+  // int maxIterations[] = {50, 50, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
+#else
+  int maxIterations[] = {10, 10, 10, 10, 10, 10, 10, 10}; // 不同层迭代的次数
+#endif
 //? 调参
 #ifndef USE_ZNCC
   alphaK = 2.5 * 2.5; //*freeDebugParam1*freeDebugParam1;
@@ -380,7 +385,7 @@ bool CoarseInitializer::trackFrame(
     return snapped && frameID > snappedAt + 5;
   } else {
     // snapped = true;
-    return snapped && frameID >= snappedAt + 5; // 0;
+    return snapped; // && frameID >= snappedAt + 2; // 0;
   }
 }
 

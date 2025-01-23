@@ -789,7 +789,11 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
   lastFlowIndicators.setConstant(1000);
 
   newFrame = newFrameHessian;
-  int maxIterations[] = {10, 20, 50, 50, 50}; // 不同层迭代的次数
+#ifndef USE_MULTI_CAM
+  int maxIterations[] = {10, 20, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
+#else
+  int maxIterations[] = {10, 20, 20, 20, 20, 20, 20, 20}; // 不同层迭代的次数
+#endif
   float lambdaExtrapolationLimit = 0.001;
 
   SE3 refToNew_current = lastToNew_out; // 优化的初始值

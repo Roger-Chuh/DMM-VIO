@@ -268,13 +268,13 @@ do_detection_only = false
 
 #dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/online_calib/D3HDXD2D4363000064/controller_2024-11-18-16-08-28"
 
-#dataSet = "/media/roger/Elements_SE/CI/gt/20240531/3"
+dataSet = "/media/roger/Elements_SE/CI/gt/20240531/2"
 #dataSet = "/media/roger/Elements_SE/CI/gt2/SLAMRecord/1"
 
 # two layer
 #dataSet = "/media/roger/Elements_SE/CI/dvt/scale_opt/yvrdatalogger2024-10-17-11-06-49"
 # manheng
-dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/online_camera_calibration/manheng/controller_2024-10-10-16-13-44"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/online_camera_calibration/manheng/controller_2024-10-10-16-13-44"
 
 #dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D2/D2HD432713D9000999/SLAMRecord/dmvio/vio"
 
@@ -301,6 +301,9 @@ dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/online_cam
 #D2
 #dataSet = "/media/roger/Elements_SE/CI/gt2/SLAMRecord/calib/2"
 #dataSet = "/media/roger/Elements_SE/CI/gt2/SLAMRecord/1"
+
+
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/deoutlier/SLAMRecord/4"
 
 
 #self_calib_bin_file = "self_calib_1012_fsrk_sparse.bin"
