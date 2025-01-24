@@ -1,5 +1,5 @@
-# FYI
-we extend the original DM-VIO to multi-camera support.
+# Description
+we extend the original DM-VIO to multi-camera support, and to the best of our knowledge, this is the first open-sourced direct method based vo/vio algorithm that support arbitrary number of cameras.
 
 references:
 1. https://github.com/alalagong/DSO
