@@ -32,12 +32,14 @@
  */
 
 #include "FullSystem/CoarseInitializer.h"
+#include "../camera_model/camera_base.h"
 #include "FullSystem/FullSystem.h"
 #include "FullSystem/HessianBlocks.h"
 #include "FullSystem/ImmaturePoint.h"
 #include "FullSystem/PixelSelector.h"
 #include "FullSystem/PixelSelector2.h"
 #include "FullSystem/Residuals.h"
+#include "depth_filter_DSM.h"
 #include "util/nanoflann.h"
 
 #include <opencv2/highgui/highgui.hpp>
@@ -48,7 +50,7 @@
 
 namespace dso {
 
-CoarseInitializer::CoarseInitializer(int ww, int hh)
+CoarseInitializer::CoarseInitializer(int ww, int hh, MultiCamera *p_cam)
     : thisToNext_aff(0, 0), thisToNext(SE3()) {
   for (int lvl = 0; lvl < pyrLevelsUsed; lvl++) {
     points[lvl] = 0;
@@ -70,6 +72,7 @@ CoarseInitializer::CoarseInitializer(int ww, int hh)
   wM.diagonal()[3] = wM.diagonal()[4] = wM.diagonal()[5] = SCALE_XI_TRANS;
   wM.diagonal()[6] = SCALE_A;
   wM.diagonal()[7] = SCALE_B;
+  p_depth_filter_DSM_ = new DepthFilterDSM(p_cam, &estimator_config_);
 }
 
 CoarseInitializer::~CoarseInitializer() {
@@ -80,6 +83,7 @@ CoarseInitializer::~CoarseInitializer() {
 
   delete[] JbBuffer;
   delete[] JbBuffer_new;
+  delete p_depth_filter_DSM_;
 }
 
 bool CoarseInitializer::trackFrame(
@@ -95,7 +99,7 @@ bool CoarseInitializer::trackFrame(
   int maxIterations[] = {10, 20, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
   // int maxIterations[] = {50, 50, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
 #else
-  int maxIterations[] = {10, 10, 10, 10, 10, 10, 10, 10}; // 不同层迭代的次数
+  int maxIterations[] = {20, 20, 20, 20, 20, 20, 20, 20}; // 不同层迭代的次数
 #endif
 //? 调参
 #ifndef USE_ZNCC
@@ -139,11 +143,13 @@ bool CoarseInitializer::trackFrame(
             ptsl[i].iR = 1; // TODO 每个点的深度初值都赋1，hessian赋0
             ptsl[i].idepth_new = 1;
           } else {
-            ptsl[i].iR =
-                ptsl[i].iR_triangle; // TODO 每个点的深度初值都赋1，hessian赋0
-            ptsl[i].idepth_new = ptsl[i].idepth_new_triangle;
-            //            ptsl[i].idepth_new = ptsl[i].idepth_new_triangle =
-            //                ptsl[i].iR_triangle;
+            if (false) {
+              ptsl[i].iR =
+                  ptsl[i].iR_triangle; // TODO 每个点的深度初值都赋1，hessian赋0
+              ptsl[i].idepth_new = ptsl[i].idepth_new_triangle;
+              //            ptsl[i].idepth_new = ptsl[i].idepth_new_triangle =
+              //                ptsl[i].iR_triangle;
+            }
           }
           ptsl[i].lastHessian = 0;
           assert(ptsl[i].host_cid == cid);
@@ -171,6 +177,8 @@ bool CoarseInitializer::trackFrame(
     // 顶层未初始化到, reset来完成
     if (lvl < pyrLevelsUsed - 1 /*&& kCameraNumUsed == 1*/) {
       /// from coarse image to fine image, hence "down"
+      // TODO roger,
+      // 用上一轮优化过的模糊的金字塔给当前较高分辨率的金字塔提供初值
       propagateDown(lvl + 1);
     }
 
@@ -192,8 +200,9 @@ bool CoarseInitializer::trackFrame(
     //    for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
     //      for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid)
     //      {
-    resOld = calcResAndGS(lvl, H, b, Hsc, bsc, refToNew_current,
-                          refToNew_aff_current, false, N, lvl <= 0);
+    resOld = calcResAndGS(-1, maxIterations[lvl], lvl, H, b, Hsc, bsc,
+                          refToNew_current, refToNew_aff_current, false, N,
+                          lvl <= 0);
     //      }
     //    }
     applyStep(lvl); // 新的能量付给旧的
@@ -246,7 +255,7 @@ bool CoarseInitializer::trackFrame(
       } else
         inc = -(wM * (Hl.ldlt().solve(bl))); //=-H^-1 * b.
 
-      double incNorm = inc.norm();
+      double incNorm = inc.head(8).norm();
 
       //[ ***step 5.3*** ] 更新状态, doStep中更新逆深度
       /// lifting
@@ -256,7 +265,8 @@ bool CoarseInitializer::trackFrame(
       refToNew_aff_new.a += inc[6];
       refToNew_aff_new.b += inc[7];
       doStep(lvl, lambda, inc);
-
+      std::cout << "inc: " << inc.transpose() << std::endl;
+      // std::exit(1);
       //[ ***step 5.4*** ] 计算更新后的能量并且与旧的对比判断是否accept
       Mat88f H_new, Hsc_new;
       Vec8f b_new, bsc_new;
@@ -269,8 +279,9 @@ bool CoarseInitializer::trackFrame(
       //      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
       //        for (int target_cid = 0; target_cid < kCameraNumUsed;
       //        ++target_cid) {
-      resNew = calcResAndGS(lvl, H_new, b_new, Hsc_new, bsc_new, refToNew_new,
-                            refToNew_aff_new, false, N2, lvl <= 0);
+      resNew = calcResAndGS(iteration, maxIterations[lvl], lvl, H_new, b_new,
+                            Hsc_new, bsc_new, refToNew_new, refToNew_aff_new,
+                            false, N2, lvl <= 0);
       //        }
       //      }
       Vec3f regEnergy = calcEC(lvl);
@@ -285,8 +296,9 @@ bool CoarseInitializer::trackFrame(
       bool accept = eTotalOld > eTotalNew;
 
       printf("accept: %d, level: %d, [eTotalOld / eTotalNew]: [%f / %f], diff: "
-             "%f\n",
-             accept, lvl, eTotalOld, eTotalNew, eTotalNew - eTotalOld);
+             "%f, iter: %d, level: %d, incNorm: %f, lambda: %f\n",
+             accept, lvl, eTotalOld, eTotalNew, eTotalNew - eTotalOld,
+             iteration, lvl, incNorm, lambda);
       if (printDebug) {
         printf("lvl %d, it %d (l=%f) %s: %.5f + %.5f + %.5f -> %.5f + %.5f + "
                "%.5f (%.2f->%.2f) (|inc| = %f)! \t",
@@ -312,7 +324,7 @@ bool CoarseInitializer::trackFrame(
         //               alphaK, point_count, resNew[1]);
 
         //? 这是啥   答：应该是位移足够大，才开始优化IR
-        if (/*kCameraNumUsed > 1 || */resNew[1] ==
+        if (kCameraNumUsed > 1 || resNew[1] ==
             alphaK * static_cast<float>(point_count)
                 /*(level_cid_to_numPoints[lvl][kCameraNumUsed - 1] +
                  level_cid_to_npts_success_offset[lvl][kCameraNumUsed -
@@ -336,18 +348,24 @@ bool CoarseInitializer::trackFrame(
         }
         lambda *= 0.5;
         fails = 0;
-        if (lambda < 0.0001)
+        if (lambda < 0.0001) {
           lambda = 0.0001;
+        }
       } else {
         fails++;
-        lambda *= 4;
-        if (lambda > 10000)
-          lambda = 10000;
+        if (fails < 2) {
+          lambda *= 4;
+        } else {
+          lambda *= 4;
+        }
+        if (lambda > 1000000) {
+          // lambda = 1000000;
+        }
       }
 
       bool quitOpt = false;
       // 迭代停止条件, 收敛/大于最大次数/失败2次以上
-      if (!(incNorm > eps) || iteration >= maxIterations[lvl] || fails >= 2) {
+      if (!(incNorm > eps) || iteration >= maxIterations[lvl] || fails >= 200) {
         Mat88f H, Hsc;
         Vec8f b, bsc;
 
@@ -385,7 +403,7 @@ bool CoarseInitializer::trackFrame(
     return snapped && frameID > snappedAt + 5;
   } else {
     // snapped = true;
-    return snapped; // && frameID >= snappedAt + 2; // 0;
+    return snapped && frameID >= snappedAt + 2; // 0;
   }
 }
 
@@ -1549,17 +1567,21 @@ Vec3f CoarseInitializer::calcResAndGS_bak(int lvl, MatStatef &H_out,
 }
 //#define SHOW_INIT_IMAGE
 #define USE_8_RES_MULTI_CAM
-Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
-                                      VecStatef &b_out, MatStatef &H_out_sc,
-                                      VecStatef &b_out_sc, const SE3 &refToNew_,
+Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
+                                      MatStatef &H_out, VecStatef &b_out,
+                                      MatStatef &H_out_sc, VecStatef &b_out_sc,
+                                      const SE3 &refToNew_,
                                       AffLight refToNew_aff, bool plot, int &N,
                                       bool show_image) {
+  bool use_cross_camera = false;
+  float ratio = static_cast<float>(iter) / static_cast<float>(max_iter);
   int wl = w[lvl], hl = h[lvl];
   // 当前层图像及梯度
   Accumulator11 E;   // 1*1 的累加器
   acc9.initialize(); // 初始值, 分配空间
   E.initialize();
   for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
+    int bad_pid_count = 0;
     //    for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
     //      const Mat66 &extra_pose_jac =
     //          newFrame->p_multi_camera->cid_to_T01_inv_Adj[target_cid];
@@ -1587,7 +1609,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
     //  E.initialize();
 
     int npts = level_cid_to_numPoints[lvl][host_cid];
-    printf("npts: %d\n", npts);
+    printf("host_cid: %d, npts: %d, iter: %d\n", host_cid, npts, iter);
     Pnt *ptsl = points[lvl] + level_cid_to_npts_success_offset[lvl][host_cid];
     for (int i = 0; i < npts; i++) {
       VecBigf dp0 = VecBigf::Zero();
@@ -1636,7 +1658,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
       Eigen::MatrixXf grad_new_target;
       float host_val_mean;
       float target_val_mean;
-      Eigen::MatrixXf ones;
+      Eigen::MatrixXf ones, ones_temp;
       float host_sigma, target_sigma;
 
       Eigen::MatrixXf host_info, target_info, host_info_temp, target_info_temp,
@@ -1697,6 +1719,9 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
            ++target_cam_id) {
         // Eigen::Vector3f *colorRef = firstFrame->dIp[lvl] + host_cid * wl *
         // hl;
+        if (!use_cross_camera && host_cid != target_cam_id) {
+          continue;
+        }
         Eigen::Vector3f *colorNew =
             newFrame->dIp[lvl] + target_cam_id * wl * hl;
         //! 旋转矩阵R * 内参矩阵K_inv
@@ -1731,6 +1756,12 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
 #endif
         int count_each_cam = 0;
         std::vector<Vec2f> uv_draw;
+        float err_sum = 0;
+        float err_max = -10;
+        float err_min = 99910;
+        float zncc_patch = 0;
+        float host_sigma_temp;
+        float target_sigma_temp;
         for (int idx = 0; idx < patternNum; idx++) {
           // pattern的坐标偏移
           int dx = patternP[idx][0];
@@ -1822,11 +1853,34 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
           // float rlR = colorRef[point->u+dx + (point->v+dy) * wl][0];
           float rlR = getInterpolatedElement31(colorRef, point->u + dx,
                                                point->v + dy, wl);
+          assert(std::abs(rlR - hostColor[0]) < 0.00001);
+          assert(std::abs(r2new_aff[0] * rlR + r2new_aff[1] -
+                          host_value_corrected) < 0.00001);
           // 像素值有穷, good
           if (!std::isfinite(rlR) || !std::isfinite((float)hitColor[0])) {
             //                isGood = false;
             //                break;
             continue;
+          }
+          float residual_temp = hitColor[0] - r2new_aff[0] * rlR - r2new_aff[1];
+          // Huber权重
+          float hw_temp = fabs(residual_temp) < setting_huberTH
+                              ? 1
+                              : setting_huberTH / fabs(residual_temp);
+          // huberweight * (2-huberweight) = Objective Function
+          // robust 权重和函数之间的关系
+          float energy_temp =
+              hw_temp * residual_temp * residual_temp * (2 - hw_temp);
+          if (std::abs(residual_temp) /*energy_temp*/ >
+              30 /*static_cast<float>(20 * (lvl + 1))*/) {
+            // continue;
+          }
+          err_sum += std::abs(residual_temp);
+          if (err_max < std::abs(residual_temp)) {
+            err_max = std::abs(residual_temp);
+          }
+          if (err_min > std::abs(residual_temp)) {
+            err_min = std::abs(residual_temp);
           }
           hostColor[0] = host_value_corrected;
           host_info_big.conservativeResize(count + 1, 3);
@@ -1849,6 +1903,44 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
 
           count_each_cam++;
           count++;
+        }
+        if (ratio > 10.5f) {
+          if (count_each_cam >= MAX_RES_PER_POINT) {
+            assert(count_each_cam == MAX_RES_PER_POINT);
+            float host_val_mean_temp =
+                host_info_temp.col(0).sum() /
+                static_cast<float>(host_info_temp.rows());
+            float target_val_mean_temp =
+                target_info_temp.col(0).sum() /
+                static_cast<float>(target_info_temp.rows());
+            ones_temp.conservativeResize(host_info_temp.rows(), 1);
+            ones_temp.setOnes();
+
+            host_info_temp.col(0) =
+                host_info_temp.col(0) - host_val_mean_temp * ones_temp;
+            target_info_temp.col(0) =
+                target_info_temp.col(0) - target_val_mean_temp * ones_temp;
+            host_sigma_temp = host_info_temp.col(0).norm();
+            target_sigma_temp = target_info_temp.col(0).norm();
+            host_info_temp.col(0) /= host_sigma_temp;
+            target_info_temp.col(0) /= target_sigma_temp;
+            zncc_patch = host_info_temp.col(0).dot(target_info_temp.col(0));
+          }
+          if (count_each_cam > 0) {
+            if (host_sigma_temp > 3.f) {
+              err_sum /= static_cast<float>(count_each_cam);
+              if ((err_min > 30000.f || err_sum > 30.f || err_max > 70.f) ||
+                  (lvl >= 0 ? zncc_patch < zncc_thr[lvl] - 0.5f : false)) {
+                count_each_cam = 0;
+              } else {
+                // printf("err_sum: %f, err_max: %f, zncc: %f, host_sigma_temp:
+                // %f, target_sigma_temp: %f\n", err_sum, err_max, zncc_patch,
+                // host_sigma_temp, target_sigma_temp);
+              }
+            } else {
+              count_each_cam = 0;
+            }
+          }
         }
         if (count_each_cam >= MAX_RES_PER_POINT) {
           cam_info[target_cam_id] = 1;
@@ -2042,8 +2134,8 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
       energy = 0;
       for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
         a_cnt[target_cid] = 0;
-        if (host_cid != target_cid) {
-          // continue;
+        if (!use_cross_camera && host_cid != target_cid) {
+          continue;
         }
         if (cam_info[target_cid] < 0) {
           continue;
@@ -2884,14 +2976,19 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
 #endif
       // 如果点的pattern(其中一个像素)超出图像,像素值无穷, 或者残差大于阈值
       int threshold = MAX_RES_PER_POINT * (kCameraNumUsed - 1) + 4;
-      if (/* !isGood || */ energy / static_cast<float>(cnt) >
-              point->outlierTH * 20 ||
-          /*is_bad_res_count > threshold*/ good_cam_num == 0) {
+      if (ratio > 0.5 /*iter >= 35*/ &&
+          (/* !isGood || */ energy / static_cast<float>(cnt) >
+               point->outlierTH * 20 /*2 20*/
+           ||
+           /*is_bad_res_count > threshold*/ good_cam_num == 0)) {
         E.updateSingle((float)(point->energy[0])); // 上一帧的加进来 //
         point->isGood = false;
         point->isGood_new = false;
         point->energy_new = point->energy; //上一次的给当前次的
-        printf("bbbbb, energy: %f, good_cam_num: %d\n", energy, good_cam_num);
+        bad_pid_count++;
+        printf("bbbbb, energy: %f, good_cam_num: %d, host_cid: %d, "
+               "bad_pid_count: %d\n",
+               energy, good_cam_num, host_cid, bad_pid_count);
         for (int target_cid_ = 0; target_cid_ < kCameraNumUsed; ++target_cid_) {
           point->is_valid_project[target_cid_] = false;
         }
@@ -2969,12 +3066,15 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
     }
   }
   E.finish();
+  // printf("E.A: %f\n", E.A);
+  // std::exit(-1);
   acc9.finish();
 
   //????? 这是在干吗???
   // calculate alpha energy, and decide if we cap it.
   Accumulator11 EAlpha;
   EAlpha.initialize();
+#ifndef USE_MULTI_CAM
   for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
     for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
       int npts = level_cid_to_numPoints[lvl][host_cid];
@@ -3010,6 +3110,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
       }
     }
   }
+#endif
   EAlpha.finish(); //! 只是计算位移是否足够大
   int point_count = 0;
   for (int id = 0; id < kCameraNumUsed; ++id) {
@@ -3062,7 +3163,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
         // (1-idepth)^2了;
         // res = (point->idepth_new - 1); J = 1
         // b = Jt*res = 1 * res = res;
-#if 1 // ndef USE_MULTI_CAM
+#ifndef USE_MULTI_CAM
         if (kCameraNumUsed == 1) {
           JbBuffer_new[i + h[0] * w[0] * host_cid][8] +=
               alphaOpt * (point->idepth_new - 1);
@@ -3070,8 +3171,11 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
           JbBuffer_new[i + h[0] * w[0] * host_cid][8] +=
               alphaOpt *
               (point->idepth_new -
-               point->iR_triangle); // TODO Jt * w * res = 1 * w * res
+               point->iR /*point->iR_triangle*/); // TODO Jt * w * res = 1 * w *
+                                                  // res
         }
+#endif
+#if 0
         JbBuffer_new[i + h[0] * w[0] * host_cid][9] +=
             alphaOpt; // TODO Jt * w * J = 1 * w *1
         if (alphaOpt == 0) {
@@ -3092,7 +3196,7 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
         } else {
           JbBuffer_new[i + h[0] * w[0] * host_cid][9] =
               1 / (
-#ifdef FIX_ZERO_TRANS_IN_INIT
+#if 1 // def FIX_ZERO_TRANS_IN_INIT
                       1 +
 #endif
                       JbBuffer_new[i + h[0] * w[0] * host_cid][9]);
@@ -3102,6 +3206,8 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
 
         // H11_ = H11 - H12 * H22^-1 * H12.t ;
         // b1_ = b1 - H12 * H22^-1 * b2 ;
+        // std::cout << "(float)JbBuffer_new[i + h[0] * w[0] * host_cid]: " <<
+        // JbBuffer_new[i + h[0] * w[0] * host_cid].transpose() << std::endl;
         acc9SC.updateSingleWeighted(
             (float)JbBuffer_new[i + h[0] * w[0] * host_cid][0],
             (float)JbBuffer_new[i + h[0] * w[0] * host_cid][1],
@@ -3125,10 +3231,14 @@ Vec3f CoarseInitializer::calcResAndGS(int lvl, MatStatef &H_out,
   H_out_sc = acc9SC.H.topLeftCorner<8, 8>();  // / acc9.num;
   b_out_sc = acc9SC.H.topRightCorner<8, 1>(); // / acc9.num;
 
-  //??? 啥意思
-  // t*t*ntps
-  // 给 t 对应的Hessian, 对角线加上一个数, b也加上
-  // TODO 加权重
+//  std::cout << "H_out:\n" << H_out << std::endl;
+//  std::cout << "b_out:\n" << b_out.transpose() << std::endl;
+//  std::cout << "H_out_sc:\n" << H_out_sc << std::endl;
+//  std::cout << "b_out_sc:\n" << b_out_sc.transpose() << std::endl;
+//??? 啥意思
+// t*t*ntps
+// 给 t 对应的Hessian, 对角线加上一个数, b也加上
+// TODO 加权重
 #if 1
   if (kCameraNumUsed == 1
 #ifdef FIX_ZERO_TRANS_IN_INIT
@@ -3220,7 +3330,7 @@ Vec3f CoarseInitializer::calcEC(int lvl) {
         continue;
       float rOld = (point->idepth - point->iR);
       float rNew = (point->idepth_new - point->iR);
-      if (kCameraNumUsed > 1 && false) {
+      if (kCameraNumUsed > 1 /*&& false*/) {
         rOld = 0;
         rNew = 0;
       }
@@ -3663,7 +3773,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
       }
       if (cid == 0) {
         assert(points[lvl] == 0);
-        points[lvl] = new Pnt[npts * 200]; // TODO roger,
+        points[lvl] = new Pnt[npts * 10 * kCameraNumUsed]; // TODO roger,
         // 因为现在只检测了cam0的，我不知道cam1，2，3会检测出多少点，我干脆开一个200倍的空间，防止不够用
       }
       // set idepth map to initially 1 everywhere.
@@ -3695,7 +3805,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
             //            std::endl;
             ImmaturePoint *pt =
                 new ImmaturePoint(x, y, firstFrame, my_type, HCalib, cid, lvl);
-            // pt->idepth_min = 4;
+            pt->idepth_min = 0.5;
             if (pt->energyTH == NAN) {
               delete pt;
               continue;
@@ -3744,12 +3854,12 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
                 point_3d_ccs =
                     firstFrame->p_multi_camera->cid_to_T01_SE3_inv[cid] *
                     point_3d_wcs;
-                //                printf("success_count: %d, lvl: %d,
-                //                triang_arr: %f, [mean_depth "
-                //                       "triang_depth]: [%f %f]\n",
-                //                       success_count, lvl, triang_arr,
-                //                       1.0 / (0.5 * (pt->idepth_max +
-                //                       pt->idepth_min)), point_3d_ccs[2]);
+                //                printf(
+                //                    "success_count: %d, lvl: %d, triang_arr:
+                //                    %f, [mean_depth " "triang_depth]: [%f
+                //                    %f]\n", success_count, lvl, triang_arr,
+                //                    1.0 / (0.5 * (pt->idepth_max +
+                //                    pt->idepth_min)), point_3d_ccs[2]);
                 float idepth_mean = 0.5 * (pt->idepth_max + pt->idepth_min);
                 if (point_3d_ccs[2] < 0.01 || idepth_mean < 0.01) {
                   // printf("failed epipolar search\n");
@@ -4089,6 +4199,8 @@ void CoarseInitializer::makeNN() {
           float df = expf(-ret_dist[k] * NNDistFactor); // 距离使用指数形式
           sumDF += df;                                  // 距离和
           pts[i].neighboursDist[myidx] = df;
+          // printf("ret_index[k]: %d, ret_index[k]: %d, npts: %d\n",
+          // ret_index[k], ret_index[k], npts);
           assert(ret_index[k] >= 0 && ret_index[k] < npts);
           myidx++;
         }

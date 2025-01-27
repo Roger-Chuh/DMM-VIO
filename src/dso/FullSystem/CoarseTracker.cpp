@@ -792,7 +792,7 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
 #ifndef USE_MULTI_CAM
   int maxIterations[] = {10, 20, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
 #else
-  int maxIterations[] = {10, 20, 20, 20, 20, 20, 20, 20}; // 不同层迭代的次数
+  int maxIterations[] = {50, 50, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
 #endif
   float lambdaExtrapolationLimit = 0.001;
 
@@ -852,6 +852,7 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
     // this function only updates H and b and the aff_g2l_current
     // calculate GradientS use intel SSE.
     float lambda = 0.01;
+    int fails = 0;
     {
       H.setZero();
       b.setZero();
@@ -1012,7 +1013,7 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
         aff_g2l_new.a += incScaled[6];
         aff_g2l_new.b += incScaled[7];
 
-        incNorm = inc.norm();
+        incNorm = inc.head(8).norm();
       }
       // std::array<AffLight, kCameraNumUsed> a_aff_g2l_new;
       //      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
@@ -1084,10 +1085,23 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
         if (dso::setting_useIMU)
           imuIntegration.acceptCoarseUpdate();
         lambda *= 0.5;
-      } else {
-        lambda *= 4;
-        if (lambda < lambdaExtrapolationLimit)
+        fails = 0;
+        if (lambda < lambdaExtrapolationLimit) {
           lambda = lambdaExtrapolationLimit;
+        }
+      } else {
+        fails++;
+        if (fails < 2) {
+          lambda *= 4;
+        } else {
+          lambda *= 4;
+        }
+        if (lambda < lambdaExtrapolationLimit) {
+          // lambda = lambdaExtrapolationLimit;
+        }
+        if (lambda > 1000000) {
+          lambda = 1000000;
+        }
       }
 
       lastLvl = lvl;

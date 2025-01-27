@@ -126,8 +126,13 @@ ImmaturePointStatus ImmaturePoint::traceOn(
     return lastTraceStatus[target_cid];
 
   debugPrint = false; // rand()%100==0;
+#ifdef USE_MULTI_CAM
+  float maxPixSearch = (wG[lvl] + hG[lvl]) * setting_maxPixSearch *
+                       (is_first_frame ? 2.0f : 1.0f); // 极限搜索的最大长度
+#else
   float maxPixSearch =
       (wG[lvl] + hG[lvl]) * setting_maxPixSearch; // 极限搜索的最大长度
+#endif
 
   if (debugPrint)
     printf("trace pt (%.1f %.1f) from frame %d to %d. Range %f -> %f. t %f %f "
@@ -305,7 +310,7 @@ ImmaturePointStatus ImmaturePoint::traceOn(
   /// 这个值是两个帧上深度的比值, 它的变化太大就是前后尺度变化太大了
   // set OOB if scale change too big.
   if (!(idepth_min < 0 ||
-        (ptpMin[2] > 0.5 /*0.75*/ && ptpMin[2] < 2.0 /*1.5*/))) {
+        (ptpMin[2] > 0.1 /*0.5 0.75*/ && ptpMin[2] < 10.0 /*2 .01.5*/))) {
     if (debugPrint)
       printf("OOB SCALE %f %f %f!\n", uMax, vMax, ptpMin[2]);
     lastTraceUV[target_cid] = Vec2f(-1, -1);
@@ -374,7 +379,8 @@ ImmaturePointStatus ImmaturePoint::traceOn(
     dist = maxPixSearch;
   }
 
-  int numSteps = 1.9999f + dist / setting_trace_stepsize; // 步数
+  int numSteps = 1.9999f + dist / (setting_trace_stepsize *
+                                   std::pow(2.0, 0.0 /*-lvl*/)); // 步数
 
   float randShift =
       uMin * 1000 - floorf(uMin * 1000); // 	取小数点后面的做随机数??
@@ -398,11 +404,22 @@ ImmaturePointStatus ImmaturePoint::traceOn(
   }
 
   //* 沿着级线搜索误差最小的位置
-  float errors[100]; //[150];
+  int step_num;
+  if (is_first_frame) {
+    step_num = 200;
+  } else {
+    step_num = 100;
+  }
+  float errors[step_num]; //[150];
   float bestU = 0, bestV = 0, bestEnergy = 1e10;
   int bestIdx = -1;
-  if (numSteps >= 100 /*150*/)
-    numSteps = 99; //[149]
+#ifdef SHOW_TRACEON
+  if (show_image) {
+    printf("numSteps: %d\n", numSteps);
+  }
+#endif
+  if (numSteps >= step_num /*150*/)
+    numSteps = step_num - 1; //[149]
 
   for (int i = 0; i < numSteps; i++) {
     float energy = 0;

@@ -84,6 +84,14 @@ file(GLOB_RECURSE frontend_srcs "${DSO_SOURCE_DIR}/frontend/*.cpp" "${DSO_SOURCE
 
 # DSO Source files
 set(dso_SOURCE_FILES
+		${DSO_SOURCE_DIR}/FullSystem/patch.cpp
+		${DSO_SOURCE_DIR}/FullSystem/opt_nodes_def.cpp
+		${DSO_SOURCE_DIR}/FullSystem/vio_factors.cpp
+		${DSO_SOURCE_DIR}/FullSystem/depth_filter_DSM.cpp
+		${DSO_SOURCE_DIR}/FullSystem/depth_filter_DSM_def.cpp
+		${DSO_SOURCE_DIR}/FullSystem/epipolar_match_DSM.cpp
+		${DSO_SOURCE_DIR}/FullSystem/epipolar_search.cpp
+		${DSO_SOURCE_DIR}/FullSystem/multi_camera_epipolar_search.cpp
         ${DSO_SOURCE_DIR}/FullSystem/FullSystem.cpp
         ${DSO_SOURCE_DIR}/FullSystem/FullSystemOptimize.cpp
         ${DSO_SOURCE_DIR}/FullSystem/FullSystemOptPoint.cpp
@@ -159,8 +167,9 @@ set(tinyxml_include_dir ${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2)
 set(tinyxml_lib_dir ${PROJECT_SOURCE_DIR}/thirdparty/tinyxml2/tinyxml2.cpp)
 
 include_directories(
+  ${PROJECT_SOURCE_DIR}/src/camera_model
+  ${DSO_SOURCE_DIR}/FullSystem
   ${PROJECT_SOURCE_DIR}/src
-  #${PROJECT_SOURCE_DIR}/src/camera_model
   ${PROJECT_SOURCE_DIR}/src/dso
   ${PROJECT_SOURCE_DIR}/thirdparty/Sophus
   ${PROJECT_SOURCE_DIR}/thirdparty/sse2neon

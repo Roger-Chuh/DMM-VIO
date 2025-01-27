@@ -69,9 +69,9 @@ float setting_maxShiftWeightR = 0.0f * (640 + 480);
 float setting_maxShiftWeightRT = 0.01f * (640 + 480);
 #ifdef USE_MULTI_CAM
 float setting_kfGlobalWeight =
-    0.05; // 0.5; // 1;   // general weight on threshold, the larger the more
-          // KF's are
-          // taken (e.g., 2 = double the amount of KF's).
+    0.1; // 0.5; // 1;   // general weight on threshold, the larger the more
+         // KF's are
+         // taken (e.g., 2 = double the amount of KF's).
 #else
 float setting_kfGlobalWeight = 1.0f;
 #endif

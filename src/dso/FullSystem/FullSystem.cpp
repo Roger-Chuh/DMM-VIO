@@ -162,7 +162,8 @@ FullSystem::FullSystem(bool linearizeOperationPassed,
   coarseDistanceMap = new CoarseDistanceMap(wG[0], hG[0]);
   coarseTracker = new CoarseTracker(wG[0], hG[0], imuIntegration);
   coarseTracker_forNewKF = new CoarseTracker(wG[0], hG[0], imuIntegration);
-  coarseInitializer = new CoarseInitializer(wG[0], hG[0]);
+  coarseInitializer =
+      new CoarseInitializer(wG[0], hG[0], Hcalib.p_multi_camera);
   pixelSelector = new PixelSelector(wG[0], hG[0]);
 
   statistics_lastNumOptIts = 0;
@@ -1844,7 +1845,7 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
 #endif
 #else
 #ifndef USE_ZNCC
-  std::vector<float> init_rmse_thr = {20, 15, 15};
+  std::vector<float> init_rmse_thr = {13, 13, 13};
 #else
   std::vector<float> init_rmse_thr = {25, 20, 20};
 #endif

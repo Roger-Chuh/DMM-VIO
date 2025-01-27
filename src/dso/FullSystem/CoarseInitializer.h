@@ -29,6 +29,11 @@
 #include "IMU/IMUIntegration.hpp"
 #include "IOWrapper/Output3DWrapper.h"
 #include "OptimizationBackend/MatrixAccumulators.h"
+#include "depth_filter_DSM.h"
+#include "epipolar_search.h"
+#include "estimator_config.h"
+#include "multi_camera_epipolar_search.h"
+#include "patch.h"
 #include "util/NumType.h"
 #include "util/settings.h"
 #include "vector"
@@ -38,6 +43,9 @@ namespace dso {
 struct CalibHessian;
 struct FrameHessian;
 class ImmaturePoint;
+class DepthFilterDSM;
+class EstimatorConfig;
+class MultiCamera;
 struct Pnt {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -83,7 +91,7 @@ class CoarseInitializer {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-  CoarseInitializer(int ww, int hh);
+  CoarseInitializer(int ww, int hh, MultiCamera *p_cam);
 
   ~CoarseInitializer();
 
@@ -127,7 +135,8 @@ private:
   double cyi[PYR_LEVELS]; // * kCameraNumUsed];
   int w[PYR_LEVELS];
   int h[PYR_LEVELS];
-
+  DepthFilterDSM *p_depth_filter_DSM_;
+  EstimatorConfig estimator_config_;
   void makeK(CalibHessian *HCalib);
 
   double MultiViewTriangulation(const double &focal,
@@ -156,14 +165,15 @@ private:
   // Accumulator11 accE;
 
   Vec3f dGrads[PYR_LEVELS]; // * kCameraNumUsed]; //!<
+  float zncc_thr[8] = {0.7, 0.6, 0.5, 0.4, 0.4, 0.4, 0.4, 0.4};
 
   float alphaK;         //!< 2.5*2.5
   float alphaW;         //!< 150*150
   float regWeight;      //!< 对逆深度的加权值, 0.8
   float couplingWeight; //!< 1
 
-  Vec3f calcResAndGS(int lvl, MatStatef &H_out, VecStatef &b_out,
-                     MatStatef &H_out_sc, VecStatef &b_out_sc,
+  Vec3f calcResAndGS(int iter, int max_iter, int lvl, MatStatef &H_out,
+                     VecStatef &b_out, MatStatef &H_out_sc, VecStatef &b_out_sc,
                      const SE3 &refToNew, AffLight refToNew_aff, bool plot,
                      int &N, bool show_image = false);
   Vec3f calcResAndGS_bak(int lvl, MatStatef &H_out, VecStatef &b_out,
