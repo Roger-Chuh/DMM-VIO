@@ -80,8 +80,9 @@ public:
   float parentDist; //!< 上一层中与父节点的距离
 
   // idx (x+y*w) of up to 10 nearest points in pixel space.
-  int neighbours[10];       //!< 图像中离该点最近的10个点
-  float neighboursDist[10]; //!< 最近10个点的距离
+  int neighbours[10];         //!< 图像中离该点最近的10个点
+  float neighboursDist[10];   //!< 最近10个点的距离
+  float neighboursDistL1[10]; //!< 最近10个点的距离
 
   float my_type;   //!< 第0层提取是1, 2, 4, 对应d, 2d, 4d, 其它层是1
   float outlierTH; //!< 外点阈值
@@ -96,6 +97,9 @@ public:
   ~CoarseInitializer();
 
   void setFirst(CalibHessian *HCalib, FrameHessian *newFrameHessian);
+
+  void convert_to_ImageData(cv::Mat &data, ImageDataAM &image_data,
+                            uint8_t camera_id);
 
   void setFirstStereo(CalibHessian *HCalib, FrameHessian *newFrameHessian);
 
@@ -198,7 +202,8 @@ private:
 
   void makeGradients(Eigen::Vector3f **data);
 
-  void debugPlot(int lvl, std::vector<IOWrap::Output3DWrapper *> &wraps);
+  void debugPlot(int lvl, std::vector<IOWrap::Output3DWrapper *> &wraps,
+                 SE3 T_th, bool show_details = false);
 
   void makeNN();
 };

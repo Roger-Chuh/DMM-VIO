@@ -19,6 +19,18 @@ struct InitDepthData {
 
   std::vector<CamDepthData> cid_to_block_data;
 };
+struct ImageDataAM {
+  uint64_t exposure_ts;        //!< 曝光时间戳，单位ns
+  uint32_t shutter_speed_ns;   //!< 曝光时长，单位ns
+  uint8_t camera_id;           //!< Camera标识
+  uint32_t frame_id;           //!< Camera帧ID
+  uint32_t tuning_index = 999; //!< Camera曝光调节的tuning index
+  int width;                   //!< 图像宽度
+  int height;                  //!< 图像高度
+  int step;                    //!< 图像行步长
+  uint8_t *data;               //!< 图像数据首地址
+  uint16_t gain = 0;
+};
 struct Point {
 public:
   enum TYPE { kEdgelet, kCorner };

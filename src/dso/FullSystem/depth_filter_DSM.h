@@ -37,7 +37,6 @@ public:
 
   void RotateSeedPreFrameVM(const Mat3 &Rw0);
 
-private:
   void InsertNewFrame(const size_t &fid, const bool &is_first_frame);
   void GetSeeds(std::vector<DF_Frame> &frames, std::vector<Seed *> &seeds_vec);
   void GetSeeds(DF_Frame &frame, std::vector<Seed *> &seeds_vec);
@@ -59,7 +58,12 @@ private:
 #endif
 
   //  std::vector<std::pair<size_t, number_t>> CalCosAngle(Seed* p_seed);
+  EpipolarMatchDSM *p_epipolar_match_dsm_;
+  MultiCameraEpipolarSearch *p_multi_cam_epipolar_search_;
+  number_t px_noise_ = 0.5;
+  std::vector<number_t> px_err_angle_vec_;
 
+private:
   MultiCamera *p_level_to_multi_camera_;
   const EstimatorConfig *p_estimator_config_;
 
@@ -70,11 +74,11 @@ private:
   size_t total_init_seed_num_ = 0;
   size_t total_converged_seed_num_ = 0;
 
-  number_t px_noise_ = 0.5;
+  // number_t px_noise_ = 0.5;
   number_t vm_err2_threshold_ = 2.5 / 235.0 * 2.5 / 235.0;
   number_t vm_inlier_ratio_threshold_ = 0.6;
   number_t avg_vm_err2_threshold_ = 0.5 / 235.0 * 0.5 / 235.0;
-  std::vector<number_t> px_err_angle_vec_;
+  // std::vector<number_t> px_err_angle_vec_;
 
   number_t seed_convergence_sigma2_threshold_ = 200.0;
 
@@ -83,8 +87,8 @@ private:
   size_t cur_fid_;
   std::vector<DF_Frame> frame_vec_;
 
-  EpipolarMatchDSM *p_epipolar_match_dsm_;
-  MultiCameraEpipolarSearch *p_multi_cam_epipolar_search_;
+  //  EpipolarMatchDSM *p_epipolar_match_dsm_;
+  //  MultiCameraEpipolarSearch *p_multi_cam_epipolar_search_;
 
   size_t cell_size_;
   size_t row_cell_num_;

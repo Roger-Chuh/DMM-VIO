@@ -33,15 +33,16 @@
 
 #include "FullSystem/CoarseInitializer.h"
 #include "../camera_model/camera_base.h"
+#include "../camera_model/pinhole_camera.h"
 #include "FullSystem/FullSystem.h"
 #include "FullSystem/HessianBlocks.h"
 #include "FullSystem/ImmaturePoint.h"
 #include "FullSystem/PixelSelector.h"
 #include "FullSystem/PixelSelector2.h"
 #include "FullSystem/Residuals.h"
+#include "algs_tools_images_buffer.h"
 #include "depth_filter_DSM.h"
 #include "util/nanoflann.h"
-
 #include <opencv2/highgui/highgui.hpp>
 
 #if !defined(__SSE3__) && !defined(__SSE2__) && !defined(__SSE1__)
@@ -65,7 +66,11 @@ CoarseInitializer::CoarseInitializer(int ww, int hh, MultiCamera *p_cam)
                  kCameraNumUsed /* * kCameraNumUsed * kCameraNumUsed*/];
 
   frameID = -1;
+#if !defined(USE_MULTI_CAM) || defined(USE_ZNCC)
   fixAffine = true;
+#else
+  fixAffine = true;                                       // false;
+#endif
   printDebug = false;
   //! 这是
   wM.diagonal()[0] = wM.diagonal()[1] = wM.diagonal()[2] = SCALE_XI_ROT;
@@ -99,7 +104,7 @@ bool CoarseInitializer::trackFrame(
   int maxIterations[] = {10, 20, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
   // int maxIterations[] = {50, 50, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
 #else
-  int maxIterations[] = {20, 20, 20, 20, 20, 20, 20, 20}; // 不同层迭代的次数
+  int maxIterations[] = {10, 10, 20, 20, 20, 20, 20, 20}; // 不同层迭代的次数
 #endif
 //? 调参
 #ifndef USE_ZNCC
@@ -109,7 +114,7 @@ bool CoarseInitializer::trackFrame(
   alphaK =
       2.5 *
       2.5; // 2.5*2.5;//0.0150*0.0150;//0.005*0.005;//0.010*0.010;//0.0150*0.0150;//*freeDebugParam1*freeDebugParam1;
-  alphaW = 150 * 150;     //*freeDebugParam2*freeDebugParam2;
+  alphaW = 150 * 150;       //*freeDebugParam2*freeDebugParam2;
 #endif
   regWeight = 0.8;    //*freeDebugParam4;
   couplingWeight = 1; //*freeDebugParam5;
@@ -208,7 +213,7 @@ bool CoarseInitializer::trackFrame(
     applyStep(lvl); // 新的能量付给旧的
 
     float lambda = 0.1;
-    float eps = 1e-4;
+    float eps = 5e-5;
     int fails = 0;
     // 初始信息
     if (printDebug) {
@@ -255,7 +260,7 @@ bool CoarseInitializer::trackFrame(
       } else
         inc = -(wM * (Hl.ldlt().solve(bl))); //=-H^-1 * b.
 
-      double incNorm = inc.head(8).norm();
+      double incNorm = inc.head(6).norm();
 
       //[ ***step 5.3*** ] 更新状态, doStep中更新逆深度
       /// lifting
@@ -264,8 +269,9 @@ bool CoarseInitializer::trackFrame(
       AffLight refToNew_aff_new = refToNew_aff_current;
       refToNew_aff_new.a += inc[6];
       refToNew_aff_new.b += inc[7];
-      doStep(lvl, lambda, inc);
       std::cout << "inc: " << inc.transpose() << std::endl;
+      doStep(lvl, lambda, inc);
+      // std::cout << "inc: " << inc.transpose() << std::endl;
       // std::exit(1);
       //[ ***step 5.4*** ] 计算更新后的能量并且与旧的对比判断是否accept
       Mat88f H_new, Hsc_new;
@@ -295,10 +301,11 @@ bool CoarseInitializer::trackFrame(
 
       bool accept = eTotalOld > eTotalNew;
 
-      printf("accept: %d, level: %d, [eTotalOld / eTotalNew]: [%f / %f], diff: "
-             "%f, iter: %d, level: %d, incNorm: %f, lambda: %f\n",
-             accept, lvl, eTotalOld, eTotalNew, eTotalNew - eTotalOld,
-             iteration, lvl, incNorm, lambda);
+      printf(
+          "accept: %d, level: %d, [eTotalOld / eTotalNew]: [%f / %f], diff: "
+          "%f, diff_ratio: %f, iter: %d, level: %d, incNorm: %f, lambda: %f\n",
+          accept, lvl, eTotalOld, eTotalNew, eTotalNew - eTotalOld,
+          (eTotalNew - eTotalOld) / eTotalOld, iteration, lvl, incNorm, lambda);
       if (printDebug) {
         printf("lvl %d, it %d (l=%f) %s: %.5f + %.5f + %.5f -> %.5f + %.5f + "
                "%.5f (%.2f->%.2f) (|inc| = %f)! \t",
@@ -314,6 +321,7 @@ bool CoarseInitializer::trackFrame(
                   << refToNew_aff_new.vec().transpose() << "\n";
       }
       //[ ***step 5.5*** ] 接受的话, 更新状态,; 不接受则增大lambda
+      bool quitOpt = false;
       if (accept) {
         int point_count = 0;
         for (int id = 0; id < kCameraNumUsed; ++id) {
@@ -348,8 +356,8 @@ bool CoarseInitializer::trackFrame(
         }
         lambda *= 0.5;
         fails = 0;
-        if (lambda < 0.0001) {
-          lambda = 0.0001;
+        if (lambda < 0.000001) {
+          lambda = 0.000001;
         }
       } else {
         fails++;
@@ -358,12 +366,14 @@ bool CoarseInitializer::trackFrame(
         } else {
           lambda *= 4;
         }
-        if (lambda > 1000000) {
-          // lambda = 1000000;
+        if (lambda > 10000) {
+          lambda = 10000;
+          quitOpt = true;
         }
       }
 
-      bool quitOpt = false;
+      debugPlot(lvl, wraps, refToNew_current, true);
+      // bool quitOpt = false;
       // 迭代停止条件, 收敛/大于最大次数/失败2次以上
       if (!(incNorm > eps) || iteration >= maxIterations[lvl] || fails >= 200) {
         Mat88f H, Hsc;
@@ -396,91 +406,98 @@ bool CoarseInitializer::trackFrame(
   if (snapped && snappedAt == 0)
     snappedAt = frameID; // 位移足够的帧数
 
-  debugPlot(0, wraps);
+  debugPlot(0, wraps, thisToNext, false);
 
   // 位移足够大, 再优化5帧才行
   if (kCameraNumUsed == 1) {
     return snapped && frameID > snappedAt + 5;
   } else {
     // snapped = true;
-    return snapped && frameID >= snappedAt + 2; // 0;
+    return snapped && frameID >= snappedAt + 1; // 0;
   }
 }
 
-void CoarseInitializer::debugPlot(
-    int lvl, std::vector<IOWrap::Output3DWrapper *> &wraps) {
+void CoarseInitializer::debugPlot(int lvl,
+                                  std::vector<IOWrap::Output3DWrapper *> &wraps,
+                                  SE3 T_th, bool show_details) {
   bool needCall = false;
-  for (IOWrap::Output3DWrapper *ow : wraps)
-    needCall = needCall || ow->needPushDepthImage();
-  if (!needCall)
-    return;
-
+  if (!show_details) {
+    for (IOWrap::Output3DWrapper *ow : wraps)
+      needCall = needCall || ow->needPushDepthImage();
+    if (!needCall)
+      return;
+  }
   int wl = w[lvl], hl = h[lvl];
+  if (!show_details) {
+    MinimalImageB3 iRImg(wl, hl);
 
-  MinimalImageB3 iRImg(wl, hl);
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      Eigen::Vector3f *colorRef =
+          firstFrame->dIp[lvl] + hG[lvl] * wG[lvl] * cid;
+      for (int i = 0; i < wl * hl; i++)
+        iRImg.at(i, cid) =
+            Vec3b(colorRef[i][0], colorRef[i][0], colorRef[i][0]);
+    }
+    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      int npts = level_cid_to_numPoints[lvl][cid];
 
-  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-    Eigen::Vector3f *colorRef = firstFrame->dIp[lvl] + hG[lvl] * wG[lvl] * cid;
-    for (int i = 0; i < wl * hl; i++)
-      iRImg.at(i, cid) = Vec3b(colorRef[i][0], colorRef[i][0], colorRef[i][0]);
-  }
-  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-    int npts = level_cid_to_numPoints[lvl][cid];
-
-    float nid = 0, sid = 0;
-    for (int i = 0; i < npts; i++) {
-      Pnt *point = points[lvl] + i + level_cid_to_npts_success_offset[lvl][cid];
-      if (point->isGood) {
-        nid++;
+      float nid = 0, sid = 0;
+      for (int i = 0; i < npts; i++) {
+        Pnt *point =
+            points[lvl] + i + level_cid_to_npts_success_offset[lvl][cid];
+        if (point->isGood) {
+          nid++;
 #ifndef USE_MULTI_CAM
-        sid += point->iR;
+          sid += point->iR;
 #else
-        sid += point->iR; // point->idepth;
+          sid += point->iR; // point->idepth;
 #endif
+        }
+      }
+      float fac = nid / sid;
+
+      for (int i = 0; i < npts; i++) {
+        Pnt *point =
+            points[lvl] + level_cid_to_npts_success_offset[lvl][cid] + i;
+
+        if (!point->isGood) {
+          iRImg.setPixel9(point->u + 0.5f, point->v + 0.5f, Vec3b(0, 0, 0),
+                          point->host_cid);
+        } else {
+          // printf("good point\n");
+          iRImg.setPixel9(point->u + 0.5f, point->v + 0.5f,
+#ifndef USE_MULTI_CAM
+                          makeRainbow3B(point->iR * fac),
+#else
+                          makeRainbow3B(point->iR /*point->idepth*/ * fac),
+#endif
+                          point->host_cid);
+        }
       }
     }
-    float fac = nid / sid;
-
-    for (int i = 0; i < npts; i++) {
-      Pnt *point = points[lvl] + level_cid_to_npts_success_offset[lvl][cid] + i;
-
-      if (!point->isGood) {
-        iRImg.setPixel9(point->u + 0.5f, point->v + 0.5f, Vec3b(0, 0, 0),
-                        point->host_cid);
-      } else {
-        // printf("good point\n");
-        iRImg.setPixel9(point->u + 0.5f, point->v + 0.5f,
-#ifndef USE_MULTI_CAM
-                        makeRainbow3B(point->iR * fac),
-#else
-                        makeRainbow3B(point->iR /*point->idepth*/ * fac),
-#endif
-                        point->host_cid);
-      }
+    // IOWrap::displayImage("idepth-R", &iRImg, false);
+    for (IOWrap::Output3DWrapper *ow : wraps) {
+      ow->pushDepthImage(&iRImg);
     }
-  }
-  // IOWrap::displayImage("idepth-R", &iRImg, false);
-  for (IOWrap::Output3DWrapper *ow : wraps) {
-    ow->pushDepthImage(&iRImg);
   }
 
   if (true) {
     Mat3 intr = Mat3::Identity();
-    intr(0, 0) = fx[0];
-    intr(1, 1) = fy[0];
-    intr(0, 2) = cx[0];
-    intr(1, 2) = cy[0];
+    intr(0, 0) = fx[lvl];
+    intr(1, 1) = fy[lvl];
+    intr(0, 2) = cx[lvl];
+    intr(1, 2) = cy[lvl];
     Mat3 intr_inv = intr.inverse();
 
     MinimalImageB3 *img_host;
     MinimalImageB3 *img_target;
 
-    img_host = new MinimalImageB3(wG[0], hG[0]);
-    img_target = new MinimalImageB3(wG[0], hG[0]);
+    img_host = new MinimalImageB3(wG[lvl], hG[lvl]);
+    img_target = new MinimalImageB3(wG[lvl], hG[lvl]);
 
     for (int cam = 0; cam < kCameraNumUsed; ++cam) {
-      Vec3f *colorRef = firstFrame->dI + wG[0] * hG[0] * cam;
-      for (int i = 0; i < wG[0] * hG[0]; i++) {
+      Vec3f *colorRef = firstFrame->dIp[lvl] + wG[lvl] * hG[lvl] * cam;
+      for (int i = 0; i < wG[lvl] * hG[lvl]; i++) {
         // BRIGHTNESS TRANSFER
         float colL = (*(colorRef + i))[0];
         if (colL < 0)
@@ -491,8 +508,8 @@ void CoarseInitializer::debugPlot(
       }
     }
     for (int cam = 0; cam < kCameraNumUsed; ++cam) {
-      Eigen::Vector3f *colorCur = newFrame->dI + cam * wG[0] * hG[0];
-      for (int i = 0; i < wG[0] * hG[0]; i++) {
+      Eigen::Vector3f *colorCur = newFrame->dIp[lvl] + cam * wG[lvl] * hG[lvl];
+      for (int i = 0; i < wG[lvl] * hG[lvl]; i++) {
         // BRIGHTNESS TRANSFER
         float colL = (*(colorCur + i))[0];
         if (colL < 0)
@@ -502,31 +519,111 @@ void CoarseInitializer::debugPlot(
         img_target->at(i, cam) = Vec3b(colL, colL, colL);
       }
     }
-
+    // IOWrap::displayImage("host", img_host);
+    // IOWrap::displayImage("target", img_target);
+    // IOWrap::waitKey(0);
     /////////////////////////////////////////////////////////////////////
     for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
-      for (int i = 0; i < level_cid_to_numPoints[0][host_cid]; i++) {
+      float nid = 0, sid = 0;
+      std::array<float, kCameraNumUsed> target_cid_to_nid;
+      std::array<float, kCameraNumUsed> target_cid_to_sid;
+      for (int id = 0; id < kCameraNumUsed; ++id) {
+        //          target_cid_to_nid[id] = 0;
+        //          target_cid_to_sid[id] = 0;
+      }
+      for (int i = 0; i < level_cid_to_numPoints[lvl][host_cid]; i++) {
         Pnt *point =
-            points[0] + i + level_cid_to_npts_success_offset[0][host_cid];
+            points[lvl] + i + level_cid_to_npts_success_offset[lvl][host_cid];
+        if (point->isGood) {
+          nid += 1;
+#ifndef USE_MULTI_CAM
+          sid += point->iR;
+#else
+          sid += point->iR; // point->idepth;
+          // sid += point->idepth;
+#endif
+        }
+      }
+      float fac = nid / sid;
+      std::array<float, kCameraNumUsed> target_cid_to_fac;
+      for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+        target_cid_to_nid[target_cid] = 0;
+        target_cid_to_sid[target_cid] = 0;
+        SE3 Tth;
+        if (!show_details) {
+          Tth = thisToNext;
+        } else {
+          Tth = T_th;
+        }
+        SE3 refToNew =
+            newFrame->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() *
+            Tth * newFrame->p_multi_camera->cid_to_T01_SE3[host_cid];
+        Mat33f RKi = (refToNew.rotationMatrix() * intr_inv).cast<float>();
+        for (int i = 0; i < level_cid_to_numPoints[lvl][host_cid]; i++) {
+          Pnt *point_temp =
+              points[lvl] + i + level_cid_to_npts_success_offset[lvl][host_cid];
+          // TODO roger, like SetFromImage in orca, 判断这个坐标纹理是否充分
+          if (!point_temp->isGood) {
+            continue;
+          }
+
+          Vec3f t = refToNew.translation().cast<float>();
+          Vec3f pt = RKi * Vec3f(point_temp->u, point_temp->v, 1) +
+                     t * point_temp->idepth;
+          // std::cout << "point->idepth: " << point->idepth << std::endl;
+          float u = pt[0] / pt[2];
+          float v = pt[1] / pt[2];
+          float new_idepth = point_temp->idepth / pt[2];
+          // 像素坐标pj
+          float Ku = float(intr(0, 0)) * u + float(intr(0, 2));
+          float Kv = float(intr(1, 1)) * v + float(intr(1, 2));
+          //                std::cout << "init, "
+          //                          << ", u: " << Ku << ", v: " << Kv
+          //                          << ", idepth: " << new_idepth <<
+          //                          std::endl;
+          if (!(Ku > 15 && Kv > 15 && Ku < wG[lvl] - 15 && Kv < hG[lvl] - 15 &&
+                new_idepth > 0)) {
+            //                isGood = false;
+            //                break;
+            continue;
+          }
+          target_cid_to_nid[target_cid] += 1;
+          target_cid_to_sid[target_cid] += new_idepth;
+        }
+        target_cid_to_fac[target_cid] =
+            target_cid_to_nid[target_cid] / target_cid_to_sid[target_cid];
+      }
+      for (int i = 0; i < level_cid_to_numPoints[lvl][host_cid]; i++) {
+        Pnt *point =
+            points[lvl] + i + level_cid_to_npts_success_offset[lvl][host_cid];
         // TODO roger, like SetFromImage in orca, 判断这个坐标纹理是否充分
         if (!point->isGood) {
           continue;
         }
         if (point->isGood) {
-          img_host->setPixel9(point->u + 0.5, point->v + 0.5, makeRainbow3B(1),
+          img_host->setPixel9(point->u + 0.5, point->v + 0.5,
+                              makeRainbow3B(point->iR /*point->idepth*/ * fac),
                               host_cid);
-          img_host->setPixelCirc(point->u + 0.5, point->v + 0.5,
-                                 makeRainbow3B(1), host_cid);
+          img_host->setPixelCirc(
+              point->u + 0.5, point->v + 0.5,
+              makeRainbow3B(point->iR /*point->idepth*/ * fac), host_cid);
         } else {
           img_host->setPixel9(point->u + 0.5, point->v + 0.5, makeRainbow3B(10),
                               host_cid);
           img_host->setPixelCirc(point->u + 0.5, point->v + 0.5,
                                  makeRainbow3B(10), host_cid);
         }
+
         for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+          SE3 Tth;
+          if (!show_details) {
+            Tth = thisToNext;
+          } else {
+            Tth = T_th;
+          }
           SE3 refToNew =
               newFrame->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() *
-              thisToNext * newFrame->p_multi_camera->cid_to_T01_SE3[host_cid];
+              Tth * newFrame->p_multi_camera->cid_to_T01_SE3[host_cid];
           Mat33f RKi = (refToNew.rotationMatrix() * intr_inv).cast<float>();
           Vec3f t = refToNew.translation().cast<float>();
           Vec3f pt = RKi * Vec3f(point->u, point->v, 1) + t * point->idepth;
@@ -541,17 +638,21 @@ void CoarseInitializer::debugPlot(
           //                          << ", u: " << Ku << ", v: " << Kv
           //                          << ", idepth: " << new_idepth <<
           //                          std::endl;
-          if (!(Ku > 15 && Kv > 15 && Ku < wG[0] - 15 && Kv < hG[0] - 15 &&
+          if (!(Ku > 15 && Kv > 15 && Ku < wG[lvl] - 15 && Kv < hG[lvl] - 15 &&
                 new_idepth > 0)) {
             //                isGood = false;
             //                break;
             continue;
           }
           if (point->isGood && point->is_valid_project[target_cid]) {
-            img_target->setPixel9(Ku + 0.5, Kv + 0.5, makeRainbow3B(1),
-                                  target_cid);
-            img_target->setPixelCirc(Ku + 0.5, Kv + 0.5, makeRainbow3B(1),
-                                     target_cid);
+            img_target->setPixel9(
+                Ku + 0.5, Kv + 0.5,
+                makeRainbow3B(new_idepth * target_cid_to_fac[target_cid]),
+                target_cid);
+            img_target->setPixelCirc(
+                Ku + 0.5, Kv + 0.5,
+                makeRainbow3B(new_idepth * target_cid_to_fac[target_cid]),
+                target_cid);
           } else {
             if (false) {
               img_target->setPixel9(Ku + 0.5, Kv + 0.5, makeRainbow3B(10),
@@ -564,9 +665,13 @@ void CoarseInitializer::debugPlot(
         }
       }
     }
-    IOWrap::displayImage("host", img_host);
-    IOWrap::displayImage("target", img_target);
-    IOWrap::waitKey(1);
+    IOWrap::displayImage("host", img_host, true);
+    IOWrap::displayImage("target", img_target, true);
+    if (show_details) {
+      IOWrap::waitKey(lvl == 0 ? 1000 : 1);
+    } else {
+      IOWrap::waitKey(1);
+    }
     delete img_host;
     delete img_target;
   }
@@ -1378,7 +1483,7 @@ Vec3f CoarseInitializer::calcResAndGS_bak(int lvl, MatStatef &H_out,
   Accumulator11 EAlpha;
   EAlpha.initialize();
   for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
-    for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+    for (int target_cid = 0; target_cid < 1 /*kCameraNumUsed*/; ++target_cid) {
       int npts = level_cid_to_numPoints[lvl][host_cid];
       Pnt *ptsl = points[lvl] + level_cid_to_npts_success_offset[lvl][host_cid];
       for (int i = 0; i < npts; i++) {
@@ -1436,7 +1541,7 @@ Vec3f CoarseInitializer::calcResAndGS_bak(int lvl, MatStatef &H_out,
 
   acc9SC.initialize();
   for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
-    for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+    for (int target_cid = 0; target_cid < 1 /*kCameraNumUsed*/; ++target_cid) {
       int npts = level_cid_to_numPoints[lvl][host_cid];
       Pnt *ptsl = points[lvl] + level_cid_to_npts_success_offset[lvl][host_cid];
       for (int i = 0; i < npts; i++) {
@@ -1573,8 +1678,20 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
                                       const SE3 &refToNew_,
                                       AffLight refToNew_aff, bool plot, int &N,
                                       bool show_image) {
-  bool use_cross_camera = false;
+  // bool use_cross_camera = lvl >= 2 ? true : false;
+  bool use_cross_camera = lvl % 2 == 1;
+  // bool use_cross_camera = iter % 2 == 0;
   float ratio = static_cast<float>(iter) / static_cast<float>(max_iter);
+  bool calc_stats_only = true;
+#ifndef USE_ZNCC
+  float ratio_thr1 = 10.5;
+#else
+  float ratio_thr1 = 10.5;
+#endif
+  if (calc_stats_only) {
+    ratio_thr1 = -10.0;
+  }
+  float ratio_thr2 = 0.5;
   int wl = w[lvl], hl = h[lvl];
   // 当前层图像及梯度
   Accumulator11 E;   // 1*1 的累加器
@@ -1715,6 +1832,15 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
 
 #endif
       int host_target_info_size = 0;
+      float host_sigma_temp = -1;
+      float target_sigma_temp = -1;
+      MatXXf a_target_sigma_temp, a_err_mean, a_err_max, a_err_min, a_grad_mean,
+          a_grad_max, a_grad_min, a_zncc_mean;
+      a_target_sigma_temp.resize(kCameraNumUsed, 1);
+      a_target_sigma_temp.setOnes();
+      a_target_sigma_temp *= -20;
+      a_grad_mean = a_grad_max = a_grad_min = a_err_mean = a_err_max =
+          a_err_min = a_zncc_mean = a_target_sigma_temp;
       for (int target_cam_id = 0; target_cam_id < kCameraNumUsed;
            ++target_cam_id) {
         // Eigen::Vector3f *colorRef = firstFrame->dIp[lvl] + host_cid * wl *
@@ -1756,12 +1882,12 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
 #endif
         int count_each_cam = 0;
         std::vector<Vec2f> uv_draw;
-        float err_sum = 0;
-        float err_max = -10;
-        float err_min = 99910;
+        float err_sum = 0, grad_sum = 0;
+        float err_max = -10, grad_max = -10;
+        float err_min = 99910, grad_min = 99910;
         float zncc_patch = 0;
-        float host_sigma_temp;
-        float target_sigma_temp;
+        // float host_sigma_temp;
+        // float target_sigma_temp;
         for (int idx = 0; idx < patternNum; idx++) {
           // pattern的坐标偏移
           int dx = patternP[idx][0];
@@ -1882,6 +2008,14 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
           if (err_min > std::abs(residual_temp)) {
             err_min = std::abs(residual_temp);
           }
+          float grad_norm = hitColor.segment<2>(1).norm();
+          grad_sum += grad_norm;
+          if (grad_max < grad_norm) {
+            grad_max = grad_norm;
+          }
+          if (grad_min > grad_norm) {
+            grad_min = grad_norm;
+          }
           hostColor[0] = host_value_corrected;
           host_info_big.conservativeResize(count + 1, 3);
           target_info_big.conservativeResize(count + 1, 3);
@@ -1904,7 +2038,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
           count_each_cam++;
           count++;
         }
-        if (ratio > 10.5f) {
+        if (ratio > ratio_thr1) {
           if (count_each_cam >= MAX_RES_PER_POINT) {
             assert(count_each_cam == MAX_RES_PER_POINT);
             float host_val_mean_temp =
@@ -1922,15 +2056,49 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
                 target_info_temp.col(0) - target_val_mean_temp * ones_temp;
             host_sigma_temp = host_info_temp.col(0).norm();
             target_sigma_temp = target_info_temp.col(0).norm();
+            a_target_sigma_temp(target_cam_id, 0) = target_sigma_temp;
             host_info_temp.col(0) /= host_sigma_temp;
             target_info_temp.col(0) /= target_sigma_temp;
             zncc_patch = host_info_temp.col(0).dot(target_info_temp.col(0));
           }
-          if (count_each_cam > 0) {
-            if (host_sigma_temp > 3.f) {
+          if (target_sigma_temp < 0.0001) {
+            // printf("i: %d, host: %d, target: %d, target_sigma_temp: %f\n", i,
+            // point->host_cid, target_cam_id, target_sigma_temp);
+          }
+          if (count_each_cam > 0 && count_each_cam == MAX_RES_PER_POINT) {
+            // printf("i: %d, host: %d, target: %d, target_sigma_temp: %f\n", i,
+            // point->host_cid, target_cam_id, target_sigma_temp);
+            if ((host_sigma_temp > 3.f && target_sigma_temp > 3.f) /*||
+                calc_stats_only*/) {
               err_sum /= static_cast<float>(count_each_cam);
-              if ((err_min > 30000.f || err_sum > 30.f || err_max > 70.f) ||
-                  (lvl >= 0 ? zncc_patch < zncc_thr[lvl] - 0.5f : false)) {
+              a_err_mean(target_cam_id, 0) = err_sum;
+              a_err_max(target_cam_id, 0) = err_max;
+              a_err_min(target_cam_id, 0) = err_min;
+
+              grad_sum /= static_cast<float>(count_each_cam);
+              a_grad_mean(target_cam_id, 0) = grad_sum;
+              a_grad_max(target_cam_id, 0) = grad_max;
+              a_grad_min(target_cam_id, 0) = grad_min;
+              a_zncc_mean(target_cam_id, 0) = zncc_patch;
+              //                 printf("err_sum: %f, err_max: %f, zncc: %f,
+              //                 host_sigma_temp: %f, target_sigma_temp: %f\n",
+              //                 err_sum, err_max, zncc_patch, host_sigma_temp,
+              //                 target_sigma_temp);
+              if (!calc_stats_only &&
+                  ((err_min > 30000.f ||
+#ifndef USE_ZNCC
+                    err_sum > 20.f
+#else
+                    err_sum > 140.f
+#endif
+                    || err_max > 1000.f) ||
+                   grad_sum < 3.f ||
+#ifndef USE_ZNCC
+                   (lvl >= 0 ? zncc_patch < zncc_thr[lvl] - 0.5f : false
+#else
+                   (lvl == 0 ? zncc_patch < zncc_thr[lvl] - 0.5f : false
+#endif
+                    ))) {
                 count_each_cam = 0;
               } else {
                 // printf("err_sum: %f, err_max: %f, zncc: %f, host_sigma_temp:
@@ -2132,6 +2300,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
       }
       is_bad_res_count = 0;
       energy = 0;
+      float target_grad_sum = 0;
       for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
         a_cnt[target_cid] = 0;
         if (!use_cross_camera && host_cid != target_cid) {
@@ -2408,6 +2577,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
 #endif
         // int cnt = 0;
         int cnt_each_cam = 0;
+        // float target_grad_sum = 0;
         for (int idx = 0; idx < patternNum; idx++) {
           int dx = patternP[idx][0];
           int dy = patternP[idx][1];
@@ -2573,12 +2743,26 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
             continue;
           }
 
-          // printf("residual: %f\n", residual);
+          // printf("residual: %f, hw: %f\n", residual, hw);
+#ifndef USE_ZNCC_WEIGHT
           float hw = fabs(residual) < setting_huberTH
                          ? 1
                          : setting_huberTH / fabs(residual);
+#else
+          float norm1 = a_host_info[target_cid].col(0).norm();
+          float norm2 = a_target_info[target_cid].col(0).norm();
+
+          float zncc = a_target_info[target_cid].col(0).normalized().dot(
+              a_host_info[target_cid].col(0).normalized());
+          float r2 = 2 - 2 * zncc;
+          float ws2 = 2.0 / (r2 + 2.0);
+          float hw = std::sqrt(ws2);
+          // printf("norm12: [%f %f], hw: %f\n", norm1, norm2, hw);
+#endif
+          // printf("residual: %f, hw: %f\n", residual, hw);
           energy += hw * residual * residual * (2 - hw);
 #endif
+          target_grad_sum += hitColor.segment<2>(1).norm();
 
           // Pj 对 逆深度 di 求导
           //! 1/Pz * (tx - u*tz), u = px/pz
@@ -2810,6 +2994,13 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
               dxInterp * dxdd +
               dyInterp * dydd; //! dxfx * 1/Pz * (tx - u*tz) +　dyfy *
                                //! 1/Pz * (tx - u*tz)
+          // printf("i: %d, host_cid: %d, target_cid: %d, idx: %d, residual: %f,
+          // J_idp: [%f %f %f], JtJ: %f, hw: %f, val[9]_accum: %f\n", i,
+          // host_cid, target_cid, idx, residual, dd[idx + MAX_RES_PER_POINT *
+          // target_cid_use], (float)(hw * Vec2f(hitColor[1],
+          // hitColor[2]).transpose() *  d_uv_d_pt3d * trans)[0],
+          // d_res_d_idp_fwd_jac, d_res_d_idp_fwd_jac * d_res_d_idp_fwd_jac, hw,
+          // JbBuffer_new[i + h[0] * w[0] * host_cid][9]);
 #else
           dd[idx + MAX_RES_PER_POINT * target_cid_use] = d_res_d_idp_fwd_jac;
 #endif
@@ -2923,6 +3114,28 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
 
           assert(index_to_count.at(idx + MAX_RES_PER_POINT * target_cid) ==
                  cnt);
+          if (false &&
+              (lvl == 2 && point->host_cid == 1 && i == 178 ||
+               JbBuffer_new[i + h[0] * w[0] * host_cid].cwiseAbs().minCoeff() < 1e-8 /*&& JbBuffer_new[i + h[0] * w[0] * host_cid].cwiseAbs().minCoeff() > 0*/)) {
+            //              std::cout << "refToNew:\n" << refToNew.matrix3x4()
+            //              << std::endl;
+            std::cout << "hitColor: " << hitColor.transpose()
+                      << ", hostColor: " << rlR
+                      << ", affline: " << r2new_aff.transpose() << std::endl;
+            //              std::cout << "d_res_d_pose_fwd_jac_use;\n" <<
+            //              d_res_d_pose_fwd_jac_use.transpose() << std::endl;
+            //              std::cout << "dd: " << dd.transpose() << std::endl;
+            std::cout << "JbBuffer_new[i + h[0] * w[0] * host_cid]: "
+                      << JbBuffer_new[i + h[0] * w[0] * host_cid].transpose()
+                      << std::endl;
+            printf("idx: %d, residual: %f, i: %d, lvl: %d, cid: %d, uv: [%f "
+                   "%f], iR: %f, isG0od: %d, isGoodNew: %d, idepth: %f, "
+                   "isdepthNew: %f\n",
+                   idx, residual, i, lvl, point->host_cid, point->u, point->v,
+                   point->isGood, point->isGood_new, point->idepth,
+                   point->idepth_new);
+            //              std::exit(1);
+          }
 #if 1
           for (int i = 0; i + 3 < patternNum /** kCameraNumUsed*/;
                i += 4) // this for loop has 2 steps each step step 4 stride.
@@ -2976,19 +3189,87 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
 #endif
       // 如果点的pattern(其中一个像素)超出图像,像素值无穷, 或者残差大于阈值
       int threshold = MAX_RES_PER_POINT * (kCameraNumUsed - 1) + 4;
-      if (ratio > 0.5 /*iter >= 35*/ &&
-          (/* !isGood || */ energy / static_cast<float>(cnt) >
-               point->outlierTH * 20 /*2 20*/
-           ||
-           /*is_bad_res_count > threshold*/ good_cam_num == 0)) {
+      float target_grad_mean = target_grad_sum / static_cast<float>(cnt);
+      assert(std::isfinite(energy));
+      float zncc_avg = 0, err_avg = 0;
+      float visible_cids = 0;
+      if (calc_stats_only) {
+        if (false) {
+          for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+            printf("a_cnt[%d]: %d\n", cam, a_cnt[cam]);
+          }
+          std::cout << "a_target_sigma_temp: "
+                    << a_target_sigma_temp.transpose() << std::endl;
+          std::cout << "a_err_mean: " << a_err_mean.transpose() << std::endl;
+          std::cout << "a_err_max: " << a_err_max.transpose() << std::endl;
+          std::cout << "a_err_min: " << a_err_min.transpose() << std::endl;
+
+          std::cout << "a_grad_mean: " << a_grad_mean.transpose() << std::endl;
+          std::cout << "a_grad_max: " << a_grad_max.transpose() << std::endl;
+          std::cout << "a_grad_min: " << a_grad_min.transpose() << std::endl;
+
+          std::cout << "a_zncc_mean: " << a_zncc_mean.transpose() << std::endl;
+        }
+        for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+          if (a_err_mean(cam) < -10) {
+            assert(a_cnt[cam] == 0);
+            assert(a_zncc_mean(cam) < -10);
+          } else {
+            if (false) {
+              std::cout << "11 a_err_mean: " << a_err_mean.transpose()
+                        << std::endl;
+              std::cout << "11 a_zncc_mean: " << a_zncc_mean.transpose()
+                        << std::endl;
+              printf("a_zncc_mean(%d): %f\n", cam, a_zncc_mean(cam));
+            }
+            assert(a_zncc_mean(cam) > -10);
+            // printf("a_cnt[cam]: %d\n", a_cnt[cam]);
+            assert(a_cnt[cam] == MAX_RES_PER_POINT);
+            err_avg += a_err_mean(cam);
+            zncc_avg += a_zncc_mean(cam);
+            visible_cids += 1;
+          }
+        }
+        err_avg /= visible_cids;
+        zncc_avg /= visible_cids;
+      }
+      // printf("target_mean_grad: %f, cnt: %d\n", target_grad_mean, cnt);
+      if ((false && ratio > ratio_thr1 && cnt > 0 && target_grad_mean < 3.f) ||
+          ratio > ratio_thr2 /*iter >= 35*/ &&
+              ((/* !isGood || */ energy / static_cast<float>(cnt) >
+                    point->outlierTH * 20 /*2 20*/
+                ||
+                /*is_bad_res_count > threshold*/ good_cam_num ==
+                    0) /*|| cnt == 0*/
+               || (calc_stats_only && visible_cids > 0 &&
+                   (err_avg > 80.0 || zncc_avg < 0.1 /*zncc_thr[lvl]*/)))) {
         E.updateSingle((float)(point->energy[0])); // 上一帧的加进来 //
         point->isGood = false;
         point->isGood_new = false;
         point->energy_new = point->energy; //上一次的给当前次的
         bad_pid_count++;
-        printf("bbbbb, energy: %f, good_cam_num: %d, host_cid: %d, "
-               "bad_pid_count: %d\n",
-               energy, good_cam_num, host_cid, bad_pid_count);
+        if (bad_pid_count < 100) {
+          printf("bbbbb, cnt: %d, energy: %f, good_cam_num: %d, host_cid: %d, "
+                 "bad_pid_count: %d, target_grad_mean: %f, target_sigma_temp: "
+                 "%f, ratio: %f\n",
+                 cnt, energy, good_cam_num, host_cid, bad_pid_count,
+                 target_grad_mean, target_sigma_temp, ratio);
+        }
+        if (false) {
+          std::cout << "a_target_sigma_temp: "
+                    << a_target_sigma_temp.transpose() << std::endl;
+          std::cout << "a_err_mean: " << a_err_mean.transpose() << std::endl;
+          std::cout << "a_err_max: " << a_err_max.transpose() << std::endl;
+          std::cout << "a_err_min: " << a_err_min.transpose() << std::endl;
+
+          std::cout << "a_grad_mean: " << a_grad_mean.transpose() << std::endl;
+          std::cout << "a_grad_max: " << a_grad_max.transpose() << std::endl;
+          std::cout << "a_grad_min: " << a_grad_min.transpose() << std::endl;
+
+          std::cout << "a_zncc_mean: " << a_zncc_mean.transpose() << std::endl;
+        }
+        // printf("i: %d, host: %d, target_sigma_temp: %f\n", i,
+        // point->host_cid, target_sigma_temp);
         for (int target_cid_ = 0; target_cid_ < kCameraNumUsed; ++target_cid_) {
           point->is_valid_project[target_cid_] = false;
         }
@@ -3076,7 +3357,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
   EAlpha.initialize();
 #ifndef USE_MULTI_CAM
   for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
-    for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+    for (int target_cid = 0; target_cid < 1 /*kCameraNumUsed*/; ++target_cid) {
       int npts = level_cid_to_numPoints[lvl][host_cid];
       Pnt *ptsl = points[lvl] + level_cid_to_npts_success_offset[lvl][host_cid];
       for (int i = 0; i < npts; i++) {
@@ -3144,7 +3425,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
 
   acc9SC.initialize();
   for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
-    for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+    for (int target_cid = 0; target_cid < 1 /*kCameraNumUsed*/; ++target_cid) {
       int npts = level_cid_to_numPoints[lvl][host_cid];
       Pnt *ptsl = points[lvl] + level_cid_to_npts_success_offset[lvl][host_cid];
       for (int i = 0; i < npts; i++) {
@@ -3194,12 +3475,15 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
           JbBuffer_new[i + h[0] * w[0] * host_cid][9] =
               1 / (1 + JbBuffer_new[i + h[0] * w[0] * host_cid][9]);
         } else {
+          // printf("val[9]: [%f %f], orig[9]: %f\n", 1/JbBuffer_new[i + h[0] *
+          // w[0] * host_cid][9],1/(1+JbBuffer_new[i + h[0] * w[0] *
+          // host_cid][9]), JbBuffer_new[i + h[0] * w[0] * host_cid][9]);
           JbBuffer_new[i + h[0] * w[0] * host_cid][9] =
-              1 / (
+              1.f / (
 #if 1 // def FIX_ZERO_TRANS_IN_INIT
-                      1 +
+                        1.f +
 #endif
-                      JbBuffer_new[i + h[0] * w[0] * host_cid][9]);
+                        JbBuffer_new[i + h[0] * w[0] * host_cid][9]);
         }
         //* 9做权重, 计算的是舒尔补项!
         //! dp*dd*(dd^2)^-1*dd*dp
@@ -3307,7 +3591,7 @@ float CoarseInitializer::rescale() {
 //* 计算旧的和新的逆深度与iR的差值, 返回旧的差, 新的差, 数目
 ///? iR到底是啥呢     答：IR是逆深度的均值，尺度收敛到IR
 Vec3f CoarseInitializer::calcEC(int lvl) {
-  if (!snapped /*|| kCameraNum > 1*/) {
+  if (!snapped /*|| kCameraNumUsed > 1*/) {
     int point_count = 0;
     for (int id = 0; id < kCameraNumUsed; ++id) {
       point_count += level_cid_to_numPoints[lvl][id];
@@ -3348,6 +3632,7 @@ Vec3f CoarseInitializer::calcEC(int lvl) {
 
 //* 使用最近点来更新每个点的iR, smooth的感觉
 void CoarseInitializer::optReg(int lvl) {
+  float dist_thr = 30.f * std::pow(2.0, -lvl);
   for (int cid = 0; cid < kCameraNumUsed; ++cid) {
     int npts = level_cid_to_numPoints[lvl][cid];
     Pnt *ptsl = points[lvl] + level_cid_to_npts_success_offset[lvl][cid];
@@ -3370,11 +3655,20 @@ void CoarseInitializer::optReg(int lvl) {
       int nnn = 0;
       // 获得当前点周围最近10个点, 质量好的点的iR
       for (int j = 0; j < 10; j++) {
-        if (point->neighbours[j] == -1)
+        if (point->neighbours[j] == -1) {
+          printf("11 npts is less than 10, check detecion, traaceOn or depth "
+                 "filter_DSM\n");
+          std::exit(1);
           continue;
+        }
         Pnt *other = ptsl + point->neighbours[j];
         if (!other->isGood)
           continue;
+        if (point->neighboursDistL1[j] > dist_thr) {
+          // printf("[%d/%d], level: %d, knn too far, dist: %f\n", j, 10, lvl,
+          // point->neighboursDistL1[j] * std::pow(2.0, lvl));
+          continue;
+        }
         idnn[nnn] = other->iR;
         nnn++;
       }
@@ -3691,6 +3985,21 @@ double CoarseInitializer::MultiViewTriangulation(
   // static_cast<double>(errs.rows());
   return err_sum / static_cast<double>(poses.size());
 }
+void CoarseInitializer::convert_to_ImageData(cv::Mat &data,
+                                             ImageDataAM &image_data,
+                                             uint8_t camera_id) {
+
+  image_data.exposure_ts = 1;
+  image_data.camera_id = camera_id;
+  image_data.width = data.cols;
+  image_data.height = data.rows;
+  // 999 as default tuning index
+  image_data.tuning_index = 999;
+  image_data.shutter_speed_ns = 1;
+  image_data.frame_id = 1;
+  image_data.step = data.step;
+  image_data.data = data.data;
+}
 //#define SHOW_DETECTION_RES
 void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
                                        FrameHessian *newFrameHessian) {
@@ -3779,6 +4088,71 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
       // set idepth map to initially 1 everywhere.
       //    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
       int wl = w[lvl], hl = h[lvl]; // 每一层的图像大小
+      dso::ImagesBuffer::Initial(40, wl, hl);
+#if 1
+      std::array<ImageDataAM, kCameraNumUsed> cid_to_image_data;
+
+      Point point;
+      bool is_corner;
+      std::array<std::shared_ptr<AlgsImage>, kCameraNumUsed> cid_to_img;
+      std::array<cv::Mat, kCameraNumUsed> cid_to_cv_img;
+      MinimalImageB *img_target;
+      img_target = new MinimalImageB(wl, hl);
+      for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+        firstFrame->p_multi_camera->cid_to_K_temp[cam].setIdentity();
+        firstFrame->p_multi_camera->cid_to_K_temp[cam](0, 0) = fx[lvl];
+        firstFrame->p_multi_camera->cid_to_K_temp[cam](1, 1) = fy[lvl];
+        firstFrame->p_multi_camera->cid_to_K_temp[cam](0, 2) = cx[lvl];
+        firstFrame->p_multi_camera->cid_to_K_temp[cam](1, 2) = cy[lvl];
+        std::vector<number_t> param = {fx[lvl], fy[lvl], cx[lvl], cy[lvl]};
+        firstFrame->p_multi_camera->cid_to_Kinv_temp[cam] =
+            firstFrame->p_multi_camera->cid_to_K_temp[cam].inverse();
+        firstFrame->p_multi_camera->cid_to_cam_pinhole[cam] =
+            new PinholeCamera(cam, wl, hl, param.data());
+
+        for (size_t i = 0; i < kCameraNumUsed; ++i) {
+          p_depth_filter_DSM_->px_err_angle_vec_[i] =
+              std::atan(p_depth_filter_DSM_->px_noise_ / fx[lvl]);
+        }
+
+        assert(estimator_config_.search_level == 0);
+        number_t search_level_focal_length =
+            fx[lvl] * std::pow(2.0f, -estimator_config_.search_level);
+
+        p_depth_filter_DSM_->p_multi_cam_epipolar_search_->rad_step_ =
+            estimator_config_.pixel_step *
+            std::asin(1.0 / search_level_focal_length / 2.0) * 2.0;
+
+        Eigen::Vector3f *colorCur = firstFrame->dIp[lvl] + cam * wl * hl;
+        for (int i = 0; i < wG[lvl] * hG[lvl]; i++) {
+          // BRIGHTNESS TRANSFER
+          float colL = (*(colorCur + i))[0];
+          if (colL < 0)
+            colL = 0;
+          if (colL > 255)
+            colL = 255;
+          img_target->at(i, cam) = static_cast<unsigned char>(colL);
+        }
+        cid_to_cv_img[cam] =
+            cv::Mat(img_target->h, img_target->w, CV_8UC1,
+                    img_target->data + img_target->w * img_target->h * cam);
+
+        convert_to_ImageData(cid_to_cv_img[cam], cid_to_image_data[cam],
+                             static_cast<uint8_t>(cam));
+
+        cid_to_img[cam] = dso::ImagesBuffer::Acquire(wl, hl);
+        cid_to_img[cam]->DangerouslyCopyFrom(
+            cid_to_image_data[cam].width, cid_to_image_data[cam].height,
+            cid_to_image_data[cam].step, cid_to_image_data[cam].data,
+            cid_to_image_data[cam].exposure_ts,
+            cid_to_image_data[cam].tuning_index,
+            cid_to_image_data[cam].shutter_speed_ns,
+            cid_to_image_data[cam].gain);
+        // cv::imshow("img", cid_to_img[cam]);
+        // cv::waitKey(0);
+      }
+
+#endif
       int offset = 0;
       for (int id = 0; id < cid; ++id) {
         offset += level_cid_to_npts[lvl][id];
@@ -3805,7 +4179,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
             //            std::endl;
             ImmaturePoint *pt =
                 new ImmaturePoint(x, y, firstFrame, my_type, HCalib, cid, lvl);
-            pt->idepth_min = 0.5;
+            // pt->idepth_min = 0.5;
             if (pt->energyTH == NAN) {
               delete pt;
               continue;
@@ -3817,6 +4191,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
             std::vector<Vec3> bearings = {
                 (Ki[lvl] * Vec3(x, y, 1.0)).normalized()};
             if (kCameraNumUsed > 1) {
+#if 0
               bool good_point = true;
               for (int target_cid = 0; target_cid < kCameraNumUsed;
                    ++target_cid) {
@@ -3884,8 +4259,61 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
                 delete pt;
                 continue;
               }
+#else
+              Vec2i px = Vec2i(x, y);
+              point.n =
+                  (firstFrame->p_multi_camera->cid_to_Kinv_temp.at(cid) *
+                   Vec3(static_cast<number_t>(x), static_cast<number_t>(y), 1.))
+                      .normalized();
+              bool is_success = point.pyramid_patch.SetFromImg(
+                  cid_to_img[cid], px.cast<number_t>(), cid, is_corner,
+                  firstFrame->p_multi_camera);
+              // printf("is_success: %d, is_corner: %d\n", is_success,
+              // is_corner); std::exit(1);
+              if (is_success) {
+                // number_t init_idp = 0.5;
+                Seed seed;
+                DF_Frame::InitSeedDepth(seed, false, 0);
+                number_t res_idp;
+                std::array<MultiCameraEpipolarSearch::MatchRes, kCameraNumUsed>
+                    cid_to_output;
+                MultiCameraEpipolarSearch::State state =
+                    p_depth_filter_DSM_->p_multi_cam_epipolar_search_
+                        ->FindEpipolarMatch(point, cid, cid_to_img, 1, seed.rho,
+                                            seed.sigma2, 1, cid_to_output,
+                                            res_idp, -1, true);
+                if (state == MultiCameraEpipolarSearch::kReject) {
+                  // printf("reject\n");
+                  delete pt;
+                  continue;
+                } else if (state == MultiCameraEpipolarSearch::kUnVisible) {
+                  // printf("not visible\n");
+                  delete pt;
+                  continue;
+                } else if (state == MultiCameraEpipolarSearch::kFail) {
+                  // printf("fail\n");
+                  delete pt;
+                  continue;
+                } else if (state == MultiCameraEpipolarSearch::kSuccess) {
+                  // printf("success_triangulation\n");
+                  Vec3 xyz = point.n / res_idp;
+                  pl[nl].iR_triangle = 1.0 / xyz[2];
+                  pl[nl].idepth_new_triangle = 1.0 / xyz[2];
 
+                  pl[nl].idepth = pl[nl].iR_triangle;
+                  pl[nl].iR = pl[nl].iR_triangle;
+                } else {
+                  printf("you should never see this\n");
+                  std::exit(1);
+                }
+              } else {
+                delete pt;
+                continue;
+              }
+#endif
             } else {
+              printf("you should never see this, only in multi-cam mode\n");
+              std::exit(1);
               pl[nl].idepth = 1;
               pl[nl].iR = 1;
             }
@@ -3945,8 +4373,31 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
       //    }
       //      printf("level end\n");
       // std::exit(1);
+
+      if (false) {
+        std::vector<cv::Mat> colored_mat_vec(kCameraNumUsed);
+        cv::Mat gray_mat;
+        for (size_t cam_id = 0; cam_id < kCameraNumUsed; ++cam_id) {
+          std::shared_ptr<AlgsImage> p_img = cid_to_img[cam_id];
+          gray_mat = cv::Mat(p_img->height, p_img->width, CV_8UC1, p_img->data,
+                             p_img->stride);
+          cv::cvtColor(gray_mat, colored_mat_vec[cam_id], cv::COLOR_GRAY2BGR);
+        }
+        cv::Mat temp1, temp2, res;
+        cv::vconcat(colored_mat_vec[1], colored_mat_vec[0], temp1);
+        cv::vconcat(colored_mat_vec[2], colored_mat_vec[3], temp2);
+        cv::hconcat(temp1, temp2, res);
+        cv::imshow("VM Result", res);
+        cv::waitKey(0);
+      }
+      dso::ImagesBuffer::SetInitial(false);
+      for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+        cid_to_img[cam].reset();
+      }
+      delete img_target;
     }
   }
+  // std::exit(1);
 #ifdef SHOW_DETECTION_RES
   for (int lvl = 0; lvl < pyrLevelsUsed; ++lvl) {
     std::array<cv::Mat, kCameraNumUsed> show_mat_vec;
@@ -4007,6 +4458,12 @@ void CoarseInitializer::resetPoints(int lvl) {
       if (lvl == pyrLevelsUsed - 1 && !pts[i].isGood) {
         float snd = 0, sn = 0;
         for (int n = 0; n < 10; n++) {
+          if (pts[i].neighbours[n] == -1) {
+            printf("22 npts is less than 10, check detecion, traaceOn or depth "
+                   "filter_DSM\n");
+            std::exit(2);
+            continue;
+          }
           if (pts[i].neighbours[n] == -1 || !pts[pts[i].neighbours[n]].isGood)
             continue;
           /// 逆深度求和
@@ -4044,14 +4501,20 @@ void CoarseInitializer::doStep(int lvl, float lambda, Vec8f inc) {
       //! dd*r + (dp*dd)^T*delta_p
       // linearized plus with prior
       // todo roger, b2 = b2_sc + H12.transpose() * dx1;
-      float b = (JbBuffer[i + w[0] * h[0] * pts[i].host_cid *
-                                  kCameraNumUsed /*+ target_cid)*/])[8] +
+      if (pts[i].host_cid != target_cid) {
+        printf("cid not consistent, sth wrong\n");
+        std::exit(1);
+      }
+      float b = (JbBuffer[i + w[0] * h[0] * pts[i].host_cid /* *
+                                  kCameraNumUsed*/
+                          /*+ target_cid)*/])[8] +
                 JbBuffer[i].head<8>().dot(inc);
       //! dd * delta_d = dd*r - (dp*dd)^T*delta_p = b
       //! delta_d = b * dd^-1
       // todo roger, dx2 = -b2 / H22;
       float step =
-          -b * JbBuffer[i + w[0] * h[0] * pts[i].host_cid * kCameraNumUsed][9] /
+          -b *
+          JbBuffer[i + w[0] * h[0] * pts[i].host_cid /* * kCameraNumUsed*/][9] /
           (1 + lambda);
       // TODO
       // 这应该只是粗略的更新depth，要严谨点应该用[三角化]，可能是出于计算量考虑吧，毕竟还在初始化阶段，本身也算不了太准（毕竟idepth都全被初始化成1的正态分布了，能准到哪里去）
@@ -4072,6 +4535,28 @@ void CoarseInitializer::doStep(int lvl, float lambda, Vec8f inc) {
         newIdepth = 1e-3;
       if (newIdepth > 50)
         newIdepth = 50;
+      if (!std::isfinite(newIdepth)) {
+        printf("newIdepth: %f, oldIdepth: %f,step: %f, i: %d, lvl: %d, cid: "
+               "%d, uv: [%f %f]\n",
+               newIdepth, pts[i].idepth, step, i, lvl, pts[i].host_cid,
+               pts[i].u, pts[i].v);
+        //                  std::cout <<
+        //                  "JbBuffer[i + w[0] * h[0] * pts[i].host_cid *
+        //                  kCameraNumUsed]: " << JbBuffer[i + w[0] * h[0] *
+        //                  pts[i].host_cid * kCameraNumUsed].transpose() <<
+        //                  std::endl; std::cout << "JbBuffer_new[i + w[0] *
+        //                  h[0] * pts[i].host_cid
+        //                  * kCameraNumUsed]: " << JbBuffer_new[i + w[0] * h[0]
+        //                  * pts[i].host_cid * kCameraNumUsed].transpose() <<
+        //                  std::endl;
+        std::cout << "JbBuffer[i + w[0] * h[0] * pts[i].host_cid]: "
+                  << JbBuffer[i + w[0] * h[0] * pts[i].host_cid].transpose()
+                  << std::endl;
+        std::cout << "JbBuffer_new[i + w[0] * h[0] * pts[i].host_cid]: "
+                  << JbBuffer_new[i + w[0] * h[0] * pts[i].host_cid].transpose()
+                  << std::endl;
+        std::exit(1);
+      }
       pts[i].idepth_new = newIdepth;
     }
   }
@@ -4103,6 +4588,15 @@ void CoarseInitializer::applyStep(int lvl) {
       pts[i].lastHessian = pts[i].lastHessian_new;
     }
   }
+  //  std::cout
+  //      << "aa JbBuffer[i + w[0] * h[0] * pts[i].host_cid * kCameraNumUsed]: "
+  //      << JbBuffer[178 + w[0] * h[0] * 1 * kCameraNumUsed].transpose()
+  //      << std::endl;
+  //  std::cout
+  //      << "bb JbBuffer_new[i + w[0] * h[0] * pts[i].host_cid *
+  //      kCameraNumUsed]: "
+  //      << JbBuffer_new[178 + w[0] * h[0] * 1 * kCameraNumUsed].transpose()
+  //      << std::endl;
   std::swap<Vec10f *>(JbBuffer, JbBuffer_new);
 }
 
@@ -4144,6 +4638,10 @@ void CoarseInitializer::makeK(CalibHessian *HCalib) {
 // https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_example.cpp
 // which is the author's repo of nanoflann
 //@ 生成每一层点的KDTree, 并用其找到邻近点集和父点
+//#define SHOW_NN
+#ifdef SHOW_NN
+//#define SHOW_NN_DETAIL
+#endif
 void CoarseInitializer::makeNN() {
   const float NNDistFactor = 0.05;
   // 第一个参数为distance, 第二个是datasetadaptor, 第三个是维数
@@ -4154,7 +4652,10 @@ void CoarseInitializer::makeNN() {
   typedef nanoflann::KDTreeSingleIndexAdaptor<
       nanoflann::L2_Simple_Adaptor<float, FLANNPointcloud>, FLANNPointcloud, 2>
       KDTree;
-
+#ifdef SHOW_NN
+  MinimalImageB3 *img_big;
+  MinimalImageB3 *img_small;
+#endif
   // build indices
   for (int cid = 0; cid < kCameraNumUsed; ++cid) {
     FLANNPointcloud pcs[PYR_LEVELS]; // 每层建立一个点云
@@ -4174,16 +4675,59 @@ void CoarseInitializer::makeNN() {
 
     // find NN & parents
     for (int lvl = 0; lvl < pyrLevelsUsed; lvl++) {
+#ifdef SHOW_NN
+      img_big = new MinimalImageB3(wG[lvl], hG[lvl]);
+      Vec3f *colorRef = firstFrame->dIp[lvl] + wG[lvl] * hG[lvl] * cid;
+      for (int i = 0; i < wG[lvl] * hG[lvl]; i++) {
+        // BRIGHTNESS TRANSFER
+        float colL = (*(colorRef + i))[0];
+        if (colL < 0)
+          colL = 0;
+        if (colL > 255)
+          colL = 255;
+        img_big->at(i, cid) = Vec3b(colL, colL, colL);
+      }
+      int lvl_small = lvl < pyrLevelsUsed - 1 ? lvl + 1 : lvl;
+      img_small = new MinimalImageB3(wG[lvl_small], hG[lvl_small]);
+      Vec3f *colorSmall =
+          firstFrame->dIp[lvl_small] + wG[lvl_small] * hG[lvl_small] * cid;
+      for (int i = 0; i < wG[lvl_small] * hG[lvl_small]; i++) {
+        // BRIGHTNESS TRANSFER
+        float colL = (*(colorSmall + i))[0];
+        if (colL < 0)
+          colL = 0;
+        if (colL > 255)
+          colL = 255;
+        img_small->at(i, cid) = Vec3b(colL, colL, colL);
+      }
+      Pnt *pts_big = points[lvl] + level_cid_to_npts_success_offset[lvl][cid];
+      int npts_big = level_cid_to_numPoints[lvl][cid];
+      for (int i = 0; i < npts_big; i++) {
+        img_big->setPixel1(pts_big[i].u + 0.5, pts_big[i].v + 0.5,
+                           makeRainbow3B(0.1), cid);
+      }
+      Pnt *pts_small =
+          points[lvl_small] + level_cid_to_npts_success_offset[lvl_small][cid];
+      int npts_small = level_cid_to_numPoints[lvl_small][cid];
+      for (int i = 0; i < npts_small; i++) {
+        img_small->setPixel1(pts_small[i].u + 0.5, pts_small[i].v + 0.5,
+                             makeRainbow3B(0.1), cid);
+      }
+#endif
       Pnt *pts = points[lvl] + level_cid_to_npts_success_offset[lvl][cid];
       int npts = level_cid_to_numPoints[lvl][cid];
 
-      int ret_index[nn];  // 搜索到的临近点
-      float ret_dist[nn]; // 搜索到点的距离
+      int ret_index[nn], ret_index_big[nn]; // 搜索到的临近点
+      float ret_dist[nn], ret_dist_big[nn]; // 搜索到点的距离
       // 搜索结果, 最近的nn个和1个
       nanoflann::KNNResultSet<float, int, int> resultSet(nn);
       nanoflann::KNNResultSet<float, int, int> resultSet1(1);
 
       for (int i = 0; i < npts; i++) {
+#ifdef SHOW_NN
+        img_big->setPixel4(pts[i].u + 0.5, pts[i].v + 0.5, makeRainbow3B(1),
+                           cid);
+#endif
         // resultSet.init(pts[i].neighbours, pts[i].neighboursDist );
         resultSet.init(ret_index, ret_dist);
         Vec2f pt = Vec2f(pts[i].u, pts[i].v); // 当前点
@@ -4195,12 +4739,17 @@ void CoarseInitializer::makeNN() {
         float sumDF = 0;
         //* 给每个点的neighbours赋值
         for (int k = 0; k < nn; k++) {
-          pts[i].neighbours[myidx] = ret_index[k];      // 最近的索引
+          pts[i].neighbours[myidx] = ret_index[k]; // 最近的索引
+          if (ret_index[k] < 0) {
+            printf("no close point, dist: %d\n", ret_index[k]);
+          }
+          pts[i].neighboursDistL1[myidx] = std::sqrt(ret_dist[k]);
           float df = expf(-ret_dist[k] * NNDistFactor); // 距离使用指数形式
           sumDF += df;                                  // 距离和
           pts[i].neighboursDist[myidx] = df;
-          // printf("ret_index[k]: %d, ret_index[k]: %d, npts: %d\n",
-          // ret_index[k], ret_index[k], npts);
+          //          printf("ret_index[k]: %d, ret_index[k]: %d, npts: %d\n",
+          //          ret_index[k],
+          //                 ret_index[k], npts);
           assert(ret_index[k] >= 0 && ret_index[k] < npts);
           myidx++;
         }
@@ -4210,8 +4759,14 @@ void CoarseInitializer::makeNN() {
 
         //* 高一层的图像中找到该点的父节点
         if (lvl < pyrLevelsUsed - 1) {
+          for (int ind = 0; ind < nn; ++ind) {
+            ret_index_big[ind] = ret_index[ind];
+            ret_dist_big[ind] = ret_dist[ind];
+          }
+          // TODO roger, 细节，这是复用同一个变量地址了
           resultSet1.init(ret_index, ret_dist);
           /// 父节点是在更模糊的一层中找的
+          Vec2f pt_big = pt;
           pt = pt * 0.5f - Vec2f(0.25f, 0.25f); // 换算到高一层
           indexes[lvl + 1]->findNeighbors(resultSet1, (float *)&pt,
                                           nanoflann::SearchParams());
@@ -4222,11 +4777,101 @@ void CoarseInitializer::makeNN() {
 
           assert(ret_index[0] >= 0 &&
                  ret_index[0] < level_cid_to_numPoints[lvl + 1][cid]);
+
+#ifdef SHOW_NN_DETAIL
+          Pnt *pts_small = points[lvl_small] +
+                           level_cid_to_npts_success_offset[lvl_small][cid];
+          int npts_small = level_cid_to_numPoints[lvl_small][cid];
+          Pnt *pts_big =
+              points[lvl] + level_cid_to_npts_success_offset[lvl][cid];
+          int npts_big = level_cid_to_numPoints[lvl][cid];
+          MatXXf diff_vec_small;
+          diff_vec_small.resize(npts_small, 1);
+          diff_vec_small.setOnes();
+          diff_vec_small *= 999;
+          std::vector<float> v_diff_small;
+          for (int id = 0; id < npts_small; ++id) {
+            float diff =
+                (pt - Vec2f(pts_small[id].u, pts_small[id].v)).squaredNorm();
+            diff_vec_small(id, 0) = diff;
+            v_diff_small.emplace_back(diff);
+          }
+          std::sort(v_diff_small.begin(), v_diff_small.end(),
+                    [](const float &p1, const float &p2) { return p1 < p2; });
+          int nearest_id = 0;
+          printf("--------------------------------------------------------\n");
+          for (int id = 0; id < npts_small; ++id) {
+            float diff =
+                (pt - Vec2f(pts_small[id].u, pts_small[id].v)).squaredNorm();
+            if (std::abs(diff - diff_vec_small.minCoeff()) < 0.00001) {
+              printf("nearest_id: %d, dist: %f, uv: [%f %f]\n", id, diff,
+                     pts_small[id].u, pts_small[id].v);
+            }
+          }
+          for (int index = 0; index < nn; ++index) {
+            float diff = (pt - Vec2f(pts_small[ret_index[index]].u,
+                                     pts_small[ret_index[index]].v))
+                             .squaredNorm();
+            if (index == 0) {
+              assert(std::abs(diff - ret_dist[index]) < 0.0001);
+              assert(std::abs(v_diff_small[index] - ret_dist[index]) < 0.0001);
+            }
+            printf("small level neighbour, index: %d, diff: %f, sorted: %f, "
+                   "dist: %f\n",
+                   ret_index[index], diff, v_diff_small[index],
+                   ret_dist[index]);
+          }
+          MatXXf diff_vec_big;
+          diff_vec_big.resize(npts_big, 1);
+          diff_vec_big.setOnes();
+          diff_vec_big *= 999;
+          std::vector<float> v_diff_big;
+          printf("--------------\n");
+          for (int id = 0; id < npts_big; ++id) {
+            float diff =
+                (pt_big - Vec2f(pts_big[id].u, pts_big[id].v)).squaredNorm();
+            diff_vec_big(id, 0) = diff;
+            v_diff_big.emplace_back(diff);
+          }
+          std::sort(v_diff_big.begin(), v_diff_big.end(),
+                    [](const float &p1, const float &p2) { return p1 < p2; });
+          for (int id = 0; id < npts_big; ++id) {
+            float diff =
+                (pt_big - Vec2f(pts_big[id].u, pts_big[id].v)).squaredNorm();
+            if (std::abs(diff - diff_vec_big.minCoeff()) < 0.00001) {
+              printf("big level, nearest_id: %d, dist: %f, uv: [%f %f]\n", id,
+                     diff, pts_big[id].u, pts_big[id].v);
+            }
+          }
+          for (int index = 0; index < nn; ++index) {
+            float diff = (pt_big - Vec2f(pts_big[ret_index_big[index]].u,
+                                         pts_big[ret_index_big[index]].v))
+                             .squaredNorm();
+            assert(std::abs(diff - ret_dist_big[index]) < 0.0001);
+            assert(std::abs(v_diff_big[index] - ret_dist_big[index]) < 0.0001);
+            printf("big level neighbour, index: %d, diff: %f, sorted: %f, "
+                   "dist: %f\n",
+                   ret_index_big[index], diff, v_diff_big[index],
+                   ret_dist_big[index]);
+          }
+          img_small->setPixel4(pt(0) + 0.5, pt(1) + 0.5, makeRainbow3B(1), cid);
+          IOWrap::displayImage("big", img_big, true);
+          IOWrap::displayImage("small", img_small, true);
+          IOWrap::waitKey(0);
+#endif
         } else { // 最高层没有父节点
           pts[i].parent = -1;
           pts[i].parentDist = -1;
         }
       }
+#ifdef SHOW_NN
+#ifndef SHOW_NN_DETAIL
+      IOWrap::displayImage("big detection", img_big, true);
+      IOWrap::waitKey(0);
+#endif
+      delete img_big;
+      delete img_small;
+#endif
     }
 
     // done.

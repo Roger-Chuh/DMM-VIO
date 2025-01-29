@@ -84,6 +84,7 @@ file(GLOB_RECURSE frontend_srcs "${DSO_SOURCE_DIR}/frontend/*.cpp" "${DSO_SOURCE
 
 # DSO Source files
 set(dso_SOURCE_FILES
+		${DSO_SOURCE_DIR}/FullSystem/algs_tools_images_buffer.cpp
 		${DSO_SOURCE_DIR}/FullSystem/patch.cpp
 		${DSO_SOURCE_DIR}/FullSystem/opt_nodes_def.cpp
 		${DSO_SOURCE_DIR}/FullSystem/vio_factors.cpp

@@ -78,7 +78,7 @@ public:
       : camera_id_(camera_id), width_(width), height_(height) {
     kParamLength = param_length;
     std::memcpy(parameters_, parameters, kParamLength * sizeof(number_t));
-    printf("kParamLength %d\n", kParamLength);
+    // printf("kParamLength %d\n", kParamLength);
   }
 
   virtual ~CameraBase() {}

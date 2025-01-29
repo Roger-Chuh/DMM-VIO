@@ -206,17 +206,24 @@ extern float freeDebugParam5;
 
 void handleKey(char k);
 
-extern int staticPattern[10][40][2];
-extern int staticPatternNum[10];
-extern int staticPatternPadding[10];
+constexpr int pattern_scale = 2;
+constexpr int pattern_index = 8;
 
-//#define patternNum staticPatternNum[setting_pattern]
-//#define patternP staticPattern[setting_pattern]
-//#define patternPadding staticPatternPadding[setting_pattern]
+extern int staticPattern[10][40][2];
+constexpr int staticPatternNum[10] = {1, 5, 5, 9, 9, 13, 25, 21, 8, 24 /*25*/};
+constexpr int staticPatternPadding[10] = {
+    1, 1, 1, 1, 2, 2, 2, 3, 2 * pattern_scale, 4};
+
+// extern int staticPatternNum[10][1];
+// extern int staticPatternPadding[10];
+
+#define patternNum staticPatternNum[pattern_index]
+#define patternP staticPattern[pattern_index]
+#define patternPadding staticPatternPadding[pattern_index]
 
 //
-#define patternNum 8
-#define patternP staticPattern[8]
-#define patternPadding 2
+//#define patternNum 8
+//#define patternP staticPattern[8]
+//#define patternPadding 2
 
 } // namespace dso

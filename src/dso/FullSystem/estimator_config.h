@@ -71,7 +71,7 @@ struct EstimatorConfig {
   const number_t vkf_blur_pixel_threshold = 6.0; // pixel
 
   // Epipolar search length threshold
-  const int search_level = 1;
+  const int search_level = 0;
   const number_t pixel_step = 1.0;
   const number_t search_length_threshold = 20.0;
 

@@ -202,7 +202,7 @@ bool Patch::SetFromImg(std::shared_ptr<AlgsImage> img, const int &level,
   const number_t sigma = std::sqrt(sigma2);
   normalized_vals /= sigma;
 
-  if (sigma < 10) {
+  if (sigma < 5) {
     return false;
   }
 
@@ -240,6 +240,8 @@ bool Patch::SetFromImg(std::shared_ptr<AlgsImage> img, const int &level,
   Mat23 du_ddir;
   p_simple_camera->Project(dir0, cur_px, &du_ddir);
   H_dir = du_ddir.transpose() * H_uv * du_ddir;
+  //  std::cout << "J_ZNSSD_J_uv:\n"<< J_ZNSSD_J_uv << std::endl;
+  //  std::cout << "du_ddir:\n"<< du_ddir << std::endl;
   J_dir = -J_ZNSSD_J_uv * du_ddir;
   //  J_affine_dir = grads.matrix().transpose() * du_ddir;
   return true;
@@ -387,8 +389,9 @@ bool PyramidPatch::SetFromImg(std::shared_ptr<AlgsImage> img, const Vec2 &px,
   for (int level = 0; level < 1; ++level) {
     number_t scale = std::pow(2, -level);
     px_scaled = (scale * (px.array() + 0.5) - 0.5).matrix();
-    if (!patchs[level].SetFromImg(img, level, px_scaled, is_corner,
-                                  p_simple_camera->cid_to_cam.at(cid))) {
+    if (!patchs[level].SetFromImg(
+            img, level, px_scaled, is_corner,
+            p_simple_camera->cid_to_cam_pinhole.at(cid))) {
       return false;
     }
 

@@ -1845,9 +1845,9 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
 #endif
 #else
 #ifndef USE_ZNCC
-  std::vector<float> init_rmse_thr = {13, 13, 13};
+  std::vector<float> init_rmse_thr = {13, 10, 10};
 #else
-  std::vector<float> init_rmse_thr = {25, 20, 20};
+  std::vector<float> init_rmse_thr = {13, 13, 13};
 #endif
 #endif
   if (allKeyFramesHistory.size() <= 4) {
@@ -2119,6 +2119,7 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
       } else {
         pt->idepth_max = pt->idepth_min = point->idepth;
       }
+      // std::cout << "idepth: " << point->idepth << std::endl;
       PointHessian *ph = new PointHessian(pt, &Hcalib, host_cid);
       delete pt;
       // TODO roger, create patch, setFromImage, if fail, delete the point

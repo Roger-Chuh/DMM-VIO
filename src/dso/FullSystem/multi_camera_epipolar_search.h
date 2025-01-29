@@ -55,13 +55,15 @@ public:
                             const EstimatorConfig *estimator_config);
 
   State FindEpipolarMatch(
+      const Point &point, const int &host_cid,
       std::array<std::shared_ptr<AlgsImage>, kCameraNumUsed> cid_to_img,
       const size_t &pid, const number_t &init_rho, const number_t &rho_sigma2,
       const size_t &target_fid,
       std::array<MatchRes, kCameraNumUsed> &cid_to_output, number_t &idp,
-      const number_t &search_length_threshold);
+      const number_t &search_length_threshold, const bool &is_same_fid);
 
   std::array<CamData, kCameraNumUsed> cid_to_cam_data_;
+  number_t rad_step_;
 
 private:
   bool InFrame(const Vec2 &uv, const size_t &img_width,
@@ -78,7 +80,7 @@ private:
                                 number_t &best_zncc, number_t &second_zncc);
 
   // maxSteps may cause the search unable to reach the min and max depth
-  int maxSteps_ = 25;
+  int maxSteps_ = 125;
   number_t OOB_check_cos_theta_threshold_ =
       -1; // FOV Threshold cos(75)
           //  number_t cos_grad_epipolar_dir_theta_threshold_ = -1;  // cos(75)
@@ -90,9 +92,9 @@ private:
   int opt_target_level_ = 0;
 
   //  number_t pixel_step_ = 1.0;
-  number_t rad_step_;
-  number_t search_zncc_threshold_ = 0.9;
-  number_t opt_zncc_threshold_ = 0.8;
+  // number_t rad_step_;
+  number_t search_zncc_threshold_ = 0.7; // 0.9;
+  number_t opt_zncc_threshold_ = 0.6;    // 0.8;
 
   size_t max_iter_ = 5;
 

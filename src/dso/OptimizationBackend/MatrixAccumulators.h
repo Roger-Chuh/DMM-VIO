@@ -1215,6 +1215,8 @@ public:
         float d = SSEData1m[idx + 0] + SSEData1m[idx + 1] + SSEData1m[idx + 2] +
                   SSEData1m[idx + 3];
         H(r, c) = H(c, r) = d;
+        //  printf("d: %f [%f %f %f %f]\n", d, SSEData1m[idx + 0], SSEData1m[idx
+        //  + 1], SSEData1m[idx + 2], SSEData1m[idx + 3]);
         idx += 4;
       }
     assert(idx == 4 * 45);
@@ -1566,9 +1568,11 @@ public:
   inline void updateSingleWeighted(float J0, float J1, float J2, float J3,
                                    float J4, float J5, float J6, float J7,
                                    float J8, float w, int off = 0) {
+    // printf("w: %f\n", w);
 
     float *pt = SSEData + off;
     *pt += J0 * J0 * w;
+    // printf("*pt: %f, J0 * J0 * w: %f, J0: %f\n", *pt, J0 * J0 * w, J0);
     pt += 4;
     J0 *= w;
     *pt += J1 * J0;

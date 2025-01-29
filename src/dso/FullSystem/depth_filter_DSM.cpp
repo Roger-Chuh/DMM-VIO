@@ -36,6 +36,8 @@ DepthFilterDSM::DepthFilterDSM(MultiCamera *p_multi_camera,
   row_cell_num_ = 480 / cell_size_;
   col_cell_num_ = 640 / cell_size_;
 
+  Patch::PatchInit(p_estimator_config_->z_threshold);
+
   if (480 % cell_size_ != 0) {
     row_cell_num_++;
   }
@@ -136,11 +138,13 @@ void DepthFilterDSM::UpdateSeedMultiCam(
     number_t res_idp;
     std::array<MultiCameraEpipolarSearch::MatchRes, kCameraNumUsed>
         cid_to_output;
+    Point pt;
     MultiCameraEpipolarSearch::State state =
         p_multi_cam_epipolar_search_->FindEpipolarMatch(
-            cid_to_img, seed->pid, seed->rho, seed->sigma2, cur_fid_,
+            pt, 1, cid_to_img, seed->pid, seed->rho, seed->sigma2, cur_fid_,
             cid_to_output, res_idp,
-            is_first_frame ? -1 : p_estimator_config_->search_length_threshold);
+            is_first_frame ? -1 : p_estimator_config_->search_length_threshold,
+            true);
 
     if (state == MultiCameraEpipolarSearch::kReject) {
       continue;

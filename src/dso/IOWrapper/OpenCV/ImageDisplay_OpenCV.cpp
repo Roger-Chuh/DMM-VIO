@@ -122,6 +122,7 @@ void displayImage(const char *windowName, const MinimalImageB *img,
 
 void displayImage(const char *windowName, const MinimalImageB3 *img,
                   bool autoSize) {
+  // printf("img->h: %d, img->w: %d\n", img->h, img->w);
   if (kCameraNumUsed == 4) {
     std::array<cv::Mat, kCameraNumUsed> show_mat_vec;
     for (int cid = 0; cid < kCameraNumUsed; ++cid) {

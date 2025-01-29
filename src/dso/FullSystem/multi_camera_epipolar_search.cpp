@@ -23,7 +23,7 @@ MultiCameraEpipolarSearch::MultiCameraEpipolarSearch(
 
   search_target_level_ = estimator_config->search_level;
   number_t search_level_focal_length =
-      p_level_cid_to_camera_->cid_to_cam.at(0)->GetParamByIndex(0) *
+      p_level_cid_to_camera_->cid_to_cam_pinhole.at(0)->GetParamByIndex(0) *
       std::pow(2.0f, -search_target_level_);
 
   rad_step_ = estimator_config->pixel_step *
@@ -31,23 +31,24 @@ MultiCameraEpipolarSearch::MultiCameraEpipolarSearch(
 }
 
 MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
+    const Point &point, const int &host_cid,
     std::array<std::shared_ptr<AlgsImage>, kCameraNumUsed> cid_to_img,
     const size_t &pid, const number_t &init_rho, const number_t &rho_sigma2,
     const size_t &target_fid,
     std::array<MatchRes, kCameraNumUsed> &cid_to_output, number_t &res_idp,
-    const number_t &search_length_threshold) {
-  Point point;
+    const number_t &search_length_threshold, const bool &is_same_fid) {
+  // Point point;
   const Patch &patch = point.pyramid_patch.patchs[0];
   //  VisualMeasurement host_vm;
   //  p_opt_database_->GetOrSetVM(point.host_vid, true, host_vm);
   //
   const size_t &host_fid = 1; // host_vm.fid;
-  const size_t &host_cid = 1; // host_vm.cid;
+  // const size_t &host_cid = 1; // host_vm.cid;
   //  NavState host_nav_state, target_nav_state;
   //  p_opt_database_->GetOrSetNavState(host_vm.fid, true, host_nav_state);
   //  p_opt_database_->GetOrSetNavState(target_fid, true, target_nav_state);
-  Mat4 Tcw0; // = host_nav_state.v_Tcw[host_vm.cid];
-  Mat4 Twc0 = InversePose(Tcw0);
+  // Mat4 Tcw0 = Mat4::Identity(); // = host_nav_state.v_Tcw[host_vm.cid];
+  // Mat4 Twc0 = InversePose(Tcw0);
 
   // for factor evaluate
   Patch::ArrayV r_vec;
@@ -66,17 +67,24 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
     return kFail;
   }
 
-  for (size_t target_cid = 0; target_cid < kCameraNum; ++target_cid) {
+  for (size_t target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
     CamData &cur_search_data = cid_to_cam_data_[target_cid];
-    cur_search_data.T10; // = target_nav_state.v_Tcw[target_cid] * Twc0;
+    cur_search_data.T10 =
+        InversePose(p_level_cid_to_camera_->cid_to_T01.at(target_cid)) *
+        p_level_cid_to_camera_->cid_to_T01.at(
+            host_cid); // = target_nav_state.v_Tcw[target_cid] * Twc0;
     cur_search_data.T01 = InversePose(cur_search_data.T10);
     cur_search_data.target_level =
         search_target_level_; // todo: change target level
 
-    CameraBase *camera = p_level_cid_to_camera_->cid_to_cam.at(target_cid);
-
+    CameraBase *camera =
+        p_level_cid_to_camera_->cid_to_cam_pinhole.at(target_cid);
+    //    std::cout << "width: " << camera->width()
+    //              << ", height: " << camera->height()
+    //              << ", patch dir0: " << patch.dir0.transpose()
+    //              << ", point.n: " << point.n.transpose() << std::endl;
     // Check same fid and cid
-    if (target_fid == host_fid && target_cid == host_cid) {
+    if (is_same_fid && target_cid == host_cid) {
       cur_search_data.state = kReject;
       continue;
     }
@@ -152,9 +160,12 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
   int visible_cam_num = 0;
   std::vector<size_t> searched_cid_vec;
 
-  number_t cid_to_epipolar_length[kCameraNum] = {-1, -1, -1, -1};
+  number_t cid_to_epipolar_length[kCameraNumUsed]; // = {-1, -1, -1, -1};
+  for (int id = 0; id < kCameraNumUsed; ++id) {
+    cid_to_epipolar_length[id] = -1;
+  }
 
-  for (size_t target_cid = 0; target_cid < kCameraNum; ++target_cid) {
+  for (size_t target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
     CamData &cur_search_data = cid_to_cam_data_[target_cid];
     if (cur_search_data.state == kVisible) {
       visible_cam_num++;
@@ -413,7 +424,8 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
         //        direct_visual_factor_.cur_target_level_ = 0;
         //        direct_visual_factor_.target_image_level0_ =
         //        target_nav_state.cid_level_to_img[target_cid][0];
-        CameraBase *camera = p_level_cid_to_camera_->cid_to_cam.at(target_cid);
+        CameraBase *camera =
+            p_level_cid_to_camera_->cid_to_cam_pinhole.at(target_cid);
         DirectFactorRes direct_factor_res = direct_visual_factor_.Evaluate(
             cur_search_data.T10, multi_cam_match_res.idp,
             cid_to_img[target_cid], patch, camera, 1, r_vec, ws2, r2,
@@ -512,7 +524,7 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
         // draw target search result
         std::vector<cv::Mat> colored_mat_vec(4);
         cv::Mat gray_mat;
-        for (size_t cam_id = 0; cam_id < yvr::kCameraNum; ++cam_id) {
+        for (size_t cam_id = 0; cam_id < kCameraNumUsed; ++cam_id) {
           std::shared_ptr<AlgsImage> p_img =
               target_nav_state.cid_level_to_img[cam_id][search_target_level_];
           gray_mat = cv::Mat(p_img->height, p_img->width, CV_8UC1, p_img->data,
@@ -532,7 +544,7 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
             continue;
           }
 
-          for (size_t cam_id = 0; cam_id < kCameraNum; ++cam_id) {
+          for (size_t cam_id = 0; cam_id < kCameraNumUsed; ++cam_id) {
             const MatchRes match_res =
                 multi_cam_match_res.cid_to_match_res[cam_id];
             if (match_res.match_success) {
@@ -572,7 +584,7 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
                   << search_res_vec[max_index].match_success_cam_num
                   << " avg zncc " << search_res_vec[max_index].avg_zncc
                   << std::endl;
-        for (size_t cam_id = 0; cam_id < kCameraNum; ++cam_id) {
+        for (size_t cam_id = 0; cam_id < kCameraNumUsed; ++cam_id) {
           const MatchRes match_res =
               search_res_vec[max_index].cid_to_match_res[cam_id];
           if (match_res.match_success) {
@@ -689,7 +701,8 @@ second_zncc); cv::waitKey(0);
       //      direct_visual_factor_.cur_target_level_ = 0;
       //      direct_visual_factor_.target_image_level0_ =
       //      target_nav_state.cid_level_to_img[target_cid][0];
-      CameraBase *camera = p_level_cid_to_camera_->cid_to_cam.at(target_cid);
+      CameraBase *camera =
+          p_level_cid_to_camera_->cid_to_cam_pinhole.at(target_cid);
       DirectFactorRes direct_factor_res = direct_visual_factor_.Evaluate(
           cur_search_data.T10, best_search_res.idp, cid_to_img[target_cid],
           patch, camera, 1, r_vec, ws2, r2, &match_res.target_uv,
@@ -737,7 +750,7 @@ second_zncc); cv::waitKey(0);
 
   //  std::vector<size_t> search_success_cid_vec;
   std::vector<size_t> opt_cid_vec;
-  for (size_t cid = 0; cid < kCameraNum; ++cid) {
+  for (size_t cid = 0; cid < kCameraNumUsed; ++cid) {
     if (best_search_res.cid_to_match_res[cid].match_success && !best_search_res.cid_to_match_res[cid].dir_reject/* &&
         best_search_res.cid_to_match_res[cid].disparity_cos_theta < 0.99999*/) {
       opt_cid_vec.emplace_back(cid);
@@ -761,7 +774,7 @@ second_zncc); cv::waitKey(0);
   }
 
   //  std::vector<size_t> opt_cid_vec;
-  //  for (size_t cid = 0; cid < kCameraNum; ++cid) {
+  //  for (size_t cid = 0; cid < kCameraNumUsed; ++cid) {
   //    if (best_search_res.cid_to_match_res[cid].match_success) {
   //      opt_cid_vec.emplace_back(cid);
   //    }
@@ -793,7 +806,8 @@ second_zncc); cv::waitKey(0);
     //    std::shared_ptr<AlgsImage> target_image =
     //    target_nav_state.cid_level_to_img[target_cid][opt_target_level_];
     size_t target_level = 1;
-    CameraBase *camera = p_level_cid_to_camera_->cid_to_cam.at(target_cid);
+    CameraBase *camera =
+        p_level_cid_to_camera_->cid_to_cam_pinhole.at(target_cid);
 
     MatchRes &match_res = cid_to_output[target_cid];
     match_res.match_success = true;
@@ -838,6 +852,11 @@ second_zncc); cv::waitKey(0);
 
     J_idp = patch.J_dir * dp_didp;
 
+    // camera->Project(patch.dir0,)
+    // std::cout << "patch.J_dir:\n " << patch.J_dir.transpose() << "\ndp_didp:
+    // " << dp_didp.transpose()<< ", J_idp: " << J_idp.transpose() << ", r_vec:
+    // "
+    // << r_vec.matrix().transpose() << std::endl;
     H22 += ws2 * J_idp.transpose() * J_idp;
     b2 += ws2 * J_idp.transpose() * r_vec.matrix();
 
@@ -853,7 +872,8 @@ second_zncc); cv::waitKey(0);
   for (int iter = 0; iter < max_iter_; ++iter) {
     H22 *= 1.0 + lambda;
     const number_t step = -b2 / H22;
-
+    // printf("step: %f, b2: %f, H22: %f, success_vm_num: %d\n", step, b2, H22,
+    // success_vm_num);
     const number_t new_idp = cur_idp + step;
 
     if (new_idp < 0) {
@@ -865,14 +885,15 @@ second_zncc); cv::waitKey(0);
     number_t new_energy = 0;
     size_t new_success_vm_num = 0;
 
-    std::array<MatchRes, kCameraNum> new_cid_to_output;
+    std::array<MatchRes, kCameraNumUsed> new_cid_to_output;
 
     for (const size_t &target_cid : opt_cid_vec) {
       CamData &cur_search_data = cid_to_cam_data_[target_cid];
       //      std::shared_ptr<AlgsImage> target_image =
       //      target_nav_state.cid_level_to_img[target_cid][opt_target_level_];
 
-      CameraBase *camera = p_level_cid_to_camera_->cid_to_cam.at(target_cid);
+      CameraBase *camera =
+          p_level_cid_to_camera_->cid_to_cam_pinhole.at(target_cid);
 
       MatchRes &match_res = new_cid_to_output[target_cid];
       match_res.match_success = true;
@@ -938,7 +959,7 @@ second_zncc); cv::waitKey(0);
     }
   }
 
-  for (size_t cid = 0; cid < kCameraNum; ++cid) {
+  for (size_t cid = 0; cid < kCameraNumUsed; ++cid) {
     if (cid_to_output[cid].match_success) {
       after_opt_zncc_sum += cid_to_output[cid].zncc;
     }
@@ -946,7 +967,7 @@ second_zncc); cv::waitKey(0);
 
 #ifdef _SHOW_EPIPOLAR_SEARCH_DETAIL_
   if (pid == searched_pid) {
-    for (size_t cid = 0; cid < kCameraNum; ++cid) {
+    for (size_t cid = 0; cid < kCameraNumUsed; ++cid) {
       printf("target cid %zu, match success %d, dir %f, %f, %f, zncc %f, "
              "epipolar_grad_cos_theta %f\n",
              cid, (int)cid_to_output[cid].match_success,
@@ -1026,7 +1047,7 @@ size_t MultiCameraEpipolarSearch::FindSearchedCid(
   //  number_t maxBelow = -1.0;
   //  size_t maxBelowCid = 0;
   //
-  //  for (size_t cid = 0; cid < kCameraNum; ++cid) {
+  //  for (size_t cid = 0; cid < kCameraNumUsed; ++cid) {
   //    if (cid_to_epipolar_length[cid] < 0) {
   //      continue;
   //    }
@@ -1050,7 +1071,7 @@ size_t MultiCameraEpipolarSearch::FindSearchedCid(
 
   number_t max_length = 0;
   size_t max_length_cid = 0;
-  for (size_t cid = 0; cid < kCameraNum; ++cid) {
+  for (size_t cid = 0; cid < kCameraNumUsed; ++cid) {
     if (cid_to_epipolar_length[cid] < 0) {
       continue;
     }

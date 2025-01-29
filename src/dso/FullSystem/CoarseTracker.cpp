@@ -792,7 +792,7 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
 #ifndef USE_MULTI_CAM
   int maxIterations[] = {10, 20, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
 #else
-  int maxIterations[] = {50, 50, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
+  int maxIterations[] = {10, 20, 20, 20, 20, 20, 20, 20}; // 不同层迭代的次数
 #endif
   float lambdaExtrapolationLimit = 0.001;
 
@@ -1013,7 +1013,7 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
         aff_g2l_new.a += incScaled[6];
         aff_g2l_new.b += incScaled[7];
 
-        incNorm = inc.head(8).norm();
+        incNorm = inc.head(6).norm();
       }
       // std::array<AffLight, kCameraNumUsed> a_aff_g2l_new;
       //      for (int cid = 0; cid < kCameraNumUsed; ++cid) {

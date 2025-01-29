@@ -19,6 +19,9 @@ DirectFactorRes DirectVisualFactor::Evaluate(
   //  patch.TransformScaled(T10, idp, target_scaled_points_);
 
   Vec3 P = T10.block<3, 3>(0, 0) * patch.dir0 + idp * T10.block<3, 1>(0, 3);
+  //  std::cout << "T10:\n" << T10 << std::endl;
+  //  std::cout << "dir0: " << patch.dir0.transpose() << std::endl;
+  //  std::cout << "idp: " << idp << std::endl;
   number_t depth_scale = P.norm();
   Vec3 nt = P / depth_scale;
   //  if (check_depth_ && depth_scale >= 2 /*|| depth_scale <= 0.5*/) {
