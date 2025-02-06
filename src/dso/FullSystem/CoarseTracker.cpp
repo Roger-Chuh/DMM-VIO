@@ -355,12 +355,13 @@ void CoarseTracker::makeCoarseDepthL0(
 }
 
 //@ 对跟踪的最新帧和参考帧之间的残差, 求 Hessian 和 b
-void CoarseTracker::calcGSSSE(int lvl_target_, int lvl, MatState &H_out,
-                              VecState &b_out, const SE3 &refToNew,
-                              AffLight aff_g2l, int &N,
+void CoarseTracker::calcGSSSE(bool fix_ab_, bool is_imu_ready, int lvl_target_,
+                              int lvl, MatState &H_out, VecState &b_out,
+                              const SE3 &refToNew, AffLight aff_g2l, int &N,
                               MultiCamera *p_multi_camera) {
   // acc.initialize();
   int lvl_target = lvl_target_ >= 0 ? lvl_target_ : lvl;
+  bool fix_ab = fix_ab_; // lvl_target >= 2 || lvl >= 2;
   __m128 fxl = _mm_set1_ps(fx[lvl /* + host_cid * PYR_LEVELS*/]);
   __m128 fyl = _mm_set1_ps(fy[lvl /* + host_cid * PYR_LEVELS*/]);
   __m128 fxl_target = _mm_set1_ps(fx[lvl_target /* + host_cid * PYR_LEVELS*/]);
@@ -425,13 +426,19 @@ void CoarseTracker::calcGSSSE(int lvl_target_, int lvl, MatState &H_out,
                 _mm_mul_ps(
                     dx, _mm_add_ps(one, _mm_mul_ps(u, u)))), // 对旋转xi_2求导
             _mm_sub_ps(_mm_mul_ps(u, dy), _mm_mul_ps(v, dx)), // 对旋转xi_3求导
-            _mm_mul_ps(
-                a, _mm_sub_ps(
-                       b0, _mm_load_ps(
-                               buf_warped_refColor[host_cid * kCameraNumUsed +
-                                                   target_cid] +
-                               i))), // 对目标帧a求导
-            minusOne,                // 对目标帧b求导
+            (fix_ab || setting_affineOptModeA < 0)
+                ? zero
+                : _mm_mul_ps(
+                      a, _mm_sub_ps(
+                             b0,
+                             _mm_load_ps(
+                                 buf_warped_refColor[host_cid * kCameraNumUsed +
+                                                     target_cid] +
+                                 i))), // 对目标帧a求导 Jac = a * (I0 + b0)
+                                       // 经过ab校正后的host帧的灰度值？
+            (fix_ab || setting_affineOptModeB < 0)
+                ? zero
+                : minusOne, // 对目标帧b求导 Jac = -1
             _mm_load_ps(
                 buf_warped_residual[host_cid * kCameraNumUsed + target_cid] +
                 i), // 残差
@@ -514,10 +521,17 @@ void CoarseTracker::calcGSSSE(int lvl_target_, int lvl, MatState &H_out,
 //@ 计算当前位姿投影得到的残差(能量值), 并进行一些统计
 //! 构造尽量多的点, 有助于跟踪
 //#define SHOW_TRACK_RES
-Vec6 CoarseTracker::calcRes(int lvl_target_, FrameHessian *lastRef, int lvl,
+Vec6 CoarseTracker::calcRes(bool is_imu_ready, int lvl_target_,
+                            FrameHessian *lastRef, int lvl,
                             const SE3 &refToNew_, AffLight aff_g2l,
                             float cutoffTH, bool show_image) {
+  float setting_huberTH_use;
   int lvl_target = lvl_target_ >= 0 ? lvl_target_ : lvl;
+  if (lvl >= 2) {
+    setting_huberTH_use = setting_huberTH_loose;
+  } else {
+    setting_huberTH_use = setting_huberTH;
+  }
   float E = 0;
   int numTermsInE = 0;
   // int numTermsInWarped = 0;
@@ -572,9 +586,9 @@ Vec6 CoarseTracker::calcRes(int lvl_target_, FrameHessian *lastRef, int lvl,
       //          float sumSquaredShiftNum = 0;
       // 经过huber函数后的能量阈值
       float maxEnergy =
-          2 * setting_huberTH * cutoffTH -
-          setting_huberTH *
-              setting_huberTH; // energy for r=setting_coarseCutoffTH.
+          2 * setting_huberTH_use * cutoffTH -
+          setting_huberTH_use *
+              setting_huberTH_use; // energy for r=setting_coarseCutoffTH.
 
       MinimalImageB3 *resImage = 0; // 自己定义的图像 nb
       if (debugPlot) {
@@ -659,9 +673,11 @@ Vec6 CoarseTracker::calcRes(int lvl_target_, FrameHessian *lastRef, int lvl,
           /// 计算残差
           float residual =
               hitColor[0] - (float)(affLL[0] * refColor + affLL[1]);
-          float hw = fabs(residual) < setting_huberTH
-                         ? 1
-                         : setting_huberTH / fabs(residual);
+          float hw =
+              fabs(residual) < (setting_huberTH_use /*+ std::abs(affLL[1])*/)
+                  ? 1
+                  : (setting_huberTH_use /*+ std::abs(affLL[1])*/) /
+                        fabs(residual);
 
           if (is_in_frame && is_valid_projection &&
               std::abs(residual) < 100.0) {
@@ -699,9 +715,11 @@ Vec6 CoarseTracker::calcRes(int lvl_target_, FrameHessian *lastRef, int lvl,
           continue;
         /// 只算host点的残差，不算8个邻域内的残差了?
         float residual = hitColor[0] - (float)(affLL[0] * refColor + affLL[1]);
-        float hw = fabs(residual) < setting_huberTH
-                       ? 1
-                       : setting_huberTH / fabs(residual);
+        float hw =
+            fabs(residual) < (setting_huberTH_use /*+ std::abs(affLL[1])*/)
+                ? 1
+                : (setting_huberTH_use /*+ std::abs(affLL[1])*/) /
+                      fabs(residual);
 
         if (fabs(residual) > cutoffTH) {
           if (debugPlot)
@@ -918,12 +936,14 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
 
   MatState H;
   VecState b;
-  int lastLvl = -1;
+  int lastLvl = -1, lastLvl_target = -1;
   bool use_inner_loop = true;
   int inner_loop_start_lvl = use_inner_loop ? pyrLevelsUsed - 1 : 0;
   ;
   int lvl_target = 0;
   int max_iter = -1;
+  bool is_imu_ready =
+      dso::setting_useIMU && imuIntegration.isCoarseInitialized();
   for (int lvl = coarsestLvl; lvl >= 0; lvl--) {
     for (int lvl_target_ = inner_loop_start_lvl /*pyrLevelsUsed - 1*/;
          lvl_target_ >= 0; lvl_target_--) {
@@ -939,7 +959,14 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
         lvl_target = -1; // lvl;
         max_iter = maxIterations[lvl];
       }
+      bool fix_ab = (lvl >= 20 || lvl_target >= 20); // lvl != lvl_target;
       float levelCutoffRepeat = 1;
+      float setting_coarseCutoffTH_use;
+      if (lvl >= 2) {
+        setting_coarseCutoffTH_use = setting_coarseCutoffTH_loose;
+      } else {
+        setting_coarseCutoffTH_use = setting_coarseCutoffTH;
+      }
       //[ ***step 1*** ] 计算残差, 保证最多60%残差大于阈值, 计算正规方程
       // TODO preCalculate some values w.r.t. current state estimate
       ///         buf_warped_idepth
@@ -957,8 +984,9 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
       //      {
       printf("aa\n");
       resOld =
-          calcRes(lvl_target, lastRef, lvl, refToNew_current, aff_g2l_current,
-                  setting_coarseCutoffTH * levelCutoffRepeat, lvl == 0);
+          calcRes(is_imu_ready, lvl_target, lastRef, lvl, refToNew_current,
+                  aff_g2l_current,
+                  setting_coarseCutoffTH_use * levelCutoffRepeat, lvl == 0);
       printf("bb\n");
       //      }
       //    }
@@ -970,14 +998,15 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
         //        for (int target_cid = 0; target_cid < kCameraNumUsed;
         //        ++target_cid) {
         resOld =
-            calcRes(lvl_target, lastRef, lvl, refToNew_current, aff_g2l_current,
-                    setting_coarseCutoffTH * levelCutoffRepeat, lvl == 0);
+            calcRes(is_imu_ready, lvl_target, lastRef, lvl, refToNew_current,
+                    aff_g2l_current,
+                    setting_coarseCutoffTH_use * levelCutoffRepeat, lvl == 0);
         //        }
         //      }
 
         if (!setting_debugout_runquiet)
           printf("INCREASING cutoff to %f (ratio is %f)!\n",
-                 setting_coarseCutoffTH * levelCutoffRepeat, resOld[5]);
+                 setting_coarseCutoffTH_use * levelCutoffRepeat, resOld[5]);
       }
       // refToNew_current is the camera pose
       // aff_g2l_current is the photometric
@@ -993,8 +1022,8 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
         //      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
         //        for (int target_cid = 0; target_cid < kCameraNumUsed;
         //        ++target_cid) {
-        calcGSSSE(lvl_target, lvl, H, b, refToNew_current, aff_g2l_current,
-                  res_count, newFrame->p_multi_camera);
+        calcGSSSE(fix_ab, is_imu_ready, lvl_target, lvl, H, b, refToNew_current,
+                  aff_g2l_current, res_count, newFrame->p_multi_camera);
         //                  if (debugPrint) {
         //                      Vec2f relAff = AffLight::fromToVecExposure(
         //                              lastRef->ab_exposure,
@@ -1065,9 +1094,10 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
 
         SE3 refToNew_new;
         AffLight aff_g2l_new = aff_g2l_current;
-        std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! iter: "
-                  << iteration << ", h_lvl: " << lvl
-                  << ", t_lvl: " << lvl_target
+        std::cout << "!!!!!!!!!!!!!!! is_imu_ready: " << is_imu_ready
+                  << "!!!!!!!!!!!!!!! fix_ab: " << fix_ab
+                  << ", !!!!!!!!!!!!!!!!!!!!!! iter: " << iteration
+                  << ", h_lvl: " << lvl << ", t_lvl: " << lvl_target
                   << ", aff_g2l_new: " << aff_g2l_new.vec().transpose()
                   << std::endl;
         double incNorm;
@@ -1083,6 +1113,10 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
           // TODO rog, like align frame in orca next, but with imu factors
           refToNew_new = imuIntegration.computeCoarseUpdate(
               H, b, extrapFac, lambda, incA, incB, incNorm);
+
+          if (fix_ab) {
+            assert(std::abs(incA) == 0 && std::abs(incB) == 0);
+          }
 
           SE3 oldVal = refToNew_current;
           SE3 newVal = refToNew_new;
@@ -1104,10 +1138,13 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
           // TODO rog, align frame without imu factors
           Vec8 inc = Hl.ldlt().solve(-b);
 
-          if (lvl >= 200 ||
-              /*lvl_target >= 2 ||*/ (setting_affineOptModeA < 0 &&
-                                      setting_affineOptModeB < 0)) // fix a, b
+          if (fix_ab || (setting_affineOptModeA < 0 &&
+                         setting_affineOptModeB < 0)) // fix a, b
           {
+            inc = Hl.ldlt().solve(-b);
+            if (fix_ab) {
+              assert(inc.tail<2>().norm() == 0);
+            }
             inc.head<6>() = Hl.topLeftCorner<6, 6>().ldlt().solve(-b.head<6>());
             inc.tail<2>().setZero();
           }
@@ -1165,8 +1202,9 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
         //      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
         //        for (int target_cid = 0; target_cid < kCameraNumUsed;
         //        ++target_cid) {
-        resNew = calcRes(lvl_target, lastRef, lvl, refToNew_new, aff_g2l_new,
-                         setting_coarseCutoffTH * levelCutoffRepeat);
+        resNew = calcRes(is_imu_ready, lvl_target, lastRef, lvl, refToNew_new,
+                         aff_g2l_new,
+                         setting_coarseCutoffTH_use * levelCutoffRepeat);
         //        }
         //      }
 
@@ -1197,8 +1235,8 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
             //          ++host_cid) {
             //            for (int target_cid = 0; target_cid < kCameraNumUsed;
             //                 ++target_cid) {
-            calcGSSSE(lvl_target, lvl, H, b, refToNew_new, aff_g2l_new,
-                      res_count2, newFrame->p_multi_camera);
+            calcGSSSE(fix_ab, is_imu_ready, lvl_target, lvl, H, b, refToNew_new,
+                      aff_g2l_new, res_count2, newFrame->p_multi_camera);
 //            }
 //          }
 #if 0
@@ -1247,7 +1285,7 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
         }
 
         lastLvl = lvl;
-
+        lastLvl_target = use_inner_loop ? lvl_target : lvl;
         if (!(incNorm > 1e-3) || fails >= 3 /*200*/) {
           if (debugPrint)
             printf("inc too small, break! fails: %d\n", fails);
@@ -1279,7 +1317,17 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
 
   bool trackingGood = true;
   //[ ***step 4*** ] 判断优化失败情况
-  if ((setting_affineOptModeA != 0 && (fabsf(aff_g2l_out.a) > 1.2)) ||
+  if ((setting_affineOptModeA != 0 && (fabsf(aff_g2l_out.a) > 1.2
+#ifndef USE_ZNCC
+#ifdef USE_MULTI_CAM
+                                                                  * 15.0
+#endif
+#else
+#ifdef USE_MULTI_CAM
+                                                                  * 150.0
+#endif
+#endif
+                                       )) ||
       (setting_affineOptModeB != 0 && (fabsf(aff_g2l_out.b) > 200)))
     trackingGood = false;
 
@@ -1288,7 +1336,18 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
                                   lastRef_aff_g2l, aff_g2l_out)
           .cast<float>();
 
-  if ((setting_affineOptModeA == 0 && (fabsf(logf((float)relAff[0])) > 1.5)) ||
+  if ((setting_affineOptModeA == 0 &&
+       (fabsf(logf((float)relAff[0])) > 1.5
+#ifndef USE_ZNCC
+#ifdef USE_MULTI_CAM
+                                            * 15.0
+#endif
+#else
+#ifdef USE_MULTI_CAM
+                                            * 150.0
+#endif
+#endif
+        )) ||
       (setting_affineOptModeB == 0 && (fabsf((float)relAff[1]) > 200)))
     trackingGood = false;
   // 固定情况
@@ -1298,7 +1357,7 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
     if (setting_affineOptModeB < 0)
       aff_g2l_out.b = 0;
   }
-  if (lastLvl == 0) {
+  if (lastLvl == 0 && lastLvl_target == 0) {
     if (dso::setting_useIMU)
       imuIntegration.addVisualToCoarseGraph(H, b, trackingGood);
   }

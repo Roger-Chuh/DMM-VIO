@@ -1561,7 +1561,13 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
                   setting_kfGlobalWeight * setting_maxAffineWeight *
                       fabs(logf((float)refToFh[0])) >
               1 ||
-          2 * coarseTracker->firstCoarseRMSE < tres[0] ||
+#ifdef USE_MULTI_CAM
+          2
+#else
+          2
+#endif
+                  * coarseTracker->firstCoarseRMSE <
+              tres[0] ||
           (setting_maxTimeBetweenKeyframes > 0 &&
            timeSinceLastKeyframe > setting_maxTimeBetweenKeyframes) ||
           forceKF;

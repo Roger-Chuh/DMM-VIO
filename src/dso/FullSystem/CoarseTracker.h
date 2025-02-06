@@ -101,13 +101,13 @@ private:
   Vec6 calcResAndGS(int lvl, MatState &H_out, VecState &b_out,
                     const SE3 &refToNew, AffLight aff_g2l, float cutoffTH);
 
-  Vec6 calcRes(int lvl_target_, FrameHessian *lastRef, int lvl,
-               const SE3 &refToNew_, AffLight aff_g2l, float cutoffTH,
+  Vec6 calcRes(bool is_imu_ready, int lvl_target_, FrameHessian *lastRef,
+               int lvl, const SE3 &refToNew_, AffLight aff_g2l, float cutoffTH,
                bool show_image = false);
 
-  void calcGSSSE(int lvl_target_, int lvl, MatState &H_out, VecState &b_out,
-                 const SE3 &refToNew, AffLight aff_g2l, int &N,
-                 MultiCamera *p_multi_camera);
+  void calcGSSSE(bool fix_ab_, bool is_imu_ready, int lvl_target_, int lvl,
+                 MatState &H_out, VecState &b_out, const SE3 &refToNew,
+                 AffLight aff_g2l, int &N, MultiCamera *p_multi_camera);
 
   void calcGS(int lvl, MatState &H_out, VecState &b_out, const SE3 &refToNew,
               AffLight aff_g2l);

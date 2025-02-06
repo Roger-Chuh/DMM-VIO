@@ -490,7 +490,7 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
         J_ZNSSD_J_I_target * target_info.rightCols(2); // "new" gradient: 8x2
 
     zncc = target_info.col(0).dot(host_info.col(0));
-    if (host_sigma < 10 || target_sigma < 10 ||
+    if (host_sigma < 3.f || target_sigma < 3.f ||
         patch_num != MAX_RES_PER_POINT) {
       state_NewState[target_cid_now] = ResState::OOB;
       // printf("oob\n");
@@ -519,6 +519,7 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
       // assert(angle >= 0);
       assert(angle >= 0.0001);
       ws2 = angle <= 1 ? angle : 1;
+      ws2 *= ws2;
     }
 
 #ifdef USE_ZNCC_WEIGHT
@@ -626,15 +627,24 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
 #endif
 
 #ifndef USE_ZNCC
-    float hw = fabsf(residual) < setting_huberTH
-                   ? 1
-                   : setting_huberTH / fabsf(residual);
+    float hw =
+        fabsf(residual) < (setting_huberTH /*+ std::abs(affLL[1])*/)
+            ? 1
+            : (setting_huberTH /*+ std::abs(affLL[1])*/) / fabsf(residual);
+    if (true) {
+      // ws2 *= ws2;
+      hw = ws2 > setting_huberTH_zncc ? 1 : ws2 / setting_huberTH_zncc;
+    }
     energyLeft += w * w * hw * residual * residual * (2 - hw);
 #else
-    float hw = fabsf(residual) < setting_huberTH_LBA
-                   ? 1
-                   : setting_huberTH_LBA / fabsf(residual);
-    hw = ws2;
+    float hw =
+        fabsf(residual) < (setting_huberTH_LBA + std::abs(affLL[1]))
+            ? 1
+            : (setting_huberTH_LBA + std::abs(affLL[1])) / fabsf(residual);
+    if (true) {
+      hw = ws2;
+      hw = ws2 > setting_huberTH_zncc ? 1 : ws2 / setting_huberTH_zncc;
+    }
     // energyLeft += w * w * hw * residual * residual * (2 - hw);
     energyLeft += hw * residual * residual * (2 - hw);
 #endif
@@ -833,7 +843,7 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
       energyLeft > std::max<float>(host->frameEnergyTH,
                                    target->frameEnergyTH) /*|| wJI2_sum < 2*/
 #else
-      zncc < 0.1
+      zncc < 0.8
 #endif
       || continued_count == MAX_RES_PER_POINT) {
     // printf("residual: %f, energyLeft: %f, host->frameEnergyTH: %f,

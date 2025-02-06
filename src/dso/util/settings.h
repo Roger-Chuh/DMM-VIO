@@ -147,7 +147,9 @@ extern int setting_gammaWeightsPixelSelect;
 extern bool setting_forceAceptStep;
 
 extern float setting_huberTH;
+extern float setting_huberTH_loose;
 extern float setting_huberTH_LBA;
+extern float setting_huberTH_zncc;
 
 extern bool setting_logStuff;
 extern float benchmarkSetting_fxfyfac;
@@ -164,6 +166,7 @@ extern float setting_frameEnergyTHN;
 extern float setting_frameEnergyTHFacMedian;
 extern float setting_overallEnergyTHWeight;
 extern float setting_coarseCutoffTH;
+extern float setting_coarseCutoffTH_loose;
 
 extern float setting_minGradHistCut;
 extern float setting_minGradHistAdd;
@@ -206,8 +209,8 @@ extern float freeDebugParam5;
 
 void handleKey(char k);
 
-constexpr int pattern_scale = 4;
-constexpr int pattern_index = 10;
+constexpr int pattern_scale = 1;
+constexpr int pattern_index = 8;
 
 extern int staticPattern[11][40][2];
 constexpr int staticPatternNum[11] = {1,  5,  5, 9,         9, 13,

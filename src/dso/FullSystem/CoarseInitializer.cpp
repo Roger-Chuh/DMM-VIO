@@ -1857,6 +1857,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
       int bad_cam_num = 0;
       float energy = 0;
       Pnt *point = ptsl + i;
+      point->valid_cid_num = -1;
       bool break_inner_loop = false;
       // int cnt = 0;
 
@@ -2196,7 +2197,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
           if (count_each_cam > 0 && count_each_cam == MAX_RES_PER_POINT) {
             // printf("i: %d, host: %d, target: %d, target_sigma_temp: %f\n", i,
             // point->host_cid, target_cam_id, target_sigma_temp);
-            if ((host_sigma_temp > 10.0f && target_sigma_temp > 2.0f) /*||
+            if ((host_sigma_temp > 3.0f && target_sigma_temp > 2.0f) /*||
                 (calc_stats_only && host_sigma_temp > 0.003f &&
                  target_sigma_temp > 0.003f)*/) {
               err_sum /= static_cast<float>(count_each_cam);
@@ -2849,9 +2850,17 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
           // 残差
           float residual = hitColor[0] - r2new_aff[0] * rlR - r2new_aff[1];
           // Huber权重
-          float hw = fabs(residual) < setting_huberTH
-                         ? 1
-                         : setting_huberTH / fabs(residual);
+          float hw =
+              fabs(residual) < (setting_huberTH /*+ std::abs(r2new_aff[1])*/)
+                  ? 1
+                  : (setting_huberTH /*+ std::abs(r2new_aff[1])*/) /
+                        fabs(residual);
+          if (true) {
+            float ws2 = a_zncc_mean(target_cid);
+            ws2 *= ws2;
+            assert(ws2 > 0);
+            hw = ws2 > setting_huberTH_zncc ? 1 : ws2 / setting_huberTH_zncc;
+          }
           // huberweight * (2-huberweight) = Objective Function
           // robust 权重和函数之间的关系
           energy += hw * residual * residual * (2 - hw);
@@ -2879,9 +2888,11 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
 
           // printf("residual: %f, hw: %f\n", residual, hw);
 #ifndef USE_ZNCC_WEIGHT
-          float hw = fabs(residual) < setting_huberTH
-                         ? 1
-                         : setting_huberTH / fabs(residual);
+          float hw =
+              fabs(residual) < (setting_huberTH /*+ std::abs(r2new_aff[1])*/)
+                  ? 1
+                  : (setting_huberTH /*+ std::abs(r2new_aff[1])*/) /
+                        fabs(residual);
 #else
           float norm1 = a_host_info[target_cid].col(0).norm();
           float norm2 = a_target_info[target_cid].col(0).norm();
@@ -2898,11 +2909,16 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
             // assert(angle >= 0);
             assert(angle >= 0.0001);
             zncc = angle <= 1 ? angle : 1;
+            // printf("zncc: %f, zncc_pre_calc: %f, diff: %f\n", zncc,
+            // a_zncc_mean(target_cid), zncc - a_zncc_mean(target_cid));
+            assert(std::abs(zncc - a_zncc_mean(target_cid)) < 0.00001);
             ws2 = zncc;
+            ws2 *= ws2;
           }
           float hw =
               ws2; // std::sqrt(ws2);
                    // printf("norm12: [%f %f], hw: %f\n", norm1, norm2, hw);
+          hw = ws2 > setting_huberTH_zncc ? 1 : ws2 / setting_huberTH_zncc;
 #endif
           // printf("residual: %f, hw: %f\n", residual, hw);
           energy += hw * residual * residual * (2 - hw);
@@ -3562,6 +3578,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
         point->isGood_new = true;
         point->energy_new[0] =
             energy / static_cast<float>(cnt / MAX_RES_PER_POINT);
+        point->valid_cid_num = 1; // cnt / MAX_RES_PER_POINT;
       } else {
         printf("not valid projection\n");
       }
@@ -3725,7 +3742,9 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
         /// hessian约等于JTJ，当变量为1维时，hessian = J^2
         /// 1/(1+sum(dd*dd))=inverse depth hessian entry, while now is just
         /// sum(dd*dd), H_{\beta \beta}
-        point->lastHessian_new = JbBuffer_new[i + h[0] * w[0] * host_cid][9];
+        assert(point->valid_cid_num > 0);
+        point->lastHessian_new = JbBuffer_new[i + h[0] * w[0] * host_cid][9] /
+                                 static_cast<float>(point->valid_cid_num);
 
         //? 这又是啥??? 对逆深度的值进行加权? 深度值归一化?
         // 前面Energe加上了（d-1)*(d-1), 所以dd = 1， r += (d-1)
@@ -4504,7 +4523,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
             std::vector<Vec3> bearings = {
                 (Ki[lvl] * Vec3(x, y, 1.0)).normalized()};
             if (kCameraNumUsed > 1) {
-#if 0
+#if 1
               bool good_point = true;
               for (int target_cid = 0; target_cid < kCameraNumUsed;
                    ++target_cid) {
@@ -4674,6 +4693,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
           }
         }
       }
+      printf("lvl: %d, cid: %d, valid seeds: %d\n", lvl, cid, nl);
       // level_cid_to_npts_success[lvl][cid] = nl;
       level_cid_to_numPoints[lvl][cid] = nl; // 点的数目,  去掉了一些边界上的点
       //      int offset_success = 0;
@@ -4848,10 +4868,16 @@ void CoarseInitializer::doStep(int lvl, float lambda, Vec8f inc) {
       if (maxstep > idMaxStep)
         maxstep = idMaxStep;
 
-      if (step > maxstep)
+#if 1 // ndef USE_MULTI_CAM
+      if (step > maxstep) {
+        // printf("+max step\n");
         step = maxstep;
-      if (step < -maxstep)
+      }
+      if (step < -maxstep) {
+        // printf("-max step\n");
         step = -maxstep;
+      }
+#endif
       // 更新得到新的逆深度
       float newIdepth = pts[i].idepth + step;
       // TODO 不是说idepth全假设在1附近吗，怎么又有0.001和50差别这么大范围？？
@@ -5099,7 +5125,9 @@ void CoarseInitializer::makeNN() {
           pts[i].parent = ret_index[0]; // 父节点
           pts[i].parentDist =
               expf(-ret_dist[0] * NNDistFactor); // 到父节点的距离(在高层中)
-
+          // printf("ret_index[0]: %d, level_cid_to_numPoints[%d + 1][%d]:
+          // %d\n", ret_index[0], lvl, cid, level_cid_to_numPoints[lvl +
+          // 1][cid]);
           assert(ret_index[0] >= 0 &&
                  ret_index[0] < level_cid_to_numPoints[lvl + 1][cid]);
 

@@ -30,7 +30,7 @@
 namespace dso {
 int pyrLevelsUsed = PYR_LEVELS;
 
-float setting_variableScale = 10; // 100; // 10;//50;
+float setting_variableScale = 30; // 100; // 10;//50;
 
 bool setting_useIMU =
     true; // Use IMU data (false will disable all IMU integration).
@@ -75,8 +75,20 @@ float setting_kfGlobalWeight =
 #else
 float setting_kfGlobalWeight = 1.0f;
 #endif
-float setting_maxAffineWeight = 2;
 
+#ifndef USE_ZNCC
+#ifdef USE_MULTI_CAM
+float setting_maxAffineWeight = 1;
+#else
+float setting_maxAffineWeight = 2;
+#endif
+#else
+#ifdef USE_MULTI_CAM
+float setting_maxAffineWeight = 0.2;
+#else
+float setting_maxAffineWeight = 2;
+#endif
+#endif
 /* initial hessian values to fix unobservable dimensions / priors on affine
  * lighting parameters.
  */
@@ -156,12 +168,19 @@ int setting_gammaWeightsPixelSelect =
     1; // 1 = use original intensity for pixel selection; 0 = use
        // gamma-corrected intensity.
 
+#ifndef USE_MULTI_CAM
 float setting_huberTH = 9; // Huber Threshold
+#else
+float setting_huberTH = 9;        // Huber Threshold
+float setting_huberTH_loose = 40; // Huber Threshold
+#endif
+
 #ifndef USE_ZNCC
 float setting_huberTH_LBA = 9;
 #else
-float setting_huberTH_LBA = 9; // 0.2;
+float setting_huberTH_LBA = 9;    // 0.2;
 #endif
+float setting_huberTH_zncc = 0.9 * 0.9; // 0.2;
 
 // parameters controlling adaptive energy threshold computation.
 float setting_frameEnergyTHConstWeight = 0.5;
@@ -170,6 +189,7 @@ float setting_frameEnergyTHFacMedian = 1.5;
 float setting_overallEnergyTHWeight = 1;
 //#ifndef USE_ZNCC
 float setting_coarseCutoffTH = 20;
+float setting_coarseCutoffTH_loose = 90;
 //#else
 // float setting_coarseCutoffTH = 0.5;
 //#endif

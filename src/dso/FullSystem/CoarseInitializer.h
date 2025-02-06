@@ -80,6 +80,7 @@ public:
 
   float lastHessian;     //!< 逆深度的Hessian, 即协方差, dd*dd
   float lastHessian_new; //!< 新一次迭代的协方差
+  int valid_cid_num = -1;
 
   // max stepsize for idepth (corresponding to max. movement in pixel-space).
   float maxstep; //!< 逆深度增加的最大步长
