@@ -73,6 +73,10 @@ namespace dso {
 
 extern float setting_variableScale;
 
+extern int setting_kfNumWithAffineFixed;
+
+extern int setting_pyrLvlWithAffineFixed;
+
 extern int pyrLevelsUsed;
 
 extern bool setting_useIMU;
@@ -212,11 +216,21 @@ void handleKey(char k);
 constexpr int pattern_scale = 1;
 constexpr int pattern_index = 8;
 
-extern int staticPattern[11][40][2];
-constexpr int staticPatternNum[11] = {1,  5,  5, 9,         9, 13,
-                                      25, 21, 8, 24 /*25*/, 8};
-constexpr int staticPatternPadding[11] = {
-    1, 1, 1, 1, 2, 2, 2, 3, 2 * pattern_scale, 4, 4 * pattern_scale};
+extern int staticPattern[12][40][2];
+constexpr int staticPatternNum[12] = {1,  5,  5, 9,         9, 13,
+                                      25, 21, 8, 24 /*25*/, 8, 8};
+constexpr int staticPatternPadding[12] = {1,
+                                          1,
+                                          1,
+                                          1,
+                                          2,
+                                          2,
+                                          2,
+                                          3,
+                                          2 * pattern_scale,
+                                          4,
+                                          2 * pattern_scale,
+                                          2 * pattern_scale};
 
 // extern int staticPatternNum[10][1];
 // extern int staticPatternPadding[10];

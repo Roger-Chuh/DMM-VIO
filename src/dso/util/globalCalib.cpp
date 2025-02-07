@@ -22,6 +22,7 @@
  */
 
 #include "util/globalCalib.h"
+#include "settings.h"
 #include "stdio.h"
 #include <iostream>
 
@@ -40,8 +41,13 @@ void setGlobalCalib(int w, int h, const Eigen::Matrix3f &K) {
   int wlvl = w;
   int hlvl = h;
   pyrLevelsUsed = 1;
-  while (wlvl % 2 == 0 && hlvl % 2 == 0 && wlvl * hlvl > /*3000 */ 5000 &&
-         pyrLevelsUsed < PYR_LEVELS) {
+#ifdef USE_MULTI_CAM
+  int ratio = 1; // 10;
+#else
+  int ratio = 1;
+#endif
+  while (wlvl % 2 == 0 && hlvl % 2 == 0 &&
+         wlvl * hlvl > /*3000 */ 5000 * ratio && pyrLevelsUsed < PYR_LEVELS) {
     wlvl /= 2;
     hlvl /= 2;
     pyrLevelsUsed++;

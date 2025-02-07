@@ -49,9 +49,10 @@ public:
 
   ~CoarseTracker();
 
-  bool trackNewestCoarse(FrameHessian *lastRef, FrameHessian *newFrameHessian,
-                         SE3 &lastToNew_out, AffLight &aff_g2l_out,
-                         int coarsestLvl, Vec5 minResForAbort,
+  bool trackNewestCoarse(int all_keyframe_size, FrameHessian *lastRef,
+                         FrameHessian *newFrameHessian, SE3 &lastToNew_out,
+                         AffLight &aff_g2l_out, int coarsestLvl,
+                         Vec5 minResForAbort,
                          IOWrap::Output3DWrapper *wrap = 0);
 
   void setCoarseTrackingRef(std::vector<FrameHessian *> frameHessians);
@@ -101,9 +102,9 @@ private:
   Vec6 calcResAndGS(int lvl, MatState &H_out, VecState &b_out,
                     const SE3 &refToNew, AffLight aff_g2l, float cutoffTH);
 
-  Vec6 calcRes(bool is_imu_ready, int lvl_target_, FrameHessian *lastRef,
-               int lvl, const SE3 &refToNew_, AffLight aff_g2l, float cutoffTH,
-               bool show_image = false);
+  Vec6 calcRes(int all_keyframe_size, bool is_imu_ready, int lvl_target_,
+               FrameHessian *lastRef, int lvl, const SE3 &refToNew_,
+               AffLight aff_g2l, float cutoffTH, bool show_image = false);
 
   void calcGSSSE(bool fix_ab_, bool is_imu_ready, int lvl_target_, int lvl,
                  MatState &H_out, VecState &b_out, const SE3 &refToNew,

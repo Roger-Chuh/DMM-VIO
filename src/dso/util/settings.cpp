@@ -32,6 +32,10 @@ int pyrLevelsUsed = PYR_LEVELS;
 
 float setting_variableScale = 30; // 100; // 10;//50;
 
+int setting_kfNumWithAffineFixed = 4;
+
+int setting_pyrLvlWithAffineFixed = 2;
+
 bool setting_useIMU =
     true; // Use IMU data (false will disable all IMU integration).
 bool setting_useGTSAMIntegration =
@@ -116,10 +120,14 @@ float setting_desiredPointDensity =
     2000; // aimed total points in the active window.
 float setting_minPointsRemaining =
     0.05; // marg a frame if less than X% points remain.
+#ifndef USE_MULTI_CAM
 float setting_maxLogAffFacInWindow =
     0.7; // marg a frame if factor between intensities to current frame is
          // larger than 1/X or X.
-
+#else
+float setting_maxLogAffFacInWindow =
+    2.3;                          // tolerate 10x times diff in AFFINE[0]
+#endif
 int setting_minFrames = 5; // min frames in window.
 int setting_maxFrames = 7; // 12; // 7; // max frames in window.
 int setting_minFrameAge = 1;
@@ -273,7 +281,7 @@ void handleKey(char k) {
 
 // int pattern_scale = 2;
 
-int staticPattern[11][40][2] = {
+int staticPattern[12][40][2] = {
     {{0, 0},       {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, // .
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
@@ -399,17 +407,20 @@ int staticPattern[11][40][2] = {
      {-100, -100},
      {-100, -100}},
 
-    {{-4, -4},     {-4, -2},     {-4, -0},     {-4, 2},
-     {-4, 4},      {-2, -4},     {-2, -2},     {-2, -0},
-     {-2, 2},      {-2, 4}, // full-45-SPREAD
-     {-0, -4},     {-0, -2},     {-0, -0},     {-0, 2},
-     {-0, 4},      {+2, -4},     {+2, -2},     {+2, -0},
-     {+2, 2},      {+2, 4},      {+4, -4},     {+4, -2},
-     {+4, -0},     {+4, 2},      {+4, 4},      {-200, -200},
-     {-200, -200}, {-200, -200}, {-200, -200}, {-200, -200},
-     {-200, -200}, {-200, -200}, {-200, -200}, {-200, -200},
-     {-200, -200}, {-200, -200}, {-200, -200}, {-200, -200},
-     {-200, -200}, {-200, -200}},
+    {{-4, -4},     {-4, -2},     {-4, -0},
+     {-4, 2},      {-4, 4},      {-2, -4},
+     {-2, -2},     {-2, -0},     {-2, 2},
+     {-2, 4}, // full-45-SPREAD
+     {-0, -4},     {-0, -2},     {+4, 4} /*{-0, -0}*/,
+     {-0, 2},      {-0, 4},      {+2, -4},
+     {+2, -2},     {+2, -0},     {+2, 2},
+     {+2, 4},      {+4, -4},     {+4, -2},
+     {+4, -0},     {+4, 2},      {-0, -0} /*{+4, 4}*/,
+     {-200, -200}, {-200, -200}, {-200, -200},
+     {-200, -200}, {-200, -200}, {-200, -200},
+     {-200, -200}, {-200, -200}, {-200, -200},
+     {-200, -200}, {-200, -200}, {-200, -200},
+     {-200, -200}, {-200, -200}, {-200, -200}},
 
     {{0 * pattern_scale, 0 * pattern_scale},
      {-1 * pattern_scale, -1 * pattern_scale},
@@ -451,7 +462,46 @@ int staticPattern[11][40][2] = {
      {-100, -100},
      {-100, -100},
      {-100, -100}},
-
+    {{0 * pattern_scale, -2 * pattern_scale},
+     {-1 * pattern_scale, -1 * pattern_scale},
+     {1 * pattern_scale, -1 * pattern_scale},
+     {-2 * pattern_scale, 0 * pattern_scale},
+     {1 * pattern_scale, 1 * pattern_scale},
+     {2 * pattern_scale, 0 * pattern_scale},
+     {-1 * pattern_scale, 1 * pattern_scale},
+     {0 * pattern_scale, 2 * pattern_scale},
+     {-100, -100},
+     {-100, -100}, // 8 for SSE efficiency
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100}},
 };
 
 // int staticPatternNum[10] = {1, 5, 5, 9, 9, 13, 25, 21, 8, 25};

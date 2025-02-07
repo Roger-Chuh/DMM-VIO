@@ -521,13 +521,14 @@ void CoarseTracker::calcGSSSE(bool fix_ab_, bool is_imu_ready, int lvl_target_,
 //@ 计算当前位姿投影得到的残差(能量值), 并进行一些统计
 //! 构造尽量多的点, 有助于跟踪
 //#define SHOW_TRACK_RES
-Vec6 CoarseTracker::calcRes(bool is_imu_ready, int lvl_target_,
-                            FrameHessian *lastRef, int lvl,
+Vec6 CoarseTracker::calcRes(int all_keyframe_size, bool is_imu_ready,
+                            int lvl_target_, FrameHessian *lastRef, int lvl,
                             const SE3 &refToNew_, AffLight aff_g2l,
                             float cutoffTH, bool show_image) {
   float setting_huberTH_use;
   int lvl_target = lvl_target_ >= 0 ? lvl_target_ : lvl;
-  if (lvl >= 2) {
+  if (lvl >= setting_pyrLvlWithAffineFixed &&
+      all_keyframe_size > setting_kfNumWithAffineFixed) {
     setting_huberTH_use = setting_huberTH_loose;
   } else {
     setting_huberTH_use = setting_huberTH;
@@ -757,7 +758,10 @@ Vec6 CoarseTracker::calcRes(bool is_imu_ready, int lvl_target_,
                              [numTermsInWarped /* + address_offset*/] =
                                  lpc_color[i];
 #ifdef SHOW_TRACK_RES
-          show_image = true; // i % 300 == 0;
+          if (show_image) {
+            printf("residual: %f\n", residual);
+          }
+          // show_image = true; // i % 300 == 0;
           MinimalImageB3 *img_host;
           MinimalImageB3 *img_target;
           if (show_image && (Ku > 15 && Kv > 15 && Ku < wl_target - 15 &&
@@ -904,7 +908,8 @@ void CoarseTracker::setCoarseTrackingRef(
 }
 
 //@ 对新来的帧进行跟踪, 优化得到位姿, 光度参数
-bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
+bool CoarseTracker::trackNewestCoarse(int all_keyframe_size,
+                                      FrameHessian *lastRef,
                                       FrameHessian *newFrameHessian,
                                       SE3 &lastToNew_out, AffLight &aff_g2l_out,
                                       int coarsestLvl, Vec5 minResForAbort,
@@ -959,10 +964,12 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
         lvl_target = -1; // lvl;
         max_iter = maxIterations[lvl];
       }
-      bool fix_ab = (lvl >= 20 || lvl_target >= 20); // lvl != lvl_target;
+      bool fix_ab = all_keyframe_size <= setting_kfNumWithAffineFixed ||
+                    (lvl >= 20 || lvl_target >= 20); // lvl != lvl_target;
       float levelCutoffRepeat = 1;
       float setting_coarseCutoffTH_use;
-      if (lvl >= 2) {
+      if (lvl >= setting_pyrLvlWithAffineFixed &&
+          all_keyframe_size > setting_kfNumWithAffineFixed) {
         setting_coarseCutoffTH_use = setting_coarseCutoffTH_loose;
       } else {
         setting_coarseCutoffTH_use = setting_coarseCutoffTH;
@@ -983,10 +990,10 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
       //      ++target_cid)
       //      {
       printf("aa\n");
-      resOld =
-          calcRes(is_imu_ready, lvl_target, lastRef, lvl, refToNew_current,
-                  aff_g2l_current,
-                  setting_coarseCutoffTH_use * levelCutoffRepeat, lvl == 0);
+      resOld = calcRes(all_keyframe_size, is_imu_ready, lvl_target, lastRef,
+                       lvl, refToNew_current, aff_g2l_current,
+                       setting_coarseCutoffTH_use * levelCutoffRepeat,
+                       lvl == 0 && lvl_target == 0);
       printf("bb\n");
       //      }
       //    }
@@ -997,10 +1004,10 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
         //      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
         //        for (int target_cid = 0; target_cid < kCameraNumUsed;
         //        ++target_cid) {
-        resOld =
-            calcRes(is_imu_ready, lvl_target, lastRef, lvl, refToNew_current,
-                    aff_g2l_current,
-                    setting_coarseCutoffTH_use * levelCutoffRepeat, lvl == 0);
+        resOld = calcRes(all_keyframe_size, is_imu_ready, lvl_target, lastRef,
+                         lvl, refToNew_current, aff_g2l_current,
+                         setting_coarseCutoffTH_use * levelCutoffRepeat,
+                         lvl == 0 && lvl_target == 0);
         //        }
         //      }
 
@@ -1069,10 +1076,11 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
                            lastRef->ab_exposure, newFrame->ab_exposure,
                            lastRef_aff_g2l, aff_g2l_current)
                            .cast<float>();
-        printf("lvl%d, it %d (l=%f / %f) %s: %.3f->%.3f (%d -> %d) (|inc| = "
-               "%f)! \t",
-               lvl, -1, lambda, 1.0f, "INITIA", 0.0f, resOld[0] / resOld[1], 0,
-               (int)resOld[1], 0.0f);
+        printf(
+            "lvl %d, it %d (l=%.3f / %.3f) %s: %.3f->%.3f (%d -> %d) (|inc| = "
+            "%.3f)! \t",
+            lvl, -1, lambda, 1.0f, "INITIA", 0.0f, resOld[0] / resOld[1], 0,
+            (int)resOld[1], 0.0f);
         std::cout << refToNew_current.log().transpose() << " AFF "
                   << aff_g2l_current.vec().transpose() << " (rel "
                   << relAff.transpose() << ")\n";
@@ -1095,7 +1103,7 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
         SE3 refToNew_new;
         AffLight aff_g2l_new = aff_g2l_current;
         std::cout << "!!!!!!!!!!!!!!! is_imu_ready: " << is_imu_ready
-                  << "!!!!!!!!!!!!!!! fix_ab: " << fix_ab
+                  << ", !!!!!!!!!!!!!!! fix_ab: " << fix_ab
                   << ", !!!!!!!!!!!!!!!!!!!!!! iter: " << iteration
                   << ", h_lvl: " << lvl << ", t_lvl: " << lvl_target
                   << ", aff_g2l_new: " << aff_g2l_new.vec().transpose()
@@ -1202,9 +1210,10 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
         //      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
         //        for (int target_cid = 0; target_cid < kCameraNumUsed;
         //        ++target_cid) {
-        resNew = calcRes(is_imu_ready, lvl_target, lastRef, lvl, refToNew_new,
-                         aff_g2l_new,
-                         setting_coarseCutoffTH_use * levelCutoffRepeat);
+        resNew = calcRes(all_keyframe_size, is_imu_ready, lvl_target, lastRef,
+                         lvl, refToNew_new, aff_g2l_new,
+                         setting_coarseCutoffTH_use * levelCutoffRepeat,
+                         lvl == 0 && lvl_target == 0);
         //        }
         //      }
 

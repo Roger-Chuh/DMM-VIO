@@ -630,7 +630,8 @@ FullSystem::trackNewCoarse(FrameHessian *fh, Sophus::SE3 *referenceToFrameHint,
     //    std::array<AffLight, kCameraNumUsed> a_aff_g2l_this = a_aff_last_2_l;
     SE3 lastF_2_fh_this = lastF_2_fh_tries[i];
     bool trackingIsGood = coarseTracker->trackNewestCoarse(
-        lastF, fh, lastF_2_fh_this, aff_g2l_this, pyrLevelsUsed - 1,
+        allFrameHistory.size(), lastF, fh, lastF_2_fh_this, aff_g2l_this,
+        pyrLevelsUsed - 1,
         achievedRes); // in each level has to be at least as good as the last
                       // try.
     tryIterations++;
@@ -2034,7 +2035,7 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
 #endif
 #else
 #ifndef USE_ZNCC
-  std::vector<float> init_rmse_thr = {13, 13, 13};
+  std::vector<float> init_rmse_thr = {20, 20, 20};
 #else
   std::vector<float> init_rmse_thr = {30, 30, 30};
 #endif

@@ -112,7 +112,7 @@ bool CoarseInitializer::trackFrame(
   int maxIterations[] = {10, 20, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
   // int maxIterations[] = {50, 50, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
 #else
-  int maxIterations[] = {10, 10, 10, 10, 10, 20, 20, 20}; // 不同层迭代的次数
+  int maxIterations[] = {15, 15, 15, 15, 15, 20, 20, 20}; // 不同层迭代的次数
 #endif
 //? 调参
 #ifndef USE_ZNCC
@@ -254,7 +254,12 @@ bool CoarseInitializer::trackFrame(
       applyStep(lvl); // 新的能量付给旧的
 
       float lambda = 0.1;
-      float eps = 1e-4;
+      float eps = 1e-3;
+      float diff_ratio_eps = -0.02;
+      if (lvl <= 1 || lvl_target <= 1) {
+        eps = 1e-4;
+        diff_ratio_eps = -0.002;
+      }
       int fails = 0;
       // 初始信息
       if (printDebug) {
@@ -344,14 +349,15 @@ bool CoarseInitializer::trackFrame(
         float eTotalOld = (resOld[0] + resOld[1] + regEnergy[0]);
 
         bool accept = eTotalOld > eTotalNew;
-
-        printf(
-            "accept: %d, level: %d, [eTotalOld / eTotalNew]: [%f / %f], diff: "
-            "%f, diff_ratio: %f, iter: %d, level: %d, incNorm: %f, lambda: "
-            "%f. [lvl_h / lvl_t]: [%d %d]\n",
-            accept, lvl, eTotalOld, eTotalNew, eTotalNew - eTotalOld,
-            (eTotalNew - eTotalOld) / eTotalOld, iteration, lvl, incNorm,
-            lambda, lvl, lvl_target);
+        float diff_ratio = (eTotalNew - eTotalOld) / eTotalOld;
+        printf("accept: %d, level: %d, [eTotalOld / eTotalNew]: [%0.1f / "
+               "%0.1f], diff: "
+               "%0.1f, diff_ratio: %0.4f, iter: %d, level: %d, incNorm: %f, "
+               "lambda: "
+               "%0.4f. [lvl_h / lvl_t]: [%d %d]\n",
+               accept, lvl, eTotalOld, eTotalNew, eTotalNew - eTotalOld,
+               (eTotalNew - eTotalOld) / eTotalOld, iteration, lvl, incNorm,
+               lambda, lvl, lvl_target);
         if (printDebug) {
           printf("lvl %d, it %d (l=%f) %s: %.5f + %.5f + %.5f -> %.5f + %.5f + "
                  "%.5f (%.2f->%.2f) (|inc| = %f)! \t",
@@ -426,7 +432,8 @@ bool CoarseInitializer::trackFrame(
         // bool quitOpt = false;
         // 迭代停止条件, 收敛/大于最大次数/失败2次以上
         if (!(incNorm > eps) || iteration >= max_iter /*maxIterations[lvl]*/ ||
-            fails >= 3 /*200*/) {
+            fails >= 3 /*200*/ ||
+            (diff_ratio > diff_ratio_eps && diff_ratio < 0)) {
           Mat88f H, Hsc;
           Vec8f b, bsc;
 
@@ -3393,6 +3400,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
               printf("a_zncc_mean(%d): %f\n", cam, a_zncc_mean(cam));
             }
             assert(a_zncc_mean(cam) > -10);
+            assert(a_zncc_mean(cam) > 0);
             // printf("a_cnt[cam]: %d\n", a_cnt[cam]);
             assert(a_cnt[cam] == MAX_RES_PER_POINT);
             err_avg += a_err_mean(cam);
@@ -3473,8 +3481,9 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
         //                  point->v).transpose()
         //                  << ", v_energy: 00" << std::endl;
       }
+      float outlierTH_ratio = 1;
 #ifndef USE_ZNCC
-      const float photo_err_thr = point->outlierTH * 20;
+      const float photo_err_thr = point->outlierTH * outlierTH_ratio; // 20;
 #else
       const float photo_err_thr = 99999;
 #endif
@@ -3504,14 +3513,15 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
         point->isGood_new = false;
         point->energy_new = point->energy; //上一次的给当前次的
         bad_pid_count++;
-        if (bad_pid_count < 100 && cnt > 0) {
+        if (bad_pid_count < 5 && cnt > 0) {
           printf("bbbbb, cnt: %d, energy: %f, good_cam_num: %d, host_cid: %d, "
                  "bad_pid_count: %d, target_grad_mean: %f, target_sigma_temp: "
                  "%f, ratio: %f, err_avg: %f, zncc_avg: %f, iter: "
-                 "%d\nenergy_each_cam: %f, 20 * outlierTH: %f\n",
+                 "%d\nenergy_each_cam: %f, %f * outlierTH: %f\n",
                  cnt, energy, good_cam_num, host_cid, bad_pid_count,
                  target_grad_mean, target_sigma_temp, ratio, err_avg, zncc_avg,
-                 iter, energy_each_cam, 20 * point->outlierTH);
+                 iter, energy_each_cam, outlierTH_ratio,
+                 outlierTH_ratio * point->outlierTH);
         } else {
           if (false) {
             printf("ccccc, cnt: %d, bad_pid_count: %d, [lvl_h lvl_t]: [%d %d], "
@@ -3519,7 +3529,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
                    cnt, bad_pid_count, lvl, lvl_target, iter);
           }
         }
-        if (bad_pid_count < 100 && cnt > 0) {
+        if (bad_pid_count < 5 && cnt > 0) {
           MatXXf energy_vec;
           energy_vec.resize(point->energy_size, 1);
           for (int ii = 0; ii < point->energy_size; ++ii) {
@@ -4219,7 +4229,7 @@ void CoarseInitializer::setFirst(CalibHessian *HCalib,
             //! 外点的阈值与pattern的大小有关, 一个像素是12*12
             //? 这个阈值怎么确定的...
             pl[nl].outlierTH =
-                /*patternNum * kCameraNumUsed * */ setting_outlierTH;
+                patternNum * /*kCameraNumUsed * */ setting_outlierTH;
 
             nl++;
             assert(nl <= level_cid_to_npts[lvl][cid] /*npts*/);
@@ -4685,7 +4695,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
             //! 外点的阈值与pattern的大小有关, 一个像素是12*12
             //? 这个阈值怎么确定的...
             pl[nl].outlierTH =
-                /*patternNum * kCameraNumUsed * */ setting_outlierTH;
+                patternNum * /*kCameraNumUsed * */ setting_outlierTH;
             //              printf("reaching end, nl: %d\n", nl);
             nl++;
             assert(nl <= level_cid_to_npts[lvl][cid] /*npts*/);
