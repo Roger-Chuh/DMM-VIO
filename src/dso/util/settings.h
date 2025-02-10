@@ -216,6 +216,9 @@ void handleKey(char k);
 constexpr int pattern_scale = 1;
 constexpr int pattern_index = 8;
 
+constexpr int pattern_scale_seed = 1;
+constexpr int pattern_index_seed = 9;
+
 extern int staticPattern[12][40][2];
 constexpr int staticPatternNum[12] = {1,  5,  5, 9,         9, 13,
                                       25, 21, 8, 24 /*25*/, 8, 8};
@@ -238,6 +241,14 @@ constexpr int staticPatternPadding[12] = {1,
 #define patternNum staticPatternNum[pattern_index]
 #define patternP staticPattern[pattern_index]
 #define patternPadding staticPatternPadding[pattern_index]
+
+#define patternNumSeed staticPatternNum[pattern_index_seed]
+#define patternPSeed staticPattern[pattern_index_seed]
+#define patternPaddingSeed                                                     \
+  ((staticPatternPadding[pattern_index_seed] >                                 \
+    staticPatternPadding[pattern_index])                                       \
+       ? staticPatternPadding[pattern_index_seed]                              \
+       : staticPatternPadding[pattern_index])
 
 //
 //#define patternNum 8

@@ -1894,8 +1894,8 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
 
       Eigen::MatrixXf host_info, target_info, host_info_temp, target_info_temp,
           host_info_big, target_info_big;
-      //        host_info.resize(MAX_RES_PER_POINT * kCameraNumUsed, 3);
-      //        target_info.resize(MAX_RES_PER_POINT * kCameraNumUsed, 3);
+      //        host_info.resize(MAX_RES_PER_POINT_SEED * kCameraNumUsed, 3);
+      //        target_info.resize(MAX_RES_PER_POINT_SEED * kCameraNumUsed, 3);
       //        host_info.setZero();
       //        target_info.setZero();
 
@@ -2003,10 +2003,10 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
         float zncc_patch = 0;
         // float host_sigma_temp;
         // float target_sigma_temp;
-        for (int idx = 0; idx < patternNum; idx++) {
+        for (int idx = 0; idx < patternNumSeed; idx++) {
           // pattern的坐标偏移
-          int dx = patternP[idx][0];
-          int dy = patternP[idx][1];
+          int dx = patternPSeed[idx][0];
+          int dy = patternPSeed[idx][1];
 
           //! Pj' = R*(X/Z, Y/Z, 1) + t/Z, 变换到新的点, 深度仍然使用Host帧的!
           /// Pj = [x y z]
@@ -2145,18 +2145,18 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
           }
 
           index_to_host_value.emplace(std::make_pair(
-              idx + MAX_RES_PER_POINT * target_cam_id, hostColor));
+              idx + MAX_RES_PER_POINT_SEED * target_cam_id, hostColor));
           index_to_target_value.emplace(std::make_pair(
-              idx + MAX_RES_PER_POINT * target_cam_id, hitColor));
-          index_to_count_big.emplace(
-              std::make_pair(idx + MAX_RES_PER_POINT * target_cam_id, count));
+              idx + MAX_RES_PER_POINT_SEED * target_cam_id, hitColor));
+          index_to_count_big.emplace(std::make_pair(
+              idx + MAX_RES_PER_POINT_SEED * target_cam_id, count));
 
           count_each_cam++;
           count++;
         }
         if (ratio > ratio_thr1) {
-          if (count_each_cam >= MAX_RES_PER_POINT) {
-            assert(count_each_cam == MAX_RES_PER_POINT);
+          if (count_each_cam >= MAX_RES_PER_POINT_SEED) {
+            assert(count_each_cam == MAX_RES_PER_POINT_SEED);
             float host_val_mean_temp =
                 host_info_temp.col(0).sum() /
                 static_cast<float>(host_info_temp.rows());
@@ -2201,7 +2201,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
             // printf("i: %d, host: %d, target: %d, target_sigma_temp: %f\n", i,
             // point->host_cid, target_cam_id, target_sigma_temp);
           }
-          if (count_each_cam > 0 && count_each_cam == MAX_RES_PER_POINT) {
+          if (count_each_cam > 0 && count_each_cam == MAX_RES_PER_POINT_SEED) {
             // printf("i: %d, host: %d, target: %d, target_sigma_temp: %f\n", i,
             // point->host_cid, target_cam_id, target_sigma_temp);
             if ((host_sigma_temp > 3.0f && target_sigma_temp > 2.0f) /*||
@@ -2250,10 +2250,10 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
             }
           }
         }
-        if (count_each_cam >= MAX_RES_PER_POINT) {
+        if (count_each_cam >= MAX_RES_PER_POINT_SEED) {
           cam_info[target_cam_id] = 1;
           good_cam_num++;
-          assert(host_info_temp.rows() == MAX_RES_PER_POINT);
+          assert(host_info_temp.rows() == MAX_RES_PER_POINT_SEED);
 #ifdef SHOW_INIT_IMAGE
           if (show_image && i % show_step == 0) {
             for (const Vec2f &uv : uv_draw) {
@@ -2271,8 +2271,9 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
             target_info.conservativeResize(host_target_info_size + 1, 3);
             host_info.row(host_target_info_size) = host_info_temp.row(id);
             target_info.row(host_target_info_size) = target_info_temp.row(id);
-            index_to_count.emplace(std::make_pair(
-                id + MAX_RES_PER_POINT * target_cam_id, host_target_info_size));
+            index_to_count.emplace(
+                std::make_pair(id + MAX_RES_PER_POINT_SEED * target_cam_id,
+                               host_target_info_size));
             host_target_info_size++;
           }
         }
@@ -2313,7 +2314,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
       // printf("cc\n");
       assert(host_target_info_size == host_info.rows());
       int patch_num = host_info.rows();
-      // assert(patch_num == MAX_RES_PER_POINT * kCameraNumUsed);
+      // assert(patch_num == MAX_RES_PER_POINT_SEED * kCameraNumUsed);
       if (patch_num != 0) {
 
         for (int id = 0; id < kCameraNumUsed; ++id) {
@@ -2719,9 +2720,9 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
         // int cnt = 0;
         int cnt_each_cam = 0;
         // float target_grad_sum = 0;
-        for (int idx = 0; idx < patternNum; idx++) {
-          int dx = patternP[idx][0];
-          int dy = patternP[idx][1];
+        for (int idx = 0; idx < patternNumSeed; idx++) {
+          int dx = patternPSeed[idx][0];
+          int dy = patternPSeed[idx][1];
 
           //! Pj' = R*(X/Z, Y/Z, 1) + t/Z, 变换到新的点, 深度仍然使用Host帧的!
           /// Pj = [x y z]
@@ -2967,18 +2968,18 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
           Vec6f d_res_d_pose_inverse_comp =
               hw * Vec2f(hostColor[1], hostColor[2]).transpose() *
               d_uv_d_pose_inverse_comp;
-          assert(grad_new_host(
-                     index_to_count.at(idx + MAX_RES_PER_POINT * target_cid),
-                     0) == a_grad_new_host[target_cid](idx, 0));
-          assert(grad_new_host(
-                     index_to_count.at(idx + MAX_RES_PER_POINT * target_cid),
-                     1) == a_grad_new_host[target_cid](idx, 1));
-          assert(grad_new_target(
-                     index_to_count.at(idx + MAX_RES_PER_POINT * target_cid),
-                     0) == a_grad_new_target[target_cid](idx, 0));
-          assert(grad_new_target(
-                     index_to_count.at(idx + MAX_RES_PER_POINT * target_cid),
-                     1) == a_grad_new_target[target_cid](idx, 1));
+          assert(grad_new_host(index_to_count.at(idx + MAX_RES_PER_POINT_SEED *
+                                                           target_cid),
+                               0) == a_grad_new_host[target_cid](idx, 0));
+          assert(grad_new_host(index_to_count.at(idx + MAX_RES_PER_POINT_SEED *
+                                                           target_cid),
+                               1) == a_grad_new_host[target_cid](idx, 1));
+          assert(grad_new_target(index_to_count.at(
+                                     idx + MAX_RES_PER_POINT_SEED * target_cid),
+                                 0) == a_grad_new_target[target_cid](idx, 0));
+          assert(grad_new_target(index_to_count.at(
+                                     idx + MAX_RES_PER_POINT_SEED * target_cid),
+                                 1) == a_grad_new_target[target_cid](idx, 1));
           Vec6f d_res_d_pose_fwd_jac =
               hw *
               Vec2f(a_grad_new_target[target_cid](idx, 0),
@@ -3072,7 +3073,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
           float d_res_d_idp_fwd_jac =
               hw *
               Vec2f(a_grad_new_target[target_cid](
-                        idx /*index_to_count.at(idx + MAX_RES_PER_POINT *
+                        idx /*index_to_count.at(idx + MAX_RES_PER_POINT_SEED *
                                target_cid)*/
                         ,
                         0),
@@ -3095,91 +3096,94 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
 #ifndef USE_INVERSE_COMPOSITIONAL
 #ifndef USE_ZNCC
 
-          dp0[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp0[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               new_idepth * dxInterp; //! dpi/pz' * dxfx
-          dp1[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp1[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               new_idepth * dyInterp; //! dpi/pz' * dyfy
-          dp2[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp2[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               -new_idepth *
               (u * dxInterp +
                v * dyInterp); //! -dpi/pz' * (px'/pz'*dxfx + py'/pz'*dyfy)
-          dp3[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp3[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               -u * v * dxInterp -
               (1 + v * v) *
                   dyInterp; //! - px'py'/pz'^2*dxfy - (1+py'^2/pz'^2)*dyfy
-          dp4[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp4[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               (1 + u * u) * dxInterp +
               u * v * dyInterp; //! (1+px'^2/pz'^2)*dxfx + px'py'/pz'^2*dxfy
-          dp5[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp5[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               -v * dxInterp + u * dyInterp; //! -py'/pz'*dxfx + px'/pz'*dyfy
 
-          dp0[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp0[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_fwd_jac_use(0);
-          dp1[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp1[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_fwd_jac_use(1);
-          dp2[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp2[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_fwd_jac_use(2);
-          dp3[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp3[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_fwd_jac_use(3);
-          dp4[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp4[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_fwd_jac_use(4);
-          dp5[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp5[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_fwd_jac_use(5);
 #else
-          dp0[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp0[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_fwd_jac_use(0);
-          dp1[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp1[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_fwd_jac_use(1);
-          dp2[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp2[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_fwd_jac_use(2);
-          dp3[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp3[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_fwd_jac_use(3);
-          dp4[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp4[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_fwd_jac_use(4);
-          dp5[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp5[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_fwd_jac_use(5);
 #endif
 #else
-          dp0[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp0[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_inverse_comp_use(0);
-          dp1[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp1[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_inverse_comp_use(1);
-          dp2[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp2[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_inverse_comp_use(2);
-          dp3[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp3[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_inverse_comp_use(3);
-          dp4[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp4[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_inverse_comp_use(4);
-          dp5[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp5[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_pose_inverse_comp_use(5);
 #endif
           // TODO* 残差对光度参数求导, 2
-          dp6[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp6[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               -hw * r2new_aff[0] * rlR; //! exp(aj-ai)*I(pi)
-          dp7[idx + MAX_RES_PER_POINT * target_cid_use] = -hw * 1; //! 对 b 导
-          // TODO* 残差对 i(旧状态) 逆深度求导, 1
+          dp7[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
+              -hw * 1; //! 对 b 导
+                       // TODO* 残差对 i(旧状态) 逆深度求导, 1
 #ifndef USE_INVERSE_COMPOSITIONAL
 #ifndef USE_ZNCC
-          dd[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dd[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               dxInterp * dxdd +
               dyInterp * dydd; //! dxfx * 1/Pz * (tx - u*tz) +　dyfy *
                                //! 1/Pz * (tx - u*tz)
           // printf("i: %d, host_cid: %d, target_cid: %d, idx: %d, residual: %f,
           // J_idp: [%f %f %f], JtJ: %f, hw: %f, val[9]_accum: %f\n", i,
-          // host_cid, target_cid, idx, residual, dd[idx + MAX_RES_PER_POINT *
-          // target_cid_use], (float)(hw * Vec2f(hitColor[1],
-          // hitColor[2]).transpose() *  d_uv_d_pt3d * trans)[0],
-          // d_res_d_idp_fwd_jac, d_res_d_idp_fwd_jac * d_res_d_idp_fwd_jac, hw,
-          // JbBuffer_new[i + h[0] * w[0] * host_cid][9]);
+          // host_cid, target_cid, idx, residual, dd[idx +
+          // MAX_RES_PER_POINT_SEED * target_cid_use], (float)(hw *
+          // Vec2f(hitColor[1], hitColor[2]).transpose() *  d_uv_d_pt3d *
+          // trans)[0], d_res_d_idp_fwd_jac, d_res_d_idp_fwd_jac *
+          // d_res_d_idp_fwd_jac, hw, JbBuffer_new[i + h[0] * w[0] *
+          // host_cid][9]);
 #else
-          dd[idx + MAX_RES_PER_POINT * target_cid_use] = d_res_d_idp_fwd_jac;
+          dd[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
+              d_res_d_idp_fwd_jac;
 #endif
 #else
-          dd[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dd[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_idp_inverse_comp;
 #endif
           // TODO* 残差 res, 1
-          r[idx + MAX_RES_PER_POINT * target_cid_use] =
+          r[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               hw * residual; //! 残差 res
 
           //#else
@@ -3247,48 +3251,48 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
             //
             //
 #ifdef USE_ZNCC
-          dp6[idx + MAX_RES_PER_POINT * target_cid_use] = 0;
+          dp6[idx + MAX_RES_PER_POINT_SEED * target_cid_use] = 0;
           -hw *r2new_aff[0] * rlR; //! exp(aj-ai)*I(pi)
-          dp7[idx + MAX_RES_PER_POINT * target_cid_use] =
+          dp7[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               0; //-hw * 1; //! 对 b 导
 #endif
           JbBuffer_new[i + h[0] * w[0] * host_cid][0] +=
-              dp0[idx + MAX_RES_PER_POINT * target_cid_use] *
-              dd[idx + MAX_RES_PER_POINT * target_cid_use];
+              dp0[idx + MAX_RES_PER_POINT_SEED * target_cid_use] *
+              dd[idx + MAX_RES_PER_POINT_SEED * target_cid_use];
           JbBuffer_new[i + h[0] * w[0] * host_cid][1] +=
-              dp1[idx + MAX_RES_PER_POINT * target_cid_use] *
-              dd[idx + MAX_RES_PER_POINT * target_cid_use];
+              dp1[idx + MAX_RES_PER_POINT_SEED * target_cid_use] *
+              dd[idx + MAX_RES_PER_POINT_SEED * target_cid_use];
           JbBuffer_new[i + h[0] * w[0] * host_cid][2] +=
-              dp2[idx + MAX_RES_PER_POINT * target_cid_use] *
-              dd[idx + MAX_RES_PER_POINT * target_cid_use];
+              dp2[idx + MAX_RES_PER_POINT_SEED * target_cid_use] *
+              dd[idx + MAX_RES_PER_POINT_SEED * target_cid_use];
           JbBuffer_new[i + h[0] * w[0] * host_cid][3] +=
-              dp3[idx + MAX_RES_PER_POINT * target_cid_use] *
-              dd[idx + MAX_RES_PER_POINT * target_cid_use];
+              dp3[idx + MAX_RES_PER_POINT_SEED * target_cid_use] *
+              dd[idx + MAX_RES_PER_POINT_SEED * target_cid_use];
           JbBuffer_new[i + h[0] * w[0] * host_cid][4] +=
-              dp4[idx + MAX_RES_PER_POINT * target_cid_use] *
-              dd[idx + MAX_RES_PER_POINT * target_cid_use];
+              dp4[idx + MAX_RES_PER_POINT_SEED * target_cid_use] *
+              dd[idx + MAX_RES_PER_POINT_SEED * target_cid_use];
           JbBuffer_new[i + h[0] * w[0] * host_cid][5] +=
-              dp5[idx + MAX_RES_PER_POINT * target_cid_use] *
-              dd[idx + MAX_RES_PER_POINT * target_cid_use];
+              dp5[idx + MAX_RES_PER_POINT_SEED * target_cid_use] *
+              dd[idx + MAX_RES_PER_POINT_SEED * target_cid_use];
           JbBuffer_new[i + h[0] * w[0] * host_cid][6] +=
-              dp6[idx + MAX_RES_PER_POINT * target_cid_use] *
-              dd[idx + MAX_RES_PER_POINT * target_cid_use];
+              dp6[idx + MAX_RES_PER_POINT_SEED * target_cid_use] *
+              dd[idx + MAX_RES_PER_POINT_SEED * target_cid_use];
           JbBuffer_new[i + h[0] * w[0] * host_cid][7] +=
-              dp7[idx + MAX_RES_PER_POINT * target_cid_use] *
-              dd[idx + MAX_RES_PER_POINT * target_cid_use];
+              dp7[idx + MAX_RES_PER_POINT_SEED * target_cid_use] *
+              dd[idx + MAX_RES_PER_POINT_SEED * target_cid_use];
           JbBuffer_new[i + h[0] * w[0] * host_cid][8] +=
-              r[idx + MAX_RES_PER_POINT * target_cid_use] *
-              dd[idx + MAX_RES_PER_POINT * target_cid_use];
+              r[idx + MAX_RES_PER_POINT_SEED * target_cid_use] *
+              dd[idx + MAX_RES_PER_POINT_SEED * target_cid_use];
           // TODO 10 = 6 + 2 + 1 + 1 = pose + affine + idepth + res
           // TODO H22 hessian约等于JTJ，当变量为1维时，hessian = J^2
           JbBuffer_new[i + h[0] * w[0] * host_cid][9] +=
-              dd[idx + MAX_RES_PER_POINT * target_cid_use] *
-              dd[idx + MAX_RES_PER_POINT *
+              dd[idx + MAX_RES_PER_POINT_SEED * target_cid_use] *
+              dd[idx + MAX_RES_PER_POINT_SEED *
                            target_cid_use]; /// 1/(1+sum(dd*dd))=inverse depth
           /// hessian entry, while now is just
           /// sum(dd*dd), H_{\beta \beta}
 
-          assert(index_to_count.at(idx + MAX_RES_PER_POINT * target_cid) ==
+          assert(index_to_count.at(idx + MAX_RES_PER_POINT_SEED * target_cid) ==
                  cnt);
           if (false &&
               (lvl == 2 && point->host_cid == 1 && i == 178 ||
@@ -3313,7 +3317,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
             //              std::exit(1);
           }
 #if 1
-          for (int i = 0; i + 3 < patternNum /** kCameraNumUsed*/;
+          for (int i = 0; i + 3 < patternNumSeed /** kCameraNumUsed*/;
                i += 4) // this for loop has 2 steps each step step 4 stride.
             // (align with SSE)
             acc9.updateSSE(_mm_load_ps(((float *)(&dp0)) +
@@ -3339,8 +3343,8 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
           // H += H_i
           // H = Jt * J,  b = -Jt * b
           // 老老实实对H和b进行累加
-          for (int i = (((patternNum /* * kCameraNumUsed*/) >> 2) << 2);
-               i < patternNum /* * kCameraNumUsed*/; i++) {
+          for (int i = (((patternNumSeed /* * kCameraNumUsed*/) >> 2) << 2);
+               i < patternNumSeed /* * kCameraNumUsed*/; i++) {
             acc9.updateSingle((float)dp0[i], (float)dp1[i], (float)dp2[i],
                               (float)dp3[i], (float)dp4[i], (float)dp5[i],
                               (float)dp6[i], (float)dp7[i], (float)r[i]);
@@ -3361,12 +3365,13 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
       assert(cnt == count);
 #else
       assert(cnt == host_info.rows());
-      assert(cnt % MAX_RES_PER_POINT == 0);
+      assert(cnt % MAX_RES_PER_POINT_SEED == 0);
 #endif
       // 如果点的pattern(其中一个像素)超出图像,像素值无穷, 或者残差大于阈值
-      int threshold = MAX_RES_PER_POINT * (kCameraNumUsed - 1) + 4;
+      int threshold = MAX_RES_PER_POINT_SEED * (kCameraNumUsed - 1) + 4;
       float target_grad_mean =
-          target_grad_sum / static_cast<float>(cnt /*/ MAX_RES_PER_POINT*/);
+          target_grad_sum /
+          static_cast<float>(cnt /*/ MAX_RES_PER_POINT_SEED*/);
       assert(std::isfinite(energy));
       float zncc_avg = 0, err_avg = 0;
       int visible_cids = 0;
@@ -3402,7 +3407,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
             assert(a_zncc_mean(cam) > -10);
             assert(a_zncc_mean(cam) > 0);
             // printf("a_cnt[cam]: %d\n", a_cnt[cam]);
-            assert(a_cnt[cam] == MAX_RES_PER_POINT);
+            assert(a_cnt[cam] == MAX_RES_PER_POINT_SEED);
             err_avg += a_err_mean(cam);
             zncc_avg += a_zncc_mean(cam);
             visible_cids++;
@@ -3418,19 +3423,19 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
       int all_cnt = 0;
       for (int cid = 0; cid < kCameraNumUsed; ++cid) {
         if (a_cnt[cid] > 0) {
-          if (a_cnt[cid] != MAX_RES_PER_POINT) {
+          if (a_cnt[cid] != MAX_RES_PER_POINT_SEED) {
             printf("a_cnt[cid]: %d\n", a_cnt[cid]);
             std::exit(2);
           }
-          all_cnt += MAX_RES_PER_POINT;
+          all_cnt += MAX_RES_PER_POINT_SEED;
         }
       }
       assert(all_cnt == cnt);
       // printf("good_cam_num: %d, cnt: %d\n", good_cam_num, cnt);
-      assert(cnt / MAX_RES_PER_POINT == good_cam_num);
+      assert(cnt / MAX_RES_PER_POINT_SEED == good_cam_num);
 
       float energy_each_cam =
-          energy / static_cast<float>(cnt / MAX_RES_PER_POINT);
+          energy / static_cast<float>(cnt / MAX_RES_PER_POINT_SEED);
       if (cnt > 0) {
         if (false) {
           point->v_energy_vec.emplace_back(energy_each_cam);
@@ -3501,7 +3506,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
 #endif
                 &&point->energy[0] > 0) ||
                (/* !isGood || energy / static_cast<float>(cnt /
-                   MAX_RES_PER_POINT) */
+                   MAX_RES_PER_POINT_SEED) */
                 energy_each_cam > photo_err_thr /*point->outlierTH * 20, 2 20*/
                 ||
                 /*is_bad_res_count > threshold*/ good_cam_num ==
@@ -3574,7 +3579,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
       /// energy = sum(weight * residual * residual * (2 - weight));
       for (int target_cid_ = 0; target_cid_ < kCameraNumUsed; ++target_cid_) {
         if (a_cnt[target_cid_] > 0) {
-          if (a_cnt[target_cid_] != MAX_RES_PER_POINT) {
+          if (a_cnt[target_cid_] != MAX_RES_PER_POINT_SEED) {
             printf("a_cnt[target_cid_]: %d\n", a_cnt[target_cid_]);
             std::exit(2);
           }
@@ -3584,13 +3589,15 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
         }
       }
       if (cnt > 0) {
-        E.updateSingle(energy / static_cast<float>(cnt / MAX_RES_PER_POINT));
+        E.updateSingle(energy /
+                       static_cast<float>(cnt / MAX_RES_PER_POINT_SEED));
         point->isGood_new = true;
         point->energy_new[0] =
-            energy / static_cast<float>(cnt / MAX_RES_PER_POINT);
-        point->valid_cid_num = 1; // cnt / MAX_RES_PER_POINT;
+            energy / static_cast<float>(cnt / MAX_RES_PER_POINT_SEED);
+        point->valid_cid_num = 1; // cnt / MAX_RES_PER_POINT_SEED;
       } else {
-        printf("not valid projection\n");
+        printf("not valid projection, you should never see this, sth wrong\n");
+        std::exit(1);
       }
       //! 因为使用128位相当于每次加4个数, 因此i+=4, 妙啊!
       // update Hessian matrix.
@@ -4192,8 +4199,10 @@ void CoarseInitializer::setFirst(CalibHessian *HCalib,
       // 要留出pattern的空间, 2 border
       //[ ***step 3*** ] 在选出的像素中, 添加点信息
       /// 对全图做遍历，只有valid(!=0)的点才会执行相关操作
-      for (int y = patternPadding + 1; y < hl - patternPadding - 2; y++) {
-        for (int x = patternPadding + 1; x < wl - patternPadding - 2; x++) {
+      for (int y = patternPaddingSeed + 1; y < hl - patternPaddingSeed - 2;
+           y++) {
+        for (int x = patternPaddingSeed + 1; x < wl - patternPaddingSeed - 2;
+             x++) {
           // if(x==2) printf("y=%d!\n",y);
           // 如果是被选中的像素
           if ((lvl != 0 && statusMapB[x + y * wl + w[0] * h[0] * cid]) ||
@@ -4215,9 +4224,9 @@ void CoarseInitializer::setFirst(CalibHessian *HCalib,
                                    wl * hl * cid; // 该像素梯度
             float sumGrad2 = 0;
             // 计算pattern内像素梯度和
-            for (int idx = 0; idx < patternNum; idx++) {
-              int dx = patternP[idx][0]; // pattern 的偏移
-              int dy = patternP[idx][1];
+            for (int idx = 0; idx < patternNumSeed; idx++) {
+              int dx = patternPSeed[idx][0]; // pattern 的偏移
+              int dy = patternPSeed[idx][1];
               float absgrad = cpt[dx + dy * w[lvl]].tail<2>().squaredNorm();
               sumGrad2 += absgrad;
             }
@@ -4229,7 +4238,7 @@ void CoarseInitializer::setFirst(CalibHessian *HCalib,
             //! 外点的阈值与pattern的大小有关, 一个像素是12*12
             //? 这个阈值怎么确定的...
             pl[nl].outlierTH =
-                patternNum * /*kCameraNumUsed * */ setting_outlierTH;
+                patternNumSeed * /*kCameraNumUsed * */ setting_outlierTH;
 
             nl++;
             assert(nl <= level_cid_to_npts[lvl][cid] /*npts*/);
@@ -4506,8 +4515,10 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
       //[ ***step 3*** ] 在选出的像素中, 添加点信息
       /// 对全图做遍历，只有valid(!=0)的点才会执行相关操作
       int trials = 0;
-      for (int y = patternPadding + 1; y < hl - patternPadding - 2; y++) {
-        for (int x = patternPadding + 1; x < wl - patternPadding - 2; x++) {
+      for (int y = patternPaddingSeed + 1; y < hl - patternPaddingSeed - 2;
+           y++) {
+        for (int x = patternPaddingSeed + 1; x < wl - patternPaddingSeed - 2;
+             x++) {
           trials++;
           // if(x==2) printf("y=%d!\n",y);
           // 如果是被选中的像素
@@ -4681,9 +4692,9 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
                                    wl * hl * cid; // 该像素梯度
             float sumGrad2 = 0;
             // 计算pattern内像素梯度和
-            for (int idx = 0; idx < patternNum; idx++) {
-              int dx = patternP[idx][0]; // pattern 的偏移
-              int dy = patternP[idx][1];
+            for (int idx = 0; idx < patternNumSeed; idx++) {
+              int dx = patternPSeed[idx][0]; // pattern 的偏移
+              int dy = patternPSeed[idx][1];
               float absgrad = cpt[dx + dy * w[lvl]].tail<2>().squaredNorm();
               sumGrad2 += absgrad;
             }
@@ -4695,7 +4706,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
             //! 外点的阈值与pattern的大小有关, 一个像素是12*12
             //? 这个阈值怎么确定的...
             pl[nl].outlierTH =
-                patternNum * /*kCameraNumUsed * */ setting_outlierTH;
+                patternNumSeed * /*kCameraNumUsed * */ setting_outlierTH;
             //              printf("reaching end, nl: %d\n", nl);
             nl++;
             assert(nl <= level_cid_to_npts[lvl][cid] /*npts*/);

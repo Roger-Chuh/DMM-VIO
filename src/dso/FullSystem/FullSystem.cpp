@@ -827,14 +827,29 @@ void FullSystem::activatePointsMT_Reductor(
   ImmaturePointTemporaryResidual *tr =
       new ImmaturePointTemporaryResidual[frameHessians.size() * kCameraNumUsed];
   /// normally min = 0, max = toOptimize.size()
+  int minObs;
+#ifdef USE_MULTI_CAM
+  int num_kf = 6;
+  if (frameHessians.size() < num_kf) {
+    minObs = 1;
+  } else {
+    minObs = num_kf / 2;
+  }
+  assert(frameHessians.size() >= 2);
+  minObs = ((frameHessians.size() - 1) >= 5) ? 5 : (frameHessians.size() - 1);
+#else
+  minObs = 1;
+#endif
+  minObs = 1;
   for (int k = min; k < max; k++) {
-    (*optimized)[k] = optimizeImmaturePoint((*toOptimize)[k], 1, tr);
+    (*optimized)[k] = optimizeImmaturePoint((*toOptimize)[k], minObs /*1*/, tr);
   }
   delete[] tr;
 }
 
 //@ 激活未成熟点, 加入优化
-//#define SHOW_NEWLY_ACTIVATED_POINTS
+#define SHOW_NEWLY_ACTIVATED_POINTS
+#define SHOW_DISTANCE_MAP
 void FullSystem::activatePointsMT() {
   dmvio::TimeMeasurement timeMeasurement("activatePointsMT");
   //[ ***step 1*** ] 阈值计算, 通过距离地图来控制数目
@@ -860,9 +875,13 @@ void FullSystem::activatePointsMT() {
 
   if (currentMinActDist < 0)
     currentMinActDist = 0;
+#if 1 // ndef USE_MULTI_CAM
   if (currentMinActDist > 4)
     currentMinActDist = 4;
-
+#else
+  if (currentMinActDist > 10)
+    currentMinActDist = 10;
+#endif
   if (!setting_debugout_runquiet)
     printf("SPARSITY:  MinActDist %f (need %d points, have %d points)!\n",
            currentMinActDist, (int)(setting_desiredPointDensity), ef->nPoints);
@@ -880,7 +899,53 @@ void FullSystem::activatePointsMT() {
 
   std::vector<ImmaturePoint *> toOptimize;
   toOptimize.reserve(20000); // 待激活的点
+  int plot_step = 4;
+#ifdef SHOW_DISTANCE_MAP
+  MinimalImageB3 *img_dist;
 
+  img_dist = new MinimalImageB3(wG[0], hG[0]);
+  for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+    Vec3f *colorRef = newestHs->dIp[0] + wG[0] * hG[0] * cam;
+    for (int i = 0; i < wG[0] * hG[0]; i++) {
+      // BRIGHTNESS TRANSFER
+      float colL = (*(colorRef + i))[0];
+      if (colL < 0)
+        colL = 0;
+      if (colL > 255)
+        colL = 255;
+      img_dist->at(i, cam) = Vec3b(colL, colL, colL);
+    }
+    float nid = 0, sid = 0;
+    for (int col = 0; col < wG[1]; col += plot_step) {
+      for (int row = 0; row < hG[1]; row += plot_step) {
+        float dist =
+            coarseDistanceMap
+                ->fwdWarpedIDDistFinal[col + wG[1] * row + wG[1] * hG[1] * cam];
+        if (dist < 0.0001 || dist > 999) {
+          continue;
+        }
+        nid++;
+        sid += dist;
+      }
+    }
+    float fac = nid / sid;
+    for (int col = 5; col < wG[1] - 5; col += plot_step) {
+      for (int row = 5; row < hG[1] - 5; row += plot_step) {
+        float dist =
+            coarseDistanceMap
+                ->fwdWarpedIDDistFinal[col + wG[1] * row + wG[1] * hG[1] * cam];
+        if (dist < 0.0001 || dist > 999) {
+          continue;
+        }
+        img_dist->setPixelCirc(2 * col, 2 * row, makeRainbow3B(dist * fac),
+                               cam);
+      }
+    }
+  }
+  IOWrap::displayImage("dist map in target before", img_dist);
+  IOWrap::waitKey(1);
+  delete img_dist;
+#endif
   //[ ***step 2*** ] 处理未成熟点, 激活/删除/跳过
   int fid = 0;
   printf("start, frameHessians size: %d\n", frameHessians.size());
@@ -995,6 +1060,7 @@ void FullSystem::activatePointsMT() {
           //                      host->immaturePoints[i] = 0;
         }
       }
+      assert(in_valid_count <= kCameraNumUsed);
       if (in_valid_count == kCameraNumUsed) {
         delete ph;
         host->immaturePoints[i] = 0;
@@ -1005,7 +1071,52 @@ void FullSystem::activatePointsMT() {
       }
     }
   }
+#ifdef SHOW_DISTANCE_MAP
+  MinimalImageB3 *img_dist_after;
 
+  img_dist_after = new MinimalImageB3(wG[0], hG[0]);
+  for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+    Vec3f *colorRef = newestHs->dIp[0] + wG[0] * hG[0] * cam;
+    for (int i = 0; i < wG[0] * hG[0]; i++) {
+      // BRIGHTNESS TRANSFER
+      float colL = (*(colorRef + i))[0];
+      if (colL < 0)
+        colL = 0;
+      if (colL > 255)
+        colL = 255;
+      img_dist_after->at(i, cam) = Vec3b(colL, colL, colL);
+    }
+    float nid = 0, sid = 0;
+    for (int col = 0; col < wG[1]; col += plot_step) {
+      for (int row = 0; row < hG[1]; row += plot_step) {
+        float dist =
+            coarseDistanceMap
+                ->fwdWarpedIDDistFinal[col + wG[1] * row + wG[1] * hG[1] * cam];
+        if (dist < 0.0001 || dist > 999) {
+          continue;
+        }
+        nid++;
+        sid += dist;
+      }
+    }
+    float fac = nid / sid;
+    for (int col = 5; col < wG[1] - 5; col += plot_step) {
+      for (int row = 5; row < hG[1] - 5; row += plot_step) {
+        float dist =
+            coarseDistanceMap
+                ->fwdWarpedIDDistFinal[col + wG[1] * row + wG[1] * hG[1] * cam];
+        if (dist < 0.0001 || dist > 999) {
+          continue;
+        }
+        img_dist_after->setPixelCirc(2 * col, 2 * row,
+                                     makeRainbow3B(dist * fac), cam);
+      }
+    }
+  }
+  IOWrap::displayImage("dist map in target after", img_dist_after);
+  IOWrap::waitKey(1);
+  delete img_dist_after;
+#endif
   //	printf("ACTIVATE: %d. (del %d, notReady %d, marg %d, good %d, marg-skip
   //%d)\n", 			(int)toOptimize.size(), immature_deleted,
   // immature_notReady, immature_needMarg, immature_want, immature_margskip); [
@@ -1054,9 +1165,13 @@ void FullSystem::activatePointsMT() {
     }
 
     if (newpoint != 0 && newpoint != (PointHessian *)((long)(-1))) {
-
-#ifdef SHOW_NEWLY_ACTIVATED_POINTS
+      // TODO roger, 即使是lastTrackingStatus是oob也可以尝试激活，
+      // 万一它上上次，上上次是好点呢？上一次可能只是被遮挡了
+      // printf("oob_count: %d\n", oob_count);
+      // assert(oob_count < kCameraNumUsed);
       assert(newpoint->host == ph->host);
+#ifdef SHOW_NEWLY_ACTIVATED_POINTS
+      // assert(newpoint->host == ph->host);
       SE3 fhToNew_ = newestHs->PRE_worldToCam * newpoint->host->PRE_camToWorld;
       for (int target_cam = 0; target_cam < kCameraNumUsed; ++target_cam) {
         SE3 fhToNew =
@@ -1069,12 +1184,23 @@ void FullSystem::activatePointsMT() {
             (coarseDistanceMap->K[0] * fhToNew.translation().cast<float>());
         // see if we need to activate point due to distance map.
         Vec3f ptp = KRKi * Vec3f(ph->u, ph->v, 1) + Kt * newpoint->idepth;
+        Vec3f xyz_cur = fhToNew.rotationMatrix().cast<float>() *
+                            (coarseDistanceMap->Ki[0] * Vec3f(ph->u, ph->v, 1) /
+                             (0.5 * (ph->idepth_max + ph->idepth_min))) +
+                        fhToNew.translation().cast<float>();
         /// reproject from old[0] to new[1]
         int u = ptp[0] / ptp[2] + 0.5f;
         int v = ptp[1] / ptp[2] + 0.5f;
-        if ((u > 0 && v > 0 && u < wG[0] && v < hG[0])) {
-          img_target->setPixel9(u + 0.5, v + 0.5, makeRainbow3B(0.1),
-                                target_cam);
+        Vec3f proj = coarseDistanceMap->K[0] * xyz_cur;
+        proj /= proj[2];
+        if ((u > 10 && v > 10 && u < wG[0] - 10 && v < hG[0] - 10) &&
+            xyz_cur[2] > 0.05 &&
+            (proj[0] > 10 && proj[1] > 10 && proj[0] < wG[0] - 10 &&
+             proj[1] < hG[0] - 10)) {
+          img_target->setPixelCirc(proj[0] + 0.5, proj[1] + 0.5,
+                                   makeRainbow3B(0.1), target_cam);
+          img_target->setPixelCirc(u + 0.5, v + 0.5, makeRainbow3B(1),
+                                   target_cam);
         }
       }
 #endif
@@ -1126,7 +1252,7 @@ void FullSystem::activatePointsMT() {
          optimized_points, toOptimize.size());
 #ifdef SHOW_NEWLY_ACTIVATED_POINTS
   IOWrap::displayImage("newly activated in target", img_target);
-  IOWrap::waitKey(0);
+  IOWrap::waitKey(1);
   delete img_target;
 #endif
   //[ ***step 5*** ] 把删除的点丢掉
@@ -1862,6 +1988,7 @@ void FullSystem::makeNonKeyFrame(FrameHessian *fh) {
 }
 
 //@ 生成关键帧, 优化, 激活点, 提取点, 边缘化关键帧
+#define SHOW_NEWLY_PREDICTED_RESIDUALS
 void FullSystem::makeKeyFrame(FrameHessian *fh) {
   dmvio::TimeMeasurement timeMeasurement("makeKeyframe");
   //[ ***step 1*** ] 设置当前估计的fh的位姿, 光度参数
@@ -1913,7 +2040,24 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
   // 设置当前估计相对于fej的增量,对pose来说还要把相对于fej的绝对增量转成相对增量
   setPrecalcValues(); // 每添加一个关键帧都会运行这个来设置位姿,
                       // 设置位姿线性化点
+#if defined(SHOW_NEWLY_PREDICTED_RESIDUALS) // && defined(USE_MULTI_CAM)
+  MinimalImageB3 *img_target;
+  img_target = new MinimalImageB3(wG[0], hG[0]);
 
+  for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+    Vec3f *colorRef = fh->dI + wG[0] * hG[0] * cam;
+    for (int i = 0; i < wG[0] * hG[0]; i++) {
+      // BRIGHTNESS TRANSFER
+      float colL = (*(colorRef + i))[0];
+      if (colL < 0)
+        colL = 0;
+      if (colL > 255)
+        colL = 255;
+      img_target->at(i, cam) = Vec3b(colL, colL, colL);
+    }
+  }
+
+#endif
   //[ ***step 5*** ] 构建之前关键帧与当前帧fh的残差(旧的), or before
   // optimization
   // =========================== add new residuals for old points
@@ -1949,6 +2093,41 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
       ef->insertResidual(r, Hcalib.p_multi_camera, true);
       ph->lastResiduals[1] = ph->lastResiduals[0];
       std::array<ResState, kCameraNumUsed> res_state{};
+#ifdef USE_MULTI_CAM
+      SE3 fhToNew_ = fh->PRE_worldToCam * ph->host->PRE_camToWorld;
+      std::vector<ImmaturePoint *> toOptimize;
+      ImmaturePoint *impt = new ImmaturePoint(ph->u, ph->v, ph->host, 0,
+                                              &Hcalib, ph->host_cid, 0);
+      assert(std::isfinite(impt->energyTH));
+      impt->idepth_min = impt->idepth_max = ph->idepth;
+      toOptimize.push_back(impt);
+      std::vector<PointHessian *> optimized;
+      // PointHessian *point_hessian;
+      // optimized.push_back(point_hessian);
+      optimized.resize(toOptimize.size());
+      ImmaturePointTemporaryResidual *tr =
+          new ImmaturePointTemporaryResidual[frameHessians.size() *
+                                             kCameraNumUsed];
+      optimized[0] = optimizeImmaturePoint(toOptimize[0], 1, tr, false);
+
+      PointHessian *newpoint = optimized[0];
+      ph->idepth_before = ph->idepth;
+      if (newpoint != 0 && newpoint != (PointHessian *)((long)(-1))) {
+        // printf("depth_diff: %f\n", 1 / newpoint->idepth - 1 / ph->idepth);
+        ph->setIdepthZero(newpoint->idepth);
+        ph->setIdepth(newpoint->idepth);
+        delete newpoint;
+      } else if (newpoint == (PointHessian *)((long)(-1))) {
+        // delete newpoint;
+      } else {
+        assert(newpoint == 0 /*|| newpoint == (PointHessian *)((long)(-1))*/);
+      }
+      delete impt;
+      // delete point_hessian;
+      delete[] tr;
+      toOptimize.clear();
+      optimized.clear();
+#endif
       for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
         r->setState(ResState::IN, target_cid);
         // 设置上上个残差
@@ -1957,6 +2136,33 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
         //                            r, ResState::IN);
         //                    std::pair<PointFrameResidual *, ResState>(
         //                            r, ResState::IN); // 当前的设置为上一个
+#if defined(SHOW_NEWLY_PREDICTED_RESIDUALS) // && defined(USE_MULTI_CAM)
+        SE3 fhToNew = fh->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() *
+                      fhToNew_ *
+                      fh->p_multi_camera->cid_to_T01_SE3[ph->host_cid];
+        Vec3f xyz_cur = fhToNew.rotationMatrix().cast<float>() *
+                            (coarseDistanceMap->Ki[0] * Vec3f(ph->u, ph->v, 1) /
+                             (ph->idepth)) +
+                        fhToNew.translation().cast<float>();
+        Vec3f proj = coarseDistanceMap->K[0] * xyz_cur;
+        proj /= proj[2];
+        Vec3f xyz_cur0 = fhToNew.rotationMatrix().cast<float>() *
+                             (coarseDistanceMap->Ki[0] *
+                              Vec3f(ph->u, ph->v, 1) / (ph->idepth_before)) +
+                         fhToNew.translation().cast<float>();
+        Vec3f proj0 = coarseDistanceMap->K[0] * xyz_cur0;
+        proj0 /= proj0[2];
+        if (xyz_cur[2] > 0.05 && xyz_cur0[2] > 0.05 &&
+            (proj[0] > 10 && proj[1] > 10 && proj[0] < wG[0] - 10 &&
+             proj[1] < hG[0] - 10) &&
+            (proj0[0] > 10 && proj0[1] > 10 && proj0[0] < wG[0] - 10 &&
+             proj0[1] < hG[0] - 10)) {
+          img_target->setPixelCirc(proj0[0] + 0.5, proj0[1] + 0.5,
+                                   makeRainbow3B(0.1), target_cid);
+          img_target->setPixel9(proj[0] + 0.5, proj[1] + 0.5, makeRainbow3B(1),
+                                target_cid);
+        }
+#endif
       }
       ph->lastResiduals[0] =
           std::pair<PointFrameResidual *, std::array<ResState, kCameraNumUsed>>(
@@ -1966,7 +2172,11 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
       //}
     }
   }
-
+#if defined(SHOW_NEWLY_PREDICTED_RESIDUALS) // && defined(USE_MULTI_CAM)
+  IOWrap::displayImage("predicted vms in newest frame", img_target);
+  IOWrap::waitKey(1);
+  delete img_target;
+#endif
   if (false) {
     printf("frameHessians: %d\n", frameHessians.size());
     int fid = 0;
@@ -2164,7 +2374,88 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
     imuIntegration.finishKeyframeOperations(fh->shell->id);
   }
 }
+//#define SHOW_SEED_MASK_RET
+void FullSystem::maskSeedsAcrossCids() {
+#ifdef SHOW_SEED_MASK_RET
+  MinimalImageB3 *img_host;
+#endif
+  FrameHessian *firstFrame = coarseInitializer->firstFrame;
+  SE3 firstToNew = coarseInitializer->thisToNext;
+  for (int cid1 = 0; cid1 < kCameraNumUsed; ++cid1) {
+    for (int i = 0; i < coarseInitializer->level_cid_to_numPoints[0][cid1];
+         i++) {
+      Pnt *point1 =
+          coarseInitializer->points[0] + i +
+          coarseInitializer->level_cid_to_npts_success_offset[0][cid1];
+      float idepth = point1->idepth;
+      Vec3f uv_1 = Vec3f(point1->u, point1->v, 1);
 
+      if (!point1->isGood) {
+        continue;
+      }
+#ifdef SHOW_SEED_MASK_RET
+      img_host = new MinimalImageB3(wG[0], hG[0]);
+
+      for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+        Vec3f *colorRef = firstFrame->dI + wG[0] * hG[0] * cam;
+        for (int i = 0; i < wG[0] * hG[0]; i++) {
+          // BRIGHTNESS TRANSFER
+          float colL = (*(colorRef + i))[0];
+          if (colL < 0)
+            colL = 0;
+          if (colL > 255)
+            colL = 255;
+          img_host->at(i, cam) = Vec3b(colL, colL, colL);
+        }
+      }
+      img_host->setPixelCirc(point1->u + 0.5, point1->v + 0.5, makeRainbow3B(1),
+                             cid1);
+#endif
+      for (int cid2 = 0; cid2 < kCameraNumUsed; ++cid2) {
+        if (cid1 == cid2) {
+          continue;
+        }
+        SE3 Tc2c1 = Hcalib.p_multi_camera->cid_to_T01_SE3_inv[cid2] *
+                    Hcalib.p_multi_camera->cid_to_T01_SE3[cid1];
+        Vec3f xyz2 =
+            (Tc2c1 * ((KiG[0] * uv_1) / idepth).cast<double>()).cast<float>();
+        Vec3f uv_21 = KG[0] * xyz2;
+        uv_21 /= uv_21[2];
+        if (!(uv_21[0] > 10 && uv_21[1] > 10 && uv_21[0] < wG[0] - 10 &&
+              uv_21[1] < hG[0] - 10 && xyz2[2] > 0.1)) {
+          continue;
+        }
+        // std::cout << "cid2; " << cid2 << ", uv_21: " << uv_21.transpose() <<
+        // std::endl;
+        for (int j = 0; j < coarseInitializer->level_cid_to_numPoints[0][cid2];
+             j++) {
+          Pnt *point2 =
+              coarseInitializer->points[0] + j +
+              coarseInitializer->level_cid_to_npts_success_offset[0][cid2];
+          if (!point2->isGood) {
+            continue;
+          }
+          Vec3f uv_2 = Vec3f(point2->u, point2->v, 1);
+#ifdef SHOW_SEED_MASK_RET
+          img_host->setPixelCirc(point2->u + 0.5, point2->v + 0.5,
+                                 makeRainbow3B(0.1), cid2);
+#endif
+        }
+#ifdef SHOW_SEED_MASK_RET
+        img_host->setPixelCirc(uv_21[0] + 0.5, uv_21[1] + 0.5, makeRainbow3B(1),
+                               cid2);
+#endif
+      }
+#ifdef SHOW_SEED_MASK_RET
+      IOWrap::displayImage("masked seeds", img_host);
+      IOWrap::waitKey(0);
+#endif
+    }
+  }
+#ifdef SHOW_SEED_MASK_RET
+  delete img_host;
+#endif
+}
 //@ 从初始化中提取出信息, 用于跟踪.
 void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
   boost::unique_lock<boost::mutex> lock(mapMutex);
@@ -2192,6 +2483,11 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
                                                 0.2f);        // 被边缘化
   firstFrame->pointHessiansOut.reserve(wG[0] * hG[0] * 0.2f); // 丢掉的点
 
+  // mask seeds across cids
+  if (kCameraNumUsed > 1) {
+    maskSeedsAcrossCids();
+  }
+
   //[ ***step 2*** ] 求出平均尺度因子
   float sumID = 1e-5, numID = 1e-5;
 
@@ -2202,13 +2498,26 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
     for (int i = 0; i < coarseInitializer->level_cid_to_numPoints[0][cid];
          i++) {
       //? iR的值到底是啥
-      sumID +=
-          coarseInitializer
-              ->points[0][i + coarseInitializer
-                                  ->level_cid_to_npts_success_offset[0][cid]]
-              .iR; // 第0层点的中位值, 相当于
-      numID++;
-      num++;
+      if (false) {
+        sumID +=
+            coarseInitializer
+                ->points[0][i + coarseInitializer
+                                    ->level_cid_to_npts_success_offset[0][cid]]
+                .iR; // 第0层点的中位值, 相当于
+        numID++;
+        num++;
+      } else {
+        Pnt point =
+            coarseInitializer
+                ->points[0][i + coarseInitializer
+                                    ->level_cid_to_npts_success_offset[0][cid]];
+        if (!point.isGood) {
+          continue;
+        }
+        sumID += point.iR; // 第0层点的中位值, 相当于
+        numID++;
+        num++;
+      }
     }
   }
   //  sumFirst /= num;
@@ -2231,7 +2540,21 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
   if (!setting_debugout_runquiet) {
     int point_count = 0;
     for (int id = 0; id < kCameraNumUsed; ++id) {
-      point_count += coarseInitializer->level_cid_to_numPoints[0][id];
+      if (false) {
+        point_count += coarseInitializer->level_cid_to_numPoints[0][id];
+      } else {
+        for (int i = 0; i < coarseInitializer->level_cid_to_numPoints[0][id];
+             i++) {
+          Pnt point =
+              coarseInitializer
+                  ->points[0]
+                          [i + coarseInitializer
+                                   ->level_cid_to_npts_success_offset[0][id]];
+          if (point.isGood) {
+            point_count++;
+          }
+        }
+      }
     }
     printf("Initialization: keep %.1f%% (need %d, have %d)!\n",
            100 * keepPercentage, (int)(setting_desiredPointDensity), point_count
@@ -2239,6 +2562,9 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
                    ->level_cid_to_npts_success_offset[0][kCameraNumUsed - 1] +
            coarseInitializer->level_cid_to_numPoints[0][kCameraNumUsed - 1]*/
            /*numID */ /*coarseInitializer->numPoints[0]*/);
+    if (kCameraNumUsed > 1) {
+      assert(std::abs(static_cast<float>(point_count) - numID) < 0.0001);
+    }
   }
   //[ ***step 3*** ] 创建PointHessian, 点加入关键帧, 加入EnergyFunctional
 //#define CHECK_INIT
@@ -2278,15 +2604,18 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
   for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
     for (int i = 0; i < coarseInitializer->level_cid_to_numPoints[0][host_cid];
          i++) {
-      if (rand() / (float)RAND_MAX > keepPercentage)
-        continue; // 如果提取的点比较少, 不执行; 提取的多, 则随机干掉
-
+      if (rand() / (float)RAND_MAX > keepPercentage) {
+        // continue; // 如果提取的点比较少, 不执行; 提取的多, 则随机干掉
+      }
       Pnt *point =
           coarseInitializer->points[0] + i +
           coarseInitializer->level_cid_to_npts_success_offset[0][host_cid];
       // TODO roger, like SetFromImage in orca, 判断这个坐标纹理是否充分
       if (!point->isGood) {
         continue;
+      }
+      if (rand() / (float)RAND_MAX > keepPercentage) {
+        continue; // 如果提取的点比较少, 不执行; 提取的多, 则随机干掉
       }
       assert(point->host_cid == host_cid);
       ImmaturePoint *pt;
@@ -2299,6 +2628,7 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
       }
 
       if (!std::isfinite(pt->energyTH)) {
+        assert(!std::isfinite(pt->energyTH_converged));
         delete pt;
         continue;
       } // 点值无穷大
@@ -2311,9 +2641,13 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
       }
       // std::cout << "idepth: " << point->idepth << std::endl;
       PointHessian *ph = new PointHessian(pt, &Hcalib, host_cid);
+      assert(std::isfinite(pt->energyTH));
+      assert(std::isfinite(pt->energyTH_converged));
       delete pt;
       // TODO roger, create patch, setFromImage, if fail, delete the point
       if (!std::isfinite(ph->energyTH)) {
+        printf("energyTH MUST NOT be NAN, sth wrong\n");
+        std::exit(1);
         delete ph;
         continue;
       }
@@ -2434,12 +2768,28 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
   printf("### ### INITIALIZE FROM INITIALIZER (%d pts)!\n",
          (int)firstFrame->pointHessians.size());
 }
-
+//#define SHOW_DETECTION_MASK
 void FullSystem::makeNewTraces(FrameHessian *newFrame, float *gtDepth) {
   dmvio::TimeMeasurement timeMeasurement("makeNewTraces");
   pixelSelector->allowFast = true;
   // int numPointsTotal = makePixelStatus(newFrame->dI, selectionMap, wG[0],
   // hG[0], setting_desiredDensity);
+#ifdef SHOW_DETECTION_MASK
+  MinimalImageB3 *img = new MinimalImageB3(wG[0], hG[0]);
+  // img->setBlack();
+  for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+    Vec3f *colorRef = newFrame->dI + wG[0] * hG[0] * cam;
+    for (int i = 0; i < wG[0] * hG[0]; i++) {
+      // BRIGHTNESS TRANSFER
+      float colL = (*(colorRef + i))[0];
+      if (colL < 0)
+        colL = 0;
+      if (colL > 255)
+        colL = 255;
+      img->at(i, cam) = Vec3b(colL, colL, colL);
+    }
+  }
+#endif
   int numPointsTotal = 0;
   // TODO roger, in LBA, we only detect new points at level 0
   for (int cid = 0; cid < kCameraNumUsed; ++cid) {
@@ -2452,8 +2802,10 @@ void FullSystem::makeNewTraces(FrameHessian *newFrame, float *gtDepth) {
   newFrame->pointHessiansMarginalized.reserve(numPointsTotal * 1.2f);
   newFrame->pointHessiansOut.reserve(numPointsTotal * 1.2f);
   for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-    for (int y = patternPadding + 1; y < hG[0] - patternPadding - 2; y++)
-      for (int x = patternPadding + 1; x < wG[0] - patternPadding - 2; x++) {
+    for (int y = patternPaddingSeed + 1; y < hG[0] - patternPaddingSeed - 2;
+         y++)
+      for (int x = patternPaddingSeed + 1; x < wG[0] - patternPaddingSeed - 2;
+           x++) {
         int i = x + y * wG[0];
         if (selectionMap[i + wG[0] * hG[0] * cid] == 0)
           continue;
@@ -2461,12 +2813,25 @@ void FullSystem::makeNewTraces(FrameHessian *newFrame, float *gtDepth) {
         ImmaturePoint *impt = new ImmaturePoint(
             x, y, newFrame, selectionMap[i + wG[0] * hG[0] * cid], &Hcalib, cid,
             0);
+        // float dist = coarseDistanceMap
+        //                       ->fwdWarpedIDDistFinal[x /2 + wG[1] * y/2 +
+        //                                              wG[1] * hG[1] * cid] +
+        //                                              (ptp[0] -
+        //                                              floorf((float)(ptp[0])));
         if (!std::isfinite(impt->energyTH))
           delete impt; // 投影得到的不是有穷数
         else
           newFrame->immaturePoints.push_back(impt);
+#ifdef SHOW_DETECTION_MASK
+        img->setPixel9(impt->u + 0.5, impt->v + 0.5, makeRainbow3B(1), cid);
+#endif
       }
   }
+#ifdef SHOW_DETECTION_MASK
+  IOWrap::displayImage("new point detection mask", img);
+  IOWrap::waitKey(0);
+  delete img;
+#endif
   // printf("MADE %d IMMATURE POINTS!\n", (int)newFrame->immaturePoints.size());
 }
 

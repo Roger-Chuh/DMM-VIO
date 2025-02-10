@@ -75,10 +75,10 @@ ImmaturePoint::ImmaturePoint(int u_, int v_, FrameHessian *host_, float type,
   }
 
   gradH.setZero();
-
-  for (int idx = 0; idx < patternNum; idx++) {
-    int dx = patternP[idx][0];
-    int dy = patternP[idx][1];
+  gradH_converged.setZero();
+  for (int idx = 0; idx < patternNumSeed; idx++) {
+    int dx = patternPSeed[idx][0];
+    int dy = patternPSeed[idx][1];
     // 由于+0.5导致积分, 插值得到值3个 [像素值, dx, dy]
     // Vec3f ptc = getInterpolatedElement33BiLin(host->dI, u + dx, v + dy,
     // wG[0]);
@@ -89,6 +89,7 @@ ImmaturePoint::ImmaturePoint(int u_, int v_, FrameHessian *host_, float type,
     color[idx] = ptc[0];
     if (!std::isfinite(color[idx])) {
       energyTH = NAN;
+      energyTH_converged = NAN;
       return;
     }
 
@@ -99,9 +100,36 @@ ImmaturePoint::ImmaturePoint(int u_, int v_, FrameHessian *host_, float type,
         sqrtf(setting_outlierTHSumComponent /
               (setting_outlierTHSumComponent + ptc.tail<2>().squaredNorm()));
   }
+  for (int idx = 0; idx < patternNum; idx++) {
+    int dx = patternP[idx][0];
+    int dy = patternP[idx][1];
+    // 由于+0.5导致积分, 插值得到值3个 [像素值, dx, dy]
+    // Vec3f ptc = getInterpolatedElement33BiLin(host->dI, u + dx, v + dy,
+    // wG[0]);
+    Vec3f ptc = getInterpolatedElement33BiLin(
+        host->dIp[host_level_] + wG[host_level] * hG[host_level] * host_cid,
+        u + dx, v + dy, wG[host_level]);
 
-  energyTH = patternNum * setting_outlierTH;
+    color_converged[idx] = ptc[0];
+    if (!std::isfinite(color_converged[idx])) {
+      energyTH = NAN;
+      energyTH_converged = NAN;
+      return;
+    }
+
+    // 梯度矩阵[dx*2, dxdy; dydx, dy^2]
+    gradH_converged += ptc.tail<2>() * ptc.tail<2>().transpose();
+    //! 点的权重 c^2 / ( c^2 + ||grad||^2 )
+    weights_converged[idx] =
+        sqrtf(setting_outlierTHSumComponent /
+              (setting_outlierTHSumComponent + ptc.tail<2>().squaredNorm()));
+  }
+
+  energyTH = patternNumSeed * setting_outlierTH;
   energyTH *= setting_overallEnergyTHWeight * setting_overallEnergyTHWeight;
+  energyTH_converged = patternNum * setting_outlierTH;
+  energyTH_converged *=
+      setting_overallEnergyTHWeight * setting_overallEnergyTHWeight;
 
   idepth_GT = 0;
   //   quality[target_cid] = 10000;
@@ -124,7 +152,7 @@ ImmaturePointStatus ImmaturePoint::traceOn(
     bool show_image) {
   if (lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_OOB)
     return lastTraceStatus[target_cid];
-
+  // float setting_huberTH_use = setting_huberTH_loose;
   debugPrint = false; // rand()%100==0;
 #ifdef USE_MULTI_CAM
   float maxPixSearch = (wG[lvl] + hG[lvl]) * setting_maxPixSearch *
@@ -190,9 +218,10 @@ ImmaturePointStatus ImmaturePoint::traceOn(
 #endif
 
   //* pattern在新的帧上的偏移量
-  Vec2f rotatetPattern[MAX_RES_PER_POINT];
-  for (int idx = 0; idx < patternNum; idx++) {
-    rotatetPattern[idx] = Rplane * Vec2f(patternP[idx][0], patternP[idx][1]);
+  Vec2f rotatetPattern[MAX_RES_PER_POINT_SEED];
+  for (int idx = 0; idx < patternNumSeed; idx++) {
+    rotatetPattern[idx] =
+        Rplane * Vec2f(patternPSeed[idx][0], patternPSeed[idx][1]);
     int absX = (int)abs(rotatetPattern[idx][0]);
     int absY = (int)abs(rotatetPattern[idx][1]);
     maxRotPatX = std::max(absX, maxRotPatX);
@@ -423,7 +452,7 @@ ImmaturePointStatus ImmaturePoint::traceOn(
 
   for (int i = 0; i < numSteps; i++) {
     float energy = 0;
-    for (int idx = 0; idx < patternNum; idx++) {
+    for (int idx = 0; idx < patternNumSeed; idx++) {
       float hitColor;
       if (!is_first_frame) {
         hitColor = getInterpolatedElement31(
@@ -451,9 +480,9 @@ ImmaturePointStatus ImmaturePoint::traceOn(
           hitColor - (float)(hostToFrame_affine[0] *
                                  (color[idx /* + wG[0] * hG[0] *  host_cid*/]) +
                              hostToFrame_affine[1]);
-      float hw = fabs(residual) < setting_huberTH
+      float hw = fabs(residual) < setting_huberTH_search
                      ? 1
-                     : setting_huberTH / fabs(residual);
+                     : setting_huberTH_search / fabs(residual);
       energy += hw * residual * residual * (2 - hw);
     }
 
@@ -493,7 +522,7 @@ ImmaturePointStatus ImmaturePoint::traceOn(
   int gnStepsGood = 0, gnStepsBad = 0;
   for (int it = 0; it < setting_trace_GNIterations; it++) {
     float H = 1, b = 0, energy = 0;
-    for (int idx = 0; idx < patternNum; idx++) {
+    for (int idx = 0; idx < patternNumSeed; idx++) {
       float posU = (float)(bestU + rotatetPattern[idx][0]);
       float posV = (float)(bestV + rotatetPattern[idx][1]);
       if (posU < 0 || posV < 0 || posU >= wG[lvl] - 1 || posV >= hG[lvl] - 1) {
@@ -529,9 +558,9 @@ ImmaturePointStatus ImmaturePoint::traceOn(
                                       hostToFrame_affine[1]);
       float dResdDist =
           dx * hitColor[1] + dy * hitColor[2]; /// 极线方向梯度, jacobian
-      float hw = fabs(residual) < setting_huberTH
+      float hw = fabs(residual) < setting_huberTH_search
                      ? 1
-                     : setting_huberTH / fabs(residual);
+                     : setting_huberTH_search / fabs(residual);
       /// 跟一维光流一样，只是不再是正方形邻域，变成了环形邻域
       H += hw * dResdDist * dResdDist;
       b += hw * residual * dResdDist;
@@ -704,17 +733,18 @@ float ImmaturePoint::calcResidual(CalibHessian *HCalib,
                                   ImmaturePointTemporaryResidual *tmpRes,
                                   float idepth) {
   FrameFramePrecalc *precalc = &(host->targetPrecalc[tmpRes->target->idx]);
-
+  // float setting_huberTH_use = setting_huberTH_loose;
   float energyLeft = 0;
   const Eigen::Vector3f *dIl = tmpRes->target->dI;
   const Mat33f &PRE_KRKiTll = precalc->PRE_KRKiTll;
   const Vec3f &PRE_KtTll = precalc->PRE_KtTll;
   Vec2f affLL = precalc->PRE_aff_mode;
 
-  for (int idx = 0; idx < patternNum; idx++) {
+  for (int idx = 0; idx < patternNumSeed; idx++) {
     float Ku, Kv;
-    if (!projectPoint(this->u + patternP[idx][0], this->v + patternP[idx][1],
-                      idepth, PRE_KRKiTll, PRE_KtTll, Ku, Kv)) {
+    if (!projectPoint(this->u + patternPSeed[idx][0],
+                      this->v + patternPSeed[idx][1], idepth, PRE_KRKiTll,
+                      PRE_KtTll, Ku, Kv)) {
       return 1e10;
     }
 
@@ -727,9 +757,9 @@ float ImmaturePoint::calcResidual(CalibHessian *HCalib,
 
     float residual = hitColor[0] - (affLL[0] * color[idx] + affLL[1]);
 
-    float hw = fabsf(residual) < setting_huberTH
+    float hw = fabsf(residual) < setting_huberTH_search
                    ? 1
-                   : setting_huberTH / fabsf(residual);
+                   : setting_huberTH_search / fabsf(residual);
     energyLeft +=
         weights[idx] * weights[idx] * hw * residual * residual * (2 - hw);
   }
@@ -746,19 +776,22 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
                                         CalibHessian *HCalib,
                                         const float outlierTHSlack,
                                         ImmaturePointTemporaryResidual *tmpRes,
-                                        float &Hdd, float &bd, float idepth) {
+                                        float &Hdd, float &bd, float idepth,
+                                        int lvl_target) {
+
   if (tmpRes->state_state == ResState::OOB) {
     tmpRes->state_NewState = ResState::OOB;
     return tmpRes->state_energy;
   }
-
+  // float setting_huberTH_use = setting_huberTH_loose;
   FrameFramePrecalc *precalc = &(host->targetPrecalc[tmpRes->target->idx]);
 
   // check OOB due to scale angle change.
 
   float energyLeft = 0;
   // TODO roger, only opt in level 0
-  const Eigen::Vector3f *dIl = tmpRes->target->dI + wG[0] * hG[0] * target_cid;
+  const Eigen::Vector3f *dIl = tmpRes->target->dIp[lvl_target] +
+                               wG[lvl_target] * hG[lvl_target] * target_cid;
   const Mat33f &PRE_RTll =
       precalc->a_PRE_RTll[host_cid * kCameraNumUsed + target_cid];
   const Vec3f &PRE_tTll =
@@ -797,18 +830,18 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
 
 #endif
 
-  for (int idx = 0; idx < patternNum; idx++) {
-    int dx = patternP[idx][0];
-    int dy = patternP[idx][1];
+  for (int idx = 0; idx < patternNumSeed; idx++) {
+    int dx = patternPSeed[idx][0];
+    int dy = patternPSeed[idx][1];
 
     float drescale, u, v, new_idepth; /// u,v metric coordinate
     float Ku, Kv;                     /// pixel coordinate
     Vec3f KliP;
     /// kidding me ? new_idepth was never used, not to mention it's not even the
     /// ACTUAL new_idepth in target frame
-    bool projectedd =
-        projectPoint(this->u, this->v, idepth, dx, dy, HCalib, PRE_RTll,
-                     PRE_tTll, drescale, u, v, Ku, Kv, KliP, new_idepth);
+    bool projectedd = projectPoint(this->u, this->v, idepth, dx, dy, HCalib,
+                                   PRE_RTll, PRE_tTll, drescale, u, v, Ku, Kv,
+                                   KliP, new_idepth, lvl_target);
 #ifdef SHOW_POINT_OPT
     if (show_image) {
       if (idx == 0 && (Ku > 15 && Kv > 15 && Ku < wG[0] - 15 &&
@@ -831,7 +864,7 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
     }
 
     /// dIl传进来只是为了得到数据的地址,用以指向角点4邻域内的数据，它的内容并不参与计算，指针妙用
-    Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
+    Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[lvl_target]));
 
     if (!std::isfinite((float)hitColor[0])) {
       tmpRes->state_NewState = ResState::OOB;
@@ -842,16 +875,16 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
     float residual = hitColor[0] - (affLL[0] * color[idx] + affLL[1]);
     // printf("idx: %d, residual: %f\n", idx, residual);
 
-    float hw = fabsf(residual) < setting_huberTH
+    float hw = fabsf(residual) < setting_huberTH_opt
                    ? 1
-                   : setting_huberTH / fabsf(residual);
+                   : setting_huberTH_opt / fabsf(residual);
     energyLeft +=
         weights[idx] * weights[idx] * hw * residual * residual * (2 - hw);
 
     // depth derivatives.
     /// assume the 8 neighbours share the same idepth
-    float dxInterp = hitColor[1] * HCalib->fxl();
-    float dyInterp = hitColor[2] * HCalib->fyl();
+    float dxInterp = hitColor[1] * fxG[lvl_target]; // HCalib->fxl();
+    float dyInterp = hitColor[2] * fyG[lvl_target]; // HCalib->fyl();
     float d_idepth =
         derive_idepth(PRE_tTll, u, v, dx, dy, dxInterp, dyInterp, drescale);
 

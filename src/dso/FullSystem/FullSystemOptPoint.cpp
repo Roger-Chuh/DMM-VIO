@@ -48,9 +48,11 @@ namespace dso {
 /// 是优化滑窗内所有关键帧上的未成熟点
 /// 然后往最新关键帧上投构造photometric error？(seems like it) (scratch that)
 /// it's multiple view triangulate for one point
+#define SHOW_MULTI_VIEW_OTP
 PointHessian *
 FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
-                                  ImmaturePointTemporaryResidual *residuals) {
+                                  ImmaturePointTemporaryResidual *residuals,
+                                  bool add_to_residuals) {
   ///[ ***step 1*** ] 初始化和其它关键帧的res(点在其它关键帧上投影)
   int nres = 0;
   std::map<int, int> nres_to_target_cid;
@@ -70,87 +72,105 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
   }
   assert(nres == kCameraNumUsed * (((int)frameHessians.size()) - 1));
 
-  bool print = false; // rand()%50==0;
+  bool print = false; // !add_to_residuals ; // rand()%50==0;
 
   float lastEnergy = 0;
   float lastHdd = 0;
   float lastbd = 0;
   float currentIdepth = (point->idepth_max + point->idepth_min) * 0.5f;
 
-  for (int i = 0; i < nres; i++) {
-    lastEnergy +=
-        point->linearizeResidual(nres_to_target_cid.at(i), &Hcalib, 1000,
-                                 residuals + i, lastHdd, lastbd, currentIdepth);
-    residuals[i].state_state = residuals[i].state_NewState;
-    residuals[i].state_energy = residuals[i].state_NewEnergy;
-  }
+#ifdef SHOW_MULTI_VIEW_OTP
 
-  if (!std::isfinite(lastEnergy) || lastHdd < setting_minIdepthH_act) {
-    if (print)
-      printf("OptPoint: Not well-constrained (%d res, H=%.1f). E=%f. SKIP!\n",
-             nres, lastHdd, lastEnergy);
-    return 0;
-  }
-
-  if (print)
-    printf("Activate point. %d residuals. H=%f. Initial Energy: %f. Initial "
-           "Id=%f\n",
-           nres, lastHdd, lastEnergy, currentIdepth);
-
-  float lambda = 0.1;
-  for (int iteration = 0; iteration < setting_GNItsOnPointActivation;
-       iteration++) {
-    float H = lastHdd;
-    H *= 1 + lambda;
-    float step = (1.0 / H) * lastbd;
-    float newIdepth = currentIdepth - step;
-
-    float newHdd = 0;
-    float newbd = 0;
-    float newEnergy = 0;
+#endif
+  for (int lvl_target = pyrLevelsUsed - 1; lvl_target >= 0; lvl_target--) {
+    lastEnergy = 0;
+    lastHdd = 0;
+    lastbd = 0;
     for (int i = 0; i < nres; i++) {
-      newEnergy +=
-          point->linearizeResidual(nres_to_target_cid.at(i), &Hcalib, 1,
-                                   residuals + i, newHdd, newbd, newIdepth);
+      residuals[i].state_NewEnergy = residuals[i].state_energy = 0;
+      residuals[i].state_NewState = ResState::OUTLIER;
+      residuals[i].state_state = ResState::IN;
+      lastEnergy += point->linearizeResidual(nres_to_target_cid.at(i), &Hcalib,
+                                             1000, residuals + i, lastHdd,
+                                             lastbd, currentIdepth, lvl_target);
+      residuals[i].state_state = residuals[i].state_NewState;
+      residuals[i].state_energy = residuals[i].state_NewEnergy;
     }
-    if (!std::isfinite(lastEnergy) || newHdd < setting_minIdepthH_act) {
+
+    if (!std::isfinite(lastEnergy) || lastHdd < setting_minIdepthH_act) {
       if (print)
         printf("OptPoint: Not well-constrained (%d res, H=%.1f). E=%f. SKIP!\n",
-               nres, newHdd, lastEnergy);
+               nres, lastHdd, lastEnergy);
       return 0;
     }
 
-    if (print /*|| true*/) {
-      printf("%s %d (L %.2f) %s: %f -> %f (idepth %f)!, step: %f\n",
-             (newEnergy < lastEnergy) ? "ACCEPT" : "REJECT", iteration,
-             log10(lambda), "", lastEnergy, newEnergy, newIdepth, step);
-    }
-    if (newEnergy < lastEnergy) {
-      currentIdepth = newIdepth;
-      lastHdd = newHdd;
-      lastbd = newbd;
-      lastEnergy = newEnergy;
+    if (print)
+      printf("Activate point. %d residuals. H=%f. Initial Energy: %f. Initial "
+             "Id=%f\n",
+             nres, lastHdd, lastEnergy, currentIdepth);
+
+    float lambda = 0.1;
+    for (int iteration = 0; iteration < setting_GNItsOnPointActivation;
+         iteration++) {
+      float H = lastHdd;
+      H *= 1 + lambda;
+      float step = (1.0 / H) * lastbd;
+      float newIdepth = currentIdepth - step;
+
+      float newHdd = 0;
+      float newbd = 0;
+      float newEnergy = 0;
       for (int i = 0; i < nres; i++) {
-        residuals[i].state_state = residuals[i].state_NewState;
-        residuals[i].state_energy = residuals[i].state_NewEnergy;
+        newEnergy += point->linearizeResidual(nres_to_target_cid.at(i), &Hcalib,
+#if 1 // ndef USE_MULTI_CAM //TODO roger, 不能完全不做deoutlier，outlier_thr =
+      // 40太大了，因为可能会有遮挡的情况
+                                              1
+#else
+                                              1000
+#endif
+                                              ,
+                                              residuals + i, newHdd, newbd,
+                                              newIdepth, lvl_target);
+      }
+      if (!std::isfinite(lastEnergy) || newHdd < setting_minIdepthH_act) {
+        if (print)
+          printf(
+              "OptPoint: Not well-constrained (%d res, H=%.1f). E=%f. SKIP!\n",
+              nres, newHdd, lastEnergy);
+        return 0;
       }
 
-      lambda *= 0.5;
-    } else {
-      lambda *= 5;
+      if (print /*|| true*/) {
+        printf("%s %d (L %.2f) %s: %f -> %f (idepth %f)!, step: %f\n",
+               (newEnergy < lastEnergy) ? "ACCEPT" : "REJECT", iteration,
+               log10(lambda), "", lastEnergy, newEnergy, newIdepth, step);
+      }
+      if (newEnergy < lastEnergy) {
+        currentIdepth = newIdepth;
+        lastHdd = newHdd;
+        lastbd = newbd;
+        lastEnergy = newEnergy;
+        for (int i = 0; i < nres; i++) {
+          residuals[i].state_state = residuals[i].state_NewState;
+          residuals[i].state_energy = residuals[i].state_NewEnergy;
+        }
+
+        lambda *= 0.5;
+      } else {
+        lambda *= 5;
+      }
+
+      if (fabsf(step) < 0.0001 * currentIdepth)
+        break;
     }
 
-    if (fabsf(step) < 0.0001 * currentIdepth)
-      break;
+    if (!std::isfinite(currentIdepth)) {
+      printf("MAJOR ERROR! point idepth is nan after initialization (%f).\n",
+             currentIdepth);
+      return (PointHessian *)((
+          long)(-1)); // yeah I'm like 99% sure this is OK on 32bit systems.
+    }
   }
-
-  if (!std::isfinite(currentIdepth)) {
-    printf("MAJOR ERROR! point idepth is nan after initialization (%f).\n",
-           currentIdepth);
-    return (PointHessian *)((
-        long)(-1)); // yeah I'm like 99% sure this is OK on 32bit systems.
-  }
-
   int numGoodRes = 0;
   for (int i = 0; i < nres; i++)
     if (residuals[i].state_state == ResState::IN)
@@ -181,6 +201,10 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
   p->setIdepthZero(currentIdepth);
   p->setIdepth(currentIdepth);
   p->setPointStatus(PointHessian::ACTIVE);
+
+  if (!add_to_residuals) {
+    // return p;
+  }
 
   std::array<ResState, kCameraNumUsed> res_state{};
   for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
@@ -286,9 +310,10 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
   }
 #endif
   if (print)
-    printf("point activated!\n");
-
-  statistics_numActivatedPoints++;
+    printf("point activated! numGoodRes: %d\n", numGoodRes);
+  if (add_to_residuals) {
+    statistics_numActivatedPoints++;
+  }
   return p;
 }
 

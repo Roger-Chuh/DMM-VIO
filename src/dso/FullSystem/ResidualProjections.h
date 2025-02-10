@@ -58,8 +58,8 @@ EIGEN_STRONG_INLINE bool
 projectPoint(const float &u_pt, const float &v_pt, const float &idepth,
              const int &dx, const int &dy, CalibHessian *const &HCalib,
              const Mat33f &R, const Vec3f &t, float &drescale, float &u,
-             float &v, float &Ku, float &Kv, Vec3f &KliP,
-             float &new_idepth) { // host上归一化平面点
+             float &v, float &Ku, float &Kv, Vec3f &KliP, float &new_idepth,
+             int lvl_target = 0) { // host上归一化平面点
   KliP = Vec3f((u_pt + dx - HCalib->cxl()) * HCalib->fxli(),
                (v_pt + dy - HCalib->cyl()) * HCalib->fyli(), 1);
 
@@ -75,11 +75,18 @@ projectPoint(const float &u_pt, const float &v_pt, const float &idepth,
   u = ptp[0] * drescale;
   v = ptp[1] * drescale;
   // 像素平面
-  Ku = u * HCalib->fxl() + HCalib->cxl();
-  Kv = v * HCalib->fyl() + HCalib->cyl();
+  if (false) {
+    Ku = u * HCalib->fxl() + HCalib->cxl();
+    Kv = v * HCalib->fyl() + HCalib->cyl();
+  } else {
+    Ku = u * fxG[lvl_target] + cxG[lvl_target];
+    Kv = v * fyG[lvl_target] + cyG[lvl_target];
+  }
   // TODO HCalib->fxl() 是真正的内参
   // printf("intr: %f\n", HCalib->fxl());
-  return Ku > 1.1f && Kv > 1.1f && Ku < wM3G && Kv < hM3G;
+  // return Ku > 1.1f && Kv > 1.1f && Ku < wM3G && Kv < hM3G;
+  return Ku > 1.1f && Kv > 1.1f && Ku < wG[lvl_target] - 3 &&
+         Kv < hG[lvl_target] - 3;
 }
 
 } // namespace dso

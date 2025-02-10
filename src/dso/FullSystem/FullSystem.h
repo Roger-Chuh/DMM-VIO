@@ -198,9 +198,9 @@ private:
   // opt single point
   int optimizePoint(PointHessian *point, int minObs, bool flagOOB);
 
-  PointHessian *
-  optimizeImmaturePoint(ImmaturePoint *point, int minObs,
-                        ImmaturePointTemporaryResidual *residuals);
+  PointHessian *optimizeImmaturePoint(ImmaturePoint *point, int minObs,
+                                      ImmaturePointTemporaryResidual *residuals,
+                                      bool add_to_residuals = true);
 
   double linAllPointSinle(PointHessian *point, float outlierTHSlack, bool plot);
 
@@ -222,6 +222,8 @@ private:
   void makeNewTraces(FrameHessian *newFrame, float *gtDepth);
 
   void initializeFromInitializer(FrameHessian *newFrame);
+
+  void maskSeedsAcrossCids();
 
   void flagFramesForMarginalization(FrameHessian *newFH);
 

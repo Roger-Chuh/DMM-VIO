@@ -84,9 +84,10 @@ PointHessian::PointHessian(const ImmaturePoint *const rawPoint,
   setPointStatus(PointHessian::INACTIVE);
 
   int n = patternNum;
-  memcpy(color, rawPoint->color, sizeof(float) * n); // 一个点对应8个像素
-  memcpy(weights, rawPoint->weights, sizeof(float) * n);
-  energyTH = rawPoint->energyTH;
+  memcpy(color, rawPoint->color_converged,
+         sizeof(float) * n); // 一个点对应8个像素
+  memcpy(weights, rawPoint->weights_converged, sizeof(float) * n);
+  energyTH = rawPoint->energyTH_converged;
 
   efPoint = 0; // 指针=0
 }

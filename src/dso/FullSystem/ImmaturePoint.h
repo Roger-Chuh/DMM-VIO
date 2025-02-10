@@ -55,14 +55,21 @@ enum ImmaturePointStatus {
 class ImmaturePoint {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  float setting_huberTH_search = 9; // setting_huberTH_loose;
+  float setting_huberTH_opt = 9;    // setting_huberTH_loose;
   // static values
-  float color[MAX_RES_PER_POINT]; //!< 原图上pattern上对应的像素值
-  float weights[MAX_RES_PER_POINT]; //!< 原图上pattern对应的权重(与梯度成反比)
+  float color[MAX_RES_PER_POINT_SEED]; //!< 原图上pattern上对应的像素值
+  float weights
+      [MAX_RES_PER_POINT_SEED]; //!< 原图上pattern对应的权重(与梯度成反比)
+  float color_converged[MAX_RES_PER_POINT]; //!< 原图上pattern上对应的像素值
+  float weights_converged
+      [MAX_RES_PER_POINT]; //!< 原图上pattern对应的权重(与梯度成反比)
 
-  Mat22f gradH; //!< 图像梯度hessian矩阵
+  Mat22f gradH, gradH_converged; //!< 图像梯度hessian矩阵
   Vec2f gradH_ev;
   Mat22f gradH_eig;
   float energyTH;
+  float energyTH_converged;
   float u, v; //!< host里的像素坐标
   FrameHessian *host;
   int idxInImmaturePoints;
@@ -104,7 +111,7 @@ public:
   double linearizeResidual(const int &target_cid, CalibHessian *HCalib,
                            const float outlierTHSlack,
                            ImmaturePointTemporaryResidual *tmpRes, float &Hdd,
-                           float &bd, float idepth);
+                           float &bd, float idepth, int lvl_target = 0);
 
   float getdPixdd(CalibHessian *HCalib, ImmaturePointTemporaryResidual *tmpRes,
                   float idepth);

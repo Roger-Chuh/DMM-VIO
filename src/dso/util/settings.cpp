@@ -188,7 +188,7 @@ float setting_huberTH_LBA = 9;
 #else
 float setting_huberTH_LBA = 9;    // 0.2;
 #endif
-float setting_huberTH_zncc = 0.9 * 0.9; // 0.2;
+float setting_huberTH_zncc = 0.8 * 0.8; // 0.2;
 
 // parameters controlling adaptive energy threshold computation.
 float setting_frameEnergyTHConstWeight = 0.5;
@@ -212,12 +212,12 @@ bool setting_selectDirectionDistribution = true;
 float setting_maxPixSearch =
     0.027; // max length of the ep. line segment searched during
            // immature point tracking. relative to image resolution.
-float setting_minTraceQuality = 3;
+float setting_minTraceQuality = 1.5; // 3;
 int setting_minTraceTestRadius = 2;
-int setting_GNItsOnPointActivation = 3;
-float setting_trace_stepsize = 1.0;    // stepsize for initial discrete search.
-int setting_trace_GNIterations = 3;    // max # GN iterations
-float setting_trace_GNThreshold = 0.1; // GN stop after this stepsize.
+int setting_GNItsOnPointActivation = 3; // 10;
+float setting_trace_stepsize = 1.0;     // stepsize for initial discrete search.
+int setting_trace_GNIterations = 3;     // max # GN iterations
+float setting_trace_GNThreshold = 0.1;  // GN stop after this stepsize.
 float setting_trace_extraSlackOnTH =
     1.2; // for energy-based outlier check, be slightly more relaxed by this
          // factor.
@@ -411,11 +411,11 @@ int staticPattern[12][40][2] = {
      {-4, 2},      {-4, 4},      {-2, -4},
      {-2, -2},     {-2, -0},     {-2, 2},
      {-2, 4}, // full-45-SPREAD
-     {-0, -4},     {-0, -2},     {+4, 4} /*{-0, -0}*/,
+     {-0, -4},     {-0, -2},     /*{+4, 4}*/ {-0, -0},
      {-0, 2},      {-0, 4},      {+2, -4},
      {+2, -2},     {+2, -0},     {+2, 2},
      {+2, 4},      {+4, -4},     {+4, -2},
-     {+4, -0},     {+4, 2},      {-0, -0} /*{+4, 4}*/,
+     {+4, -0},     {+4, 2},      /*{-0, -0}*/ {+4, 4},
      {-200, -200}, {-200, -200}, {-200, -200},
      {-200, -200}, {-200, -200}, {-200, -200},
      {-200, -200}, {-200, -200}, {-200, -200},
