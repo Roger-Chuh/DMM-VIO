@@ -22,7 +22,7 @@ DepthFilterDSM::DepthFilterDSM(MultiCamera *p_multi_camera,
   px_err_angle_vec_.resize(kCameraNumUsed);
   for (size_t i = 0; i < kCameraNumUsed; ++i) {
     const number_t fx =
-        p_level_to_multi_camera_->cid_to_cam.at(0)->GetParamByIndex(0);
+        p_level_to_multi_camera_->cid_to_cam[0]->GetParamByIndex(0);
     px_err_angle_vec_[i] = std::atan(px_noise_ / fx);
   }
 

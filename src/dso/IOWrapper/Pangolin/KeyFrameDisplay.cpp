@@ -113,36 +113,38 @@ void KeyFrameDisplay::setFromKF(FrameHessian *fh, CalibHessian *HCalib) {
 
   InputPointSparse<MAX_RES_PER_POINT> *pc = originalInputSparse;
   numSparsePoints = 0;
-  for (ImmaturePoint *p : fh->immaturePoints) {
-    for (int i = 0; i < patternNum; i++)
-      pc[numSparsePoints].color[i] = p->color[i];
+  if (true) {
+    for (ImmaturePoint *p : fh->immaturePoints) {
+      for (int i = 0; i < patternNum; i++)
+        pc[numSparsePoints].color[i] = p->color[i];
 
-    pc[numSparsePoints].cid = p->host_cid;
-    pc[numSparsePoints].u = p->u;
-    pc[numSparsePoints].v = p->v;
-    pc[numSparsePoints].idpeth = (p->idepth_max + p->idepth_min) * 0.5f;
-    pc[numSparsePoints].idepth_hessian = 1000;
-    pc[numSparsePoints].relObsBaseline = 0;
-    pc[numSparsePoints].numGoodRes = 1;
-    pc[numSparsePoints].status = 0;
-    numSparsePoints++;
+      pc[numSparsePoints].cid = p->host_cid;
+      pc[numSparsePoints].u = p->u;
+      pc[numSparsePoints].v = p->v;
+      pc[numSparsePoints].idpeth = (p->idepth_max + p->idepth_min) * 0.5f;
+      pc[numSparsePoints].idepth_hessian = 1000;
+      pc[numSparsePoints].relObsBaseline = 0;
+      pc[numSparsePoints].numGoodRes = 1;
+      pc[numSparsePoints].status = 0;
+      numSparsePoints++;
+    }
   }
+  if (true) {
+    for (PointHessian *p : fh->pointHessians) {
+      for (int i = 0; i < patternNum; i++)
+        pc[numSparsePoints].color[i] = p->color[i];
+      pc[numSparsePoints].cid = p->host_cid;
+      pc[numSparsePoints].u = p->u;
+      pc[numSparsePoints].v = p->v;
+      pc[numSparsePoints].idpeth = p->idepth_scaled;
+      pc[numSparsePoints].relObsBaseline = p->maxRelBaseline;
+      pc[numSparsePoints].idepth_hessian = p->idepth_hessian;
+      pc[numSparsePoints].numGoodRes = 0;
+      pc[numSparsePoints].status = 1;
 
-  for (PointHessian *p : fh->pointHessians) {
-    for (int i = 0; i < patternNum; i++)
-      pc[numSparsePoints].color[i] = p->color[i];
-    pc[numSparsePoints].cid = p->host_cid;
-    pc[numSparsePoints].u = p->u;
-    pc[numSparsePoints].v = p->v;
-    pc[numSparsePoints].idpeth = p->idepth_scaled;
-    pc[numSparsePoints].relObsBaseline = p->maxRelBaseline;
-    pc[numSparsePoints].idepth_hessian = p->idepth_hessian;
-    pc[numSparsePoints].numGoodRes = 0;
-    pc[numSparsePoints].status = 1;
-
-    numSparsePoints++;
+      numSparsePoints++;
+    }
   }
-
   for (PointHessian *p : fh->pointHessiansMarginalized) {
     for (int i = 0; i < patternNum; i++)
       pc[numSparsePoints].color[i] = p->color[i];
@@ -157,18 +159,20 @@ void KeyFrameDisplay::setFromKF(FrameHessian *fh, CalibHessian *HCalib) {
     numSparsePoints++;
   }
 
-  for (PointHessian *p : fh->pointHessiansOut) {
-    for (int i = 0; i < patternNum; i++)
-      pc[numSparsePoints].color[i] = p->color[i];
-    pc[numSparsePoints].cid = p->host_cid;
-    pc[numSparsePoints].u = p->u;
-    pc[numSparsePoints].v = p->v;
-    pc[numSparsePoints].idpeth = p->idepth_scaled;
-    pc[numSparsePoints].relObsBaseline = p->maxRelBaseline;
-    pc[numSparsePoints].idepth_hessian = p->idepth_hessian;
-    pc[numSparsePoints].numGoodRes = 0;
-    pc[numSparsePoints].status = 3;
-    numSparsePoints++;
+  if (true) {
+    for (PointHessian *p : fh->pointHessiansOut) {
+      for (int i = 0; i < patternNum; i++)
+        pc[numSparsePoints].color[i] = p->color[i];
+      pc[numSparsePoints].cid = p->host_cid;
+      pc[numSparsePoints].u = p->u;
+      pc[numSparsePoints].v = p->v;
+      pc[numSparsePoints].idpeth = p->idepth_scaled;
+      pc[numSparsePoints].relObsBaseline = p->maxRelBaseline;
+      pc[numSparsePoints].idepth_hessian = p->idepth_hessian;
+      pc[numSparsePoints].numGoodRes = 0;
+      pc[numSparsePoints].status = 3;
+      numSparsePoints++;
+    }
   }
   assert(numSparsePoints <= npoints);
 
@@ -245,8 +249,8 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH,
 
       if (my_sparsifyFactor > 1 && rand() % my_sparsifyFactor != 0)
         continue;
-      int dx = patternP[pnt][0];
-      int dy = patternP[pnt][1];
+      int dx = patternP[pnt][0] / pattern_scale;
+      int dy = patternP[pnt][1] / pattern_scale;
 
       Vec3 xyz_ci =
           Vec3(((originalInputSparse[i].u + dx) * fxi + cxi) * depth,

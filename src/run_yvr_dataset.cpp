@@ -688,6 +688,10 @@ int main(int argc, char **argv) {
     multi_camera_calibed.cid_to_T01_inv_Adj[cid] =
         multi_camera_calibed.cid_to_T01_SE3_inv[cid].Adj();
   }
+  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    multi_camera_calibed.cid_to_Tbc_SE3[cid] =
+        multi_camera_calibed.Tbc0 * multi_camera_calibed.cid_to_T01_SE3[cid];
+  }
   aligned_vector<CalibFrame> frameInfo, frameInfo_rgb;
   aligned_vector<std::unordered_map<
       int /*cid*/, std::unordered_map<int /*bid*/, aligned_vector<PointVM>>>>

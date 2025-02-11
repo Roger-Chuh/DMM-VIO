@@ -56,12 +56,21 @@ public:
   float idepth; //!< 该点对应参考帧的逆深度
   bool isGood;  //!< 点在新图像内, 相机前, 像素值有穷则好
   Vec2f energy; //!< [0]残差的平方, [1]正则化项(逆深度减一的平方)//
+                //!< [[0表示evaluate的残差，1表示跟先验idepth的残差]]
                 //!< (UenergyPhotometric, energyRegularizer)
   int host_cid;
   bool isGood_new;
   float idepth_new; //!< 该点在新的一帧(当前帧)上的逆深度
-  Vec2f energy_new; //!< 迭代计算的新的能量
+  Vec2f energy_new; //!< 迭代计算的新的能量,
+                    //!< [[0表示evaluate的残差，1表示跟先验idepth的残差]]
   std::array<bool, kCameraNumUsed> is_valid_project;
+
+  // float v_energy_vec[70];
+  std::vector<float> v_energy_vec;
+  int energy_size = 0;
+  float min_energy = 999999;
+  float max_zncc = -999999;
+  float median_energy = 999999;
 
   float iR;       //!< 逆深度的期望值
   float iRSumNum; //!< 子点逆深度信息矩阵之和
@@ -104,7 +113,8 @@ public:
   void setFirstStereo(CalibHessian *HCalib, FrameHessian *newFrameHessian);
 
   bool trackFrame(FrameHessian *newFrameHessian,
-                  std::vector<IOWrap::Output3DWrapper *> &wraps);
+                  std::vector<IOWrap::Output3DWrapper *> &wraps,
+                  const Mat33 &Rwb);
 
   int frameID;    //!< 当前加入的帧数
   bool fixAffine; //!< 是否优化光度参数
@@ -123,6 +133,7 @@ public:
       level_cid_to_npts_success_offset;
   AffLight thisToNext_aff; //!< 参考帧与当前帧之间光度系数
   SE3 thisToNext;          //!< 参考帧与当前帧之间位姿
+  Mat33 Rwb;
 
   FrameHessian *firstFrame; //!< 第一帧
   FrameHessian *newFrame;   //!< track中新加入的帧
@@ -148,6 +159,7 @@ private:
                                 const std::vector<Vec3> &points,
                                 std::vector<std::pair<double, int>> &err_vec,
                                 VecX &errs, Vec3 &point_3d);
+  float FindMedian(const std::vector<float> &numbers);
 
   bool snapped;  //!< 是否尺度收敛 (暂定)
   int snappedAt; //!< 尺度收敛在第几帧
@@ -179,7 +191,7 @@ private:
   Vec3f calcResAndGS(int iter, int max_iter, int lvl, MatStatef &H_out,
                      VecStatef &b_out, MatStatef &H_out_sc, VecStatef &b_out_sc,
                      const SE3 &refToNew, AffLight refToNew_aff, bool plot,
-                     int &N, bool show_image = false);
+                     int &N, bool show_image = false, int lvl_target_ = -1);
   Vec3f calcResAndGS_bak(int lvl, MatStatef &H_out, VecStatef &b_out,
                          MatStatef &H_out_sc, VecStatef &b_out_sc,
                          const SE3 &refToNew, AffLight refToNew_aff, bool plot,

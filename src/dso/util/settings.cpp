@@ -30,7 +30,7 @@
 namespace dso {
 int pyrLevelsUsed = PYR_LEVELS;
 
-float setting_variableScale = 100; // 100; // 10;//50;
+float setting_variableScale = 10; // 100; // 10;//50;
 
 bool setting_useIMU =
     true; // Use IMU data (false will disable all IMU integration).
@@ -64,9 +64,9 @@ float setting_keyframesPerSecond =
 bool setting_realTimeMaxKF =
     false; // if true, takes as many KF's as possible (will break the system if
            // the camera stays stationary)
-float setting_maxShiftWeightT = 0.1f * (640 + 480);
+float setting_maxShiftWeightT = 0.01f * (640 + 480);
 float setting_maxShiftWeightR = 0.0f * (640 + 480);
-float setting_maxShiftWeightRT = 0.01f * (640 + 480);
+float setting_maxShiftWeightRT = 0.2f * (640 + 480);
 #ifdef USE_MULTI_CAM
 float setting_kfGlobalWeight =
     0.1; // 0.5; // 1;   // general weight on threshold, the larger the more
@@ -253,7 +253,7 @@ void handleKey(char k) {
 
 // int pattern_scale = 2;
 
-int staticPattern[10][40][2] = {
+int staticPattern[11][40][2] = {
     {{0, 0},       {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, // .
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
@@ -390,6 +390,48 @@ int staticPattern[10][40][2] = {
      {-200, -200}, {-200, -200}, {-200, -200}, {-200, -200},
      {-200, -200}, {-200, -200}, {-200, -200}, {-200, -200},
      {-200, -200}, {-200, -200}},
+
+    {{0 * pattern_scale, 0 * pattern_scale},
+     {-1 * pattern_scale, -1 * pattern_scale},
+     {-2 * pattern_scale, -2 * pattern_scale},
+     {1 * pattern_scale, -1 * pattern_scale},
+     {2 * pattern_scale, -2 * pattern_scale},
+     {-1 * pattern_scale, 1 * pattern_scale},
+     {-2 * pattern_scale, 2 * pattern_scale},
+     {2 * pattern_scale, 2 * pattern_scale},
+     {-100, -100},
+     {-100, -100}, // 8 for SSE efficiency
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100},
+     {-100, -100}},
+
 };
 
 // int staticPatternNum[10] = {1, 5, 5, 9, 9, 13, 25, 21, 8, 25};

@@ -522,6 +522,15 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
   float sumSquaredShiftRT = 0;
   float sumSquaredShiftNum = 0;
   int numTermsInWarpedSum = 0;
+  std::array<float, kCameraNumUsed * kCameraNumUsed> a_sumSquaredShiftT,
+      a_sumSquaredShiftRT, a_sumSquaredShiftNum;
+  for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
+    for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+      a_sumSquaredShiftT[host_cid * kCameraNumUsed + target_cid] = 0;
+      a_sumSquaredShiftRT[host_cid * kCameraNumUsed + target_cid] = 0;
+      a_sumSquaredShiftNum[host_cid * kCameraNumUsed + target_cid] = 0;
+    }
+  }
   for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
     for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
       int numTermsInWarped = 0;
@@ -618,6 +627,54 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
           sumSquaredShiftRT += (Ku - x) * (Ku - x) + (Kv - y) * (Kv - y);
           sumSquaredShiftRT += (Ku3 - x) * (Ku3 - x) + (Kv3 - y) * (Kv3 - y);
           sumSquaredShiftNum += 2;
+
+#if 1
+          float refColor = lpc_color[i];
+          Vec3f hitColor;
+          bool is_in_frame = true, is_valid_projection = true;
+          //* 图像边沿, 深度为负 则跳过
+          if (!(Ku > 2 && Kv > 2 && Ku < wl - 3 && Kv < hl - 3 &&
+                new_idepth > 0)) {
+            is_in_frame = false;
+            hitColor = Vec3f::Constant(std::nan(""));
+          } else {
+            hitColor = getInterpolatedElement33(dINewl, Ku, Kv, wl);
+          }
+
+          if (!std::isfinite((float)hitColor[0])) {
+            is_valid_projection = false;
+          }
+          /// 只算host点的残差，不算8个邻域内的残差了?
+          /// 计算残差
+          float residual =
+              hitColor[0] - (float)(affLL[0] * refColor + affLL[1]);
+          float hw = fabs(residual) < setting_huberTH
+                         ? 1
+                         : setting_huberTH / fabs(residual);
+
+          if (is_in_frame && is_valid_projection &&
+              std::abs(residual) < 100.0) {
+            //            // translation and rotation (positive)
+            //            // already have it.
+            //            //* 统计像素的移动大小
+            //            sumSquaredShiftT += (KuT - x) * (KuT - x) + (KvT - y)
+            //            * (KvT - y); sumSquaredShiftT +=
+            //                (KuT2 - x) * (KuT2 - x) + (KvT2 - y) * (KvT2 - y);
+            //            sumSquaredShiftRT += (Ku - x) * (Ku - x) + (Kv - y) *
+            //            (Kv - y); sumSquaredShiftRT += (Ku3 - x) * (Ku3 - x) +
+            //            (Kv3 - y) * (Kv3 - y); sumSquaredShiftNum += 2;
+
+            a_sumSquaredShiftT[host_cid * kCameraNumUsed + target_cid] +=
+                (KuT - x) * (KuT - x) + (KvT - y) * (KvT - y);
+            a_sumSquaredShiftT[host_cid * kCameraNumUsed + target_cid] +=
+                (KuT2 - x) * (KuT2 - x) + (KvT2 - y) * (KvT2 - y);
+            a_sumSquaredShiftRT[host_cid * kCameraNumUsed + target_cid] +=
+                (Ku - x) * (Ku - x) + (Kv - y) * (Kv - y);
+            a_sumSquaredShiftRT[host_cid * kCameraNumUsed + target_cid] +=
+                (Ku3 - x) * (Ku3 - x) + (Kv3 - y) * (Kv3 - y);
+            a_sumSquaredShiftNum[host_cid * kCameraNumUsed + target_cid] += 2.0;
+          }
+#endif
         }
         //* 图像边沿, 深度为负 则跳过
         if (!(Ku > 2 && Kv > 2 && Ku < wl - 3 && Kv < hl - 3 && new_idepth > 0))
@@ -756,6 +813,35 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
   rs[4] = sumSquaredShiftRT /
           (sumSquaredShiftNum + 0.1); // 平移+旋转 平均像素移动大小
   rs[5] = numSaturated / (float)numTermsInE; // 大于cutoff阈值的百分比
+  if (true) {
+    float min_T = 123456;
+    float min_RT = 123456;
+    for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
+      for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+        float count =
+            a_sumSquaredShiftNum[host_cid * kCameraNumUsed + target_cid] + 0.1;
+        if (count < 100.0) {
+          continue;
+        }
+        float T = a_sumSquaredShiftT[host_cid * kCameraNumUsed + target_cid] /
+                  (count);
+        float RT = a_sumSquaredShiftRT[host_cid * kCameraNumUsed + target_cid] /
+                   (count);
+        if (min_T > T) {
+          min_T = T;
+        }
+        if (min_RT > RT) {
+          min_RT = RT;
+        }
+      }
+    }
+    if (std::abs(min_T - 123456) > 1) {
+      rs[2] = min_T;
+    }
+    if (std::abs(min_RT - 123456) > 1) {
+      rs[4] = min_RT;
+    }
+  }
 
   return rs;
 }
@@ -1099,16 +1185,16 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
         if (lambda < lambdaExtrapolationLimit) {
           // lambda = lambdaExtrapolationLimit;
         }
-        if (lambda > 1000000) {
-          lambda = 1000000;
+        if (lambda > 10000) {
+          lambda = 10000;
         }
       }
 
       lastLvl = lvl;
 
-      if (!(incNorm > 1e-3)) {
+      if (!(incNorm > 1e-3) || fails >= 3 /*200*/) {
         if (debugPrint)
-          printf("inc too small, break!\n");
+          printf("inc too small, break! fails: %d\n", fails);
         break;
       }
     }
@@ -1172,9 +1258,8 @@ void CoarseTracker::debugPlotIDepthMap(
   if (w[1] == 0)
     return;
 
-  int lvl = 0;
-
-  {
+  // int lvl = 0;
+  for (int lvl = pyrLevelsUsed - 1; lvl >= 0; lvl--) {
     std::vector<float> allID; // TODO idepth numbers, sorted
     for (int cid = 0; cid < kCameraNumUsed; ++cid) {
       for (int i = 0; i < h[lvl] * w[lvl]; i++) {
@@ -1272,18 +1357,21 @@ void CoarseTracker::debugPlotIDepthMap(
         }
       }
     }
-    // IOWrap::displayImage("coarseDepth LVL0", &mf, false);
+    IOWrap::displayImage(("coarseDepth LVL: " + std::to_string(lvl)).c_str(),
+                         &mf, false);
+    IOWrap::waitKey(1);
+    if (lvl == 0) {
+      printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
+      for (IOWrap::Output3DWrapper *ow : wraps) {
+        ow->pushDepthImage(&mf);
+      }
 
-    printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
-    for (IOWrap::Output3DWrapper *ow : wraps) {
-      ow->pushDepthImage(&mf);
-    }
-
-    if (debugSaveImages) {
-      char buf[1000];
-      snprintf(buf, 1000, "images_out/predicted_%05d_%05d.png",
-               lastRef->shell->id, refFrameID);
-      IOWrap::writeImage(buf, &mf);
+      if (debugSaveImages) {
+        char buf[1000];
+        snprintf(buf, 1000, "images_out/predicted_%05d_%05d.png",
+                 lastRef->shell->id, refFrameID);
+        IOWrap::writeImage(buf, &mf);
+      }
     }
   }
 }

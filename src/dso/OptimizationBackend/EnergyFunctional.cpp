@@ -343,6 +343,10 @@ void EnergyFunctional::resubstituteF_MT(VecX x, CalibHessian *HCalib, bool MT) {
     h->data->step.head<STATE_DIM>() =
         -x.segment<STATE_DIM>(CPARS + STATE_DIM * h->idx);
     // h->data->step.tail<2>().setZero();
+#ifdef USE_ZNCC
+    std::cout << "fid: " << h->idx
+              << ", pose_ab inc: " << h->data->step.transpose() << std::endl;
+#endif
     // TODO * 绝对位姿增量变相对的, xAd用于更新逆深度,
     // TODO roger,
     // 没错，确实绝对增量变相对增量，理解得太深刻了，绝不是相对增量变绝对增量

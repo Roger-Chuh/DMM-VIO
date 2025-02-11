@@ -288,6 +288,8 @@ private:
 
   std::ofstream *poseLog;
 
+  // Mat33 Rwb = Mat33::Identity();
+
   // statistics
   long int statistics_lastNumOptIts;
   long int statistics_numDroppedPoints;

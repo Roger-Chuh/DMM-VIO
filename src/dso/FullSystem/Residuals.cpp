@@ -454,6 +454,7 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
 
   int patch_num = host_info.rows();
   float ws2 = 1;
+  float zncc = 0;
   if (patch_num != 0) {
 
     host_val_mean = host_info.col(0).sum() / patch_num;
@@ -488,9 +489,37 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
     grad_new_target =
         J_ZNSSD_J_I_target * target_info.rightCols(2); // "new" gradient: 8x2
 
-    float zncc = target_info.col(0).dot(host_info.col(0));
+    zncc = target_info.col(0).dot(host_info.col(0));
+    if (host_sigma < 10 || target_sigma < 10 ||
+        patch_num != MAX_RES_PER_POINT) {
+      state_NewState[target_cid_now] = ResState::OOB;
+      // printf("oob\n");
+      return state_energy[target_cid_now];
+    }
+    // printf("zncc: %f, target_sigma: %f\n", zncc, target_sigma);
+    assert(std::abs(zncc) < 1.00001);
     float r2 = 2 - 2 * zncc;
     ws2 = 2.0 / (r2 + 2.0);
+    if (true) {
+      assert(std::abs(zncc) < 1.00001);
+      float angle = (kOur_PI - std::acos(zncc)) / kOur_PI;
+      if (false) {
+        std::cout << "host_info.col(0): " << host_info.col(0).transpose()
+                  << ", target_info.col(0): " << target_info.col(0).transpose()
+                  << std::endl;
+        printf("angle: %f, zncc: %f, std::acos(zncc): %f, host_sigma: %f, "
+               "target_sigma: %f\n",
+               angle, zncc, std::acos(zncc), host_sigma, target_sigma);
+        std::cout << "host_fid: " << host->idx
+                  << ", target_fid: " << target->idx
+                  << ", host_cid: " << host_cid
+                  << ", target_cid: " << target_cid_now << std::endl;
+      }
+      angle = std::isnan(angle) ? 1 : angle;
+      // assert(angle >= 0);
+      assert(angle >= 0.0001);
+      ws2 = angle <= 1 ? angle : 1;
+    }
 
 #ifdef USE_ZNCC_WEIGHT
     if (zncc < -111110.5 /*0.8*/) {
@@ -593,7 +622,7 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
 #ifndef USE_ZNCC_WEIGHT
     w = 0.5f * (w + weights[idx]);
 #else
-    w = std::sqrt(ws2);
+    w = 0.5f * (w + weights[idx]); // std::sqrt(ws2);
 #endif
 
 #ifndef USE_ZNCC
@@ -605,7 +634,9 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
     float hw = fabsf(residual) < setting_huberTH_LBA
                    ? 1
                    : setting_huberTH_LBA / fabsf(residual);
-    energyLeft += w * w * hw * residual * residual * (2 - hw);
+    hw = ws2;
+    // energyLeft += w * w * hw * residual * residual * (2 - hw);
+    energyLeft += hw * residual * residual * (2 - hw);
 #endif
 
     {
@@ -733,6 +764,10 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
         J[target_cid_now]->JabF[0][idx] = 0;
       if (setting_affineOptModeB < 0)
         J[target_cid_now]->JabF[1][idx] = 0;
+#ifdef USE_ZNCC
+      J[target_cid_now]->JabF[0][idx] = 0;
+      J[target_cid_now]->JabF[1][idx] = 0;
+#endif
     }
     cnt++;
   }
@@ -750,6 +785,7 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
   J[target_cid_now]->JIdx2(0, 1) = JIdxJIdx_10; // TODO 梯度x梯度部分的小hessian
   J[target_cid_now]->JIdx2(1, 0) = JIdxJIdx_10;
   J[target_cid_now]->JIdx2(1, 1) = JIdxJIdx_11;
+#ifndef USE_ZNCC
   J[target_cid_now]->JabJIdx(0, 0) = JabJIdx_00; // TODO buttom left
   J[target_cid_now]->JabJIdx(0, 1) =
       JabJIdx_01; // TODO 光度x梯度部分的小hessian
@@ -759,7 +795,10 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
   J[target_cid_now]->Jab2(0, 1) = JabJab_01; // TODO 光度x光度部分的小hessian
   J[target_cid_now]->Jab2(1, 0) = JabJab_01;
   J[target_cid_now]->Jab2(1, 1) = JabJab_11;
-
+#else
+  J[target_cid_now]->JabJIdx.setZero();
+  J[target_cid_now]->Jab2.setZero();
+#endif
   state_NewEnergyWithOutlier[target_cid_now] = energyLeft;
   if (has_nan_res && false) {
     std::cout << "continued_count: " << continued_count << std::endl;
@@ -789,8 +828,13 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
 #ifndef USE_ZNCC
   assert(continued_count == 0);
 #endif
-  if (energyLeft > std::max<float>(host->frameEnergyTH,
+  if (
+#ifndef USE_ZNCC
+      energyLeft > std::max<float>(host->frameEnergyTH,
                                    target->frameEnergyTH) /*|| wJI2_sum < 2*/
+#else
+      zncc < 0.1
+#endif
       || continued_count == MAX_RES_PER_POINT) {
     // printf("residual: %f, energyLeft: %f, host->frameEnergyTH: %f,
     // target->frameEnergyTH: %f\n", residual, energyLeft, host->frameEnergyTH,

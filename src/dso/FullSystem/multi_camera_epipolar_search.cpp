@@ -23,7 +23,7 @@ MultiCameraEpipolarSearch::MultiCameraEpipolarSearch(
 
   search_target_level_ = estimator_config->search_level;
   number_t search_level_focal_length =
-      p_level_cid_to_camera_->cid_to_cam_pinhole.at(0)->GetParamByIndex(0) *
+      p_level_cid_to_camera_->cid_to_cam[0]->GetParamByIndex(0) *
       std::pow(2.0f, -search_target_level_);
 
   rad_step_ = estimator_config->pixel_step *

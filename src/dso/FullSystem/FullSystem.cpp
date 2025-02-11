@@ -766,6 +766,7 @@ void FullSystem::activatePointsMT_Reductor(
 }
 
 //@ 激活未成熟点, 加入优化
+//#define SHOW_NEWLY_ACTIVATED_POINTS
 void FullSystem::activatePointsMT() {
   dmvio::TimeMeasurement timeMeasurement("activatePointsMT");
   //[ ***step 1*** ] 阈值计算, 通过距离地图来控制数目
@@ -814,6 +815,7 @@ void FullSystem::activatePointsMT() {
 
   //[ ***step 2*** ] 处理未成熟点, 激活/删除/跳过
   int fid = 0;
+  printf("start, frameHessians size: %d\n", frameHessians.size());
   for (FrameHessian *host : frameHessians) // go through all active frames
   {
     if (host == newestHs)
@@ -954,6 +956,25 @@ void FullSystem::activatePointsMT() {
   }
   //[ ***step 4*** ] 把PointHessian加入到能量函数, 删除收敛的未成熟点,
   //或不好的点
+  int optimized_points = 0;
+#ifdef SHOW_NEWLY_ACTIVATED_POINTS
+  MinimalImageB3 *img_target;
+
+  img_target = new MinimalImageB3(wG[0], hG[0]);
+
+  for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+    Vec3f *colorRef = newestHs->dI + wG[0] * hG[0] * cam;
+    for (int i = 0; i < wG[0] * hG[0]; i++) {
+      // BRIGHTNESS TRANSFER
+      float colL = (*(colorRef + i))[0];
+      if (colL < 0)
+        colL = 0;
+      if (colL > 255)
+        colL = 255;
+      img_target->at(i, cam) = Vec3b(colL, colL, colL);
+    }
+  }
+#endif
   for (unsigned k = 0; k < toOptimize.size(); k++) {
     PointHessian *newpoint = optimized[k];
     ImmaturePoint *ph = toOptimize[k];
@@ -965,6 +986,31 @@ void FullSystem::activatePointsMT() {
     }
 
     if (newpoint != 0 && newpoint != (PointHessian *)((long)(-1))) {
+
+#ifdef SHOW_NEWLY_ACTIVATED_POINTS
+      assert(newpoint->host == ph->host);
+      SE3 fhToNew_ = newestHs->PRE_worldToCam * newpoint->host->PRE_camToWorld;
+      for (int target_cam = 0; target_cam < kCameraNumUsed; ++target_cam) {
+        SE3 fhToNew =
+            newestHs->p_multi_camera->cid_to_T01_SE3[target_cam].inverse() *
+            fhToNew_ * newestHs->p_multi_camera->cid_to_T01_SE3[ph->host_cid];
+        Mat33f KRKi =
+            (coarseDistanceMap->K[0] * fhToNew.rotationMatrix().cast<float>() *
+             coarseDistanceMap->Ki[0]);
+        Vec3f Kt =
+            (coarseDistanceMap->K[0] * fhToNew.translation().cast<float>());
+        // see if we need to activate point due to distance map.
+        Vec3f ptp = KRKi * Vec3f(ph->u, ph->v, 1) + Kt * newpoint->idepth;
+        /// reproject from old[0] to new[1]
+        int u = ptp[0] / ptp[2] + 0.5f;
+        int v = ptp[1] / ptp[2] + 0.5f;
+        if ((u > 0 && v > 0 && u < wG[0] && v < hG[0])) {
+          img_target->setPixel9(u + 0.5, v + 0.5, makeRainbow3B(0.1),
+                                target_cam);
+        }
+      }
+#endif
+      optimized_points++;
       newpoint->host->immaturePoints[ph->idxInImmaturePoints] = 0;
       /// 自己push_back到自己里面？
       // TODO 把newpoint push到该point所host的帧的收敛点列表里去
@@ -1008,7 +1054,13 @@ void FullSystem::activatePointsMT() {
       assert(newpoint == 0 || newpoint == (PointHessian *)((long)(-1)));
     }
   }
-
+  printf("[success / all]: [%d / %d] points in activatePointsMT\n",
+         optimized_points, toOptimize.size());
+#ifdef SHOW_NEWLY_ACTIVATED_POINTS
+  IOWrap::displayImage("newly activated in target", img_target);
+  IOWrap::waitKey(0);
+  delete img_target;
+#endif
   //[ ***step 5*** ] 把删除的点丢掉
   for (FrameHessian *host : frameHessians) {
     for (int i = 0; i < (int)host->immaturePoints.size(); i++) {
@@ -1207,8 +1259,38 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
         ow->publishSystemStatus(dmvio::VISUAL_INIT);
     } else {
       dmvio::TimeMeasurement initMeasure("InitializerOtherFrames");
+      // TODO roger, provide initial rotation with imu
+      Mat33 dRwb = Mat33::Identity();
+      if (setting_useIMU) {
+        for (int id = 0; id < imuData->size(); ++id) {
+          const double &dt = (*imuData)[id].getIntegrationTime();
+          if (dt == 0.0) {
+            continue;
+          }
+          const Vec3 &gyro = (*imuData)[id].getGyrData();
+          const Vec3 rot_vec = dt * gyro;
+          if (false) {
+            const Mat3 dRwb = ExpSO3(rot_vec);
+            coarseInitializer->thisToNext.setRotationMatrix(
+                coarseInitializer->thisToNext.rotationMatrix() * dRwb);
+          } else {
+            dRwb *= ExpSO3(rot_vec);
+          }
+        }
+        // coarseInitializer->thisToNext.rotationMatrix() = dRwb;
+        coarseInitializer->thisToNext.setRotationMatrix(
+            Hcalib.p_multi_camera->cid_to_Tbc_SE3[0]
+                .rotationMatrix()
+                .transpose() *
+            dRwb.transpose() *
+            Hcalib.p_multi_camera->cid_to_Tbc_SE3[0].rotationMatrix() *
+            coarseInitializer->thisToNext.rotationMatrix());
+      } else {
+        // Rwb = Mat33::Constant(std::nan(""));
+      }
       // TODO roger, 会用到iR这个先验，很迷，尽量不用，因为把控不住
-      bool initDone = coarseInitializer->trackFrame(fh, outputWrapper);
+      bool initDone =
+          coarseInitializer->trackFrame(fh, outputWrapper, Mat33::Identity());
       if (setting_useIMU) {
         imuIntegration.addIMUDataToBA(*imuData);
         Sophus::SE3 imuToWorld =
@@ -1847,7 +1929,7 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
 #ifndef USE_ZNCC
   std::vector<float> init_rmse_thr = {13, 10, 10};
 #else
-  std::vector<float> init_rmse_thr = {13, 13, 13};
+  std::vector<float> init_rmse_thr = {30, 30, 30};
 #endif
 #endif
   if (allKeyFramesHistory.size() <= 4) {
@@ -2166,7 +2248,7 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
         //        std::cout << "init, "
         //                  << ", u: " << Ku << ", v: " << Kv
         //                  << ", idepth: " << new_idepth << std::endl;
-        if (!(Ku > 1 && Kv > 1 && Ku < wG[0] - 2 && Kv < hG[0] - 2 &&
+        if (!(Ku > 10 && Kv > 10 && Ku < wG[0] - 20 && Kv < hG[0] - 20 &&
               new_idepth > 0)) {
           //                isGood = false;
           //                break;
@@ -2196,7 +2278,7 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
         //        std::cout << "LBA, "
         //                  << ", u: " << Ku << ", v: " << Kv
         //                  << ", idepth: " << new_idepth << std::endl;
-        if (!(Ku > 1 && Kv > 1 && Ku < wG[0] - 2 && Kv < hG[0] - 2 &&
+        if (!(Ku > 10 && Kv > 10 && Ku < wG[0] - 20 && Kv < hG[0] - 20 &&
               new_idepth > 0)) {
           //                isGood = false;
           //                break;
@@ -2213,8 +2295,8 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
     }
   }
 #ifdef CHECK_INIT
-  IOWrap::displayImage("host", img_host);
-  IOWrap::displayImage("target", img_target);
+  IOWrap::displayImage("check init host", img_host);
+  IOWrap::displayImage("check init target", img_target);
   IOWrap::waitKey(0);
   delete img_host;
   delete img_target;

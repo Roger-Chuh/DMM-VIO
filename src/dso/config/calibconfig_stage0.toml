@@ -303,7 +303,7 @@ do_detection_only = false
 #dataSet = "/media/roger/Elements_SE/CI/gt2/SLAMRecord/1"
 
 
-dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/deoutlier/SLAMRecord/3"
+dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/deoutlier/SLAMRecord/4"
 
 
 #self_calib_bin_file = "self_calib_1012_fsrk_sparse.bin"

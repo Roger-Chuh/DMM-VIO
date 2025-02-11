@@ -215,6 +215,7 @@ struct MultiCamera {
   std::array<CameraBase *, kCameraNumUsed> cid_to_cam_pinhole;
   std::array<Mat4, kCameraNumUsed> cid_to_T01;        // Camera Extrinsic
   std::array<SE3, kCameraNumUsed> cid_to_T01_SE3;     // Camera Extrinsic
+  std::array<SE3, kCameraNumUsed> cid_to_Tbc_SE3;     // Camera Extrinsic
   std::array<SE3, kCameraNumUsed> cid_to_T01_SE3_inv; // Camera Extrinsic
   std::array<Mat6, kCameraNumUsed>
       cid_to_T01_inv_Adj; // T01.inverse().Adj() [t R]

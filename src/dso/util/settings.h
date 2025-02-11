@@ -206,13 +206,14 @@ extern float freeDebugParam5;
 
 void handleKey(char k);
 
-constexpr int pattern_scale = 2;
-constexpr int pattern_index = 8;
+constexpr int pattern_scale = 4;
+constexpr int pattern_index = 10;
 
-extern int staticPattern[10][40][2];
-constexpr int staticPatternNum[10] = {1, 5, 5, 9, 9, 13, 25, 21, 8, 24 /*25*/};
-constexpr int staticPatternPadding[10] = {
-    1, 1, 1, 1, 2, 2, 2, 3, 2 * pattern_scale, 4};
+extern int staticPattern[11][40][2];
+constexpr int staticPatternNum[11] = {1,  5,  5, 9,         9, 13,
+                                      25, 21, 8, 24 /*25*/, 8};
+constexpr int staticPatternPadding[11] = {
+    1, 1, 1, 1, 2, 2, 2, 3, 2 * pattern_scale, 4, 4 * pattern_scale};
 
 // extern int staticPatternNum[10][1];
 // extern int staticPatternPadding[10];
