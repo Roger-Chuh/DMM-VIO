@@ -942,7 +942,11 @@ bool CoarseTracker::trackNewestCoarse(int all_keyframe_size,
   MatState H;
   VecState b;
   int lastLvl = -1, lastLvl_target = -1;
+#if 1 // def USE_MULTI_CAM
   bool use_inner_loop = true;
+#else
+  bool use_inner_loop = false;
+#endif
   int inner_loop_start_lvl = use_inner_loop ? pyrLevelsUsed - 1 : 0;
   ;
   int lvl_target = 0;

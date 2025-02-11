@@ -353,10 +353,19 @@ void AccumulatedTopHessianSSE::stitchDoubleInternal(
 
   // only do this on one thread.
   if (min == 0 && usePrior) {
+    // printf("only do this on one thread.\n");
     H[tid].diagonal().head<CPARS>() += EF->cPrior; //! hessian先验
     b[tid].head<CPARS>() += EF->cPrior.cwiseProduct(
         EF->cDeltaF.cast<double>()); //! H*delta 更新残差
     for (int h = 0; h < nframes[tid]; h++) {
+      // std::cout << "EF->frames[h]->prior: " <<
+      // EF->frames[h]->prior.transpose() << std::endl;
+      std::cout << "EF->frames[" << h
+                << "]->delta_prior: " << EF->frames[h]->delta_prior.transpose()
+                << std::endl;
+      // TODO roger,
+      // prior充当的是H_old的对角线的作用，delta_prior充当的是delta_state的作用，
+      // b_new = b_old + H_old * delta_state
       H[tid].diagonal().segment<8>(CPARS + h * 8) +=
           EF->frames[h]->prior; //! hessian先验
       b[tid].segment<8>(CPARS + h * 8) +=

@@ -122,7 +122,7 @@ bool CoarseInitializer::trackFrame(
   alphaK =
       2.5 *
       2.5; // 2.5*2.5;//0.0150*0.0150;//0.005*0.005;//0.010*0.010;//0.0150*0.0150;//*freeDebugParam1*freeDebugParam1;
-  alphaW = 150 * 150;       //*freeDebugParam2*freeDebugParam2;
+  alphaW = 150 * 150; //*freeDebugParam2*freeDebugParam2;
 #endif
   regWeight = 0.8;    //*freeDebugParam4;
   couplingWeight = 1; //*freeDebugParam5;
@@ -190,9 +190,13 @@ bool CoarseInitializer::trackFrame(
                  0); // coarse approximation.
 
   Vec3f latestRes = Vec3f::Zero();
-  // 从顶层开始估计
-  /// start from lowest resolution
+// 从顶层开始估计
+/// start from lowest resolution
+#if 1 // def USE_MULTI_CAM
   bool use_inner_loop = true;
+#else
+  bool use_inner_loop = false;
+#endif
   int inner_loop_start_lvl = use_inner_loop ? pyrLevelsUsed - 1 : 0;
   if (use_inner_loop) {
   }

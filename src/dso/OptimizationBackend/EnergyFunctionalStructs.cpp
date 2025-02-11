@@ -64,9 +64,12 @@ void EFFrame::takeData() {
       data->getPrior().head<STATE_DIM>(); // 得到先验状态, 主要是光度仿射变换
   delta = data->get_state_minus_stateZero()
               .head<STATE_DIM>(); // 状态与FEJ零状态之间差
-  delta_prior = (data->get_state() - data->getPriorZero())
-                    .head<STATE_DIM>(); // 状态与先验之间的差 //?
-                                        // 可先验是0啊?
+  delta_prior =
+      (data->get_state() - data->getPriorZero())
+          .head<
+              STATE_DIM>(); // 状态与先验之间的差 //?
+                            // 可先验是0啊?
+                            // 可能因为只有第一帧才会用prior吧，而第一帧的真值就是Vec8::Zero()
 
   //	Vec10 state_zero =  data->get_state_zero();
   //	state_zero.segment<3>(0) = SCALE_XI_TRANS * state_zero.segment<3>(0);
@@ -88,8 +91,10 @@ void EFPoint::takeData() {
   priorF = data->hasDepthPrior
                ? setting_idepthFixPrior * SCALE_IDEPTH * SCALE_IDEPTH
                : 0;
-  if (setting_solverMode & SOLVER_REMOVE_POSEPRIOR)
+  if (setting_solverMode & SOLVER_REMOVE_POSEPRIOR) {
+    printf("never use idepth prior!!!\n");
     priorF = 0;
+  }
   // TODO 每次都更新线性化点，这不一直是零？？
   deltaF = data->idepth - data->idepth_zero;
 }

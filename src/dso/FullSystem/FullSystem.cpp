@@ -1165,6 +1165,11 @@ void FullSystem::activatePointsMT() {
     }
 
     if (newpoint != 0 && newpoint != (PointHessian *)((long)(-1))) {
+#ifdef USE_MULTI_CAM
+      if (allKeyFramesHistory.size() <= 5) {
+        newpoint->hasDepthPrior = true;
+      }
+#endif
       // TODO roger, 即使是lastTrackingStatus是oob也可以尝试激活，
       // 万一它上上次，上上次是好点呢？上一次可能只是被遮挡了
       // printf("oob_count: %d\n", oob_count);
@@ -2093,8 +2098,10 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
       ef->insertResidual(r, Hcalib.p_multi_camera, true);
       ph->lastResiduals[1] = ph->lastResiduals[0];
       std::array<ResState, kCameraNumUsed> res_state{};
-#ifdef USE_MULTI_CAM
+      //#ifdef USE_MULTI_CAM
       SE3 fhToNew_ = fh->PRE_worldToCam * ph->host->PRE_camToWorld;
+      ph->idepth_before = ph->idepth;
+#if 1 // def USE_MULTI_CAM
       std::vector<ImmaturePoint *> toOptimize;
       ImmaturePoint *impt = new ImmaturePoint(ph->u, ph->v, ph->host, 0,
                                               &Hcalib, ph->host_cid, 0);
@@ -2111,7 +2118,7 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
       optimized[0] = optimizeImmaturePoint(toOptimize[0], 1, tr, false);
 
       PointHessian *newpoint = optimized[0];
-      ph->idepth_before = ph->idepth;
+      // ph->idepth_before = ph->idepth;
       if (newpoint != 0 && newpoint != (PointHessian *)((long)(-1))) {
         // printf("depth_diff: %f\n", 1 / newpoint->idepth - 1 / ph->idepth);
         ph->setIdepthZero(newpoint->idepth);
@@ -2659,7 +2666,9 @@ void FullSystem::initializeFromInitializer(FrameHessian *newFrame) {
                             rescaleFactor); //? 为啥设置的是scaled之后的
       }
       ph->setIdepthZero(ph->idepth); //! 设置初始先验值, 还有神奇的求零空间方法
+#if 1                                // ndef USE_MULTI_CAM
       ph->hasDepthPrior = true;
+#endif
       ph->setPointStatus(PointHessian::ACTIVE); // 激活点
 
       firstFrame->pointHessians.push_back(ph);

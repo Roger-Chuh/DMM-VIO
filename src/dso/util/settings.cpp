@@ -96,7 +96,11 @@ float setting_maxAffineWeight = 2;
 /* initial hessian values to fix unobservable dimensions / priors on affine
  * lighting parameters.
  */
-float setting_idepthFixPrior = 50 * 50;          // * 1000;
+#ifndef USE_MULTI_CAM
+float setting_idepthFixPrior = 50 * 50; // * 1000;
+#else
+float setting_idepthFixPrior = 150 * 150; // * 1000;
+#endif
 float setting_idepthFixPriorMargFac = 600 * 600; // 30000*30000;
 float setting_initialRotPrior = 1e11;            // 5e7;// 1e11;
 float setting_initialTransPrior = 1e10;          // 1e10;
@@ -177,7 +181,8 @@ int setting_gammaWeightsPixelSelect =
        // gamma-corrected intensity.
 
 #ifndef USE_MULTI_CAM
-float setting_huberTH = 9; // Huber Threshold
+float setting_huberTH = 9;       // Huber Threshold
+float setting_huberTH_loose = 9; // Huber Threshold
 #else
 float setting_huberTH = 9;        // Huber Threshold
 float setting_huberTH_loose = 40; // Huber Threshold
@@ -242,7 +247,7 @@ float freeDebugParam4 = 1;
 float freeDebugParam5 = 1;
 
 bool debugSaveImages = false; // true;//false;
-bool multiThreading = false;  // true;
+bool multiThreading = true;
 bool disableAllDisplay = false;
 bool setting_logStuff = true;
 

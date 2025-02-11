@@ -114,7 +114,7 @@ public:
       }
     } else // 不使用多线程
     {
-      // printf("not use mt\n");
+      printf("TopHessian, not use mt\n");
       H = MatXX::Zero(nframes[0] * STATE_DIM + CPARS,
                       nframes[0] * STATE_DIM + CPARS);
       b = VecX::Zero(nframes[0] * STATE_DIM + CPARS);
