@@ -1250,6 +1250,10 @@ void FullSystem::activatePointsMT() {
       ph->host->immaturePoints[ph->idxInImmaturePoints] = 0;
       delete ph;
     } else {
+      // printf("will it reach here?\n");
+      // TODO roger, 这里不着急delete这个 immature point，
+      // 留给下次出发了上面两个if else时再彻底删除这个点，
+      // 毕竟有可能这个seed只是暂时被遮挡了，后面还是有机会被成功优化至收敛的
       assert(newpoint == 0 || newpoint == (PointHessian *)((long)(-1)));
     }
   }
