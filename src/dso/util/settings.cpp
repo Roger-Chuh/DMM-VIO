@@ -66,7 +66,7 @@ bool setting_realTimeMaxKF =
            // the camera stays stationary)
 float setting_maxShiftWeightT = 0.01f * (640 + 480);
 float setting_maxShiftWeightR = 0.0f * (640 + 480);
-float setting_maxShiftWeightRT = 0.2f * (640 + 480);
+float setting_maxShiftWeightRT = 0.1f * (640 + 480);
 #ifdef USE_MULTI_CAM
 float setting_kfGlobalWeight =
     0.1; // 0.5; // 1;   // general weight on threshold, the larger the more

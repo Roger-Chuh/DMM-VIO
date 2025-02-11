@@ -328,8 +328,8 @@ void FullSystem::printResult(std::string file, bool onlyLogKFPoses,
 
 //@ 使用确定的运动模型对新来的一帧进行跟踪, 得到位姿和光度参数
 std::pair<Vec4, bool>
-FullSystem::trackNewCoarse(FrameHessian *fh,
-                           Sophus::SE3 *referenceToFrameHint) {
+FullSystem::trackNewCoarse(FrameHessian *fh, Sophus::SE3 *referenceToFrameHint,
+                           Mat33 dRwb) {
   dmvio::TimeMeasurement timeMeasurement(
       referenceToFrameHint ? "FullSystem::trackNewCoarse"
                            : "FullSystem::trackNewCoarseNoIMU");
@@ -381,10 +381,53 @@ FullSystem::trackNewCoarse(FrameHessian *fh,
   }
 
   if (!referenceToFrameHint) {
-    if (allFrameHistory.size() == 2)
-      for (unsigned int i = 0; i < lastF_2_fh_tries.size(); i++)
+    printf("allFrameHistory.size(): %d\n", allFrameHistory.size());
+    // std::exit(1);
+    if (allFrameHistory.size() == 2) {
+      if (setting_useIMU) {
+#if 1
+        /// idx = 1 must be a vkf, tracking ref is identity pose;
+        // lastF_2_fh_tries.push_back(coarseTracker->thisToNext);
+        SE3 T_th = SE3();
+#if 0
+        T_th.setRotationMatrix(
+            Hcalib.p_multi_camera->cid_to_Tbc_SE3[0]
+                .rotationMatrix()
+                .transpose() *
+            dRwb.transpose() *
+            Hcalib.p_multi_camera->cid_to_Tbc_SE3[0].rotationMatrix());
+#else
+        SE3 dTwb = SE3();
+        dTwb.setRotationMatrix(dRwb);
+        T_th = Hcalib.p_multi_camera->cid_to_Tbc_SE3[0].inverse() *
+               dTwb.inverse() * Hcalib.p_multi_camera->cid_to_Tbc_SE3[0];
+#endif
+        lastF_2_fh_tries.push_back(T_th);
+#else
+        FrameShell *slast =
+            allFrameHistory[allFrameHistory.size() - 2]; // 上一帧
+        SE3 lastF_2_slast;
+        lastF_2_slast = slast->camToWorld.inverse() *
+                        lastF->shell->camToWorld; // 参考帧到上一帧运动
+        SE3 dTwb = SE3();
+        dTwb.setRotationMatrix(dRwb);
+        SE3 T_th = Hcalib.p_multi_camera->cid_to_Tbc_SE3[0].inverse() *
+                   dTwb.inverse() * Hcalib.p_multi_camera->cid_to_Tbc_SE3[0] *
+                   lastF_2_slast;
+        //          T_th.setRotationMatrix(
+        //                  Hcalib.p_multi_camera->cid_to_Tbc_SE3[0]
+        //                          .rotationMatrix()
+        //                          .transpose() *
+        //                  dRwb.transpose() *
+        //                  Hcalib.p_multi_camera->cid_to_Tbc_SE3[0].rotationMatrix()
+        //                  * lastF_2_slast.rotationMatrix());
+        lastF_2_fh_tries.push_back(T_th);
+#endif
+      }
+      for (unsigned int i = 0; i < lastF_2_fh_tries.size(); i++) {
         lastF_2_fh_tries.push_back(SE3()); //? 这个size()不应该是0么
-    else {
+      }
+    } else {
       FrameShell *slast = allFrameHistory[allFrameHistory.size() - 2]; // 上一帧
       FrameShell *sprelast =
           allFrameHistory[allFrameHistory.size() - 3]; // 大上一帧
@@ -405,6 +448,29 @@ FullSystem::trackNewCoarse(FrameHessian *fh,
 
       //! 尝试不同的运动
       // get last delta-movement.
+      Mat33 dRcc = Hcalib.p_multi_camera->cid_to_Tbc_SE3[0]
+                       .rotationMatrix()
+                       .transpose() *
+                   dRwb.transpose() *
+                   Hcalib.p_multi_camera->cid_to_Tbc_SE3[0].rotationMatrix();
+      SE3 fh_2_slast2_inv = fh_2_slast.inverse();
+      fh_2_slast2_inv.setRotationMatrix(dRcc);
+      SE3 fh_2_slast2 = fh_2_slast;
+      fh_2_slast2.setRotationMatrix(
+          Hcalib.p_multi_camera->cid_to_Tbc_SE3[0]
+              .rotationMatrix()
+              .transpose() *
+          dRwb * Hcalib.p_multi_camera->cid_to_Tbc_SE3[0].rotationMatrix());
+      if (setting_useIMU) {
+#if 0
+        SE3 T_th = fh_2_slast.inverse() * lastF_2_slast;
+        T_th.setRotationMatrix(dRcc * lastF_2_slast.rotationMatrix());
+#else
+        // SE3 T_th = fh_2_slast2_inv * lastF_2_slast;
+        SE3 T_th = fh_2_slast2.inverse() * lastF_2_slast;
+#endif
+        lastF_2_fh_tries.push_back(T_th);
+      }
       lastF_2_fh_tries.push_back(fh_2_slast.inverse() *
                                  lastF_2_slast); // assume constant motion.
       lastF_2_fh_tries.push_back(
@@ -639,6 +705,7 @@ FullSystem::trackNewCoarse(FrameHessian *fh,
     }
   }
   //! 把这次得到的最好值给下次用来当阈值
+  coarseTracker->thisToNext = lastF_2_fh;
   lastCoarseRMSE = achievedRes;
   //[ ***step 5*** ] 此时shell在跟踪阶段, 没人使用, 设置值
   // no lock required, as fh is not used anywhere yet.
@@ -1291,6 +1358,7 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
       // TODO roger, 会用到iR这个先验，很迷，尽量不用，因为把控不住
       bool initDone =
           coarseInitializer->trackFrame(fh, outputWrapper, Mat33::Identity());
+      coarseTracker->thisToNext = coarseInitializer->thisToNext;
       if (setting_useIMU) {
         imuIntegration.addIMUDataToBA(*imuData);
         Sophus::SE3 imuToWorld =
@@ -1372,10 +1440,11 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
 
     SE3 *referenceToFramePassed = 0;
     SE3 referenceToFrame;
+    Mat33 R_th = Mat33::Identity();
     if (dso::setting_useIMU) {
       // TODO 预积分连续普通帧，并做一次inertial only的优化？用来为direct image
       // alignment提供初值
-      SE3 referenceToFrame = imuIntegration.addIMUData(
+      /*SE3*/ referenceToFrame = imuIntegration.addIMUData(
           *imuData, fh->shell->id, fh->shell->timestamp, trackingRefChanged,
           lastFrameId);
       // If initialized we use the prediction from IMU data as initialization
@@ -1383,11 +1452,43 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
       referenceToFramePassed = &referenceToFrame;
       if (!imuIntegration.isCoarseInitialized()) {
         referenceToFramePassed = nullptr;
+        R_th = referenceToFrame.rotationMatrix();
       }
       imuIntegration.addIMUDataToBA(*imuData);
     }
     // TODO 使用旋转和位移对像素移动的作用比来判断运动状态
-    std::pair<Vec4, bool> pair = trackNewCoarse(fh, referenceToFramePassed);
+    Mat33 dRwb = Mat33::Identity();
+    if (setting_useIMU) {
+      if (!referenceToFramePassed) {
+        for (int id = 0; id < imuData->size(); ++id) {
+          const double &dt = (*imuData)[id].getIntegrationTime();
+          if (dt == 0.0) {
+            continue;
+          }
+          const Vec3 &gyro = (*imuData)[id].getGyrData();
+          const Vec3 rot_vec = dt * gyro;
+          if (false) {
+            const Mat3 dRwb = ExpSO3(rot_vec);
+            coarseTracker->thisToNext.setRotationMatrix(
+                coarseTracker->thisToNext.rotationMatrix() * dRwb);
+          } else {
+            dRwb *= ExpSO3(rot_vec);
+          }
+        }
+        // coarseTracker->thisToNext.rotationMatrix() = dRwb;
+        coarseTracker->thisToNext.setRotationMatrix(
+            Hcalib.p_multi_camera->cid_to_Tbc_SE3[0]
+                .rotationMatrix()
+                .transpose() *
+            dRwb.transpose() *
+            Hcalib.p_multi_camera->cid_to_Tbc_SE3[0].rotationMatrix() *
+            coarseTracker->thisToNext.rotationMatrix());
+      } else {
+        // coarseTracker->thisToNext.setRotationMatrix(R_th);
+      }
+    }
+    std::pair<Vec4, bool> pair =
+        trackNewCoarse(fh, referenceToFramePassed, dRwb);
     {
       //            fh->shell->camToWorld;
       //            fh->shell->timestamp;
@@ -1927,7 +2028,7 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
 #endif
 #else
 #ifndef USE_ZNCC
-  std::vector<float> init_rmse_thr = {13, 10, 10};
+  std::vector<float> init_rmse_thr = {13, 13, 13};
 #else
   std::vector<float> init_rmse_thr = {30, 30, 30};
 #endif

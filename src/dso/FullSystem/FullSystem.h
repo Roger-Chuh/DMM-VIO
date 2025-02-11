@@ -206,7 +206,8 @@ private:
 
   // mainPipelineFunctions
   std::pair<Vec4, bool> trackNewCoarse(FrameHessian *fh,
-                                       Sophus::SE3 *referenceToFrameHint = 0);
+                                       Sophus::SE3 *referenceToFrameHint = 0,
+                                       Mat33 dRwb = Mat33::Identity());
 
   void traceNewCoarse(FrameHessian *fh, bool is_first_frame = false);
 

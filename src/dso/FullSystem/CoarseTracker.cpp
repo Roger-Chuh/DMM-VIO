@@ -355,13 +355,16 @@ void CoarseTracker::makeCoarseDepthL0(
 }
 
 //@ 对跟踪的最新帧和参考帧之间的残差, 求 Hessian 和 b
-void CoarseTracker::calcGSSSE(int lvl, MatState &H_out, VecState &b_out,
-                              const SE3 &refToNew, AffLight aff_g2l, int &N,
+void CoarseTracker::calcGSSSE(int lvl_target_, int lvl, MatState &H_out,
+                              VecState &b_out, const SE3 &refToNew,
+                              AffLight aff_g2l, int &N,
                               MultiCamera *p_multi_camera) {
   // acc.initialize();
-
+  int lvl_target = lvl_target_ >= 0 ? lvl_target_ : lvl;
   __m128 fxl = _mm_set1_ps(fx[lvl /* + host_cid * PYR_LEVELS*/]);
   __m128 fyl = _mm_set1_ps(fy[lvl /* + host_cid * PYR_LEVELS*/]);
+  __m128 fxl_target = _mm_set1_ps(fx[lvl_target /* + host_cid * PYR_LEVELS*/]);
+  __m128 fyl_target = _mm_set1_ps(fy[lvl_target /* + host_cid * PYR_LEVELS*/]);
   __m128 b0 = _mm_set1_ps(lastRef_aff_g2l.b);
   __m128 a = _mm_set1_ps((float)(AffLight::fromToVecExposure(
       lastRef->ab_exposure, newFrame->ab_exposure, lastRef_aff_g2l,
@@ -393,11 +396,11 @@ void CoarseTracker::calcGSSSE(int lvl, MatState &H_out, VecState &b_out,
         __m128 dx = _mm_mul_ps(
             _mm_load_ps(buf_warped_dx[host_cid * kCameraNumUsed + target_cid] +
                         i),
-            fxl); //! dx*fx
+            fxl_target); //! dx*fx
         __m128 dy = _mm_mul_ps(
             _mm_load_ps(buf_warped_dy[host_cid * kCameraNumUsed + target_cid] +
                         i),
-            fyl); //! dy*fy
+            fyl_target); //! dy*fy
         __m128 u = _mm_load_ps(
             buf_warped_u[host_cid * kCameraNumUsed + target_cid] + i);
         __m128 v = _mm_load_ps(
@@ -511,9 +514,10 @@ void CoarseTracker::calcGSSSE(int lvl, MatState &H_out, VecState &b_out,
 //@ 计算当前位姿投影得到的残差(能量值), 并进行一些统计
 //! 构造尽量多的点, 有助于跟踪
 //#define SHOW_TRACK_RES
-Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
+Vec6 CoarseTracker::calcRes(int lvl_target_, FrameHessian *lastRef, int lvl,
                             const SE3 &refToNew_, AffLight aff_g2l,
                             float cutoffTH, bool show_image) {
+  int lvl_target = lvl_target_ >= 0 ? lvl_target_ : lvl;
   float E = 0;
   int numTermsInE = 0;
   // int numTermsInWarped = 0;
@@ -539,11 +543,18 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
       // * PYR_LEVELS;
       int wl = w[lvl];
       int hl = h[lvl];
-      Eigen::Vector3f *dINewl = newFrame->dIp[lvl] + wl * hl * target_cid;
+      int wl_target = w[lvl_target];
+      int hl_target = h[lvl_target];
+      Eigen::Vector3f *dINewl =
+          newFrame->dIp[lvl_target] + wl_target * hl_target * target_cid;
       float fxl = fx[lvl];
       float fyl = fy[lvl];
       float cxl = cx[lvl];
       float cyl = cy[lvl];
+      float fxl_target = fx[lvl_target];
+      float fyl_target = fy[lvl_target];
+      float cxl_target = cx[lvl_target];
+      float cyl_target = cy[lvl_target];
 
       SE3 refToNew =
           newFrame->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() *
@@ -589,35 +600,35 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
         Vec3f pt = RKi * Vec3f(x, y, 1) + t * id;
         float u = pt[0] / pt[2]; // 归一化坐标
         float v = pt[1] / pt[2];
-        float Ku = fxl * u + cxl; // 像素坐标
-        float Kv = fyl * v + cyl;
+        float Ku = fxl_target * u + cxl_target; // 像素坐标
+        float Kv = fyl_target * v + cyl_target;
 
         float new_idepth = id / pt[2]; // 当前帧上的深度
 
-        if (lvl == 0 && i % 32 == 0 &&
+        if (lvl_target == 0 && lvl == 0 && i % 32 == 0 &&
             host_cid == target_cid) //* 第0层 每隔32个点
         {
           //* 只正的平移 // translation only (positive)
           Vec3f ptT = Ki[lvl] * Vec3f(x, y, 1) + t * id;
           float uT = ptT[0] / ptT[2];
           float vT = ptT[1] / ptT[2];
-          float KuT = fxl * uT + cxl;
-          float KvT = fyl * vT + cyl;
+          float KuT = fxl_target * uT + cxl_target;
+          float KvT = fyl_target * vT + cyl_target;
 
           //* 只负的平移// translation only (negative)
           /// warpping
           Vec3f ptT2 = Ki[lvl] * Vec3f(x, y, 1) - t * id;
           float uT2 = ptT2[0] / ptT2[2];
           float vT2 = ptT2[1] / ptT2[2];
-          float KuT2 = fxl * uT2 + cxl;
-          float KvT2 = fyl * vT2 + cyl;
+          float KuT2 = fxl_target * uT2 + cxl_target;
+          float KvT2 = fyl_target * vT2 + cyl_target;
 
           //* 旋转+负的平移//translation and rotation (negative)
           Vec3f pt3 = RKi * Vec3f(x, y, 1) - t * id;
           float u3 = pt3[0] / pt3[2];
           float v3 = pt3[1] / pt3[2];
-          float Ku3 = fxl * u3 + cxl;
-          float Kv3 = fyl * v3 + cyl;
+          float Ku3 = fxl_target * u3 + cxl_target;
+          float Kv3 = fyl_target * v3 + cyl_target;
 
           // translation and rotation (positive)
           // already have it.
@@ -633,12 +644,12 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
           Vec3f hitColor;
           bool is_in_frame = true, is_valid_projection = true;
           //* 图像边沿, 深度为负 则跳过
-          if (!(Ku > 2 && Kv > 2 && Ku < wl - 3 && Kv < hl - 3 &&
+          if (!(Ku > 2 && Kv > 2 && Ku < wl_target - 3 && Kv < hl_target - 3 &&
                 new_idepth > 0)) {
             is_in_frame = false;
             hitColor = Vec3f::Constant(std::nan(""));
           } else {
-            hitColor = getInterpolatedElement33(dINewl, Ku, Kv, wl);
+            hitColor = getInterpolatedElement33(dINewl, Ku, Kv, wl_target);
           }
 
           if (!std::isfinite((float)hitColor[0])) {
@@ -677,12 +688,13 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
 #endif
         }
         //* 图像边沿, 深度为负 则跳过
-        if (!(Ku > 2 && Kv > 2 && Ku < wl - 3 && Kv < hl - 3 && new_idepth > 0))
+        if (!(Ku > 2 && Kv > 2 && Ku < wl_target - 3 && Kv < hl_target - 3 &&
+              new_idepth > 0))
           continue;
 
         // 计算残差
         float refColor = lpc_color[i];
-        Vec3f hitColor = getInterpolatedElement33(dINewl, Ku, Kv, wl);
+        Vec3f hitColor = getInterpolatedElement33(dINewl, Ku, Kv, wl_target);
         if (!std::isfinite((float)hitColor[0]))
           continue;
         /// 只算host点的残差，不算8个邻域内的残差了?
@@ -730,10 +742,10 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
           show_image = true; // i % 300 == 0;
           MinimalImageB3 *img_host;
           MinimalImageB3 *img_target;
-          if (show_image && (Ku > 15 && Kv > 15 && Ku < wl - 15 &&
-                             Kv < hl - 15 && new_idepth > 0)) {
+          if (show_image && (Ku > 15 && Kv > 15 && Ku < wl_target - 15 &&
+                             Kv < hl_target - 15 && new_idepth > 0)) {
             img_host = new MinimalImageB3(wG[lvl], hG[lvl]);
-            img_target = new MinimalImageB3(wG[lvl], hG[lvl]);
+            img_target = new MinimalImageB3(wG[lvl_target], hG[lvl_target]);
 
             refFrameID;
 
@@ -746,8 +758,21 @@ Vec6 CoarseTracker::calcRes(FrameHessian *lastRef, int lvl,
               if (colL > 255)
                 colL = 255;
               img_host->at(i, host_cid) = Vec3b(colL, colL, colL);
-              colL = (*(newFrame->dIp[lvl] + wG[lvl] * hG[lvl] * target_cid +
-                        i))[0];
+              //              colL = (*(newFrame->dIp[lvl] + wG[lvl] * hG[lvl] *
+              //              target_cid +
+              //                        i))[0];
+              //              if (colL < 0)
+              //                colL = 0;
+              //              if (colL > 255)
+              //                colL = 255;
+              //              img_target->at(i, target_cid) = Vec3b(colL, colL,
+              //              colL);
+            }
+            for (int i = 0; i < wG[lvl_target] * hG[lvl_target]; i++) {
+              // BRIGHTNESS TRANSFER
+              float colL =
+                  (*(newFrame->dIp[lvl_target] +
+                     wG[lvl_target] * hG[lvl_target] * target_cid + i))[0];
               if (colL < 0)
                 colL = 0;
               if (colL > 255)
@@ -894,260 +919,106 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
   MatState H;
   VecState b;
   int lastLvl = -1;
+  bool use_inner_loop = true;
+  int inner_loop_start_lvl = use_inner_loop ? pyrLevelsUsed - 1 : 0;
+  ;
+  int lvl_target = 0;
+  int max_iter = -1;
   for (int lvl = coarsestLvl; lvl >= 0; lvl--) {
-    float levelCutoffRepeat = 1;
-    //[ ***step 1*** ] 计算残差, 保证最多60%残差大于阈值, 计算正规方程
-    // TODO preCalculate some values w.r.t. current state estimate
-    ///         buf_warped_idepth
-    ///			buf_warped_u
-    ///			buf_warped_v
-    ///			buf_warped_dx
-    ///			buf_warped_dy
-    ///			buf_warped_residual
-    ///			buf_warped_weight
-    ///			buf_warped_refColor
-    Vec6 resOld = Vec6::Zero();
-    //    for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
-    //      for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid)
-    //      {
-    printf("aa\n");
-    resOld = calcRes(lastRef, lvl, refToNew_current, aff_g2l_current,
-                     setting_coarseCutoffTH * levelCutoffRepeat, lvl == 0);
-    printf("bb\n");
-    //      }
-    //    }
-    //* 保证大于阈值的点小于60%
-    while (resOld[5] > 0.6 && (levelCutoffRepeat < 50 || resOld[5] > 0.99)) {
-      levelCutoffRepeat *= 2; // 超过阈值的多, 则放大阈值重新计算
-      resOld.setZero();
-      //      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
-      //        for (int target_cid = 0; target_cid < kCameraNumUsed;
-      //        ++target_cid) {
-      resOld = calcRes(lastRef, lvl, refToNew_current, aff_g2l_current,
-                       setting_coarseCutoffTH * levelCutoffRepeat, lvl == 0);
-      //        }
+    for (int lvl_target_ = inner_loop_start_lvl /*pyrLevelsUsed - 1*/;
+         lvl_target_ >= 0; lvl_target_--) {
+      if (use_inner_loop) {
+        lvl_target = lvl_target_;
+        if (lvl_target_ < lvl) {
+          // continue;
+        }
+        max_iter = maxIterations[lvl] > maxIterations[lvl_target]
+                       ? maxIterations[lvl]
+                       : maxIterations[lvl_target];
+      } else {
+        lvl_target = -1; // lvl;
+        max_iter = maxIterations[lvl];
+      }
+      float levelCutoffRepeat = 1;
+      //[ ***step 1*** ] 计算残差, 保证最多60%残差大于阈值, 计算正规方程
+      // TODO preCalculate some values w.r.t. current state estimate
+      ///         buf_warped_idepth
+      ///			buf_warped_u
+      ///			buf_warped_v
+      ///			buf_warped_dx
+      ///			buf_warped_dy
+      ///			buf_warped_residual
+      ///			buf_warped_weight
+      ///			buf_warped_refColor
+      Vec6 resOld = Vec6::Zero();
+      //    for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
+      //      for (int target_cid = 0; target_cid < kCameraNumUsed;
+      //      ++target_cid)
+      //      {
+      printf("aa\n");
+      resOld =
+          calcRes(lvl_target, lastRef, lvl, refToNew_current, aff_g2l_current,
+                  setting_coarseCutoffTH * levelCutoffRepeat, lvl == 0);
+      printf("bb\n");
       //      }
+      //    }
+      //* 保证大于阈值的点小于60%
+      while (resOld[5] > 0.6 && (levelCutoffRepeat < 50 || resOld[5] > 0.99)) {
+        levelCutoffRepeat *= 2; // 超过阈值的多, 则放大阈值重新计算
+        resOld.setZero();
+        //      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
+        //        for (int target_cid = 0; target_cid < kCameraNumUsed;
+        //        ++target_cid) {
+        resOld =
+            calcRes(lvl_target, lastRef, lvl, refToNew_current, aff_g2l_current,
+                    setting_coarseCutoffTH * levelCutoffRepeat, lvl == 0);
+        //        }
+        //      }
 
-      if (!setting_debugout_runquiet)
-        printf("INCREASING cutoff to %f (ratio is %f)!\n",
-               setting_coarseCutoffTH * levelCutoffRepeat, resOld[5]);
-    }
-    // refToNew_current is the camera pose
-    // aff_g2l_current is the photometric
-    // refToNew_current is not used in this function
-    // this function only updates H and b and the aff_g2l_current
-    // calculate GradientS use intel SSE.
-    float lambda = 0.01;
-    int fails = 0;
-    {
-      H.setZero();
-      b.setZero();
-      int res_count = 0;
-      //      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
-      //        for (int target_cid = 0; target_cid < kCameraNumUsed;
-      //        ++target_cid) {
-      calcGSSSE(lvl, H, b, refToNew_current, aff_g2l_current, res_count,
-                newFrame->p_multi_camera);
-      //                  if (debugPrint) {
-      //                      Vec2f relAff = AffLight::fromToVecExposure(
-      //                              lastRef->ab_exposure,
-      //                              newFrame->ab_exposure,
-      //                              lastRef_aff_g2l, aff_g2l_current)
-      //                              .cast<float>();
-      //                      printf(
-      //                              "[host target]: [%d %d], lvl%d, it %d
-      //                              (l=%f / %f) %s: %.3f->%.3f (%d -> %d)
-      //                              (|inc| = %f)! \t", host_cid,
-      //                              target_cid, lvl, -1, lambda, 1.0f,
-      //                              "INITIA", 0.0f, resOld[0] / resOld[1],
-      //                              0, (int)resOld[1], 0.0f);
-      //                      std::cout <<
-      //                      refToNew_current.log().transpose() << " AFF "
-      //                                << aff_g2l_current.vec().transpose()
-      //                                << " (rel "
-      //                                << relAff.transpose() << ")\n";
-      //                  }
+        if (!setting_debugout_runquiet)
+          printf("INCREASING cutoff to %f (ratio is %f)!\n",
+                 setting_coarseCutoffTH * levelCutoffRepeat, resOld[5]);
+      }
+      // refToNew_current is the camera pose
+      // aff_g2l_current is the photometric
+      // refToNew_current is not used in this function
+      // this function only updates H and b and the aff_g2l_current
+      // calculate GradientS use intel SSE.
+      float lambda = 0.01;
+      int fails = 0;
+      {
+        H.setZero();
+        b.setZero();
+        int res_count = 0;
+        //      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
+        //        for (int target_cid = 0; target_cid < kCameraNumUsed;
+        //        ++target_cid) {
+        calcGSSSE(lvl_target, lvl, H, b, refToNew_current, aff_g2l_current,
+                  res_count, newFrame->p_multi_camera);
+        //                  if (debugPrint) {
+        //                      Vec2f relAff = AffLight::fromToVecExposure(
+        //                              lastRef->ab_exposure,
+        //                              newFrame->ab_exposure,
+        //                              lastRef_aff_g2l, aff_g2l_current)
+        //                              .cast<float>();
+        //                      printf(
+        //                              "[host target]: [%d %d], lvl%d, it %d
+        //                              (l=%f / %f) %s: %.3f->%.3f (%d -> %d)
+        //                              (|inc| = %f)! \t", host_cid,
+        //                              target_cid, lvl, -1, lambda, 1.0f,
+        //                              "INITIA", 0.0f, resOld[0] / resOld[1],
+        //                              0, (int)resOld[1], 0.0f);
+        //                      std::cout <<
+        //                      refToNew_current.log().transpose() << " AFF "
+        //                                << aff_g2l_current.vec().transpose()
+        //                                << " (rel "
+        //                                << relAff.transpose() << ")\n";
+        //                  }
 //        }
 //      }
 #if 0
-      H *= (1.0f / res_count);
-      b *= (1.0f / res_count);
-      H.block<STATE_DIM, 3>(0, 0) *= SCALE_XI_ROT;
-      H.block<STATE_DIM, 3>(0, 3) *= SCALE_XI_TRANS;
-      H.block<STATE_DIM, 1>(0, 6) *= SCALE_A;
-      H.block<STATE_DIM, 1>(0, 7) *= SCALE_B;
-      H.block<3, STATE_DIM>(0, 0) *= SCALE_XI_ROT;
-      H.block<3, STATE_DIM>(3, 0) *= SCALE_XI_TRANS;
-      H.block<1, STATE_DIM>(6, 0) *= SCALE_A;
-      H.block<1, STATE_DIM>(7, 0) *= SCALE_B;
-      b.segment<3>(0) *= SCALE_XI_ROT;
-      b.segment<3>(3) *= SCALE_XI_TRANS;
-      b.segment<1>(6) *= SCALE_A;
-      b.segment<1>(7) *= SCALE_B;
-#endif
-    }
-    //    float lambda = 0.01;
-
-    if (debugPrint) {
-      Vec2f relAff = AffLight::fromToVecExposure(
-                         lastRef->ab_exposure, newFrame->ab_exposure,
-                         lastRef_aff_g2l, aff_g2l_current)
-                         .cast<float>();
-      printf(
-          "lvl%d, it %d (l=%f / %f) %s: %.3f->%.3f (%d -> %d) (|inc| = %f)! \t",
-          lvl, -1, lambda, 1.0f, "INITIA", 0.0f, resOld[0] / resOld[1], 0,
-          (int)resOld[1], 0.0f);
-      std::cout << refToNew_current.log().transpose() << " AFF "
-                << aff_g2l_current.vec().transpose() << " (rel "
-                << relAff.transpose() << ")\n";
-    }
-
-    //[ ***step 2*** ] 迭代优化
-    for (int iteration = 0; iteration < maxIterations[lvl]; iteration++) {
-      dmvio::TimeMeasurement timeMeasurement("coarseTrackingIteration");
-      //[ ***step 2.1*** ] 计算增量
-      Mat88 Hl = H;
-      for (int i = 0; i < 8; i++)
-        Hl(i, i) *= (1 + lambda);
-
-      //? lambda太小的化, 就给增量一个因子, 啥原理????
-      float extrapFac = 1;
-      if (lambda < lambdaExtrapolationLimit)
-        extrapFac = sqrt(sqrt(lambdaExtrapolationLimit / lambda));
-
-      SE3 refToNew_new;
-      AffLight aff_g2l_new = aff_g2l_current;
-      double incNorm;
-      if (dso::setting_useIMU && imuIntegration.isCoarseInitialized()) {
-        // The idea of the integration of the IMU (and GTSAM) into the coarse
-        // tracking is to replace the line Vec8 inc = Hl.ldlt().solve(-b); with
-        // a call to computeCoarseUpdate, which will add GTSAM factors before
-        // calculating the update.
-
-        double incA, incB;
-        // Note that we pass H instead of Hl as the lambda multiplication is
-        // done inside...
-        // TODO rog, like align frame in orca next, but with imu factors
-        refToNew_new = imuIntegration.computeCoarseUpdate(
-            H, b, extrapFac, lambda, incA, incB, incNorm);
-
-        SE3 oldVal = refToNew_current;
-        SE3 newVal = refToNew_new;
-        dso::Vec6 increment = (newVal * oldVal.inverse()).log();
-
-        dso::Vec8 totalIncrement;
-        totalIncrement.segment(0, 6) = increment;
-
-        totalIncrement(6) = incA;
-        totalIncrement(7) = incB;
-
-        incA *= SCALE_A;
-        incB *= SCALE_B;
-        // TODO rog, affine的更新没用gtsam去批量update
-        // values，而是在流程外面手动更新
-        aff_g2l_new.a += incA;
-        aff_g2l_new.b += incB;
-      } else {
-        // TODO rog, align frame without imu factors
-        Vec8 inc = Hl.ldlt().solve(-b);
-
-        if (setting_affineOptModeA < 0 &&
-            setting_affineOptModeB < 0) // fix a, b
-        {
-          inc.head<6>() = Hl.topLeftCorner<6, 6>().ldlt().solve(-b.head<6>());
-          inc.tail<2>().setZero();
-        }
-        if (!(setting_affineOptModeA < 0) &&
-            setting_affineOptModeB < 0) // fix b
-        {
-          inc.head<7>() = Hl.topLeftCorner<7, 7>().ldlt().solve(-b.head<7>());
-          inc.tail<1>().setZero();
-        }
-        if (setting_affineOptModeA < 0 &&
-            !(setting_affineOptModeB < 0)) // fix a
-        {
-          //? 怎么又换了个方法求....
-          MatState HlStitch = Hl;
-          VecState bStitch = b;
-          HlStitch.col(6) = HlStitch.col(7);
-          HlStitch.row(6) = HlStitch.row(7);
-          bStitch[6] = bStitch[7];
-          Vec7 incStitch =
-              HlStitch.topLeftCorner<7, 7>().ldlt().solve(-bStitch.head<7>());
-          inc.setZero();
-          inc.head<6>() = incStitch.head<6>();
-          inc[6] = 0;
-          inc[7] = incStitch[6];
-        }
-
-        inc *= extrapFac;
-
-        VecState incScaled = inc;
-        incScaled.segment<3>(0) *= SCALE_XI_ROT;
-        incScaled.segment<3>(3) *= SCALE_XI_TRANS;
-        incScaled.segment<1>(6) *= SCALE_A;
-        incScaled.segment<1>(7) *= SCALE_B;
-
-        if (!std::isfinite(incScaled.sum()))
-          incScaled.setZero();
-        //[ ***step 2.2*** ] 使用增量更新后, 重新计算能量值
-        // exp: first three: translational part, last three: rotational part.
-        // Note: gtsam::Pose3 contains first rotational and then translational
-        // part!
-        refToNew_new = SE3::exp((Vec6)(incScaled.head<6>())) * refToNew_current;
-        aff_g2l_new = aff_g2l_current;
-        aff_g2l_new.a += incScaled[6];
-        aff_g2l_new.b += incScaled[7];
-
-        incNorm = inc.head(6).norm();
-      }
-      // std::array<AffLight, kCameraNumUsed> a_aff_g2l_new;
-      //      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-      //          a_aff_g2l_new[cid] = aff_g2l_new;
-      //      }
-
-      Vec6 resNew = Vec6::Zero();
-      //      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
-      //        for (int target_cid = 0; target_cid < kCameraNumUsed;
-      //        ++target_cid) {
-      resNew = calcRes(lastRef, lvl, refToNew_new, aff_g2l_new,
-                       setting_coarseCutoffTH * levelCutoffRepeat);
-      //        }
-      //      }
-
-      bool accept = (resNew[0] / resNew[1]) <
-                    (resOld[0] / resOld[1]); // 平均能量值小则接受
-
-      if (debugPrint) {
-        Vec2f relAff = AffLight::fromToVecExposure(lastRef->ab_exposure,
-                                                   newFrame->ab_exposure,
-                                                   lastRef_aff_g2l, aff_g2l_new)
-                           .cast<float>();
-        printf("lvl %d, it %d (l=%f / %f) %s: %.3f->%.3f (%d -> %d) (|inc| = "
-               "%f)! \t",
-               lvl, iteration, lambda, extrapFac,
-               (accept ? "ACCEPT" : "REJECT"), resOld[0] / resOld[1],
-               resNew[0] / resNew[1], (int)resOld[1], (int)resNew[1], incNorm);
-        std::cout << refToNew_new.log().transpose() << " AFF "
-                  << aff_g2l_new.vec().transpose() << " (rel "
-                  << relAff.transpose() << ")\n";
-      }
-      if (accept) {
-        {
-          H.setZero();
-          b.setZero();
-          int res_count2 = 0;
-          //          for (int host_cid = 0; host_cid < kCameraNumUsed;
-          //          ++host_cid) {
-          //            for (int target_cid = 0; target_cid < kCameraNumUsed;
-          //                 ++target_cid) {
-          calcGSSSE(lvl, H, b, refToNew_new, aff_g2l_new, res_count2,
-                    newFrame->p_multi_camera);
-//            }
-//          }
-#if 0
-          H *= (1.0f / res_count2);
-          b *= (1.0f / res_count2);
+          H *= (1.0f / res_count);
+          b *= (1.0f / res_count);
           H.block<STATE_DIM, 3>(0, 0) *= SCALE_XI_ROT;
           H.block<STATE_DIM, 3>(0, 3) *= SCALE_XI_TRANS;
           H.block<STATE_DIM, 1>(0, 6) *= SCALE_A;
@@ -1161,57 +1032,244 @@ bool CoarseTracker::trackNewestCoarse(FrameHessian *lastRef,
           b.segment<1>(6) *= SCALE_A;
           b.segment<1>(7) *= SCALE_B;
 #endif
-        }
-        resOld = resNew;
-        // TODO update state estimate
-        // TODO 这里用了fej吗? i guess not, it's just coaseTracking, far from
-        // fixed lag smoothing
-        aff_g2l_current = aff_g2l_new;
-        refToNew_current = refToNew_new;
-        if (dso::setting_useIMU)
-          imuIntegration.acceptCoarseUpdate();
-        lambda *= 0.5;
-        fails = 0;
-        if (lambda < lambdaExtrapolationLimit) {
-          lambda = lambdaExtrapolationLimit;
-        }
-      } else {
-        fails++;
-        if (fails < 2) {
-          lambda *= 4;
+      }
+      //    float lambda = 0.01;
+
+      if (debugPrint) {
+        Vec2f relAff = AffLight::fromToVecExposure(
+                           lastRef->ab_exposure, newFrame->ab_exposure,
+                           lastRef_aff_g2l, aff_g2l_current)
+                           .cast<float>();
+        printf("lvl%d, it %d (l=%f / %f) %s: %.3f->%.3f (%d -> %d) (|inc| = "
+               "%f)! \t",
+               lvl, -1, lambda, 1.0f, "INITIA", 0.0f, resOld[0] / resOld[1], 0,
+               (int)resOld[1], 0.0f);
+        std::cout << refToNew_current.log().transpose() << " AFF "
+                  << aff_g2l_current.vec().transpose() << " (rel "
+                  << relAff.transpose() << ")\n";
+      }
+
+      //[ ***step 2*** ] 迭代优化
+      for (int iteration = 0; iteration < max_iter /*maxIterations[lvl]*/;
+           iteration++) {
+        dmvio::TimeMeasurement timeMeasurement("coarseTrackingIteration");
+        //[ ***step 2.1*** ] 计算增量
+        Mat88 Hl = H;
+        for (int i = 0; i < 8; i++)
+          Hl(i, i) *= (1 + lambda);
+
+        //? lambda太小的化, 就给增量一个因子, 啥原理????
+        float extrapFac = 1;
+        if (lambda < lambdaExtrapolationLimit)
+          extrapFac = sqrt(sqrt(lambdaExtrapolationLimit / lambda));
+
+        SE3 refToNew_new;
+        AffLight aff_g2l_new = aff_g2l_current;
+        std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! iter: "
+                  << iteration << ", h_lvl: " << lvl
+                  << ", t_lvl: " << lvl_target
+                  << ", aff_g2l_new: " << aff_g2l_new.vec().transpose()
+                  << std::endl;
+        double incNorm;
+        if (dso::setting_useIMU && imuIntegration.isCoarseInitialized()) {
+          // The idea of the integration of the IMU (and GTSAM) into the coarse
+          // tracking is to replace the line Vec8 inc = Hl.ldlt().solve(-b);
+          // with a call to computeCoarseUpdate, which will add GTSAM factors
+          // before calculating the update.
+
+          double incA, incB;
+          // Note that we pass H instead of Hl as the lambda multiplication is
+          // done inside...
+          // TODO rog, like align frame in orca next, but with imu factors
+          refToNew_new = imuIntegration.computeCoarseUpdate(
+              H, b, extrapFac, lambda, incA, incB, incNorm);
+
+          SE3 oldVal = refToNew_current;
+          SE3 newVal = refToNew_new;
+          dso::Vec6 increment = (newVal * oldVal.inverse()).log();
+
+          dso::Vec8 totalIncrement;
+          totalIncrement.segment(0, 6) = increment;
+
+          totalIncrement(6) = incA;
+          totalIncrement(7) = incB;
+
+          incA *= SCALE_A;
+          incB *= SCALE_B;
+          // TODO rog, affine的更新没用gtsam去批量update
+          // values，而是在流程外面手动更新
+          aff_g2l_new.a += incA;
+          aff_g2l_new.b += incB;
         } else {
-          lambda *= 4;
+          // TODO rog, align frame without imu factors
+          Vec8 inc = Hl.ldlt().solve(-b);
+
+          if (lvl >= 200 ||
+              /*lvl_target >= 2 ||*/ (setting_affineOptModeA < 0 &&
+                                      setting_affineOptModeB < 0)) // fix a, b
+          {
+            inc.head<6>() = Hl.topLeftCorner<6, 6>().ldlt().solve(-b.head<6>());
+            inc.tail<2>().setZero();
+          }
+          if (!(setting_affineOptModeA < 0) &&
+              setting_affineOptModeB < 0) // fix b
+          {
+            inc.head<7>() = Hl.topLeftCorner<7, 7>().ldlt().solve(-b.head<7>());
+            inc.tail<1>().setZero();
+          }
+          if (setting_affineOptModeA < 0 &&
+              !(setting_affineOptModeB < 0)) // fix a
+          {
+            //? 怎么又换了个方法求....
+            MatState HlStitch = Hl;
+            VecState bStitch = b;
+            HlStitch.col(6) = HlStitch.col(7);
+            HlStitch.row(6) = HlStitch.row(7);
+            bStitch[6] = bStitch[7];
+            Vec7 incStitch =
+                HlStitch.topLeftCorner<7, 7>().ldlt().solve(-bStitch.head<7>());
+            inc.setZero();
+            inc.head<6>() = incStitch.head<6>();
+            inc[6] = 0;
+            inc[7] = incStitch[6];
+          }
+
+          inc *= extrapFac;
+
+          VecState incScaled = inc;
+          incScaled.segment<3>(0) *= SCALE_XI_ROT;
+          incScaled.segment<3>(3) *= SCALE_XI_TRANS;
+          incScaled.segment<1>(6) *= SCALE_A;
+          incScaled.segment<1>(7) *= SCALE_B;
+
+          if (!std::isfinite(incScaled.sum()))
+            incScaled.setZero();
+          //[ ***step 2.2*** ] 使用增量更新后, 重新计算能量值
+          // exp: first three: translational part, last three: rotational part.
+          // Note: gtsam::Pose3 contains first rotational and then translational
+          // part!
+          refToNew_new =
+              SE3::exp((Vec6)(incScaled.head<6>())) * refToNew_current;
+          aff_g2l_new = aff_g2l_current;
+          aff_g2l_new.a += incScaled[6];
+          aff_g2l_new.b += incScaled[7];
+
+          incNorm = inc.head(6).norm();
         }
-        if (lambda < lambdaExtrapolationLimit) {
-          // lambda = lambdaExtrapolationLimit;
+        // std::array<AffLight, kCameraNumUsed> a_aff_g2l_new;
+        //      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+        //          a_aff_g2l_new[cid] = aff_g2l_new;
+        //      }
+
+        Vec6 resNew = Vec6::Zero();
+        //      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
+        //        for (int target_cid = 0; target_cid < kCameraNumUsed;
+        //        ++target_cid) {
+        resNew = calcRes(lvl_target, lastRef, lvl, refToNew_new, aff_g2l_new,
+                         setting_coarseCutoffTH * levelCutoffRepeat);
+        //        }
+        //      }
+
+        bool accept = (resNew[0] / resNew[1]) <
+                      (resOld[0] / resOld[1]); // 平均能量值小则接受
+
+        if (debugPrint) {
+          Vec2f relAff = AffLight::fromToVecExposure(
+                             lastRef->ab_exposure, newFrame->ab_exposure,
+                             lastRef_aff_g2l, aff_g2l_new)
+                             .cast<float>();
+          printf("lvl %d, it %d (l=%f / %f) %s: %.3f->%.3f (%d -> %d) (|inc| = "
+                 "%f)! \t",
+                 lvl, iteration, lambda, extrapFac,
+                 (accept ? "ACCEPT" : "REJECT"), resOld[0] / resOld[1],
+                 resNew[0] / resNew[1], (int)resOld[1], (int)resNew[1],
+                 incNorm);
+          std::cout << refToNew_new.log().transpose() << " AFF "
+                    << aff_g2l_new.vec().transpose() << " (rel "
+                    << relAff.transpose() << ")\n";
         }
-        if (lambda > 10000) {
-          lambda = 10000;
+        if (accept) {
+          {
+            H.setZero();
+            b.setZero();
+            int res_count2 = 0;
+            //          for (int host_cid = 0; host_cid < kCameraNumUsed;
+            //          ++host_cid) {
+            //            for (int target_cid = 0; target_cid < kCameraNumUsed;
+            //                 ++target_cid) {
+            calcGSSSE(lvl_target, lvl, H, b, refToNew_new, aff_g2l_new,
+                      res_count2, newFrame->p_multi_camera);
+//            }
+//          }
+#if 0
+                  H *= (1.0f / res_count2);
+                  b *= (1.0f / res_count2);
+                  H.block<STATE_DIM, 3>(0, 0) *= SCALE_XI_ROT;
+                  H.block<STATE_DIM, 3>(0, 3) *= SCALE_XI_TRANS;
+                  H.block<STATE_DIM, 1>(0, 6) *= SCALE_A;
+                  H.block<STATE_DIM, 1>(0, 7) *= SCALE_B;
+                  H.block<3, STATE_DIM>(0, 0) *= SCALE_XI_ROT;
+                  H.block<3, STATE_DIM>(3, 0) *= SCALE_XI_TRANS;
+                  H.block<1, STATE_DIM>(6, 0) *= SCALE_A;
+                  H.block<1, STATE_DIM>(7, 0) *= SCALE_B;
+                  b.segment<3>(0) *= SCALE_XI_ROT;
+                  b.segment<3>(3) *= SCALE_XI_TRANS;
+                  b.segment<1>(6) *= SCALE_A;
+                  b.segment<1>(7) *= SCALE_B;
+#endif
+          }
+          resOld = resNew;
+          // TODO update state estimate
+          // TODO 这里用了fej吗? i guess not, it's just coaseTracking, far from
+          // fixed lag smoothing
+          aff_g2l_current = aff_g2l_new;
+          refToNew_current = refToNew_new;
+          if (dso::setting_useIMU)
+            imuIntegration.acceptCoarseUpdate();
+          lambda *= 0.5;
+          fails = 0;
+          if (lambda < lambdaExtrapolationLimit) {
+            lambda = lambdaExtrapolationLimit;
+          }
+        } else {
+          fails++;
+          if (fails < 2) {
+            lambda *= 4;
+          } else {
+            lambda *= 4;
+          }
+          if (lambda < lambdaExtrapolationLimit) {
+            // lambda = lambdaExtrapolationLimit;
+          }
+          if (lambda > 10000) {
+            lambda = 10000;
+          }
+        }
+
+        lastLvl = lvl;
+
+        if (!(incNorm > 1e-3) || fails >= 3 /*200*/) {
+          if (debugPrint)
+            printf("inc too small, break! fails: %d\n", fails);
+          break;
         }
       }
+      //[ ***step 3*** ] 记录上一次残差, 光流指示,
+      //如果调整过阈值则重新计算这一层
+      // set last residual for that level, as well as flow indicators.
+      lastResiduals[lvl] = sqrtf((float)(resOld[0] / resOld[1]));
+      // TODO average optical flow
+      lastFlowIndicators = resOld.segment<3>(2);
+      if (std::isnan(lastResiduals[lvl]))
+        return false;
+      if (lastResiduals[lvl] > 1.5 * minResForAbort[lvl])
+        return false; //! 如果算出来大于最好的直接放弃
 
-      lastLvl = lvl;
-
-      if (!(incNorm > 1e-3) || fails >= 3 /*200*/) {
-        if (debugPrint)
-          printf("inc too small, break! fails: %d\n", fails);
-        break;
+      if (levelCutoffRepeat > 1 && !haveRepeated) {
+        lvl++; // 这一层重新算一遍
+        haveRepeated = true;
+        printf("REPEAT LEVEL!\n");
       }
-    }
-    //[ ***step 3*** ] 记录上一次残差, 光流指示, 如果调整过阈值则重新计算这一层
-    // set last residual for that level, as well as flow indicators.
-    lastResiduals[lvl] = sqrtf((float)(resOld[0] / resOld[1]));
-    // TODO average optical flow
-    lastFlowIndicators = resOld.segment<3>(2);
-    if (std::isnan(lastResiduals[lvl]))
-      return false;
-    if (lastResiduals[lvl] > 1.5 * minResForAbort[lvl])
-      return false; //! 如果算出来大于最好的直接放弃
-
-    if (levelCutoffRepeat > 1 && !haveRepeated) {
-      lvl++; // 这一层重新算一遍
-      haveRepeated = true;
-      printf("REPEAT LEVEL!\n");
     }
   }
 

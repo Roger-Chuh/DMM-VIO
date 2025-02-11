@@ -3224,9 +3224,10 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
             //
             //
 #ifdef USE_ZNCC
-          dp6[idx + MAX_RES_PER_POINT * target_cid_use] =
-              -hw * r2new_aff[0] * rlR; //! exp(aj-ai)*I(pi)
-          dp7[idx + MAX_RES_PER_POINT * target_cid_use] = -hw * 1; //! 对 b 导
+          dp6[idx + MAX_RES_PER_POINT * target_cid_use] = 0;
+          -hw *r2new_aff[0] * rlR; //! exp(aj-ai)*I(pi)
+          dp7[idx + MAX_RES_PER_POINT * target_cid_use] =
+              0; //-hw * 1; //! 对 b 导
 #endif
           JbBuffer_new[i + h[0] * w[0] * host_cid][0] +=
               dp0[idx + MAX_RES_PER_POINT * target_cid_use] *
@@ -3496,9 +3497,11 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
                  target_grad_mean, target_sigma_temp, ratio, err_avg, zncc_avg,
                  iter, energy_each_cam, 20 * point->outlierTH);
         } else {
-          printf("ccccc, cnt: %d, bad_pid_count: %d, [lvl_h lvl_t]: [%d %d], "
-                 "iter: %d\n",
-                 cnt, bad_pid_count, lvl, lvl_target, iter);
+          if (false) {
+            printf("ccccc, cnt: %d, bad_pid_count: %d, [lvl_h lvl_t]: [%d %d], "
+                   "iter: %d\n",
+                   cnt, bad_pid_count, lvl, lvl_target, iter);
+          }
         }
         if (bad_pid_count < 100 && cnt > 0) {
           MatXXf energy_vec;

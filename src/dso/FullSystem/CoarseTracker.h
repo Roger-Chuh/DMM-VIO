@@ -88,6 +88,8 @@ public:
   Vec5 lastResiduals;
   Vec3 lastFlowIndicators; //!< 光流指示用, 只有平移和, 旋转+平移的像素移动
   double firstCoarseRMSE;
+  SE3 thisToNext;
+  Mat33 dRwb;
 
 private:
   void makeCoarseDepthL0(std::vector<FrameHessian *> frameHessians);
@@ -99,11 +101,13 @@ private:
   Vec6 calcResAndGS(int lvl, MatState &H_out, VecState &b_out,
                     const SE3 &refToNew, AffLight aff_g2l, float cutoffTH);
 
-  Vec6 calcRes(FrameHessian *lastRef, int lvl, const SE3 &refToNew_,
-               AffLight aff_g2l, float cutoffTH, bool show_image = false);
+  Vec6 calcRes(int lvl_target_, FrameHessian *lastRef, int lvl,
+               const SE3 &refToNew_, AffLight aff_g2l, float cutoffTH,
+               bool show_image = false);
 
-  void calcGSSSE(int lvl, MatState &H_out, VecState &b_out, const SE3 &refToNew,
-                 AffLight aff_g2l, int &N, MultiCamera *p_multi_camera);
+  void calcGSSSE(int lvl_target_, int lvl, MatState &H_out, VecState &b_out,
+                 const SE3 &refToNew, AffLight aff_g2l, int &N,
+                 MultiCamera *p_multi_camera);
 
   void calcGS(int lvl, MatState &H_out, VecState &b_out, const SE3 &refToNew,
               AffLight aff_g2l);
