@@ -245,9 +245,9 @@ inline void Patch::TransformScaled(const Mat4 &T10, const number_t &idp,
 
 struct PyramidPatch {
   // todo: change camera input
-  bool SetFromImg(std::shared_ptr<AlgsImage> img, const Vec2 &px,
+  bool SetFromImg(const std::shared_ptr<AlgsImage> &img, const Vec2 &px,
                   const size_t &cid, bool &is_corner,
-                  MultiCamera *p_simple_camera);
+                  MultiCamera *p_simple_camera, const int &intr_level);
   void SetH(const Mat4 &Tcw0, const number_t &idp);
 
   Mat36 dp_dx0; // same in every level

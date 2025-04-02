@@ -133,7 +133,7 @@ void DepthFilterDSM::UpdateSeedMultiCam(
     Vec2 uv;
     bool is_corner;
     bool success = point.pyramid_patch.SetFromImg(
-        cid_to_img[cid], uv, cid, is_corner, p_level_to_multi_camera_);
+        cid_to_img[cid], uv, cid, is_corner, p_level_to_multi_camera_, 0);
 
     number_t res_idp;
     std::array<MultiCameraEpipolarSearch::MatchRes, kCameraNumUsed>
@@ -144,7 +144,7 @@ void DepthFilterDSM::UpdateSeedMultiCam(
             pt, 1, cid_to_img, seed->pid, seed->rho, seed->sigma2, cur_fid_,
             cid_to_output, res_idp,
             is_first_frame ? -1 : p_estimator_config_->search_length_threshold,
-            true);
+            true, p_estimator_config_->search_level);
 
     if (state == MultiCameraEpipolarSearch::kReject) {
       continue;

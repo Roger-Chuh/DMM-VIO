@@ -213,7 +213,8 @@ struct MultiCamera {
   int cam_num = kCameraNumUsed;
   std::vector<int> cids = {0, 1, 2, 3}; // size must be equal to cam_num
   std::array<CameraBase *, kCameraNumUsed> cid_to_cam;
-  std::array<CameraBase *, kCameraNumUsed> cid_to_cam_pinhole;
+  std::array<std::array<CameraBase *, kCameraNumUsed>, PYR_LEVELS>
+      level_cid_to_cam_pinhole;
   std::array<Mat4, kCameraNumUsed> cid_to_T01;        // Camera Extrinsic
   std::array<SE3, kCameraNumUsed> cid_to_T01_SE3;     // Camera Extrinsic
   std::array<SE3, kCameraNumUsed> cid_to_Tbc_SE3;     // Camera Extrinsic
@@ -223,8 +224,9 @@ struct MultiCamera {
 
   SE3 Tbc0;
 
-  std::array<Mat3, kCameraNumUsed> cid_to_K_temp;
-  std::array<Mat3, kCameraNumUsed> cid_to_Kinv_temp;
+  std::array<std::array<Mat3, kCameraNumUsed>, PYR_LEVELS> level_cid_to_K_temp;
+  std::array<std::array<Mat3, kCameraNumUsed>, PYR_LEVELS>
+      level_cid_to_Kinv_temp;
   std::array<AffLight, kCameraNumUsed> cid_to_affine_light;
   Mat3 K;
   AffLight affine_light;

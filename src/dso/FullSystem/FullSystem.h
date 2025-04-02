@@ -47,6 +47,12 @@
 #include "IMUInitialization/GravityInitializer.h"
 #include <math.h>
 
+#include "depth_filter_DSM.h"
+#include "epipolar_search.h"
+#include "estimator_config.h"
+#include "multi_camera_epipolar_search.h"
+#include "patch.h"
+
 namespace dso {
 namespace IOWrap {
 class Output3DWrapper;
@@ -70,6 +76,10 @@ class ImageAndExposure;
 class CoarseDistanceMap;
 
 class EnergyFunctional;
+
+class DepthFilterDSM;
+class EstimatorConfig;
+class MultiCamera;
 
 //* 删除第i个元素
 template <typename T> inline void deleteOut(std::vector<T *> &v, const int i) {
@@ -200,7 +210,8 @@ private:
 
   PointHessian *optimizeImmaturePoint(ImmaturePoint *point, int minObs,
                                       ImmaturePointTemporaryResidual *residuals,
-                                      bool add_to_residuals = true);
+                                      bool add_to_residuals = true,
+                                      bool print_info = false);
 
   double linAllPointSinle(PointHessian *point, float outlierTHSlack, bool plot);
 
@@ -210,6 +221,8 @@ private:
                                        Mat33 dRwb = Mat33::Identity());
 
   void traceNewCoarse(FrameHessian *fh, bool is_first_frame = false);
+  void convert_to_ImageData(cv::Mat &data, ImageDataAM &image_data,
+                            uint8_t camera_id);
 
   void activatePoints();
 
@@ -352,11 +365,12 @@ private:
    *
    */
 
-  void makeKeyFrame(FrameHessian *fh);
+  void makeKeyFrame(FrameHessian *fh, bool forceKF, bool forceNoKF);
 
   void makeNonKeyFrame(FrameHessian *fh);
 
-  void deliverTrackedFrame(FrameHessian *fh, bool needKF);
+  void deliverTrackedFrame(FrameHessian *fh, bool needKF, bool forceKF,
+                           bool forceNoKF);
 
   void mappingLoop();
 
@@ -374,5 +388,8 @@ private:
   int lastRefStopID;
 
   bool secondKeyframeDone;
+
+  DepthFilterDSM *p_depth_filter_DSM_;
+  EstimatorConfig estimator_config_;
 };
 } // namespace dso

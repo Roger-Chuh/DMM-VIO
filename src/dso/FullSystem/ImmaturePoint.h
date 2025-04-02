@@ -82,6 +82,8 @@ public:
   float idepth_min; //!< 逆深度范围
   float idepth_max;
 
+  float idp = -1.f; //!< 逆深度范围
+
   int host_cid;
   int host_level;
   //  ImmaturePoint(int u_, int v_, FrameHessian *host_, float type,

@@ -664,6 +664,7 @@ void CoarseInitializer::debugPlot(int lvl,
           continue;
         }
         if (point->isGood) {
+          // printf("point->iR: %f, fac: %f\n", point->iR, fac);
           img_host->setPixel9(point->u + 0.5, point->v + 0.5,
                               makeRainbow3B(point->iR /*point->idepth*/ * fac),
                               host_cid);
@@ -4443,8 +4444,8 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
       // set idepth map to initially 1 everywhere.
       //    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
       int wl = w[lvl], hl = h[lvl]; // 每一层的图像大小
-      dso::ImagesBuffer::Initial(40, wl, hl);
 #if 1
+      // dso::ImagesBuffer::Initial(40, wl, hl);
       std::array<ImageDataAM, kCameraNumUsed> cid_to_image_data;
 
       Point point;
@@ -4454,16 +4455,18 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
       MinimalImageB *img_target;
       img_target = new MinimalImageB(wl, hl);
       for (int cam = 0; cam < kCameraNumUsed; ++cam) {
-        firstFrame->p_multi_camera->cid_to_K_temp[cam].setIdentity();
-        firstFrame->p_multi_camera->cid_to_K_temp[cam](0, 0) = fx[lvl];
-        firstFrame->p_multi_camera->cid_to_K_temp[cam](1, 1) = fy[lvl];
-        firstFrame->p_multi_camera->cid_to_K_temp[cam](0, 2) = cx[lvl];
-        firstFrame->p_multi_camera->cid_to_K_temp[cam](1, 2) = cy[lvl];
-        std::vector<number_t> param = {fx[lvl], fy[lvl], cx[lvl], cy[lvl]};
-        firstFrame->p_multi_camera->cid_to_Kinv_temp[cam] =
-            firstFrame->p_multi_camera->cid_to_K_temp[cam].inverse();
-        firstFrame->p_multi_camera->cid_to_cam_pinhole[cam] =
-            new PinholeCamera(cam, wl, hl, param.data());
+        //        firstFrame->p_multi_camera->cid_to_K_temp[cam].setIdentity();
+        //        firstFrame->p_multi_camera->cid_to_K_temp[cam](0, 0) =
+        //        fx[lvl]; firstFrame->p_multi_camera->cid_to_K_temp[cam](1, 1)
+        //        = fy[lvl]; firstFrame->p_multi_camera->cid_to_K_temp[cam](0,
+        //        2) = cx[lvl];
+        //        firstFrame->p_multi_camera->cid_to_K_temp[cam](1, 2) =
+        //        cy[lvl]; std::vector<number_t> param = {fx[lvl], fy[lvl],
+        //        cx[lvl], cy[lvl]};
+        //        firstFrame->p_multi_camera->cid_to_Kinv_temp[cam] =
+        //            firstFrame->p_multi_camera->cid_to_K_temp[cam].inverse();
+        //        firstFrame->p_multi_camera->cid_to_cam_pinhole[cam] =
+        //            new PinholeCamera(cam, wl, hl, param.data());
 
         for (size_t i = 0; i < kCameraNumUsed; ++i) {
           p_depth_filter_DSM_->px_err_angle_vec_[i] =
@@ -4548,7 +4551,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
             std::vector<Vec3> bearings = {
                 (Ki[lvl] * Vec3(x, y, 1.0)).normalized()};
             if (kCameraNumUsed > 1) {
-#if 1
+#if 0
               bool good_point = true;
               for (int target_cid = 0; target_cid < kCameraNumUsed;
                    ++target_cid) {
@@ -4619,12 +4622,13 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
 #else
               Vec2i px = Vec2i(x, y);
               point.n =
-                  (firstFrame->p_multi_camera->cid_to_Kinv_temp.at(cid) *
+                  (firstFrame->p_multi_camera->level_cid_to_Kinv_temp.at(lvl)
+                       .at(cid) *
                    Vec3(static_cast<number_t>(x), static_cast<number_t>(y), 1.))
                       .normalized();
               bool is_success = point.pyramid_patch.SetFromImg(
                   cid_to_img[cid], px.cast<number_t>(), cid, is_corner,
-                  firstFrame->p_multi_camera);
+                  firstFrame->p_multi_camera, lvl);
               // printf("is_success: %d, is_corner: %d\n", is_success,
               // is_corner); std::exit(1);
               if (is_success) {
@@ -4638,7 +4642,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
                     p_depth_filter_DSM_->p_multi_cam_epipolar_search_
                         ->FindEpipolarMatch(point, cid, cid_to_img, 1, seed.rho,
                                             seed.sigma2, 1, cid_to_output,
-                                            res_idp, -1, true);
+                                            res_idp, -1, true, lvl);
                 if (state == MultiCameraEpipolarSearch::kReject) {
                   // printf("reject\n");
                   delete pt;
@@ -4748,7 +4752,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
         cv::imshow("VM Result", res);
         cv::waitKey(0);
       }
-      dso::ImagesBuffer::SetInitial(false);
+      // dso::ImagesBuffer::SetInitial(false);
       for (int cam = 0; cam < kCameraNumUsed; ++cam) {
         cid_to_img[cam].reset();
       }

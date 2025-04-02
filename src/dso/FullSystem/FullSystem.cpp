@@ -56,7 +56,9 @@
 #include "util/ImageAndExposure.h"
 #include <cmath>
 
+#include "../camera_model/pinhole_camera.h"
 #include "GTSAMIntegration/ExtUtils.h"
+#include "algs_tools_images_buffer.h"
 #include "util/TimeMeasurement.h"
 
 using dmvio::GravityInitializer;
@@ -195,6 +197,9 @@ FullSystem::FullSystem(bool linearizeOperationPassed,
   maxIdJetVisDebug = -1;
   minIdJetVisTracker = -1;
   maxIdJetVisTracker = -1;
+
+  assert(Hcalib.p_multi_camera = p_multi_camera);
+  p_depth_filter_DSM_ = new DepthFilterDSM(p_multi_camera, &estimator_config_);
 }
 
 FullSystem::~FullSystem() {
@@ -238,6 +243,7 @@ FullSystem::~FullSystem() {
   delete coarseInitializer;
   delete pixelSelector;
   delete ef;
+  delete p_depth_filter_DSM_;
 }
 
 void FullSystem::setOriginalCalib(const VecXf &originalCalib, int originalW,
@@ -737,8 +743,23 @@ FullSystem::trackNewCoarse(FrameHessian *fh, Sophus::SE3 *referenceToFrameHint,
       trackingGoodRet);
 }
 
+void FullSystem::convert_to_ImageData(cv::Mat &data, ImageDataAM &image_data,
+                                      uint8_t camera_id) {
+
+  image_data.exposure_ts = 1;
+  image_data.camera_id = camera_id;
+  image_data.width = data.cols;
+  image_data.height = data.rows;
+  // 999 as default tuning index
+  image_data.tuning_index = 999;
+  image_data.shutter_speed_ns = 1;
+  image_data.frame_id = 1;
+  image_data.step = data.step;
+  image_data.data = data.data;
+}
 //@ 利用新的帧 fh 对关键帧中的ImmaturePoint进行更新
 /// multi-small-baseline-stereo, update idepth
+#define USE_DSM_DEPTH_FILTER
 void FullSystem::traceNewCoarse(FrameHessian *fh, bool is_first_frame) {
   dmvio::TimeMeasurement timeMeasurement("traceNewCoarse");
   boost::unique_lock<boost::mutex> lock(mapMutex);
@@ -751,6 +772,83 @@ void FullSystem::traceNewCoarse(FrameHessian *fh, bool is_first_frame) {
   K(1, 1) = Hcalib.fyl();
   K(0, 2) = Hcalib.cxl();
   K(1, 2) = Hcalib.cyl();
+#ifdef USE_DSM_DEPTH_FILTER
+  int lvl = 0;
+  int wl = wG[lvl], hl = hG[lvl];
+  // dso::ImagesBuffer::Initial(40, wl, hl);
+  std::array<ImageDataAM, kCameraNumUsed> cid_to_image_data;
+
+  Point point;
+  bool is_corner;
+  std::array<std::shared_ptr<AlgsImage>, kCameraNumUsed> cid_to_target_img;
+  std::array<std::shared_ptr<AlgsImage>, kCameraNumUsed> cid_to_host_image_use;
+  std::array<cv::Mat, kCameraNumUsed> cid_to_cv_img;
+  MinimalImageB *img_target;
+  img_target = new MinimalImageB(wl, hl);
+  for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+    //    fh->p_multi_camera->cid_to_K_temp[cam].setIdentity();
+    //    fh->p_multi_camera->cid_to_K_temp[cam](0, 0) = fxG[lvl];
+    //    fh->p_multi_camera->cid_to_K_temp[cam](1, 1) = fyG[lvl];
+    //    fh->p_multi_camera->cid_to_K_temp[cam](0, 2) = cxG[lvl];
+    //    fh->p_multi_camera->cid_to_K_temp[cam](1, 2) = cyG[lvl];
+    //    std::vector<number_t> param = {fxG[lvl], fyG[lvl], cxG[lvl],
+    //    cyG[lvl]}; fh->p_multi_camera->cid_to_Kinv_temp[cam] =
+    //        fh->p_multi_camera->cid_to_K_temp[cam].inverse();
+    //    fh->p_multi_camera->cid_to_cam_pinhole[cam] =
+    //        new PinholeCamera(cam, wl, hl, param.data());
+    // for (size_t i = 0; i < kCameraNumUsed; ++i) {
+    p_depth_filter_DSM_->px_err_angle_vec_[cam] =
+        std::atan(p_depth_filter_DSM_->px_noise_ / fxG[lvl]);
+    // }
+
+    assert(estimator_config_.search_level == 0);
+    number_t search_level_focal_length =
+        fxG[lvl] * std::pow(2.0f, -estimator_config_.search_level);
+
+    p_depth_filter_DSM_->p_multi_cam_epipolar_search_->rad_step_ =
+        estimator_config_.pixel_step *
+        std::asin(1.0 / search_level_focal_length / 2.0) * 2.0;
+
+    Eigen::Vector3f *colorCur = fh->dIp[lvl] + cam * wl * hl;
+    for (int i = 0; i < wG[lvl] * hG[lvl]; i++) {
+      // BRIGHTNESS TRANSFER
+      float colL = (*(colorCur + i))[0];
+      if (colL < 0)
+        colL = 0;
+      if (colL > 255)
+        colL = 255;
+      img_target->at(i, cam) = static_cast<unsigned char>(colL);
+    }
+    cid_to_cv_img[cam] =
+        cv::Mat(img_target->h, img_target->w, CV_8UC1,
+                img_target->data + img_target->w * img_target->h * cam);
+
+    convert_to_ImageData(cid_to_cv_img[cam], cid_to_image_data[cam],
+                         static_cast<uint8_t>(cam));
+
+    cid_to_target_img[cam] = dso::ImagesBuffer::Acquire(wl, hl);
+    cid_to_target_img[cam]->DangerouslyCopyFrom(
+        cid_to_image_data[cam].width, cid_to_image_data[cam].height,
+        cid_to_image_data[cam].step, cid_to_image_data[cam].data,
+        cid_to_image_data[cam].exposure_ts, cid_to_image_data[cam].tuning_index,
+        cid_to_image_data[cam].shutter_speed_ns, cid_to_image_data[cam].gain);
+    // cv::imshow("img", cid_to_target_img[cam]);
+    // cv::waitKey(0);
+    cid_to_host_image_use[cam] = dso::ImagesBuffer::Acquire(wl, hl);
+  }
+  MinimalImageB *img_host;
+  img_host = new MinimalImageB(wl, hl);
+  FrameHessian *host_frame = nullptr;
+  std::array<cv::Mat, kCameraNumUsed> cid_to_host_cv_img;
+  std::array<ImageDataAM, kCameraNumUsed> cid_to_host_image_data_am;
+
+  // for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+  //   cid_to_host_image_use[cid] = dso::ImagesBuffer::Acquire(wl, hl);
+  // }
+  float dso_search_success_pid_count = 0;
+  float dsm_search_success_pid_count = 0;
+  Vec2 uv_in_target;
+#endif
   // 遍历关键帧
   for (FrameHessian *host : frameHessians) // go through all active frames
   {
@@ -766,16 +864,54 @@ void FullSystem::traceNewCoarse(FrameHessian *fh, bool is_first_frame) {
                                             host->aff_g2l(), fh->aff_g2l())
                     .cast<float>();
     /// loop across all points on frameHessian
+    assert(host != fh);
+#ifdef USE_DSM_DEPTH_FILTER
+    for (int cid_ = 0; cid_ < kCameraNumUsed; ++cid_) {
+      Eigen::Vector3f *colorHost = host->dIp[lvl] + cid_ * wl * hl;
+      for (int i = 0; i < wG[lvl] * hG[lvl]; i++) {
+        // BRIGHTNESS TRANSFER
+        float colL = (*(colorHost + i))[0];
+        if (colL < 0)
+          colL = 0;
+        if (colL > 255)
+          colL = 255;
+        img_host->at(i, cid_) = static_cast<unsigned char>(colL);
+      }
+      cv::Mat host_cv_img =
+          cv::Mat(img_host->h, img_host->w, CV_8UC1,
+                  img_host->data + img_host->w * img_host->h * cid_);
+      cid_to_host_cv_img[cid_] = host_cv_img.clone();
+      convert_to_ImageData(cid_to_host_cv_img[cid_],
+                           cid_to_host_image_data_am[cid_],
+                           static_cast<uint8_t>(cid_));
+
+      // cid_to_host_image_use[cid_] = dso::ImagesBuffer::Acquire(wl, hl);
+      cid_to_host_image_use[cid_]->DangerouslyCopyFrom(
+          cid_to_host_image_data_am[cid_].width,
+          cid_to_host_image_data_am[cid_].height,
+          cid_to_host_image_data_am[cid_].step,
+          cid_to_host_image_data_am[cid_].data,
+          cid_to_host_image_data_am[cid_].exposure_ts,
+          cid_to_host_image_data_am[cid_].tuning_index,
+          cid_to_host_image_data_am[cid_].shutter_speed_ns,
+          cid_to_host_image_data_am[cid_].gain);
+    }
+#endif
     for (ImmaturePoint *ph : host->immaturePoints) {
+      ph->idp = -1.f;
       /// trace on epipole line
       // TODO entrance
       /// deoutlier, update immaturePoints epipolar search interval [idepth_min
       /// and idepth_max]
+      int covisible_cid = 0;
+      std::array<bool, kCameraNumUsed> visible_flag;
+      SE3 hostToNew = SE3();
       for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
         //        SE3 hostToNew_ = fh->PRE_worldToCam * host->PRE_camToWorld;
-        SE3 hostToNew =
-            fh->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() *
-            hostToNew_ * fh->p_multi_camera->cid_to_T01_SE3[ph->host_cid];
+        visible_flag[target_cid] = false;
+        hostToNew = fh->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() *
+                    hostToNew_ *
+                    fh->p_multi_camera->cid_to_T01_SE3[ph->host_cid];
         Mat33f KRKi =
             K * hostToNew.rotationMatrix().cast<float>() * K.inverse();
         Vec3f Kt = K * hostToNew.translation().cast<float>();
@@ -788,24 +924,195 @@ void FullSystem::traceNewCoarse(FrameHessian *fh, bool is_first_frame) {
         ph->traceOn(target_cid, fh, KRKi, Kt, aff, &Hcalib, false, 0, false,
                     false);
 
-        if (ph->lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_GOOD)
+        if (ph->lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_GOOD) {
+          covisible_cid++;
           trace_good++;
+        }
         if (ph->lastTraceStatus[target_cid] ==
-            ImmaturePointStatus::IPS_BADCONDITION)
+            ImmaturePointStatus::IPS_BADCONDITION) {
+          covisible_cid++;
           trace_badcondition++;
-        if (ph->lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_OOB)
+        }
+        if (ph->lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_OOB) {
           trace_oob++;
-        if (ph->lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_OUTLIER)
-          trace_out++;
-        if (ph->lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_SKIPPED)
-          trace_skip++;
+        }
         if (ph->lastTraceStatus[target_cid] ==
-            ImmaturePointStatus::IPS_UNINITIALIZED)
+            ImmaturePointStatus::IPS_OUTLIER) {
+          covisible_cid++;
+          trace_out++;
+        }
+        if (ph->lastTraceStatus[target_cid] ==
+            ImmaturePointStatus::IPS_SKIPPED) {
+          covisible_cid++;
+          trace_skip++;
+        }
+        if (ph->lastTraceStatus[target_cid] ==
+            ImmaturePointStatus::IPS_UNINITIALIZED) {
+          covisible_cid++;
           trace_uninitialized++;
+        }
         trace_total++;
       }
+      // TODO do extra round of multi-camera dsm depth filter
+      assert(covisible_cid <= kCameraNumUsed);
+      if (covisible_cid >= 1) {
+        // printf("covisible_cid: %d\n", covisible_cid);
+      }
+#ifdef USE_DSM_DEPTH_FILTER
+      if (covisible_cid > 1 && std::isfinite(ph->idepth_min) &&
+          std::isfinite(ph->idepth_max)) {
+        int host_cid = ph->host_cid;
+        number_t x = ph->u, y = ph->v;
+        Vec2 px = Vec2(x, y);
+        Vec3 xyz_pinhole =
+            fh->p_multi_camera->level_cid_to_Kinv_temp.at(lvl).at(host_cid) *
+            Vec3(x, y, 1.);
+        xyz_pinhole /= xyz_pinhole[2];
+        float mean_idp;
+        if (ph->idp > 0) {
+          mean_idp = ph->idp;
+        } else {
+          mean_idp = 0.5f * (ph->idepth_max + ph->idepth_min);
+        }
+        Vec3 xyz_host = xyz_pinhole / (mean_idp);
+        point.n = xyz_pinhole.normalized();
+        assert(ph->host != nullptr);
+        assert(ph->host == host);
+        if (ph->host != host_frame && false) {
+          for (int cid_ = 0; cid_ < kCameraNumUsed; ++cid_) {
+            Eigen::Vector3f *colorHost = ph->host->dIp[lvl] + cid_ * wl * hl;
+            for (int i = 0; i < wG[lvl] * hG[lvl]; i++) {
+              // BRIGHTNESS TRANSFER
+              float colL = (*(colorHost + i))[0];
+              if (colL < 0)
+                colL = 0;
+              if (colL > 255)
+                colL = 255;
+              img_host->at(i, cid_) = static_cast<unsigned char>(colL);
+            }
+            cv::Mat host_cv_img =
+                cv::Mat(img_host->h, img_host->w, CV_8UC1,
+                        img_host->data + img_host->w * img_host->h * cid_);
+            cid_to_host_cv_img[cid_] = host_cv_img.clone();
+            convert_to_ImageData(cid_to_host_cv_img[cid_],
+                                 cid_to_host_image_data_am[cid_],
+                                 static_cast<uint8_t>(cid_));
+
+            // cid_to_host_image_use[cid_] = dso::ImagesBuffer::Acquire(wl, hl);
+            cid_to_host_image_use[cid_]->DangerouslyCopyFrom(
+                cid_to_host_image_data_am[cid_].width,
+                cid_to_host_image_data_am[cid_].height,
+                cid_to_host_image_data_am[cid_].step,
+                cid_to_host_image_data_am[cid_].data,
+                cid_to_host_image_data_am[cid_].exposure_ts,
+                cid_to_host_image_data_am[cid_].tuning_index,
+                cid_to_host_image_data_am[cid_].shutter_speed_ns,
+                cid_to_host_image_data_am[cid_].gain);
+          }
+          // printf("aaa\n");
+        } else {
+          // printf("bbb\n");
+        }
+        //        cv::Mat host_cv_img =
+        //            cv::Mat(img_host->h, img_host->w, CV_8UC1,
+        //                    img_host->data + img_host->w * img_host->h *
+        //                    host_cid);
+        //        ImageDataAM host_image_data_am;
+        //        convert_to_ImageData(cid_to_host_cv_img[cid_],
+        //        host_image_data_am,
+        //                             static_cast<uint8_t>(host_cid));
+        //
+        //        std::shared_ptr<AlgsImage> host_image_use;
+        //        host_image_use = dso::ImagesBuffer::Acquire(wl, hl);
+        //        host_image_use->DangerouslyCopyFrom(
+        //            host_image_data_am.width, host_image_data_am.height,
+        //            host_image_data_am.step, host_image_data_am.data,
+        //            host_image_data_am.exposure_ts,
+        //            host_image_data_am.tuning_index,
+        //            host_image_data_am.shutter_speed_ns,
+        //            host_image_data_am.gain);
+        bool is_success = point.pyramid_patch.SetFromImg(
+            cid_to_host_image_use[host_cid], px, host_cid, is_corner,
+            fh->p_multi_camera, lvl);
+        // printf("is_success: %d, is_corner: %d\n", is_success,
+        // is_corner); std::exit(1);
+        if (is_success) {
+          // printf("idepth_max: %f, idepth_min: %f\n", ph->idepth_max,
+          // ph->idepth_min);
+          assert(ph->idepth_max > ph->idepth_min);
+          dso_search_success_pid_count += 1.f;
+          // number_t init_idp = 0.5;
+          Seed seed;
+
+          DF_Frame::InitSeedDepth(seed, false, xyz_host.norm());
+          seed.rho = 1 / xyz_host.norm();
+          number_t res_idp;
+          std::array<MultiCameraEpipolarSearch::MatchRes, kCameraNumUsed>
+              cid_to_output;
+          Mat4 T10 = hostToNew_.matrix();
+          MultiCameraEpipolarSearch::State state =
+              p_depth_filter_DSM_->p_multi_cam_epipolar_search_
+                  ->FindEpipolarMatch(point, host_cid, cid_to_target_img, 1,
+                                      seed.rho, seed.sigma2, 1, cid_to_output,
+                                      res_idp, -1, false, lvl, &T10);
+          if (state == MultiCameraEpipolarSearch::kSuccess) {
+            dsm_search_success_pid_count += 1.f;
+            float delta_idp = 0.5f * (ph->idepth_max - ph->idepth_min);
+            assert(delta_idp > 0);
+            Vec3 xyz_host_new = point.n / res_idp;
+            float idp = 1.f / static_cast<float>(xyz_host_new[2]);
+            ph->idp = idp;
+            //            printf("idepth_min: %f idp: %f, idepth_max: %f\n",
+            //            ph->idepth_min,
+            //                   idp, ph->idepth_max);
+
+            assert(idp > 0);
+            float idepth_min_new = idp - delta_idp;
+            ph->idepth_min = idepth_min_new > 0 ? idepth_min_new : (0.9f * idp);
+            ph->idepth_max = idp + delta_idp;
+            for (int cam_id = 0; cam_id < kCameraNumUsed; ++cam_id) {
+              if (ph->lastTracePixelInterval[cam_id] > 0) {
+                assert(ph->lastTraceUV[cam_id][0] > 0 &&
+                       ph->lastTraceUV[cam_id][1] > 0);
+                Mat4 Tth =
+                    InversePose(Hcalib.p_multi_camera->cid_to_T01[cam_id]) *
+                    T10 * Hcalib.p_multi_camera->cid_to_T01[host_cid];
+                Vec3 xyz_in_target = Tth.topLeftCorner<3, 3>() * xyz_host_new +
+                                     Tth.topRightCorner<3, 1>();
+                Hcalib.p_multi_camera->level_cid_to_cam_pinhole[lvl][cam_id]
+                    ->Project(xyz_in_target, uv_in_target);
+                if (cid_to_output[cam_id].match_success) {
+                  number_t uv_diff_dsm =
+                      (uv_in_target - cid_to_output[cam_id].target_uv).norm();
+                  number_t uv_diff_dso =
+                      (uv_in_target - ph->lastTraceUV[cam_id].cast<number_t>())
+                          .norm();
+                  // printf("uv_diff_dsm: %f, uv_diff_dso: %f\n", uv_diff_dsm,
+                  // uv_diff_dso);
+                  assert(uv_diff_dsm < 0.0001);
+                }
+                ph->lastTraceUV[cam_id] = uv_in_target.cast<float>();
+              }
+            }
+          }
+        }
+        // host_image_use.reset();
+      }
+#endif
     }
   }
+#ifdef USE_DSM_DEPTH_FILTER
+  printf("[dsm dso] traceOn stats: [%.1f %.1f], traceOn_ratio: %.3f\n",
+         dsm_search_success_pid_count, dso_search_success_pid_count,
+         dsm_search_success_pid_count / dso_search_success_pid_count);
+  // dso::ImagesBuffer::SetInitial(false);
+  for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+    cid_to_target_img[cam].reset();
+    cid_to_host_image_use[cam].reset();
+  }
+  delete img_host;
+  delete img_target;
+#endif
   //	printf("ADD: TRACE: %'d points. %'d (%.0f%%) good. %'d (%.0f%%) skip.
   //%'d (%.0f%%) badcond. %'d (%.0f%%) oob. %'d (%.0f%%) out. %'d (%.0f%%)
   // uninit.\n", 			trace_total, trace_good,
@@ -1024,8 +1331,13 @@ void FullSystem::activatePointsMT() {
         Vec3f Kt =
             (coarseDistanceMap->K[1] * fhToNew.translation().cast<float>());
         // see if we need to activate point due to distance map.
-        Vec3f ptp = KRKi * Vec3f(ph->u, ph->v, 1) +
-                    Kt * (0.5f * (ph->idepth_max + ph->idepth_min));
+        float mean_idp;
+        if (ph->idp > 0) {
+          mean_idp = ph->idp;
+        } else {
+          mean_idp = 0.5f * (ph->idepth_max + ph->idepth_min);
+        }
+        Vec3f ptp = KRKi * Vec3f(ph->u, ph->v, 1) + Kt * (mean_idp);
         /// reproject from old[0] to new[1]
         int u = ptp[0] / ptp[2] + 0.5f;
         int v = ptp[1] / ptp[2] + 0.5f;
@@ -1189,9 +1501,16 @@ void FullSystem::activatePointsMT() {
             (coarseDistanceMap->K[0] * fhToNew.translation().cast<float>());
         // see if we need to activate point due to distance map.
         Vec3f ptp = KRKi * Vec3f(ph->u, ph->v, 1) + Kt * newpoint->idepth;
+        float mean_idp;
+        if (ph->idp > 0) {
+          mean_idp = ph->idp;
+        } else {
+          mean_idp = 0.5f * (ph->idepth_max + ph->idepth_min);
+        }
+        Vec3f xyz_pinhole = coarseDistanceMap->Ki[0] * Vec3f(ph->u, ph->v, 1);
+        xyz_pinhole /= xyz_pinhole[2];
         Vec3f xyz_cur = fhToNew.rotationMatrix().cast<float>() *
-                            (coarseDistanceMap->Ki[0] * Vec3f(ph->u, ph->v, 1) /
-                             (0.5 * (ph->idepth_max + ph->idepth_min))) +
+                            (xyz_pinhole / (mean_idp)) +
                         fhToNew.translation().cast<float>();
         /// reproject from old[0] to new[1]
         int u = ptp[0] / ptp[2] + 0.5f;
@@ -1516,7 +1835,7 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
         initMeasure.end();
         for (IOWrap::Output3DWrapper *ow : outputWrapper)
           ow->publishSystemStatus(dmvio::VISUAL_ONLY);
-        deliverTrackedFrame(fh, true);
+        deliverTrackedFrame(fh, true, false, false);
       } else {
         // if still initializing
 
@@ -1708,18 +2027,25 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
            timeSinceLastKeyframe > setting_maxTimeBetweenKeyframes) ||
           forceKF;
 
-      printf("setting_kfGlobalWeight: %f, thr: %f, [2 * first_res cur_res]: "
-             "[%f %f]\n",
-             setting_kfGlobalWeight,
-             setting_kfGlobalWeight * setting_maxShiftWeightT *
-                     sqrtf((double)tres[1]) / (wG[0] + hG[0]) +
-                 setting_kfGlobalWeight * setting_maxShiftWeightR *
-                     sqrtf((double)tres[2]) / (wG[0] + hG[0]) +
-                 setting_kfGlobalWeight * setting_maxShiftWeightRT *
-                     sqrtf((double)tres[3]) / (wG[0] + hG[0]) +
-                 setting_kfGlobalWeight * setting_maxAffineWeight *
-                     fabs(logf((float)refToFh[0])),
-             2 * coarseTracker->firstCoarseRMSE, tres[0]);
+      printf(
+          "setting_kfGlobalWeight: %f, thr: %f, [2 * first_res cur_res]: "
+          "[%f %f] = %f, affine_ratio: %f, needToMakeKF: %d, affine_part_thr: "
+          "%f, affine_abs_log: %f\n",
+          setting_kfGlobalWeight,
+          setting_kfGlobalWeight * setting_maxShiftWeightT *
+                  sqrtf((double)tres[1]) / (wG[0] + hG[0]) +
+              setting_kfGlobalWeight * setting_maxShiftWeightR *
+                  sqrtf((double)tres[2]) / (wG[0] + hG[0]) +
+              setting_kfGlobalWeight * setting_maxShiftWeightRT *
+                  sqrtf((double)tres[3]) / (wG[0] + hG[0]) +
+              setting_kfGlobalWeight * setting_maxAffineWeight *
+                  fabs(logf((float)refToFh[0])),
+          2 * coarseTracker->firstCoarseRMSE, tres[0],
+          tres[0] / coarseTracker->firstCoarseRMSE,
+          std::exp(fabs(logf((float)refToFh[0]))), needToMakeKF,
+          setting_kfGlobalWeight * setting_maxAffineWeight *
+              fabs(logf((float)refToFh[0])),
+          fabs(logf((float)refToFh[0])));
 
       if (needToMakeKF && !setting_debugout_runquiet) {
         std::cout << "Time since last keyframe: " << timeSinceLastKeyframe
@@ -1785,13 +2111,14 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
     timeLastStuff.end();
     //[ ***step 7*** ] 把该帧发布出去
     coarseTrackingTime.end();
-    deliverTrackedFrame(fh, needToMakeKF);
+    deliverTrackedFrame(fh, needToMakeKF, forceKF, forceNoKF);
     return;
   }
 }
 
 // TODO 把跟踪的帧, 给到建图线程, 设置成关键帧或非关键帧
-void FullSystem::deliverTrackedFrame(FrameHessian *fh, bool needKF) {
+void FullSystem::deliverTrackedFrame(FrameHessian *fh, bool needKF,
+                                     bool forceKF, bool forceNoKF) {
   dmvio::TimeMeasurement timeMeasurement("deliverTrackedFrame");
   // There seems to be exactly one instance where needKF is false but the mapper
   // creates a keyframe nevertheless: if it is the second tracked frame (so it
@@ -1844,7 +2171,7 @@ void FullSystem::deliverTrackedFrame(FrameHessian *fh, bool needKF) {
       if (setting_useIMU) {
         imuIntegration.keyframeCreated(fh->shell->id);
       }
-      makeKeyFrame(fh);
+      makeKeyFrame(fh, forceKF, forceNoKF);
     } else
       makeNonKeyFrame(fh);
   } else {
@@ -1900,7 +2227,7 @@ void FullSystem::mappingLoop() {
         imuIntegration.keyframeCreated(fh->shell->id);
       }
       lock.unlock();
-      makeKeyFrame(fh);
+      makeKeyFrame(fh, false, false);
       lock.lock();
       mappedFrameSignal.notify_all();
       continue;
@@ -1948,7 +2275,7 @@ void FullSystem::mappingLoop() {
           imuIntegration.keyframeCreated(fh->shell->id);
         }
         lock.unlock();
-        makeKeyFrame(fh);
+        makeKeyFrame(fh, false, false);
         needToKetchupMapping = false;
         lock.lock();
       } else {
@@ -1998,7 +2325,7 @@ void FullSystem::makeNonKeyFrame(FrameHessian *fh) {
 
 //@ 生成关键帧, 优化, 激活点, 提取点, 边缘化关键帧
 #define SHOW_NEWLY_PREDICTED_RESIDUALS
-void FullSystem::makeKeyFrame(FrameHessian *fh) {
+void FullSystem::makeKeyFrame(FrameHessian *fh, bool forceKF, bool forceNoKF) {
   dmvio::TimeMeasurement timeMeasurement("makeKeyframe");
   //[ ***step 1*** ] 设置当前估计的fh的位姿, 光度参数
   // needs to be set by mapping thread
@@ -2071,6 +2398,8 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
   // optimization
   // =========================== add new residuals for old points
   // =========================
+  int pid_count = 0;
+  int pid_count_success = 0;
   int numFwdResAdde = 0;
   for (FrameHessian *fh1 : frameHessians) // go through all active frames
   {
@@ -2105,6 +2434,7 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
       //#ifdef USE_MULTI_CAM
       SE3 fhToNew_ = fh->PRE_worldToCam * ph->host->PRE_camToWorld;
       ph->idepth_before = ph->idepth;
+      ph->is_idp_optimized = false;
 #if 1 // def USE_MULTI_CAM
       std::vector<ImmaturePoint *> toOptimize;
       ImmaturePoint *impt = new ImmaturePoint(ph->u, ph->v, ph->host, 0,
@@ -2119,21 +2449,36 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
       ImmaturePointTemporaryResidual *tr =
           new ImmaturePointTemporaryResidual[frameHessians.size() *
                                              kCameraNumUsed];
-      optimized[0] = optimizeImmaturePoint(toOptimize[0], 1, tr, false);
+      optimized[0] = optimizeImmaturePoint(toOptimize[0], 5 /*10*/, tr, false,
+                                           pid_count < 5);
 
       PointHessian *newpoint = optimized[0];
       // ph->idepth_before = ph->idepth;
+      if (pid_count < 1) {
+        printf("is_force_kf: %d, is_force_no_kf: %d\n", forceKF, forceNoKF);
+      }
+      pid_count++;
       if (newpoint != 0 && newpoint != (PointHessian *)((long)(-1))) {
-        // printf("depth_diff: %f\n", 1 / newpoint->idepth - 1 / ph->idepth);
-        ph->setIdepthZero(newpoint->idepth);
-        ph->setIdepth(newpoint->idepth);
+        if (pid_count_success < 5) {
+          printf("depth_diff: %f, pid_count_success: %d, forceKF: %d\n",
+                 1 / newpoint->idepth - 1 / ph->idepth, pid_count_success,
+                 forceKF);
+        }
+        pid_count_success++;
+        if (!forceKF) {
+          ph->setIdepthZero(newpoint->idepth);
+          ph->setIdepth(newpoint->idepth);
+          ph->is_idp_optimized = true;
+        }
         delete newpoint;
+        optimized[0] = 0;
       } else if (newpoint == (PointHessian *)((long)(-1))) {
         // delete newpoint;
       } else {
         assert(newpoint == 0 /*|| newpoint == (PointHessian *)((long)(-1))*/);
       }
       delete impt;
+      toOptimize[0] = 0;
       // delete point_hessian;
       delete[] tr;
       toOptimize.clear();
@@ -2170,8 +2515,13 @@ void FullSystem::makeKeyFrame(FrameHessian *fh) {
              proj0[1] < hG[0] - 10)) {
           img_target->setPixelCirc(proj0[0] + 0.5, proj0[1] + 0.5,
                                    makeRainbow3B(0.1), target_cid);
-          img_target->setPixel9(proj[0] + 0.5, proj[1] + 0.5, makeRainbow3B(1),
-                                target_cid);
+          if (ph->is_idp_optimized) {
+            img_target->setPixel9(proj[0] + 0.5, proj[1] + 0.5,
+                                  makeRainbow3B(1), target_cid);
+          } else {
+            img_target->setPixel9(proj[0] + 0.5, proj[1] + 0.5,
+                                  makeRainbow3B(0.1), target_cid);
+          }
         }
 #endif
       }

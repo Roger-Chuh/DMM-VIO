@@ -569,9 +569,10 @@ struct PointHessian {
   float idepth_zero;        //!< 缩放了scale倍的固定线性化点逆深度
   float idepth;             //!< 缩放scale倍的逆深度
   float idepth_before = 0.f; //!< 缩放scale倍的逆深度
-  float step;                //!< 迭代优化每一步增量
-  float step_backup;         //!< 迭代优化上一步增量的备份
-  float idepth_backup;       //!< 上一次的逆深度值
+  bool is_idp_optimized = false;
+  float step;          //!< 迭代优化每一步增量
+  float step_backup;   //!< 迭代优化上一步增量的备份
+  float idepth_backup; //!< 上一次的逆深度值
 
   float nullspaces_scale; //!< 零空间 ?
   float idepth_hessian;   //!< 对应的hessian矩阵值

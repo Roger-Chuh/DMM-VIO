@@ -60,7 +60,8 @@ public:
       const size_t &pid, const number_t &init_rho, const number_t &rho_sigma2,
       const size_t &target_fid,
       std::array<MatchRes, kCameraNumUsed> &cid_to_output, number_t &idp,
-      const number_t &search_length_threshold, const bool &is_same_fid);
+      const number_t &search_length_threshold, const bool &is_same_fid,
+      const int &intr_level, Mat4 *T10 = nullptr);
 
   std::array<CamData, kCameraNumUsed> cid_to_cam_data_;
   number_t rad_step_;

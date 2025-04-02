@@ -54,6 +54,9 @@
 #include "IOWrapper/OutputWrapper/SampleOutputWrapper.h"
 #include "IOWrapper/Pangolin/PangolinDSOViewer.h"
 
+#include "../camera_model/camera_base.h"
+#include "../camera_model/pinhole_camera.h"
+#include "dso/FullSystem/algs_tools_images_buffer.h"
 #include "dso/camera_model/calib_xml.h"
 #include "dso/config/config.h"
 #include "dso/frontend/CameraDetection.h"
@@ -716,6 +719,32 @@ int main(int argc, char **argv) {
   bool show = false;
 
   GenUndistortionMap(multi_camera_calibed, w, h, kCameraNumUsed);
+
+  dso::ImagesBuffer::Initial(40, w, h);
+  std::array<std::array<std::vector<number_t>, kCameraNumUsed>, PYR_LEVELS>
+      level_cid_to_param;
+  for (int level = 0; level < PYR_LEVELS; ++level) {
+    int ww = w >> level;
+    int hh = h >> level;
+
+    float fx = K(0, 0) * std::pow(2, -level);
+    float fy = K(1, 1) * std::pow(2, -level);
+    float cx = (K(0, 2) + 0.5) / ((int)1 << level) - 0.5;
+    float cy = (K(1, 2) + 0.5) / ((int)1 << level) - 0.5;
+
+    for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+      multi_camera_calibed.level_cid_to_K_temp[level][cam].setIdentity();
+      multi_camera_calibed.level_cid_to_K_temp[level][cam](0, 0) = fx;
+      multi_camera_calibed.level_cid_to_K_temp[level][cam](1, 1) = fy;
+      multi_camera_calibed.level_cid_to_K_temp[level][cam](0, 2) = cx;
+      multi_camera_calibed.level_cid_to_K_temp[level][cam](1, 2) = cy;
+      level_cid_to_param[level][cam] = {fx, fy, cx, cy};
+      multi_camera_calibed.level_cid_to_Kinv_temp[level][cam] =
+          multi_camera_calibed.level_cid_to_K_temp[level][cam].inverse();
+      multi_camera_calibed.level_cid_to_cam_pinhole[level][cam] =
+          new PinholeCamera(cam, ww, hh, level_cid_to_param[level][cam].data());
+    }
+  }
 
   std::string path_to_vig_img =
       "/home/roger/work/smartgit/dot001/yvrcalibration_dot/"

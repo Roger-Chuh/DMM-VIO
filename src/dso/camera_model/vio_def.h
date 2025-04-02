@@ -4,6 +4,7 @@
 
 #ifndef DMVIO_VIO_DEF_H
 #define DMVIO_VIO_DEF_H
+#include "../util/settings.h"
 #include "stdlib.h"
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -21,8 +22,34 @@
 namespace dso {
 #define LinearAlgebraLib Eigen
 using number_t = double;
+// static constexpr number_t pattern_raw_def[][2] = {
+//    {0, 0}, {-2, -2}, {2, -2}, {-2, 2}, {0, -4}, {0, 4}, {-4, 0}, {4, 0}};
 static constexpr number_t pattern_raw_def[][2] = {
-    {0, 0}, {-2, -2}, {2, -2}, {-2, 2}, {0, -4}, {0, 4}, {-4, 0}, {4, 0}};
+    /*{+4, 4}*/ {-0, -0},
+    {-4, -4},
+    {-4, -2},
+    {-4, -0},
+    {-4, 2},
+    {-4, 4},
+    {-2, -4},
+    {-2, -2},
+    {-2, -0},
+    {-2, 2},
+    {-2, 4}, // full-45-SPREAD
+    {-0, -4},
+    {-0, -2},
+    {-0, 2},
+    {-0, 4},
+    {+2, -4},
+    {+2, -2},
+    {+2, -0},
+    {+2, 2},
+    {+2, 4},
+    {+4, -4},
+    {+4, -2},
+    {+4, -0},
+    {+4, 2},
+    /*{-0, -0}*/ {+4, 4}};
 static constexpr int PATTERN_SIZE_def =
     sizeof(pattern_raw_def) / (2 * sizeof(number_t));
 using Mat2Patch = LinearAlgebraLib::Matrix<number_t, 2, PATTERN_SIZE_def>;

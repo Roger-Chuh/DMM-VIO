@@ -82,7 +82,7 @@ float setting_kfGlobalWeight = 1.0f;
 
 #ifndef USE_ZNCC
 #ifdef USE_MULTI_CAM
-float setting_maxAffineWeight = 1;
+float setting_maxAffineWeight = 1.f; // 1;
 #else
 float setting_maxAffineWeight = 2;
 #endif

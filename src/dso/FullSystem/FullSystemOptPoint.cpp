@@ -52,7 +52,7 @@ namespace dso {
 PointHessian *
 FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
                                   ImmaturePointTemporaryResidual *residuals,
-                                  bool add_to_residuals) {
+                                  bool add_to_residuals, bool print_info) {
   ///[ ***step 1*** ] 初始化和其它关键帧的res(点在其它关键帧上投影)
   int nres = 0;
   std::map<int, int> nres_to_target_cid;
@@ -72,7 +72,7 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
   }
   assert(nres == kCameraNumUsed * (((int)frameHessians.size()) - 1));
 
-  bool print = false; // !add_to_residuals ; // rand()%50==0;
+  bool print = print_info; // false; // !add_to_residuals ; // rand()%50==0;
 
   float lastEnergy = 0;
   float lastHdd = 0;
@@ -203,7 +203,10 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
   p->setPointStatus(PointHessian::ACTIVE);
 
   if (!add_to_residuals) {
-    // return p;
+    if (print) {
+      printf("point activated! numGoodRes: %d\n", numGoodRes);
+    }
+    return p;
   }
 
   std::array<ResState, kCameraNumUsed> res_state{};

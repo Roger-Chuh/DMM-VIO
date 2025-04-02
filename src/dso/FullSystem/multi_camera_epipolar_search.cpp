@@ -36,7 +36,8 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
     const size_t &pid, const number_t &init_rho, const number_t &rho_sigma2,
     const size_t &target_fid,
     std::array<MatchRes, kCameraNumUsed> &cid_to_output, number_t &res_idp,
-    const number_t &search_length_threshold, const bool &is_same_fid) {
+    const number_t &search_length_threshold, const bool &is_same_fid,
+    const int &intr_level, Mat4 *T10) {
   // Point point;
   const Patch &patch = point.pyramid_patch.patchs[0];
   //  VisualMeasurement host_vm;
@@ -69,16 +70,23 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
 
   for (size_t target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
     CamData &cur_search_data = cid_to_cam_data_[target_cid];
-    cur_search_data.T10 =
-        InversePose(p_level_cid_to_camera_->cid_to_T01.at(target_cid)) *
-        p_level_cid_to_camera_->cid_to_T01.at(
-            host_cid); // = target_nav_state.v_Tcw[target_cid] * Twc0;
+    if (T10 == nullptr) {
+      cur_search_data.T10 =
+          InversePose(p_level_cid_to_camera_->cid_to_T01.at(target_cid)) *
+          p_level_cid_to_camera_->cid_to_T01.at(
+              host_cid); // = target_nav_state.v_Tcw[target_cid] * Twc0;
+    } else {
+      cur_search_data.T10 =
+          InversePose(p_level_cid_to_camera_->cid_to_T01[target_cid]) * (*T10) *
+          p_level_cid_to_camera_->cid_to_T01[host_cid];
+    }
     cur_search_data.T01 = InversePose(cur_search_data.T10);
     cur_search_data.target_level =
         search_target_level_; // todo: change target level
 
     CameraBase *camera =
-        p_level_cid_to_camera_->cid_to_cam_pinhole.at(target_cid);
+        p_level_cid_to_camera_->level_cid_to_cam_pinhole.at(intr_level)
+            .at(target_cid);
     //    std::cout << "width: " << camera->width()
     //              << ", height: " << camera->height()
     //              << ", patch dir0: " << patch.dir0.transpose()
@@ -425,7 +433,8 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
         //        direct_visual_factor_.target_image_level0_ =
         //        target_nav_state.cid_level_to_img[target_cid][0];
         CameraBase *camera =
-            p_level_cid_to_camera_->cid_to_cam_pinhole.at(target_cid);
+            p_level_cid_to_camera_->level_cid_to_cam_pinhole.at(intr_level)
+                .at(target_cid);
         DirectFactorRes direct_factor_res = direct_visual_factor_.Evaluate(
             cur_search_data.T10, multi_cam_match_res.idp,
             cid_to_img[target_cid], patch, camera, 1, r_vec, ws2, r2,
@@ -702,7 +711,8 @@ second_zncc); cv::waitKey(0);
       //      direct_visual_factor_.target_image_level0_ =
       //      target_nav_state.cid_level_to_img[target_cid][0];
       CameraBase *camera =
-          p_level_cid_to_camera_->cid_to_cam_pinhole.at(target_cid);
+          p_level_cid_to_camera_->level_cid_to_cam_pinhole.at(intr_level)
+              .at(target_cid);
       DirectFactorRes direct_factor_res = direct_visual_factor_.Evaluate(
           cur_search_data.T10, best_search_res.idp, cid_to_img[target_cid],
           patch, camera, 1, r_vec, ws2, r2, &match_res.target_uv,
@@ -807,7 +817,8 @@ second_zncc); cv::waitKey(0);
     //    target_nav_state.cid_level_to_img[target_cid][opt_target_level_];
     size_t target_level = 1;
     CameraBase *camera =
-        p_level_cid_to_camera_->cid_to_cam_pinhole.at(target_cid);
+        p_level_cid_to_camera_->level_cid_to_cam_pinhole.at(intr_level)
+            .at(target_cid);
 
     MatchRes &match_res = cid_to_output[target_cid];
     match_res.match_success = true;
@@ -893,7 +904,8 @@ second_zncc); cv::waitKey(0);
       //      target_nav_state.cid_level_to_img[target_cid][opt_target_level_];
 
       CameraBase *camera =
-          p_level_cid_to_camera_->cid_to_cam_pinhole.at(target_cid);
+          p_level_cid_to_camera_->level_cid_to_cam_pinhole.at(intr_level)
+              .at(target_cid);
 
       MatchRes &match_res = new_cid_to_output[target_cid];
       match_res.match_success = true;

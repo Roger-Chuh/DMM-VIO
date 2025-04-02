@@ -382,16 +382,17 @@ void Patch::GetPatchValues(const Patch::Matrix2P &uvs,
   }
 }
 
-bool PyramidPatch::SetFromImg(std::shared_ptr<AlgsImage> img, const Vec2 &px,
-                              const size_t &cid, bool &is_corner,
-                              MultiCamera *p_simple_camera) {
+bool PyramidPatch::SetFromImg(const std::shared_ptr<AlgsImage> &img,
+                              const Vec2 &px, const size_t &cid,
+                              bool &is_corner, MultiCamera *p_simple_camera,
+                              const int &intr_level) {
   Vec2 px_scaled;
   for (int level = 0; level < 1; ++level) {
     number_t scale = std::pow(2, -level);
     px_scaled = (scale * (px.array() + 0.5) - 0.5).matrix();
     if (!patchs[level].SetFromImg(
             img, level, px_scaled, is_corner,
-            p_simple_camera->cid_to_cam_pinhole.at(cid))) {
+            p_simple_camera->level_cid_to_cam_pinhole.at(intr_level).at(cid))) {
       return false;
     }
 
