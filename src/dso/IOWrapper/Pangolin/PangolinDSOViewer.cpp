@@ -192,7 +192,7 @@ void PangolinDSOViewer::run() {
   pangolin::Var<double> settings_kfFrequency(
       "ui.kfFrequency", setting_kfGlobalWeight, 0.001, 3, false);
   pangolin::Var<double> settings_gradHistAdd(
-      "ui.minGradAdd", setting_minGradHistAdd, 0, 15, false);
+      "ui.minGradAdd", setting_minGradHistAdd, 0, 30, false);
 
   pangolin::Var<double> settings_trackFps("ui.Track fps", 0, 0, 0, false);
   pangolin::Var<double> settings_mapFps("ui.KF fps", 0, 0, 0, false);

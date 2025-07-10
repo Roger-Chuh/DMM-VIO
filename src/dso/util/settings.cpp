@@ -73,9 +73,9 @@ float setting_maxShiftWeightR = 0.0f * (640 + 480);
 float setting_maxShiftWeightRT = 0.1f * (640 + 480);
 #ifdef USE_MULTI_CAM
 float setting_kfGlobalWeight =
-    0.1; // 0.5; // 1;   // general weight on threshold, the larger the more
-         // KF's are
-         // taken (e.g., 2 = double the amount of KF's).
+    0.25; // 0.5; // 1;   // general weight on threshold, the larger the more
+          // KF's are
+          // taken (e.g., 2 = double the amount of KF's).
 #else
 float setting_kfGlobalWeight = 1.0f;
 #endif
@@ -208,7 +208,7 @@ float setting_coarseCutoffTH_loose = 90;
 //#endif
 
 // parameters controlling pixel selection
-float setting_minGradHistCut = 0.5;
+float setting_minGradHistCut = 0.8; // 0.5;
 float setting_minGradHistAdd = 7;
 float setting_gradDownweightPerLevel = 0.75;
 bool setting_selectDirectionDistribution = true;
