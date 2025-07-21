@@ -108,16 +108,16 @@ void IMUCalibration::loadFromFile2(const dso::IMUState &imu_state) {
   //                  << std::endl;
   //    }
 
-  // gyro_sigma = 7.8e-5 * 1;
-  // accel_sigma = 6.5e-4 * 10;
-  // sigma_between_b_g = 4.0e-5 * 1;
-  // sigma_between_b_a = 7.3e-4 * 1;
-  // integration_sigma = 0.2; // 0.1;
+  gyro_sigma = 7.8e-5 * 10;
+  accel_sigma = 6.5e-4 * 10;
+  sigma_between_b_g = 4.0e-5 * 10;
+  sigma_between_b_a = 7.3e-4 * 10;
+  integration_sigma = 0.01; // 0.2; // 0.1;
 
-  accel_sigma = 0.524; // 0.524;
-  gyro_sigma = 0.01280;
-  sigma_between_b_a = 0.0430;
-  sigma_between_b_g = 0.00110;
+  //  accel_sigma = 0.524; // 0.524;
+  //  gyro_sigma = 0.01280;
+  //  sigma_between_b_a = 0.0430;
+  //  sigma_between_b_g = 0.00110;
 
   // Old defaults for EuRoC.
   //  sigma_between_b_a = 0.00447213;

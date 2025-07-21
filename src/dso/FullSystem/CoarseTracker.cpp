@@ -521,18 +521,32 @@ void CoarseTracker::calcGSSSE(bool fix_ab_, bool is_imu_ready, int lvl_target_,
 //@ 计算当前位姿投影得到的残差(能量值), 并进行一些统计
 //! 构造尽量多的点, 有助于跟踪
 //#define SHOW_TRACK_RES
-Vec6 CoarseTracker::calcRes(int all_keyframe_size, bool is_imu_ready,
+#define USE_MULTI_KEYFRAME_DISTANCE_MAP
+//#define SHOW_KF_PROJ
+Vec6 CoarseTracker::calcRes(const int &iter,
+                            const std::vector<FrameHessian *> &frameHessians,
+                            int all_keyframe_size, bool is_imu_ready,
                             int lvl_target_, FrameHessian *lastRef, int lvl,
                             const SE3 &refToNew_, AffLight aff_g2l,
                             float cutoffTH, bool show_image) {
+
+  bool force_host_target_same_cid = false; // false;
+  float count_thr = 200.0;
+  int count_step = 1;
+
+  if (!force_host_target_same_cid) {
+    count_thr = 200.0;
+    count_step = 4;
+  }
   float setting_huberTH_use;
   int lvl_target = lvl_target_ >= 0 ? lvl_target_ : lvl;
   if (lvl >= setting_pyrLvlWithAffineFixed &&
       all_keyframe_size > setting_kfNumWithAffineFixed) {
-    setting_huberTH_use = setting_huberTH_loose;
+    setting_huberTH_use = setting_huberTH_loose_tracker;
   } else {
-    setting_huberTH_use = setting_huberTH;
+    setting_huberTH_use = setting_huberTH_tracker;
   }
+  bool show_kf_disp = lvl_target == 0 && lvl == 0 && iter == 0;
   float E = 0;
   int numTermsInE = 0;
   // int numTermsInWarped = 0;
@@ -550,6 +564,302 @@ Vec6 CoarseTracker::calcRes(int all_keyframe_size, bool is_imu_ready,
       a_sumSquaredShiftNum[host_cid * kCameraNumUsed + target_cid] = 0;
     }
   }
+  std::vector<std::array<float, kCameraNumUsed * kCameraNumUsed>>
+      v_a_sumSquaredShiftT, v_a_sumSquaredShiftRT, v_a_sumSquaredShiftNum;
+  float magic_num_all = 654321.0;
+  float min_T_all = magic_num_all;  // 123456;
+  float min_RT_all = magic_num_all; // 123456;
+  int show_point_count = 0, valid_point_count = 0;
+#ifdef USE_MULTI_KEYFRAME_DISTANCE_MAP
+  SE3 Twb_cur = lastRef->shell->camToWorld * refToNew_.inverse();
+  if (lvl_target == 0 && lvl == 0) {
+#ifdef SHOW_KF_PROJ
+    std::vector<MinimalImageB3 *> v_img_host;
+    std::vector<MinimalImageB3 *> v_img_target;
+#endif
+    float fxl_target = fx[lvl_target];
+    float fyl_target = fy[lvl_target];
+    int wl = w[lvl];
+    int hl = h[lvl];
+    float cxl_target = cx[lvl_target];
+    float cyl_target = cy[lvl_target];
+    int wl_target = w[lvl_target];
+    int hl_target = h[lvl_target];
+    int kf_count = 0;
+    for (FrameHessian *fh : frameHessians) {
+      kf_count++;
+
+      printf("aa KFs: [%d / %d], pointHessians: %d, is_tracking_ref: %d\n",
+             kf_count, frameHessians.size(), fh->pointHessians.size(),
+             fh == lastRef);
+
+      if (fh == newFrame) {
+        // this should never happen, since fh hasn't been pushed in
+        // frameHessians yet, and we don't know whether it is a kf
+        printf("bb fh[%llu] == newFrame[%llu]\n", fh, newFrame);
+        std::exit(3);
+        continue;
+      }
+      fh->shell->aff_g2l;
+      Vec2f affLL =
+          AffLight::fromToVecExposure(fh->ab_exposure, newFrame->ab_exposure,
+                                      fh->aff_g2l(), aff_g2l)
+              .cast<float>();
+      SE3 T10 = Twb_cur.inverse() * fh->shell->camToWorld;
+      std::array<float, kCameraNumUsed * kCameraNumUsed>
+          temp_a_sumSquaredShiftT, temp_a_sumSquaredShiftRT,
+          temp_a_sumSquaredShiftNum;
+      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
+        for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+          temp_a_sumSquaredShiftT[host_cid * kCameraNumUsed + target_cid] = 0;
+          temp_a_sumSquaredShiftRT[host_cid * kCameraNumUsed + target_cid] = 0;
+          temp_a_sumSquaredShiftNum[host_cid * kCameraNumUsed + target_cid] = 0;
+        }
+      }
+
+#ifdef SHOW_KF_PROJ
+      MinimalImageB3 *img_host;
+      MinimalImageB3 *img_target;
+      int extra_scale = 1;
+      float extra_scale_coord = std::pow(2, -extra_scale);
+      if (show_kf_disp && !fh->pointHessians.empty()) {
+        img_host =
+            new MinimalImageB3(w[lvl + extra_scale], h[lvl + extra_scale]);
+        img_target = new MinimalImageB3(w[lvl_target + extra_scale],
+                                        h[lvl_target + extra_scale]);
+        for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+          Vec3f *colorRef = fh->dIp[lvl + extra_scale] +
+                            wG[lvl + extra_scale] * hG[lvl + extra_scale] * cam;
+          for (int i = 0; i < wG[lvl + extra_scale] * hG[lvl + extra_scale];
+               i++) {
+            // BRIGHTNESS TRANSFER
+            float colL = (*(colorRef + i))[0];
+            if (colL < 0)
+              colL = 0;
+            if (colL > 255)
+              colL = 255;
+            img_host->at(i, cam) = Vec3b(colL, colL, colL);
+          }
+        }
+        for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+          Vec3f *colorRef =
+              newFrame->dIp[lvl_target + extra_scale] +
+              wG[lvl_target + extra_scale] * hG[lvl_target + extra_scale] * cam;
+          for (int i = 0;
+               i < wG[lvl_target + extra_scale] * hG[lvl_target + extra_scale];
+               i++) {
+            // BRIGHTNESS TRANSFER
+            float colL = (*(colorRef + i))[0];
+            if (colL < 0)
+              colL = 0;
+            if (colL > 255)
+              colL = 255;
+            img_target->at(i, cam) = Vec3b(colL, colL, colL);
+          }
+        }
+      }
+#endif
+
+      for (PointHessian *ph : fh->pointHessians) {
+        int good_res_count = 0;
+
+        for (int id = 0; id < ph->residuals.size(); ++id) {
+          for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+            if (ph->residuals[id]->state_state[cid] == ResState::IN) {
+              good_res_count++;
+            }
+          }
+        }
+
+        if (good_res_count <= 1) {
+          // till this point, we don't have any residuals on the newest frame
+          // yet, no wonder before_CoarseTracker is zero
+          if (fh == lastRef) {
+            printf("cc good_res_count: %d\n", good_res_count);
+          }
+          // continue;
+        }
+        Eigen::Vector3f *dIHostl = fh->dIp[lvl] + wl * hl * ph->host_cid;
+        for (int target_cam = 0; target_cam < kCameraNumUsed; ++target_cam) {
+          if (ph->host_cid != target_cam && force_host_target_same_cid) {
+            continue;
+          }
+          Eigen::Vector3f *dINewl =
+              newFrame->dIp[lvl_target] + wl_target * hl_target * target_cam;
+          const float *const color = ph->color; // host帧上颜色
+          SE3 fhToNew_ = newFrame->PRE_worldToCam * fh->PRE_camToWorld;
+          SE3 fhToNew =
+              newFrame->p_multi_camera->cid_to_T01_SE3[target_cam].inverse() *
+              T10 * newFrame->p_multi_camera->cid_to_T01_SE3[ph->host_cid];
+          Mat33f RKi = (fhToNew.rotationMatrix().cast<float>() * Ki[lvl]);
+          Vec3f t = (fhToNew.translation()).cast<float>();
+          Vec3f pt = RKi * Vec3f(ph->u, ph->v, 1) + t * ph->idepth;
+          float u = pt[0] / pt[2]; // 归一化坐标
+          float v = pt[1] / pt[2];
+          float Ku = fxl_target * u + cxl_target; // 像素坐标
+          float Kv = fyl_target * v + cyl_target;
+
+          float new_idepth = ph->idepth / pt[2]; // 当前帧上的深度
+          Vec3f hitColor, hostColor;
+          hostColor = getInterpolatedElement33(dIHostl, ph->u, ph->v, wl);
+          bool is_in_frame = true, is_valid_projection = true;
+          //* 图像边沿, 深度为负 则跳过
+          if (!(Ku > 2 && Kv > 2 && Ku < wl_target - 3 && Kv < hl_target - 3 &&
+                new_idepth > 0)) {
+            is_in_frame = false;
+            hitColor = Vec3f::Constant(std::nan(""));
+          } else {
+            hitColor = getInterpolatedElement33(dINewl, Ku, Kv, wl_target);
+          }
+
+          float residual =
+              hitColor[0] - (float)(affLL[0] * hostColor[0] + affLL[1]);
+
+          if (!std::isfinite((float)hitColor[0])) {
+            is_valid_projection = false;
+          }
+          //          printf("residual_residual: %f, is_in_frame:
+          //          %d,is_valid_projection: "
+          //                 "%d, [host target]: [%d %d], [fh == lastRef]:
+          //                 %d\n", residual, is_in_frame, is_valid_projection,
+          //                 ph->host_cid, target_cam, fh == lastRef);
+          valid_point_count++;
+          if (is_in_frame && is_valid_projection &&
+              (ph->host_cid == target_cam || !force_host_target_same_cid) &&
+              std::abs(residual) < 30.0 &&
+              (valid_point_count % count_step == 0)) {
+            //* 只正的平移 // translation only (positive)
+            Vec3f ptT = Ki[lvl] * Vec3f(ph->u, ph->v, 1) + t * ph->idepth;
+            float uT = ptT[0] / ptT[2];
+            float vT = ptT[1] / ptT[2];
+            float KuT = fxl_target * uT + cxl_target;
+            float KvT = fyl_target * vT + cyl_target;
+
+            //* 只负的平移// translation only (negative)
+            /// warpping
+            Vec3f ptT2 = Ki[lvl] * Vec3f(ph->u, ph->v, 1) - t * ph->idepth;
+            float uT2 = ptT2[0] / ptT2[2];
+            float vT2 = ptT2[1] / ptT2[2];
+            float KuT2 = fxl_target * uT2 + cxl_target;
+            float KvT2 = fyl_target * vT2 + cyl_target;
+
+            //* 旋转+负的平移//translation and rotation (negative)
+            Vec3f pt3 = RKi * Vec3f(ph->u, ph->v, 1) - t * ph->idepth;
+            float u3 = pt3[0] / pt3[2];
+            float v3 = pt3[1] / pt3[2];
+            float Ku3 = fxl_target * u3 + cxl_target;
+            float Kv3 = fyl_target * v3 + cyl_target;
+            // printf("fh[%llu] == lastRef[%llu]\n", fh, lastRef);
+            if (fh == lastRef && force_host_target_same_cid && false) {
+              sumSquaredShiftT +=
+                  (KuT - ph->u) * (KuT - ph->u) + (KvT - ph->v) * (KvT - ph->v);
+              sumSquaredShiftT += (KuT2 - ph->u) * (KuT2 - ph->u) +
+                                  (KvT2 - ph->v) * (KvT2 - ph->v);
+              sumSquaredShiftRT +=
+                  (Ku - ph->u) * (Ku - ph->u) + (Kv - ph->v) * (Kv - ph->v);
+              sumSquaredShiftRT +=
+                  (Ku3 - ph->u) * (Ku3 - ph->u) + (Kv3 - ph->v) * (Kv3 - ph->v);
+              sumSquaredShiftNum += 2;
+            }
+            temp_a_sumSquaredShiftT[ph->host_cid * kCameraNumUsed +
+                                    target_cam] +=
+                (KuT - ph->u) * (KuT - ph->u) + (KvT - ph->v) * (KvT - ph->v);
+            temp_a_sumSquaredShiftT[ph->host_cid * kCameraNumUsed +
+                                    target_cam] +=
+                (KuT2 - ph->u) * (KuT2 - ph->u) +
+                (KvT2 - ph->v) * (KvT2 - ph->v);
+            temp_a_sumSquaredShiftRT[ph->host_cid * kCameraNumUsed +
+                                     target_cam] +=
+                (Ku - ph->u) * (Ku - ph->u) + (Kv - ph->v) * (Kv - ph->v);
+            temp_a_sumSquaredShiftRT[ph->host_cid * kCameraNumUsed +
+                                     target_cam] +=
+                (Ku3 - ph->u) * (Ku3 - ph->u) + (Kv3 - ph->v) * (Kv3 - ph->v);
+            temp_a_sumSquaredShiftNum[ph->host_cid * kCameraNumUsed +
+                                      target_cam] += 2.0;
+#ifdef SHOW_KF_PROJ
+            show_point_count++;
+            if (show_kf_disp && (show_point_count % 32 == 0 || true)) {
+              //              printf("residual_residual: %f, is_in_frame: %d, "
+              //                     "is_valid_projection: %d, [host target]:
+              //                     [%d %d], [fh == " "lastRef]: %d\n",
+              //                     residual, is_in_frame, is_valid_projection,
+              //                     ph->host_cid, target_cam, fh == lastRef);
+
+              if ((extra_scale_coord * ph->u > 10 &&
+                   extra_scale_coord * ph->v > 10 &&
+                   extra_scale_coord * ph->u < w[lvl + extra_scale] - 10 &&
+                   extra_scale_coord * ph->v < h[lvl + extra_scale] - 10)) {
+                img_host->setPixelCirc(extra_scale_coord * ph->u + 0.5,
+                                       extra_scale_coord * ph->v + 0.5,
+                                       makeRainbow3B(1), ph->host_cid);
+              }
+              if ((extra_scale_coord * Ku > 10 && extra_scale_coord * Kv > 10 &&
+                   extra_scale_coord * Ku < w[lvl_target + extra_scale] - 10 &&
+                   extra_scale_coord * Kv < h[lvl_target + extra_scale] - 10)) {
+                img_target->setPixelCirc(extra_scale_coord * Ku + 0.5,
+                                         extra_scale_coord * Kv + 0.5,
+                                         makeRainbow3B(1), target_cam);
+              }
+              //              IOWrap::displayImage("host frame", img_host);
+              //              IOWrap::displayImage("target frame", img_target);
+              //              printf("target_cid: %d, good_res_count: %d,
+              //              all_res_count: %d\n",
+              //                     target_cam, good_res_count,
+              //                     ph->residuals.size());
+              //              IOWrap::waitKey(0);
+              //              delete img_host;
+              //              delete img_target;
+            }
+#endif
+          }
+        }
+      }
+      // printf("123, iter: %d\n", iter);
+#ifdef SHOW_KF_PROJ
+      if (show_kf_disp && !fh->pointHessians.empty()) {
+        // printf("emplace1\n");
+        v_img_host.emplace_back(img_host);
+        v_img_target.emplace_back(img_target);
+        // printf("emplace11\n");
+      }
+#endif
+      v_a_sumSquaredShiftT.emplace_back(temp_a_sumSquaredShiftT);
+      v_a_sumSquaredShiftRT.emplace_back(temp_a_sumSquaredShiftRT);
+      v_a_sumSquaredShiftNum.emplace_back(temp_a_sumSquaredShiftNum);
+    }
+#ifdef SHOW_KF_PROJ
+
+    for (int id = 0; id < v_img_host.size(); ++id) {
+      // printf("show1\n");
+      IOWrap::displayImage(("kf_host_" + std::to_string(id)).c_str(),
+                           v_img_host[id]);
+      IOWrap::waitKey(1);
+      // printf("show11\n");
+    }
+    for (int id = 0; id < v_img_target.size(); ++id) {
+      // printf("show2\n");
+      IOWrap::displayImage(("kf_target_" + std::to_string(id)).c_str(),
+                           v_img_target[id]);
+      IOWrap::waitKey(1);
+      // printf("show22\n");
+    }
+    for (int id = 0; id < v_img_host.size(); ++id) {
+      // printf("delete1\n");
+      delete v_img_host[id];
+      // printf("delete11\n");
+    }
+    for (int id = 0; id < v_img_target.size(); ++id) {
+      // printf("delete2\n");
+      delete v_img_target[id];
+      // printf("delete22\n");
+    }
+    // printf("clear1\n");
+    v_img_host.clear();
+    v_img_target.clear();
+    // printf("clear2\n");
+#endif
+  }
+#endif
   for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
     for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
       int numTermsInWarped = 0;
@@ -620,8 +930,10 @@ Vec6 CoarseTracker::calcRes(int all_keyframe_size, bool is_imu_ready,
 
         float new_idepth = id / pt[2]; // 当前帧上的深度
 
+        //#ifndef USE_MULTI_KEYFRAME_DISTANCE_MAP
         if (lvl_target == 0 && lvl == 0 && i % 32 == 0 &&
-            host_cid == target_cid) //* 第0层 每隔32个点
+            (host_cid == target_cid ||
+             !force_host_target_same_cid)) //* 第0层 每隔32个点
         {
           //* 只正的平移 // translation only (positive)
           Vec3f ptT = Ki[lvl] * Vec3f(x, y, 1) + t * id;
@@ -648,12 +960,13 @@ Vec6 CoarseTracker::calcRes(int all_keyframe_size, bool is_imu_ready,
           // translation and rotation (positive)
           // already have it.
           //* 统计像素的移动大小
+#if 0
           sumSquaredShiftT += (KuT - x) * (KuT - x) + (KvT - y) * (KvT - y);
           sumSquaredShiftT += (KuT2 - x) * (KuT2 - x) + (KvT2 - y) * (KvT2 - y);
           sumSquaredShiftRT += (Ku - x) * (Ku - x) + (Kv - y) * (Kv - y);
           sumSquaredShiftRT += (Ku3 - x) * (Ku3 - x) + (Kv3 - y) * (Kv3 - y);
           sumSquaredShiftNum += 2;
-
+#endif
 #if 1
           float refColor = lpc_color[i];
           Vec3f hitColor;
@@ -679,9 +992,11 @@ Vec6 CoarseTracker::calcRes(int all_keyframe_size, bool is_imu_ready,
                   ? 1
                   : (setting_huberTH_use /*+ std::abs(affLL[1])*/) /
                         fabs(residual);
-
+          // printf("residual_residual: %f, is_in_frame: %d,
+          // is_valid_projection: %d\n", residual, is_in_frame,
+          // is_valid_projection);
           if (is_in_frame && is_valid_projection &&
-              std::abs(residual) < 100.0) {
+              std::abs(residual) < /*setting_huberTH_use */ 30.0) {
             //            // translation and rotation (positive)
             //            // already have it.
             //            //* 统计像素的移动大小
@@ -691,7 +1006,15 @@ Vec6 CoarseTracker::calcRes(int all_keyframe_size, bool is_imu_ready,
             //            sumSquaredShiftRT += (Ku - x) * (Ku - x) + (Kv - y) *
             //            (Kv - y); sumSquaredShiftRT += (Ku3 - x) * (Ku3 - x) +
             //            (Kv3 - y) * (Kv3 - y); sumSquaredShiftNum += 2;
-
+#if 1
+            sumSquaredShiftT += (KuT - x) * (KuT - x) + (KvT - y) * (KvT - y);
+            sumSquaredShiftT +=
+                (KuT2 - x) * (KuT2 - x) + (KvT2 - y) * (KvT2 - y);
+            sumSquaredShiftRT += (Ku - x) * (Ku - x) + (Kv - y) * (Kv - y);
+            sumSquaredShiftRT += (Ku3 - x) * (Ku3 - x) + (Kv3 - y) * (Kv3 - y);
+            sumSquaredShiftNum += 2;
+#endif
+#if 1 // ndef USE_MULTI_KEYFRAME_DISTANCE_MAP
             a_sumSquaredShiftT[host_cid * kCameraNumUsed + target_cid] +=
                 (KuT - x) * (KuT - x) + (KvT - y) * (KvT - y);
             a_sumSquaredShiftT[host_cid * kCameraNumUsed + target_cid] +=
@@ -701,6 +1024,7 @@ Vec6 CoarseTracker::calcRes(int all_keyframe_size, bool is_imu_ready,
             a_sumSquaredShiftRT[host_cid * kCameraNumUsed + target_cid] +=
                 (Ku3 - x) * (Ku3 - x) + (Kv3 - y) * (Kv3 - y);
             a_sumSquaredShiftNum[host_cid * kCameraNumUsed + target_cid] += 2.0;
+#endif
           }
 #endif
         }
@@ -860,14 +1184,30 @@ Vec6 CoarseTracker::calcRes(int all_keyframe_size, bool is_imu_ready,
   rs[4] = sumSquaredShiftRT /
           (sumSquaredShiftNum + 0.1); // 平移+旋转 平均像素移动大小
   rs[5] = numSaturated / (float)numTermsInE; // 大于cutoff阈值的百分比
+  if (lvl == 0 && lvl_target == 0) {
+    std::cout << "before_CoarseTracker, rs: " << rs.transpose()
+              << ", sumSquaredShiftNum: " << sumSquaredShiftNum << std::endl;
+  }
   if (true) {
-    float min_T = 123456;
-    float min_RT = 123456;
+#ifndef USE_MULTI_KEYFRAME_DISTANCE_MAP
+    float magic_num = 654321.0;
+    float min_T = magic_num;  // 123456;
+    float min_RT = magic_num; // 123456;
     for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
       for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
         float count =
             a_sumSquaredShiftNum[host_cid * kCameraNumUsed + target_cid] + 0.1;
-        if (count < 100.0) {
+        if (lvl == 0 && lvl_target == 0 &&
+            (host_cid == target_cid || !force_host_target_same_cid)) {
+          printf(
+              "host_cid: %d, target_cid: %d, count: %f, [T RT]value: [%f %f]\n",
+              host_cid, target_cid, count,
+              a_sumSquaredShiftT[host_cid * kCameraNumUsed + target_cid] /
+                  (count),
+              a_sumSquaredShiftRT[host_cid * kCameraNumUsed + target_cid] /
+                  (count));
+        }
+        if (count < count_thr /*100.0*/) {
           continue;
         }
         float T = a_sumSquaredShiftT[host_cid * kCameraNumUsed + target_cid] /
@@ -882,14 +1222,74 @@ Vec6 CoarseTracker::calcRes(int all_keyframe_size, bool is_imu_ready,
         }
       }
     }
-    if (std::abs(min_T - 123456) > 1) {
+    if (std::abs(min_T - magic_num /*123456*/) > 1) {
       rs[2] = min_T;
     }
-    if (std::abs(min_RT - 123456) > 1) {
+    if (std::abs(min_RT - magic_num /*123456*/) > 1) {
       rs[4] = min_RT;
     }
-  }
+#else
+    if (lvl_target == 0 && lvl == 0) {
+      v_a_sumSquaredShiftT.emplace_back(a_sumSquaredShiftT);
+      v_a_sumSquaredShiftRT.emplace_back(a_sumSquaredShiftRT);
+      v_a_sumSquaredShiftNum.emplace_back(a_sumSquaredShiftNum);
+      for (int id = 0; id < v_a_sumSquaredShiftT.size(); ++id) {
+        for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
+          for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+            float count = v_a_sumSquaredShiftNum[id][host_cid * kCameraNumUsed +
+                                                     target_cid] +
+                          0.1;
+            if (lvl == 0 && lvl_target == 0 &&
+                (host_cid == target_cid || !force_host_target_same_cid)) {
+              printf("[kf_id / kf]: [%d / %d], host_cid: %d, target_cid: %d, "
+                     "count: %f, mean[T RT]value: [%f %f]\n",
+                     id, v_a_sumSquaredShiftT.size(), host_cid, target_cid,
+                     count,
+                     v_a_sumSquaredShiftT[id][host_cid * kCameraNumUsed +
+                                              target_cid] /
+                         (count),
+                     v_a_sumSquaredShiftRT[id][host_cid * kCameraNumUsed +
+                                               target_cid] /
+                         (count));
+            }
+            if (count < count_thr /*100.0*/) {
+              continue;
+            }
+            float T = v_a_sumSquaredShiftT[id][host_cid * kCameraNumUsed +
+                                               target_cid] /
+                      (count);
+            float RT = v_a_sumSquaredShiftRT[id][host_cid * kCameraNumUsed +
+                                                 target_cid] /
+                       (count);
+            if (min_T_all > T) {
+              min_T_all = T;
+            }
+            if (min_RT_all > RT) {
+              min_RT_all = RT;
+            }
+          }
+        }
+      }
 
+      if (min_T_all > sumSquaredShiftT / (sumSquaredShiftNum + 0.1)) {
+        min_T_all = sumSquaredShiftT / (sumSquaredShiftNum + 0.1);
+      }
+      if (min_RT_all > sumSquaredShiftRT / (sumSquaredShiftNum + 0.1)) {
+        min_RT_all = sumSquaredShiftRT / (sumSquaredShiftNum + 0.1);
+      }
+      if (std::abs(min_T_all - magic_num_all /*123456*/) > 1) {
+        rs[2] = min_T_all;
+      }
+      if (std::abs(min_RT_all - magic_num_all /*123456*/) > 1) {
+        rs[4] = min_RT_all;
+      }
+    }
+#endif
+  }
+  if (lvl == 0 && lvl_target == 0) {
+    std::cout << "after_CoarseTracker, rs: " << rs.transpose()
+              << ", sumSquaredShiftNum: " << sumSquaredShiftNum << std::endl;
+  }
   return rs;
 }
 
@@ -908,16 +1308,16 @@ void CoarseTracker::setCoarseTrackingRef(
 }
 
 //@ 对新来的帧进行跟踪, 优化得到位姿, 光度参数
-bool CoarseTracker::trackNewestCoarse(int all_keyframe_size,
-                                      FrameHessian *lastRef,
-                                      FrameHessian *newFrameHessian,
-                                      SE3 &lastToNew_out, AffLight &aff_g2l_out,
-                                      int coarsestLvl, Vec5 minResForAbort,
-                                      IOWrap::Output3DWrapper *wrap) {
+bool CoarseTracker::trackNewestCoarse(
+    const std::vector<FrameHessian *> &frameHessians, int all_keyframe_size,
+    FrameHessian *lastRef, FrameHessian *newFrameHessian, SE3 &lastToNew_out,
+    AffLight &aff_g2l_out, int coarsestLvl, Vec5 minResForAbort,
+    IOWrap::Output3DWrapper *wrap) {
   debugPlot = setting_render_displayCoarseTrackingFull;
   debugPrint = !setting_debugout_runquiet;
 
   assert(coarsestLvl < 5 && coarsestLvl < pyrLevelsUsed);
+  printf("coarsestLvl: %d\n", coarsestLvl);
 
   lastResiduals.setConstant(NAN);
   lastFlowIndicators.setConstant(1000);
@@ -926,7 +1326,8 @@ bool CoarseTracker::trackNewestCoarse(int all_keyframe_size,
 #ifndef USE_MULTI_CAM
   int maxIterations[] = {10, 20, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
 #else
-  int maxIterations[] = {10, 20, 20, 20, 20, 20, 20, 20}; // 不同层迭代的次数
+  // int maxIterations[] = {10, 20, 20, 20, 20, 20, 20, 20}; // 不同层迭代的次数
+  int maxIterations[] = {5, 5, 10, 10, 20, 20, 20, 20}; // 不同层迭代的次数
 #endif
   float lambdaExtrapolationLimit = 0.001;
 
@@ -994,10 +1395,11 @@ bool CoarseTracker::trackNewestCoarse(int all_keyframe_size,
       //      ++target_cid)
       //      {
       printf("aa\n");
-      resOld = calcRes(all_keyframe_size, is_imu_ready, lvl_target, lastRef,
-                       lvl, refToNew_current, aff_g2l_current,
-                       setting_coarseCutoffTH_use * levelCutoffRepeat,
-                       lvl == 0 && lvl_target == 0);
+      resOld =
+          calcRes(-1, frameHessians, all_keyframe_size, is_imu_ready,
+                  lvl_target, lastRef, lvl, refToNew_current, aff_g2l_current,
+                  setting_coarseCutoffTH_use * levelCutoffRepeat,
+                  lvl == 0 && lvl_target == 0);
       printf("bb\n");
       //      }
       //    }
@@ -1008,10 +1410,11 @@ bool CoarseTracker::trackNewestCoarse(int all_keyframe_size,
         //      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
         //        for (int target_cid = 0; target_cid < kCameraNumUsed;
         //        ++target_cid) {
-        resOld = calcRes(all_keyframe_size, is_imu_ready, lvl_target, lastRef,
-                         lvl, refToNew_current, aff_g2l_current,
-                         setting_coarseCutoffTH_use * levelCutoffRepeat,
-                         lvl == 0 && lvl_target == 0);
+        resOld =
+            calcRes(-1, frameHessians, all_keyframe_size, is_imu_ready,
+                    lvl_target, lastRef, lvl, refToNew_current, aff_g2l_current,
+                    setting_coarseCutoffTH_use * levelCutoffRepeat,
+                    lvl == 0 && lvl_target == 0);
         //        }
         //      }
 
@@ -1214,10 +1617,11 @@ bool CoarseTracker::trackNewestCoarse(int all_keyframe_size,
         //      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
         //        for (int target_cid = 0; target_cid < kCameraNumUsed;
         //        ++target_cid) {
-        resNew = calcRes(all_keyframe_size, is_imu_ready, lvl_target, lastRef,
-                         lvl, refToNew_new, aff_g2l_new,
-                         setting_coarseCutoffTH_use * levelCutoffRepeat,
-                         lvl == 0 && lvl_target == 0);
+        resNew =
+            calcRes(iteration, frameHessians, all_keyframe_size, is_imu_ready,
+                    lvl_target, lastRef, lvl, refToNew_new, aff_g2l_new,
+                    setting_coarseCutoffTH_use * levelCutoffRepeat,
+                    lvl == 0 && lvl_target == 0);
         //        }
         //      }
 
@@ -1317,9 +1721,13 @@ bool CoarseTracker::trackNewestCoarse(int all_keyframe_size,
         return false; //! 如果算出来大于最好的直接放弃
 
       if (levelCutoffRepeat > 1 && !haveRepeated) {
-        lvl++; // 这一层重新算一遍
+        if (use_inner_loop) {
+          lvl_target_++;
+        } else {
+          lvl++; // 这一层重新算一遍
+        }
         haveRepeated = true;
-        printf("REPEAT LEVEL!\n");
+        printf("REPEAT LEVEL!, lvl: %d, lvl_target_: %d\n", lvl, lvl_target_);
       }
     }
   }

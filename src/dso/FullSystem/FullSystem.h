@@ -304,6 +304,9 @@ private:
 
   std::ofstream *poseLog;
 
+  std::ofstream *rmseLog;
+  std::ofstream *frameEnergyThLog;
+
   // Mat33 Rwb = Mat33::Identity();
 
   // statistics

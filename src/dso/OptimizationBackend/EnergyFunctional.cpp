@@ -532,6 +532,8 @@ void EnergyFunctional::calcLEnergyPt(int min, int max, Vec10 *stats, int tid) {
         }
       }
     }
+    // printf("逆深度先验: %f, priorF: %f, deltaF: %f\n", p->deltaF * p->deltaF
+    // * p->priorF, p->priorF, p->deltaF);
     E.updateSingle(p->deltaF * p->deltaF * p->priorF); // 逆深度先验
   }
   E.finish();

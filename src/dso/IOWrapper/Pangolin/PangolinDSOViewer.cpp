@@ -185,7 +185,7 @@ void PangolinDSOViewer::run() {
       "ui.activePoints", setting_desiredPointDensity, 50, 50000, false);
   pangolin::Var<int> settings_nCandidates(
       "ui.pointCandidates", setting_desiredImmatureDensity, 50, 50000, false);
-  pangolin::Var<int> settings_nMaxFrames("ui.maxFrames", setting_maxFrames, 10,
+  pangolin::Var<int> settings_nMaxFrames("ui.maxFrames", setting_maxFrames, 7,
                                          30, false);
   // pangolin::Var<int> settings_nMaxFrames("ui.maxFrames",setting_maxFrames,
   // 20,40, false);

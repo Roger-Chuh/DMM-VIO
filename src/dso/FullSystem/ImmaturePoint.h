@@ -86,6 +86,7 @@ public:
 
   int host_cid;
   int host_level;
+  float zncc_opt = 0;
   //  ImmaturePoint(int u_, int v_, FrameHessian *host_, float type,
   //                CalibHessian *HCalib);
   ImmaturePoint(int u_, int v_, FrameHessian *host_, float type,
@@ -120,6 +121,7 @@ public:
 
   float calcResidual(CalibHessian *HCalib, const float outlierTHSlack,
                      ImmaturePointTemporaryResidual *tmpRes, float idepth);
+  float CalcZncc(const Eigen::MatrixXf &host_, const Eigen::MatrixXf &target_);
 
 private:
 };

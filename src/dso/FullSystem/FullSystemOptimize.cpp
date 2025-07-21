@@ -187,11 +187,16 @@ void FullSystem::setNewFrameEnergyTH() {
   newFrame->frameEnergyTH *=
       setting_overallEnergyTHWeight * setting_overallEnergyTHWeight;
 
+  float frame_energyTh_dso = newFrame->frameEnergyTH;
   if (setting_useIMU) {
     // Used to enforce a maximum energy threshold.
     imuIntegration.newFrameEnergyTH(newFrame->frameEnergyTH);
   }
 
+  (*frameEnergyThLog) << std::fixed
+                      << static_cast<double>(newFrame->shell->timestamp_eval)
+                      << " " << frame_energyTh_dso << " "
+                      << newFrame->frameEnergyTH << std::endl;
   //
   //	int good=0,bad=0;
   //	for(float f : allResVec) if(f<newFrame->frameEnergyTH) good++; else
@@ -568,7 +573,16 @@ float FullSystem::optimize(int mnumOptIts) {
           sqrtf((float)(lastEnergy[0] / (patternNum * ef->resInA))),
           frameHessians.back()->shell->trackingWasGood);
       if (!setting_debugout_runquiet) {
-        std::cout << "Dynamic weight: " << dynamicGTSAMWeight << std::endl;
+        std::cout << "Dynamic weight: " << dynamicGTSAMWeight
+                  << ", lastEnergy: " << lastEnergy[0] << ", rmse: "
+                  << sqrtf((float)(lastEnergy[0] / (patternNum * ef->resInA)))
+                  << std::endl;
+        (*rmseLog) << std::fixed
+                   << static_cast<double>(
+                          frameHessians.back()->shell->timestamp_eval)
+                   << " " << dynamicGTSAMWeight << " "
+                   << sqrtf((float)(lastEnergy[0] / (patternNum * ef->resInA)))
+                   << std::endl;
       }
     }
 

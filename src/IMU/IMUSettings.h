@@ -58,9 +58,9 @@ public:
 
   // Weight wrt DSO.
   double setting_weightDSOCoarse =
-      1.0 / 1000; // DSO weight for coarse tracking.
-  double setting_weightDSOToGTSAM = 1.0 / 60000; // DSO weight for BA.
-  float maxFrameEnergyThreshold = 5000; // Maximum energy threshold for DSO.
+      1.0; // / 1000; // DSO weight for coarse tracking.
+  double setting_weightDSOToGTSAM = 1.0; // / 60000; // DSO weight for BA.
+  float maxFrameEnergyThreshold = 10000; // Maximum energy threshold for DSO.
 
   // ----------- BA Settings -----------
   // Settings regarding dynamic photometric weight.
@@ -72,7 +72,7 @@ public:
 #endif
 #else
 #ifndef USE_ZNCC
-  double dynamicWeightRMSEThresh = 15; // 8.0;
+  double dynamicWeightRMSEThresh = 20; // 15; // 8.0;
 #else
   double dynamicWeightRMSEThresh = 15; // 8.0; // 2;//8.0;//4;//8.0;
 #endif

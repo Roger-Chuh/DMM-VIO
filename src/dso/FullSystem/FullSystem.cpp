@@ -156,6 +156,15 @@ FullSystem::FullSystem(bool linearizeOperationPassed,
   poseLog->open("output_dm_vio.txt", std::ios::trunc | std::ios::out);
   poseLog->precision(12);
 
+  rmseLog = new std::ofstream();
+  rmseLog->open("output_rmse.txt", std::ios::trunc | std::ios::out);
+  rmseLog->precision(12);
+
+  frameEnergyThLog = new std::ofstream();
+  frameEnergyThLog->open("output_frameEnergyTh.txt",
+                         std::ios::trunc | std::ios::out);
+  frameEnergyThLog->precision(12);
+
   assert(retstat !=
          293847); // shell正常执行结束返回这么个值,填充8~15位bit, 有趣
 
@@ -229,6 +238,12 @@ FullSystem::~FullSystem() {
 
   poseLog->close();
   delete poseLog;
+
+  rmseLog->close();
+  delete rmseLog;
+
+  frameEnergyThLog->close();
+  delete frameEnergyThLog;
 
   delete[] selectionMap;
 
@@ -636,8 +651,8 @@ FullSystem::trackNewCoarse(FrameHessian *fh, Sophus::SE3 *referenceToFrameHint,
     //    std::array<AffLight, kCameraNumUsed> a_aff_g2l_this = a_aff_last_2_l;
     SE3 lastF_2_fh_this = lastF_2_fh_tries[i];
     bool trackingIsGood = coarseTracker->trackNewestCoarse(
-        allFrameHistory.size(), lastF, fh, lastF_2_fh_this, aff_g2l_this,
-        pyrLevelsUsed - 1,
+        frameHessians, allFrameHistory.size(), lastF, fh, lastF_2_fh_this,
+        aff_g2l_this, pyrLevelsUsed - 1,
         achievedRes); // in each level has to be at least as good as the last
                       // try.
     tryIterations++;
@@ -1039,7 +1054,11 @@ void FullSystem::traceNewCoarse(FrameHessian *fh, bool is_first_frame) {
         if (is_success) {
           // printf("idepth_max: %f, idepth_min: %f\n", ph->idepth_max,
           // ph->idepth_min);
-          assert(ph->idepth_max > ph->idepth_min);
+          if (ph->idepth_max <= ph->idepth_min) {
+            printf("idepth_max: %f, idepth_min: %f, sth wrong\n",
+                   ph->idepth_max, ph->idepth_min);
+            std::exit(4);
+          }
           dso_search_success_pid_count += 1.f;
           // number_t init_idp = 0.5;
           Seed seed;
@@ -2003,18 +2022,24 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
       Vec2 refToFh = AffLight::fromToVecExposure(
           coarseTracker->lastRef->ab_exposure, fh->ab_exposure,
           coarseTracker->lastRef_aff_g2l, fh->shell->aff_g2l);
-
+      float extra_ratio = 1.0;
+      if (static_cast<int>(allKeyFramesHistory.size()) <=
+          static_cast<int>(-3)) {
+        extra_ratio = 10.0;
+      }
       // BRIGHTNESS CHECK
       needToMakeKF =
           allFrameHistory.size() == 1 ||
-          setting_kfGlobalWeight * setting_maxShiftWeightT *
+          (extra_ratio * setting_kfGlobalWeight) * setting_maxShiftWeightT *
                       sqrtf((double)tres[1]) / (wG[0] + hG[0]) +
-                  setting_kfGlobalWeight * setting_maxShiftWeightR *
-                      sqrtf((double)tres[2]) / (wG[0] + hG[0]) +
-                  setting_kfGlobalWeight * setting_maxShiftWeightRT *
-                      sqrtf((double)tres[3]) / (wG[0] + hG[0]) +
-                  setting_kfGlobalWeight * setting_maxAffineWeight *
-                      fabs(logf((float)refToFh[0])) >
+                  (extra_ratio * setting_kfGlobalWeight) *
+                      setting_maxShiftWeightR * sqrtf((double)tres[2]) /
+                      (wG[0] + hG[0]) +
+                  (extra_ratio * setting_kfGlobalWeight) *
+                      setting_maxShiftWeightRT * sqrtf((double)tres[3]) /
+                      (wG[0] + hG[0]) +
+                  (extra_ratio * setting_kfGlobalWeight) *
+                      setting_maxAffineWeight * fabs(logf((float)refToFh[0])) >
               1 ||
 #ifdef USE_MULTI_CAM
           2

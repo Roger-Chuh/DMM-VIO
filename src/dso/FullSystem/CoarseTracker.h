@@ -49,7 +49,8 @@ public:
 
   ~CoarseTracker();
 
-  bool trackNewestCoarse(int all_keyframe_size, FrameHessian *lastRef,
+  bool trackNewestCoarse(const std::vector<FrameHessian *> &frameHessians,
+                         int all_keyframe_size, FrameHessian *lastRef,
                          FrameHessian *newFrameHessian, SE3 &lastToNew_out,
                          AffLight &aff_g2l_out, int coarsestLvl,
                          Vec5 minResForAbort,
@@ -102,7 +103,9 @@ private:
   Vec6 calcResAndGS(int lvl, MatState &H_out, VecState &b_out,
                     const SE3 &refToNew, AffLight aff_g2l, float cutoffTH);
 
-  Vec6 calcRes(int all_keyframe_size, bool is_imu_ready, int lvl_target_,
+  Vec6 calcRes(const int &iter,
+               const std::vector<FrameHessian *> &frameHessians,
+               int all_keyframe_size, bool is_imu_ready, int lvl_target_,
                FrameHessian *lastRef, int lvl, const SE3 &refToNew_,
                AffLight aff_g2l, float cutoffTH, bool show_image = false);
 

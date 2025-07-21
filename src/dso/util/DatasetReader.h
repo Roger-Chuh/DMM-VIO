@@ -562,6 +562,7 @@ private:
   aligned_vector<dso::CalibFrame> *p_input_data = nullptr;
   MinimalImageB *getImageRaw_internal(int id, int unused) {
     assert(!use16Bit);
+    printf("isZipped: %d\n", isZipped);
     if (!isZipped) {
       // CHANGE FOR ZIP FILE
       return IOWrap::readImageBW_8U(files[id]);

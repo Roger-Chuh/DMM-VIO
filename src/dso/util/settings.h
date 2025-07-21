@@ -152,8 +152,12 @@ extern bool setting_forceAceptStep;
 
 extern float setting_huberTH;
 extern float setting_huberTH_loose;
+extern float setting_huberTH_tracker;
+extern float setting_huberTH_loose_tracker;
 extern float setting_huberTH_LBA;
 extern float setting_huberTH_zncc;
+
+extern float setting_outlierTh_zncc;
 
 extern bool setting_logStuff;
 extern float benchmarkSetting_fxfyfac;
@@ -213,7 +217,7 @@ extern float freeDebugParam5;
 
 void handleKey(char k);
 
-constexpr int pattern_scale = 1;
+constexpr int pattern_scale = 2; // 1;
 constexpr int pattern_index = 8;
 
 constexpr int pattern_scale_seed = 1;

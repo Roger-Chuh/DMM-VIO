@@ -25,6 +25,7 @@
  */
 
 #include "FullSystem/ImmaturePoint.h"
+#include "../camera_model/vio_math_0.h"
 #include "FullSystem/ResidualProjections.h"
 #include "util/FrameShell.h"
 
@@ -143,8 +144,36 @@ ImmaturePoint::~ImmaturePoint() {}
  * * UPDATED -> point has been updated.
  * * SKIP -> point has not been updated.
  */
+float ImmaturePoint::CalcZncc(const Eigen::MatrixXf &host_,
+                              const Eigen::MatrixXf &target_) {
+  if (host_.rows() != target_.rows()) {
+    printf("zncc size doesn't match, sth wrong\n");
+    std::exit(4);
+  }
+  Eigen::MatrixXf host = host_;
+  Eigen::MatrixXf target = target_;
+  const int patch_num = host.rows();
+  Eigen::MatrixXf ones;
+  ones.conservativeResize(patch_num, 1);
+  ones.setOnes();
+
+  const float host_val_mean = host.col(0).sum() / patch_num;
+  const float target_val_mean = target.col(0).sum() / patch_num;
+
+  host.col(0) = host.col(0) - host_val_mean * ones;
+  target.col(0) = target.col(0) - target_val_mean * ones;
+
+  const float host_sigma = host.col(0).norm();
+  const float target_sigma = target.col(0).norm();
+  host.col(0) /= host_sigma;
+  target.col(0) /= target_sigma;
+
+  float zncc = (target.col(0).dot(host.col(0)));
+  return zncc;
+}
 ///@ 使用深度滤波对未成熟点进行深度估计
 #define SHOW_TRACEON
+#define USE_ZNCC_SEARCH
 ImmaturePointStatus ImmaturePoint::traceOn(
     const int &target_cid, FrameHessian *frame, const Mat33f &hostToFrame_KRKi,
     const Vec3f &hostToFrame_Kt, const Vec2f &hostToFrame_affine,
@@ -439,8 +468,9 @@ ImmaturePointStatus ImmaturePoint::traceOn(
   } else {
     step_num = 100;
   }
-  float errors[step_num]; //[150];
-  float bestU = 0, bestV = 0, bestEnergy = 1e10;
+  float errors[step_num];      //[150];
+  float errors_zncc[step_num]; //[150];
+  float bestU = 0, bestV = 0, bestEnergy = 1e10, bestEnergy_zncc = 0;
   int bestIdx = -1;
 #ifdef SHOW_TRACEON
   if (show_image) {
@@ -450,8 +480,11 @@ ImmaturePointStatus ImmaturePoint::traceOn(
   if (numSteps >= step_num /*150*/)
     numSteps = step_num - 1; //[149]
 
+  float zncc_each = 0;
   for (int i = 0; i < numSteps; i++) {
     float energy = 0;
+    Eigen::MatrixXf host_val_each, target_val_each;
+    int valid_count_each = 0;
     for (int idx = 0; idx < patternNumSeed; idx++) {
       float hitColor;
       if (!is_first_frame) {
@@ -484,18 +517,38 @@ ImmaturePointStatus ImmaturePoint::traceOn(
                      ? 1
                      : setting_huberTH_search / fabs(residual);
       energy += hw * residual * residual * (2 - hw);
+      host_val_each.conservativeResize(valid_count_each + 1, 1);
+      target_val_each.conservativeResize(valid_count_each + 1, 1);
+      host_val_each(valid_count_each, 0) =
+          (float)(hostToFrame_affine[0] *
+                      (color[idx /* + wG[0] * hG[0] *  host_cid*/]) +
+                  hostToFrame_affine[1]);
+      target_val_each(valid_count_each, 0) = hitColor;
+      valid_count_each++;
     }
-
+    zncc_each = CalcZncc(host_val_each, target_val_each);
     if (debugPrint)
       printf("step %.1f %.1f (id %f): energy = %f!\n", ptx, pty, 0.0f, energy);
 
     errors[i] = energy;
+    errors_zncc[i] = zncc_each;
+#ifndef USE_ZNCC_SEARCH
     if (energy < bestEnergy) {
       bestU = ptx;
       bestV = pty;
       bestEnergy = energy;
       bestIdx = i;
+      bestEnergy_zncc = zncc_each;
     }
+#else
+    if (zncc_each > bestEnergy_zncc) {
+      bestU = ptx;
+      bestV = pty;
+      bestEnergy = energy;
+      bestIdx = i;
+      bestEnergy_zncc = zncc_each;
+    }
+#endif
     // 每次走1 dist对应大小
     ptx += dx;
     pty += dy;
@@ -504,24 +557,42 @@ ImmaturePointStatus ImmaturePoint::traceOn(
   ///* 在一定的半径内找最到误差第二小的, 差的足够大, 才更好(这个常用)
   // find best score outside a +-2px radius.
   float secondBest = 1e10;
+  float secondBest_zncc = 0;
   for (int i = 0; i < numSteps; i++) {
     if ((i < bestIdx - setting_minTraceTestRadius ||
          i > bestIdx + setting_minTraceTestRadius) &&
-        errors[i] < secondBest)
+#ifndef USE_ZNCC_SEARCH
+        errors[i] < secondBest
+#else
+        errors_zncc[i] > secondBest_zncc
+#endif
+    ) {
       secondBest = errors[i];
+      secondBest_zncc = errors_zncc[i];
+    }
   }
   float newQuality = secondBest / bestEnergy;
-  if (newQuality < quality[target_cid] || numSteps > 10)
+  float newQuality_zncc = bestEnergy_zncc / secondBest_zncc;
+  float newQuality_all = std::min(newQuality, newQuality_zncc);
+#ifndef USE_ZNCC_SEARCH
+  if (newQuality < quality[target_cid] || numSteps > 10) {
     quality[target_cid] = newQuality;
-
+  }
+#else
+  if (newQuality_all < quality[target_cid] || numSteps > 10) {
+    quality[target_cid] = newQuality_all;
+  }
+#endif
   //[ ***step 4*** ] 在上面的最优位置进行线性搜索, 进行求精
   // ============== do GN optimization ===================
-  float uBak = bestU, vBak = bestV, gnstepsize = 1, stepBack = 0;
+  float uBak = bestU, vBak = bestV, gnstepsize = 1, stepBack = 0, zncc = 0;
   if (setting_trace_GNIterations > 0)
     bestEnergy = 1e5;
   int gnStepsGood = 0, gnStepsBad = 0;
   for (int it = 0; it < setting_trace_GNIterations; it++) {
-    float H = 1, b = 0, energy = 0;
+    float H = 1, b = 0, energy = 0, zncc = 0;
+    Eigen::MatrixXf host_val, target_val;
+    int valid_count = 0;
     for (int idx = 0; idx < patternNumSeed; idx++) {
       float posU = (float)(bestU + rotatetPattern[idx][0]);
       float posV = (float)(bestV + rotatetPattern[idx][1]);
@@ -566,8 +637,15 @@ ImmaturePointStatus ImmaturePoint::traceOn(
       b += hw * residual * dResdDist;
       energy +=
           weights[idx] * weights[idx] * hw * residual * residual * (2 - hw);
+      host_val.conservativeResize(valid_count + 1, 1);
+      target_val.conservativeResize(valid_count + 1, 1);
+      host_val(valid_count, 0) =
+          (hostToFrame_affine[0] * color[idx] + hostToFrame_affine[1]);
+      target_val(valid_count, 0) = hitColor[0];
+      valid_count++;
     }
-
+    zncc = CalcZncc(host_val, target_val);
+#ifndef USE_ZNCC_SEARCH
     if (energy > bestEnergy) {
       gnStepsBad++;
 
@@ -578,7 +656,21 @@ ImmaturePointStatus ImmaturePoint::traceOn(
       if (debugPrint)
         printf("GN BACK %d: E %f, H %f, b %f. id-step %f. UV %f %f -> %f %f.\n",
                it, energy, H, b, stepBack, uBak, vBak, bestU, bestV);
-    } else {
+    }
+#else
+    if ((zncc < bestEnergy_zncc) || (energy > bestEnergy)) {
+      gnStepsBad++;
+
+      // do a smaller step from old point.
+      stepBack *= 0.5; //* 减小步长再进行计算
+      bestU = uBak + stepBack * dx;
+      bestV = vBak + stepBack * dy;
+      if (debugPrint)
+        printf("GN BACK %d: E %f, H %f, b %f. id-step %f. UV %f %f -> %f %f.\n",
+               it, energy, H, b, stepBack, uBak, vBak, bestU, bestV);
+    }
+#endif
+    else {
       gnStepsGood++;
 
       float step = -gnstepsize * b / H;
@@ -598,8 +690,11 @@ ImmaturePointStatus ImmaturePoint::traceOn(
 
       bestU += step * dx;
       bestV += step * dy;
+      //#ifndef USE_ZNCC_SEARCH
       bestEnergy = energy;
-
+      //#else
+      bestEnergy_zncc = zncc;
+      //#endif
       if (debugPrint)
         printf("GN step %d: E %f, H %f, b %f. id-step %f. UV %f %f -> %f %f.\n",
                it, energy, H, b, step, uBak, vBak, bestU, bestV);
@@ -616,7 +711,8 @@ ImmaturePointStatus ImmaturePoint::traceOn(
   // bestV*0.5-0.25, wG[1]); 	float absGrad2 =
   // getInterpolatedElement(frame->absSquaredGrad[2],bestU*0.25-0.375,
   // bestV*0.25-0.375, wG[2]);
-  if (!(bestEnergy < energyTH * setting_trace_extraSlackOnTH))
+  if (!(bestEnergy < energyTH * setting_trace_extraSlackOnTH) ||
+      bestEnergy_zncc < setting_outlierTh_zncc)
   //			|| (absGrad0*areaGradientSlackFactor < host->frameGradTH
   //		     && absGrad1*areaGradientSlackFactor <
   // host->frameGradTH*0.75f
@@ -779,6 +875,8 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
                                         float &Hdd, float &bd, float idepth,
                                         int lvl_target) {
 
+  float zncc = 0;
+  zncc_opt = 0;
   if (tmpRes->state_state == ResState::OOB) {
     tmpRes->state_NewState = ResState::OOB;
     return tmpRes->state_energy;
@@ -829,7 +927,8 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
   }
 
 #endif
-
+  Eigen::MatrixXf host_val, target_val;
+  int valid_count = 0;
   for (int idx = 0; idx < patternNumSeed; idx++) {
     int dx = patternPSeed[idx][0];
     int dy = patternPSeed[idx][1];
@@ -892,9 +991,14 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
     /// simply add em' up
     Hdd += (hw * d_idepth) * d_idepth; // 对逆深度的hessian
     bd += (hw * residual) * d_idepth;  // 对逆深度的Jres
+    host_val.conservativeResize(valid_count + 1, 1);
+    target_val.conservativeResize(valid_count + 1, 1);
+    host_val(valid_count, 0) = (affLL[0] * color[idx] + affLL[1]);
+    target_val(valid_count, 0) = hitColor[0];
+    valid_count++;
   }
-
-  if (energyLeft > energyTH * outlierTHSlack) {
+  zncc = CalcZncc(host_val, target_val);
+  if (energyLeft > energyTH * outlierTHSlack || zncc < setting_outlierTh_zncc) {
     energyLeft = energyTH * outlierTHSlack;
     tmpRes->state_NewState = ResState::OUTLIER;
   } else {
@@ -902,6 +1006,7 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
   }
 
   tmpRes->state_NewEnergy = energyLeft;
+  zncc_opt = zncc;
   return energyLeft;
 }
 

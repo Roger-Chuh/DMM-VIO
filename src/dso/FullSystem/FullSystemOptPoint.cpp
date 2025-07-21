@@ -74,7 +74,7 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
 
   bool print = print_info; // false; // !add_to_residuals ; // rand()%50==0;
 
-  float lastEnergy = 0;
+  float lastEnergy = 0, lastEnergy_zncc = 0;
   float lastHdd = 0;
   float lastbd = 0;
   float currentIdepth = (point->idepth_max + point->idepth_min) * 0.5f;
@@ -86,6 +86,7 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
     lastEnergy = 0;
     lastHdd = 0;
     lastbd = 0;
+    lastEnergy_zncc = 0;
     for (int i = 0; i < nres; i++) {
       residuals[i].state_NewEnergy = residuals[i].state_energy = 0;
       residuals[i].state_NewState = ResState::OUTLIER;
@@ -95,9 +96,11 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
                                              lastbd, currentIdepth, lvl_target);
       residuals[i].state_state = residuals[i].state_NewState;
       residuals[i].state_energy = residuals[i].state_NewEnergy;
+      lastEnergy_zncc += point->zncc_opt;
     }
 
-    if (!std::isfinite(lastEnergy) || lastHdd < setting_minIdepthH_act) {
+    if (!std::isfinite(lastEnergy) || lastHdd < setting_minIdepthH_act ||
+        !isfinite(lastEnergy_zncc)) {
       if (print)
         printf("OptPoint: Not well-constrained (%d res, H=%.1f). E=%f. SKIP!\n",
                nres, lastHdd, lastEnergy);
@@ -120,6 +123,7 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
       float newHdd = 0;
       float newbd = 0;
       float newEnergy = 0;
+      float newEnergy_zncc = 0;
       for (int i = 0; i < nres; i++) {
         newEnergy += point->linearizeResidual(nres_to_target_cid.at(i), &Hcalib,
 #if 1 // ndef USE_MULTI_CAM //TODO roger, 不能完全不做deoutlier，outlier_thr =
@@ -131,8 +135,10 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
                                               ,
                                               residuals + i, newHdd, newbd,
                                               newIdepth, lvl_target);
+        newEnergy_zncc += point->zncc_opt;
       }
-      if (!std::isfinite(lastEnergy) || newHdd < setting_minIdepthH_act) {
+      if (!std::isfinite(lastEnergy) || newHdd < setting_minIdepthH_act ||
+          !std::isfinite(newEnergy_zncc)) {
         if (print)
           printf(
               "OptPoint: Not well-constrained (%d res, H=%.1f). E=%f. SKIP!\n",
@@ -145,11 +151,12 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
                (newEnergy < lastEnergy) ? "ACCEPT" : "REJECT", iteration,
                log10(lambda), "", lastEnergy, newEnergy, newIdepth, step);
       }
-      if (newEnergy < lastEnergy) {
+      if (newEnergy < lastEnergy && newEnergy_zncc > lastEnergy_zncc) {
         currentIdepth = newIdepth;
         lastHdd = newHdd;
         lastbd = newbd;
         lastEnergy = newEnergy;
+        lastEnergy_zncc = newEnergy_zncc;
         for (int i = 0; i < nres; i++) {
           residuals[i].state_state = residuals[i].state_NewState;
           residuals[i].state_energy = residuals[i].state_NewEnergy;

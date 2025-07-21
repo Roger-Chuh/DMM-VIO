@@ -838,7 +838,7 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
 #ifndef USE_ZNCC
   assert(continued_count == 0);
 #endif
-  if (zncc < 0.5 ||
+  if (zncc < setting_outlierTh_zncc ||
 #ifndef USE_ZNCC
       energyLeft > std::max<float>(host->frameEnergyTH,
                                    target->frameEnergyTH) /*|| wJI2_sum < 2*/

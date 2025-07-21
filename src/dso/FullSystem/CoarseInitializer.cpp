@@ -69,7 +69,7 @@ CoarseInitializer::CoarseInitializer(int ww, int hh, MultiCamera *p_cam)
 #if !defined(USE_MULTI_CAM) || defined(USE_ZNCC)
   fixAffine = true;
 #else
-  fixAffine = true;                                       // false;
+  fixAffine = true; // false;
 #endif
   printDebug = false;
   //! 这是
@@ -112,7 +112,8 @@ bool CoarseInitializer::trackFrame(
   int maxIterations[] = {10, 20, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
   // int maxIterations[] = {50, 50, 50, 50, 50, 50, 50, 50}; // 不同层迭代的次数
 #else
-  int maxIterations[] = {15, 15, 15, 15, 15, 20, 20, 20}; // 不同层迭代的次数
+  // int maxIterations[] = {15, 15, 15, 15, 15, 20, 20, 20}; // 不同层迭代的次数
+  int maxIterations[] = {5, 5, 10, 20, 20, 20, 20, 20}; // 不同层迭代的次数
 #endif
 //? 调参
 #ifndef USE_ZNCC
@@ -260,7 +261,7 @@ bool CoarseInitializer::trackFrame(
       float lambda = 0.1;
       float eps = 1e-3;
       float diff_ratio_eps = -0.02;
-      if (lvl <= 1 || lvl_target <= 1) {
+      if ((lvl <= 1 || lvl_target <= 1) && false) {
         eps = 1e-4;
         diff_ratio_eps = -0.002;
       }
@@ -3491,7 +3492,7 @@ Vec3f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
         //                  point->v).transpose()
         //                  << ", v_energy: 00" << std::endl;
       }
-      float outlierTH_ratio = 1;
+      float outlierTH_ratio = 20; // 2;//20; // 1;
 #ifndef USE_ZNCC
       const float photo_err_thr = point->outlierTH * outlierTH_ratio; // 20;
 #else
