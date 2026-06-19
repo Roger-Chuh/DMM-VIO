@@ -782,6 +782,11 @@ int main(int argc, char **argv) {
             cv::Mat image_before = image.clone();
             //VigCorrection(image, vig_mat);
             cv::remap(image, image, cid_to_undist_map[cam_id].first, cid_to_undist_map[cam_id].second, cv::INTER_CUBIC);
+            // if (cam_id == 0) {
+            //    char filename[512];
+            //    snprintf(filename, sizeof(filename), "/media/roger/Elements_SE/CI/gt/20240531/1/Camera0/pinhole/pinhole_%04d.png", i);
+            //    cv::imwrite(filename, image);
+            // }
             cv::cvtColor(image, image, cv::COLOR_GRAY2BGR);
             show_mat_vec[cam_id] = image.clone();
         }
@@ -794,6 +799,7 @@ int main(int argc, char **argv) {
         cv::waitKey(0);
     }
 #endif
+  // std::cout << "K: \n" << K << std::endl;
   // std::exit(-1);
 
   setlocale(LC_ALL, "C");

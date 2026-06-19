@@ -268,9 +268,13 @@ do_detection_only = false
 
 #dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/online_calib/D3HDXD2D4363000064/controller_2024-11-18-16-08-28"
 
-dataSet = "/media/roger/Elements_SE/CI/gt/20240531/5"
+dataSet = "/media/roger/Elements_SE/CI/gt/20240531/1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/outdoor/OutDoor1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/online_calib/controller_2024-11-21-16-58-21"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/ab/marker_mapper/D2/123456/SLAMRecord/calib1/1"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/outdoor/OnlineCalib2"
 #dataSet = "/media/roger/Elements_SE/CI/gt2/SLAMRecord/1"
-
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/deoutlier/SLAMRecord/4"
 # two layer
 #dataSet = "/media/roger/Elements_SE/CI/dvt/scale_opt/yvrdatalogger2024-10-17-11-06-49"
 # manheng
@@ -303,7 +307,7 @@ dataSet = "/media/roger/Elements_SE/CI/gt/20240531/5"
 #dataSet = "/media/roger/Elements_SE/CI/gt2/SLAMRecord/1"
 
 
-#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/deoutlier/SLAMRecord/5"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/deoutlier/SLAMRecord/3"
 
 #dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/non_inertial/SLAMRecord/1"
 
