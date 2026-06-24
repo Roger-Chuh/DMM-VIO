@@ -247,6 +247,13 @@ public:
 
   dmvio::IMUData getIMUData(int i) {
     // returning IMU data between frame i-1 and frame i!
+    // std::cout << "getIMUData, i: " << i << std::endl;
+    if (i <= 0 || i - 1 >= (int)imuDataAllFrames.size()) {
+      std::cout << "i <= 0 || i - 1 >= (int)imuDataAllFrames.size()"
+                << std::endl;
+      std::exit(1);
+      return dmvio::IMUData();
+    }
     return imuDataAllFrames[i - 1];
   }
 

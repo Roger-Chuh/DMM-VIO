@@ -63,6 +63,14 @@ public:
   }
 
   inline T &at(int x, int y, int cid) {
+    if (x < 0)
+      x = 0;
+    if (y < 0)
+      y = 0;
+    if (x >= w)
+      x = w - 1;
+    if (y >= h)
+      y = h - 1;
     return data[(int)x + ((int)y) * w + w * h * cid];
   }
 

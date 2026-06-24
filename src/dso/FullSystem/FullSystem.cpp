@@ -2403,21 +2403,146 @@ void FullSystem::makeKeyFrame(FrameHessian *fh, bool forceKF, bool forceNoKF) {
                       // 设置位姿线性化点
 #if defined(SHOW_NEWLY_PREDICTED_RESIDUALS) // && defined(USE_MULTI_CAM)
   MinimalImageB3 *img_target;
+  MinimalImageB3 *edge_target;
+  MinimalImageB3 *edge_only_target;
+  MinimalImageB3 *label_only_target;
+  MinimalImageB3 *dt_target;
+  MinimalImageB3 *dx_target;
+  MinimalImageB3 *dy_target;
+  int lvl_check = pyrLevelsUsed - 1;
   img_target = new MinimalImageB3(wG[0], hG[0]);
+  edge_target = new MinimalImageB3(wG[0], hG[0]);
+  edge_only_target = new MinimalImageB3(wG[lvl_check], hG[lvl_check]);
+  label_only_target = new MinimalImageB3(wG[lvl_check], hG[lvl_check]);
+  dt_target = new MinimalImageB3(wG[lvl_check], hG[lvl_check]);
+  dx_target = new MinimalImageB3(wG[lvl_check], hG[lvl_check]);
+  dy_target = new MinimalImageB3(wG[lvl_check], hG[lvl_check]);
 
   for (int cam = 0; cam < kCameraNumUsed; ++cam) {
     Vec3f *colorRef = fh->dI + wG[0] * hG[0] * cam;
-    for (int i = 0; i < wG[0] * hG[0]; i++) {
-      // BRIGHTNESS TRANSFER
-      float colL = (*(colorRef + i))[0];
-      if (colL < 0)
-        colL = 0;
-      if (colL > 255)
-        colL = 255;
-      img_target->at(i, cam) = Vec3b(colL, colL, colL);
+    Vec2i *edge_start =
+        fh->edge_label[lvl_check] + wG[lvl_check] * hG[lvl_check] * cam;
+    Vec3f *dt_dx_dy_start =
+        fh->dt_dx_dy[lvl_check] + wG[lvl_check] * hG[lvl_check] * cam;
+    float dt_len = fh->max_dt_dx_dy[lvl_check][cam][0] -
+                   fh->min_dt_dx_dy[lvl_check][cam][0];
+    float dx_len = fh->max_dt_dx_dy[lvl_check][cam][1] -
+                   fh->min_dt_dx_dy[lvl_check][cam][1];
+    float dy_len = fh->max_dt_dx_dy[lvl_check][cam][2] -
+                   fh->min_dt_dx_dy[lvl_check][cam][2];
+    std::cerr << "cid: " << cam << ", lvl_check: " << lvl_check
+              << ", max_label_num: " << fh->label_num[lvl_check][cam]
+              << ", max dt_dx_dy: "
+              << fh->max_dt_dx_dy[lvl_check][cam].transpose()
+              << ", min dt_dx_dy: " << fh->min_dt_dx_dy[0][cam].transpose()
+              << std::endl;
+    for (int c = 1; c < wG[0] - 1; ++c) {
+      for (int r = 1; r < hG[0] - 1; ++r) {
+        int i = c + r * wG[0];
+        // for (int i = 0; i < wG[0] * hG[0]; i++) {
+        // BRIGHTNESS TRANSFER
+        float colL = (*(colorRef + i))[0];
+        if (colL < 0)
+          colL = 0;
+        if (colL > 255)
+          colL = 255;
+        img_target->at(i, cam) = Vec3b(colL, colL, colL);
+        edge_target->at(i, cam) = Vec3b(colL, colL, colL);
+        //}
+      }
+    }
+    for (int c = 1; c < wG[lvl_check] - 1; ++c) {
+      for (int r = 1; r < hG[lvl_check] - 1; ++r) {
+        int i = c + r * wG[lvl_check];
+        // for (int i = 0; i < wG[0] * hG[0]; i++) {
+        // BRIGHTNESS TRANSFER
+        // float colL = (*(colorRef + i))[0];
+        int edge_val = (*(edge_start + i))[0];
+        float label_val = (float)(*(edge_start + i))[1];
+        label_val =
+            (fh->label_num[lvl_check][cam] > 0)
+                ? 255.0f * (label_val) / (float)fh->label_num[lvl_check][cam]
+                : 0;
+        float dt = (*(dt_dx_dy_start + i))[0];
+        float dx = (*(dt_dx_dy_start + i))[1];
+        float dy = (*(dt_dx_dy_start + i))[2];
+        if (dt > fh->max_dt_dx_dy[lvl_check][cam][0] ||
+            dt < fh->min_dt_dx_dy[lvl_check][cam][0]) {
+          std::cerr << "dt > fh->max_dt_dx_dy[lvl_check][cam][0] || dt < "
+                       "fh->min_dt_dx_dy[lvl_check][cam][0]"
+                    << ", dt: " << dt << std::endl;
+          std::exit(1);
+        }
+        if (dx > fh->max_dt_dx_dy[lvl_check][cam][1] ||
+            dx < fh->min_dt_dx_dy[lvl_check][cam][1]) {
+          std::cerr << "dx > fh->max_dt_dx_dy[lvl_check][cam][1] || dx < "
+                       "fh->min_dt_dx_dy[lvl_check][cam][1]"
+                    << ", dx: " << dx << std::endl;
+          std::exit(1);
+        }
+        if (dy > fh->max_dt_dx_dy[lvl_check][cam][2] ||
+            dy < fh->min_dt_dx_dy[lvl_check][cam][2]) {
+          std::cerr << "dy > fh->max_dt_dx_dy[lvl_check][cam][2] || dy < "
+                       "fh->min_dt_dx_dy[lvl_check][cam][2]"
+                    << ", dy: " << dy << std::endl;
+          std::exit(1);
+        }
+        dt = (dt_len > 0)
+                 ? 255.0f * (dt - fh->min_dt_dx_dy[lvl_check][cam][0]) / dt_len
+                 : 0;
+        dx = (dx_len > 0)
+                 ? 255.0f * (dx - fh->min_dt_dx_dy[lvl_check][cam][1]) / dx_len
+                 : 0;
+        dy = (dy_len > 0)
+                 ? 255.0f * (dy - fh->min_dt_dx_dy[lvl_check][cam][2]) / dy_len
+                 : 0;
+
+        // if (colL < 0)
+        //   colL = 0;
+        // if (colL > 255)
+        //   colL = 255;
+        if (edge_val < 0)
+          edge_val = 0;
+        if (edge_val > 255)
+          edge_val = 255;
+        if (label_val < 0)
+          label_val = 0;
+        if (label_val > 255)
+          label_val = 255;
+        if (dt < 0)
+          dt = 0;
+        if (dt > 255)
+          dt = 255;
+        if (dx < 0)
+          dx = 0;
+        if (dx > 255)
+          dx = 255;
+        if (dy < 0)
+          dy = 0;
+        if (dy > 255)
+          dy = 255;
+        // img_target->at(i, cam) = Vec3b(colL, colL, colL);
+        // edge_target->at(i, cam) = Vec3b(colL, colL, colL);
+        edge_only_target->at(i, cam) = Vec3b(edge_val, edge_val, edge_val);
+        label_only_target->at(i, cam) = Vec3b(label_val, label_val, label_val);
+        dt_target->at(i, cam) = Vec3b(dt, dt, dt);
+        dx_target->at(i, cam) = Vec3b(dx, dx, dx);
+        dy_target->at(i, cam) = Vec3b(dy, dy, dy);
+        //}
+      }
     }
   }
-
+  for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+    Vec2i *edge_pixel_start = fh->edge_pixels[0] + wG[0] * hG[0] * cam;
+    for (int i = 0; i < fh->edge_pixel_num[0][cam]; ++i) {
+      int epx = edge_pixel_start[i][0];
+      int epy = edge_pixel_start[i][1];
+      if (epx < 10 || epx >= wG[0] - 10 || epy < 10 || epy >= hG[0] - 10)
+        continue;
+      edge_target->setPixelCirc((float)epx + 0.5, (float)epy + 0.5,
+                                makeRainbow3B(0.1), cam);
+    }
+  }
 #endif
   //[ ***step 5*** ] 构建之前关键帧与当前帧fh的残差(旧的), or before
   // optimization
@@ -2518,6 +2643,9 @@ void FullSystem::makeKeyFrame(FrameHessian *fh, bool forceKF, bool forceNoKF) {
         //                    std::pair<PointFrameResidual *, ResState>(
         //                            r, ResState::IN); // 当前的设置为上一个
 #if defined(SHOW_NEWLY_PREDICTED_RESIDUALS) // && defined(USE_MULTI_CAM)
+        Vec2i *edge_label_start =
+            fh->edge_label[0] + wG[0] * hG[0] * target_cid;
+        Vec2i *label2xy_start = fh->label2xy[0] + wG[0] * hG[0] * target_cid;
         SE3 fhToNew = fh->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() *
                       fhToNew_ *
                       fh->p_multi_camera->cid_to_T01_SE3[ph->host_cid];
@@ -2547,6 +2675,14 @@ void FullSystem::makeKeyFrame(FrameHessian *fh, bool forceKF, bool forceNoKF) {
             img_target->setPixel9(proj[0] + 0.5, proj[1] + 0.5,
                                   makeRainbow3B(0.1), target_cid);
           }
+          int label = edge_label_start[(int)(proj[0] + 0.5) +
+                                       (int)(proj[1] + 0.5) * wG[0]][1];
+          Vec2i nearestPt = label2xy_start[label];
+
+          edge_target->setPixelCirc((float)nearestPt[0], (float)nearestPt[1],
+                                    Vec3b(0, 0, 255), target_cid);
+          edge_target->setPixel9(proj[0] + 0.5, proj[1] + 0.5, Vec3b(0, 255, 0),
+                                 target_cid);
         }
 #endif
       }
@@ -2560,8 +2696,20 @@ void FullSystem::makeKeyFrame(FrameHessian *fh, bool forceKF, bool forceNoKF) {
   }
 #if defined(SHOW_NEWLY_PREDICTED_RESIDUALS) // && defined(USE_MULTI_CAM)
   IOWrap::displayImage("predicted vms in newest frame", img_target);
+  IOWrap::displayImage("predicted edges in newest frame", edge_target);
+  IOWrap::displayImage("edge_only in newest frame", edge_only_target);
+  IOWrap::displayImage("label_only in newest frame", label_only_target);
+  IOWrap::displayImage("dt in newest frame", dt_target);
+  IOWrap::displayImage("dx in newest frame", dx_target);
+  IOWrap::displayImage("dy in newest frame", dy_target);
   IOWrap::waitKey(1);
   delete img_target;
+  delete edge_target;
+  delete edge_only_target;
+  delete label_only_target;
+  delete dt_target;
+  delete dx_target;
+  delete dy_target;
 #endif
   if (false) {
     printf("frameHessians: %d\n", frameHessians.size());

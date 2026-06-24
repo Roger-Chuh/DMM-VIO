@@ -74,7 +74,7 @@ std::string source = "";
 std::string imuFile = "";
 
 bool is_reverse = false;
-int start = 0;
+int start = 1; // 0;
 int ending = 100000;
 int maxPreloadImages =
     0; // If set we only preload if there are less images to be loade.

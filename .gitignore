@@ -40,3 +40,13 @@ output.txt
 test.txt
 
 log.txt
+logs/*
+babiasdso.txt
+bagravdir.txt
+bavel.txt
+coarsebiasdso.txt
+output_dm_vio.txt
+output_frameEnergyTh.txt
+output_rmse.txt
+scalesdso.txt
+usedSettingsdso.txt

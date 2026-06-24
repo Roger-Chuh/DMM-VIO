@@ -63,9 +63,15 @@ namespace dso {
 
 #define kImageWidth 640
 #define kImageHeight 480
-#define PYR_LEVELS 6 // 3
+// #define PYR_LEVELS 6 // 3
 //#define USE_INVERSE_COMPOSITIONAL
+#define USE_EDGE_ALIGN
+#ifndef USE_EDGE_ALIGN
+#define PYR_LEVELS 6 // 3
 //#define USE_ZNCC
+#else
+#define PYR_LEVELS 6
+#endif
 
 #ifdef USE_ZNCC
 #define USE_ZNCC_WEIGHT
@@ -258,5 +264,8 @@ constexpr int staticPatternPadding[12] = {1,
 //#define patternNum 8
 //#define patternP staticPattern[8]
 //#define patternPadding 2
+constexpr int cannyThreshold1 = 100;
+constexpr int cannyThreshold2 = 200;
 
+constexpr bool adaptiveCannyThreshold = true;
 } // namespace dso
