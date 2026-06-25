@@ -97,6 +97,9 @@ MinimalImageB *readImageBW_8U2(
     VigCorrection(image, (*p_vig_mat));
     cv::remap(image, image, (*p_cid_to_undist_map)[cam_id].first,
               (*p_cid_to_undist_map)[cam_id].second, cv::INTER_CUBIC);
+#ifdef USE_EDGE_ALIGN
+    cv::GaussianBlur(image, image, {5, 5}, 0);
+#endif
     // cv::cvtColor(image, image, cv::COLOR_GRAY2BGR);
     show_mat_vec[cam_id] = image.clone();
   }

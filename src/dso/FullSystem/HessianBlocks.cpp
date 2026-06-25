@@ -188,7 +188,7 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
     dIp[i] = new Eigen::Vector3f
         [wG[i] * hG[i] * kCameraNumUsed]; // TODO image size at each pyr level
     absSquaredGrad[i] = new float[wG[i] * hG[i] * kCameraNumUsed];
-    edge_label[i] = new Eigen::Vector2i[wG[i] * hG[i] * kCameraNumUsed];
+    edge_label_image[i] = new Eigen::Vector2i[wG[i] * hG[i] * kCameraNumUsed];
     dt_dx_dy[i] = new Eigen::Vector3f[wG[i] * hG[i] * kCameraNumUsed];
     label2xy[i] = new Eigen::Vector2i[wG[i] * hG[i] * kCameraNumUsed];
     edge_pixels[i] = new Eigen::Vector2i[wG[i] * hG[i] * kCameraNumUsed];
@@ -254,8 +254,9 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
       float threshold;
       if (adaptiveCannyThreshold) {
         threshold = cv::threshold(cv_img, output, 0, 255, cv::THRESH_OTSU);
-        cv::Canny(cv_img, edge, std::max(3, (int)threshold - 30),
-                  std::min(245, (int)threshold + 10), 3, true);
+        printf("canny_threshold: %f\n", threshold);
+        cv::Canny(cv_img, edge, std::max(3, (int)threshold - 130),
+                  std::min(245, (int)threshold - 80), 3, true);
       } else {
         cv::Canny(cv_img, edge, cannyThreshold1, cannyThreshold2, 3, true);
       }
@@ -276,7 +277,8 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
       label_num[lvl][cid] = labelNum;
       Eigen::Vector2i *label2xy_start = label2xy[lvl] + wl * hl * cid;
       Eigen::Vector2i *edge_pixels_start = edge_pixels[lvl] + wl * hl * cid;
-      Eigen::Vector2i *edge_label_start = edge_label[lvl] + wl * hl * cid;
+      Eigen::Vector2i *edge_label_image_start =
+          edge_label_image[lvl] + wl * hl * cid;
       Eigen::Vector3f *dt_dx_dy_start = dt_dx_dy[lvl] + wl * hl * cid;
 
       int labelNumCheck = 0;
@@ -288,7 +290,7 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
             std::cerr << "lable < 1, sth wrong" << std::endl;
             std::exit(1);
           }
-          edge_label_start[c + r * wl] = Eigen::Vector2i(
+          edge_label_image_start[c + r * wl] = Eigen::Vector2i(
               (int)edge.at<uchar>(r, c), (int)labels.at<int>(r, c) - 1);
           float dist = (float)distanceTransformMap.at<float>(r, c);
           dt_dx_dy_start[c + r * wl][0] = dist;

@@ -148,8 +148,8 @@ struct FrameHessian {
                                      // 方向梯度的平方和  // only used for
   //!< pixel select (histograms etc.). no NAN.
 
-  Eigen::Vector2i *edge_label[PYR_LEVELS]; // pyr_image resolution
-  Eigen::Vector3f *dt_dx_dy[PYR_LEVELS];   // pyr_image resolution
+  Eigen::Vector2i *edge_label_image[PYR_LEVELS]; // pyr_image resolution
+  Eigen::Vector3f *dt_dx_dy[PYR_LEVELS];         // pyr_image resolution
   Eigen::Vector2i *label2xy[PYR_LEVELS];
   Eigen::Vector2i *edge_pixels[PYR_LEVELS];
   size_t label_num[PYR_LEVELS][kCameraNumUsed];
@@ -341,7 +341,7 @@ struct FrameHessian {
     for (int i = 0; i < pyrLevelsUsed; i++) {
       delete[] dIp[i];
       delete[] absSquaredGrad[i];
-      delete[] edge_label[i];
+      delete[] edge_label_image[i];
       delete[] dt_dx_dy[i];
       delete[] label2xy[i];
       delete[] edge_pixels[i];

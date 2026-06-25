@@ -264,8 +264,8 @@ constexpr int staticPatternPadding[12] = {1,
 //#define patternNum 8
 //#define patternP staticPattern[8]
 //#define patternPadding 2
-constexpr int cannyThreshold1 = 100;
-constexpr int cannyThreshold2 = 200;
+constexpr int cannyThreshold1 = 60;
+constexpr int cannyThreshold2 = 90;
 
-constexpr bool adaptiveCannyThreshold = true;
+constexpr bool adaptiveCannyThreshold = false;
 } // namespace dso

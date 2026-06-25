@@ -91,7 +91,11 @@ Mat3 K, Kinv;
 void GenUndistortionMap(MultiCamera &multi_camera, const int &width,
                         const int &height, const int &cam_num) {
   cv::Size image_size = cv::Size(width, height);
+#ifndef USE_EDGE_ALIGN
   number_t fov_rad = 120.0 * kOur_PI / 180.0;
+#else
+  number_t fov_rad = 120.0 * kOur_PI / 180.0;
+#endif
   number_t focal =
       static_cast<number_t>(width) / (2.0 * std::tan(fov_rad / 2.0));
   K << focal, 0, 0.5 * static_cast<number_t>(width), 0, focal,
@@ -768,6 +772,7 @@ int main(int argc, char **argv) {
   // std::exit(2);
 
   std::array<cv::Mat, 4> show_mat_vec;
+  std::array<cv::Mat, 4> show_edge_vec;
 #if 0
     for (size_t i = 0; i < frameInfo_bak.size() /*&& key != 27*/; i++) {
         //    cerr <<
@@ -782,20 +787,27 @@ int main(int argc, char **argv) {
             cv::Mat image_before = image.clone();
             //VigCorrection(image, vig_mat);
             cv::remap(image, image, cid_to_undist_map[cam_id].first, cid_to_undist_map[cam_id].second, cv::INTER_CUBIC);
+            cv::GaussianBlur(image, image, {5, 5}, 0);
             // if (cam_id == 0) {
             //    char filename[512];
             //    snprintf(filename, sizeof(filename), "/media/roger/Elements_SE/CI/gt/20240531/1/Camera0/pinhole/pinhole_%04d.png", i);
             //    cv::imwrite(filename, image);
             // }
+            cv::Mat edge;
+            cv::Canny(image, edge, 60, 90, 3, true);
             cv::cvtColor(image, image, cv::COLOR_GRAY2BGR);
             show_mat_vec[cam_id] = image.clone();
+            show_edge_vec[cam_id] = edge.clone();
         }
-        cv::Mat img1, img2, img_show;
+        cv::Mat img1, img2, img_show, edge_show;
         cv::hconcat(show_mat_vec[1], show_mat_vec[2], img1);
         cv::hconcat(show_mat_vec[0], show_mat_vec[3], img2);
         cv::vconcat(img1, img2, img_show);
         cv::imshow("Cam", img_show);
-
+        cv::hconcat(show_edge_vec[1], show_edge_vec[2], img1);
+        cv::hconcat(show_edge_vec[0], show_edge_vec[3], img2);
+        cv::vconcat(img1, img2, edge_show);
+        cv::imshow("Edge", edge_show);
         cv::waitKey(0);
     }
 #endif

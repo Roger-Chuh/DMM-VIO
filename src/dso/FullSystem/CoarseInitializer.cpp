@@ -4202,6 +4202,7 @@ void CoarseInitializer::setFirst(CalibHessian *HCalib,
       level_cid_to_npts_offset[lvl][cid] = offset;
       Pnt *pl = points[lvl] + offset; // 每一层上的点
       int nl = 0;
+      int pt_num_not_found_in_edge = 0;
       // 要留出pattern的空间, 2 border
       //[ ***step 3*** ] 在选出的像素中, 添加点信息
       /// 对全图做遍历，只有valid(!=0)的点才会执行相关操作
@@ -4215,6 +4216,36 @@ void CoarseInitializer::setFirst(CalibHessian *HCalib,
               (lvl == 0 && statusMap[x + y * wl + w[0] * h[0] * cid] != 0)) {
             // printf("aa, nl: %d\n", nl);
             // assert(patternNum==9);
+
+#ifdef USE_EDGE_ALIGN
+            float my_type =
+                (lvl != 0) ? 1 : statusMap[x + y * wl + w[0] * h[0] * cid];
+            ImmaturePoint *pt =
+                new ImmaturePoint(x, y, firstFrame, my_type, HCalib, cid, lvl);
+            bool found = false;
+            Vec2i *edge_pixel_start =
+                firstFrame->edge_pixels[lvl] + wl * hl * cid;
+            for (int i = 0; i < firstFrame->edge_pixel_num[lvl][cid]; ++i) {
+              if ((edge_pixel_start[i] - Vec2i(x, y)).norm() == 0) {
+                found = true;
+                break;
+              }
+            }
+            if (!found) {
+              pt_num_not_found_in_edge++;
+              float nan_before = pt->energyTH;
+              pt->energyTH = NAN;
+              // printf("nan: [%f %f]\n", nan_before, pt->energyTH);
+            }
+            bool is_good_pt = std::isfinite(pt->energyTH);
+            delete pt;
+            if (/*pt->energyTH == NAN*/ !is_good_pt) {
+              // printf("aaa\n");
+              continue;
+            }
+
+#endif
+
             pl[nl].u = x + 0.1; //? 加0.1干啥
             pl[nl].v = y + 0.1;
             pl[nl].idepth = 1;
@@ -4251,6 +4282,10 @@ void CoarseInitializer::setFirst(CalibHessian *HCalib,
           }
         }
       }
+      printf("lvl: %d, cid: %d, valid seeds: %d, pt_num_not_found_in_edge: %d, "
+             "edge_num: %d\n",
+             lvl, cid, nl, pt_num_not_found_in_edge,
+             firstFrame->edge_pixel_num[lvl][cid]);
       //      level_cid_to_npts_success[lvl][cid] = nl;
       level_cid_to_numPoints[lvl][cid] = nl; // 点的数目,  去掉了一些边界上的点
       //      int offset_success = 0;
@@ -4519,6 +4554,7 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
       level_cid_to_npts_offset[lvl][cid] = offset;
       Pnt *pl = points[lvl] + offset; // 每一层上的点
       int nl = 0;
+      int pt_num_not_found_in_edge = 0;
       // 要留出pattern的空间, 2 border
       //[ ***step 3*** ] 在选出的像素中, 添加点信息
       /// 对全图做遍历，只有valid(!=0)的点才会执行相关操作
@@ -4541,7 +4577,25 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
             ImmaturePoint *pt =
                 new ImmaturePoint(x, y, firstFrame, my_type, HCalib, cid, lvl);
             // pt->idepth_min = 0.5;
-            if (pt->energyTH == NAN) {
+#ifdef USE_EDGE_ALIGN
+            bool found = false;
+            Vec2i *edge_pixel_start =
+                firstFrame->edge_pixels[lvl] + wl * hl * cid;
+            for (int i = 0; i < firstFrame->edge_pixel_num[lvl][cid]; ++i) {
+              if ((edge_pixel_start[i] - Vec2i(x, y)).norm() == 0) {
+                found = true;
+                break;
+              }
+            }
+            if (!found) {
+              pt_num_not_found_in_edge++;
+              float nan_before = pt->energyTH;
+              pt->energyTH = NAN;
+              // printf("nan: [%f %f]\n", nan_before, pt->energyTH);
+            }
+#endif
+            if (/*pt->energyTH == NAN*/ !std::isfinite(pt->energyTH)) {
+              // printf("aaa\n");
               delete pt;
               continue;
             }
@@ -4723,7 +4777,10 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
           }
         }
       }
-      printf("lvl: %d, cid: %d, valid seeds: %d\n", lvl, cid, nl);
+      printf("lvl: %d, cid: %d, valid seeds: %d, pt_num_not_found_in_edge: %d, "
+             "edge_num: %d\n",
+             lvl, cid, nl, pt_num_not_found_in_edge,
+             firstFrame->edge_pixel_num[lvl][cid]);
       // level_cid_to_npts_success[lvl][cid] = nl;
       level_cid_to_numPoints[lvl][cid] = nl; // 点的数目,  去掉了一些边界上的点
       //      int offset_success = 0;

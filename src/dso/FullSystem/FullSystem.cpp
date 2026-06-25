@@ -54,6 +54,7 @@
 
 #include "IOWrapper/Output3DWrapper.h"
 #include "util/ImageAndExposure.h"
+#include <boost/mpl/print.hpp>
 #include <cmath>
 
 #include "../camera_model/pinhole_camera.h"
@@ -2409,7 +2410,7 @@ void FullSystem::makeKeyFrame(FrameHessian *fh, bool forceKF, bool forceNoKF) {
   MinimalImageB3 *dt_target;
   MinimalImageB3 *dx_target;
   MinimalImageB3 *dy_target;
-  int lvl_check = pyrLevelsUsed - 1;
+  int lvl_check = 0; // pyrLevelsUsed - 1;
   img_target = new MinimalImageB3(wG[0], hG[0]);
   edge_target = new MinimalImageB3(wG[0], hG[0]);
   edge_only_target = new MinimalImageB3(wG[lvl_check], hG[lvl_check]);
@@ -2420,8 +2421,8 @@ void FullSystem::makeKeyFrame(FrameHessian *fh, bool forceKF, bool forceNoKF) {
 
   for (int cam = 0; cam < kCameraNumUsed; ++cam) {
     Vec3f *colorRef = fh->dI + wG[0] * hG[0] * cam;
-    Vec2i *edge_start =
-        fh->edge_label[lvl_check] + wG[lvl_check] * hG[lvl_check] * cam;
+    Vec2i *edge_label_image_start =
+        fh->edge_label_image[lvl_check] + wG[lvl_check] * hG[lvl_check] * cam;
     Vec3f *dt_dx_dy_start =
         fh->dt_dx_dy[lvl_check] + wG[lvl_check] * hG[lvl_check] * cam;
     float dt_len = fh->max_dt_dx_dy[lvl_check][cam][0] -
@@ -2457,8 +2458,8 @@ void FullSystem::makeKeyFrame(FrameHessian *fh, bool forceKF, bool forceNoKF) {
         // for (int i = 0; i < wG[0] * hG[0]; i++) {
         // BRIGHTNESS TRANSFER
         // float colL = (*(colorRef + i))[0];
-        int edge_val = (*(edge_start + i))[0];
-        float label_val = (float)(*(edge_start + i))[1];
+        int edge_val = (*(edge_label_image_start + i))[0];
+        float label_val = (float)(*(edge_label_image_start + i))[1];
         label_val =
             (fh->label_num[lvl_check][cam] > 0)
                 ? 255.0f * (label_val) / (float)fh->label_num[lvl_check][cam]
@@ -2555,6 +2556,7 @@ void FullSystem::makeKeyFrame(FrameHessian *fh, bool forceKF, bool forceNoKF) {
   {
     if (fh1 == fh)
       continue;
+    int point_checked_num = 0;
     for (PointHessian *ph : fh1->pointHessians) {
       //      for (int target_cid = 0; target_cid < kCameraNumUsed;
       //      ++target_cid) {
@@ -2643,8 +2645,9 @@ void FullSystem::makeKeyFrame(FrameHessian *fh, bool forceKF, bool forceNoKF) {
         //                    std::pair<PointFrameResidual *, ResState>(
         //                            r, ResState::IN); // 当前的设置为上一个
 #if defined(SHOW_NEWLY_PREDICTED_RESIDUALS) // && defined(USE_MULTI_CAM)
-        Vec2i *edge_label_start =
-            fh->edge_label[0] + wG[0] * hG[0] * target_cid;
+        Vec2i *edge_label_image_start =
+            fh->edge_label_image[0] + wG[0] * hG[0] * target_cid;
+        Vec3f *dt_dx_dy_start = fh->dt_dx_dy[0] + wG[0] * hG[0] * target_cid;
         Vec2i *label2xy_start = fh->label2xy[0] + wG[0] * hG[0] * target_cid;
         SE3 fhToNew = fh->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() *
                       fhToNew_ *
@@ -2675,10 +2678,98 @@ void FullSystem::makeKeyFrame(FrameHessian *fh, bool forceKF, bool forceNoKF) {
             img_target->setPixel9(proj[0] + 0.5, proj[1] + 0.5,
                                   makeRainbow3B(0.1), target_cid);
           }
-          int label = edge_label_start[(int)(proj[0] + 0.5) +
-                                       (int)(proj[1] + 0.5) * wG[0]][1];
+          Vec2i proj_check = (proj.head(2) + Vec2f(0.5, 0.5)).cast<int>();
+          int label =
+              edge_label_image_start[proj_check[0] + proj_check[1] * wG[0]][1];
+          float dt_val =
+              dt_dx_dy_start[proj_check[0] + proj_check[1] * wG[0]][0];
           Vec2i nearestPt = label2xy_start[label];
 
+          if (point_checked_num < 100) {
+            Vec2i *edge_pixel_start =
+                fh->edge_pixels[0] + wG[0] * hG[0] * target_cid;
+            float min_dt_dist = 9999;
+            Vec2i nearestPt_check = Vec2i::Zero();
+
+            std::vector<Vec2i> nearest_pts;
+            for (int i = 0; i < fh->edge_pixel_num[0][target_cid]; ++i) {
+              float dist =
+                  (edge_pixel_start[i].cast<float>() - proj_check.cast<float>())
+                      .norm();
+              int label_val = edge_label_image_start[i][1];
+              if (label_val >= fh->edge_pixel_num[0][target_cid]) {
+                printf("label over flow\n");
+                std::exit(1);
+              }
+              if (dist < min_dt_dist) {
+                min_dt_dist = dist;
+                nearestPt_check = edge_pixel_start[i];
+                // std::cout << "dist: " << dist << ", nearestPt_check: "
+                //           << nearestPt_check.transpose()
+                //           << ", proj: " << proj.transpose() << std::endl;
+              }
+            }
+            for (int i = 0; i < fh->edge_pixel_num[0][target_cid]; ++i) {
+              float dist =
+                  (edge_pixel_start[i].cast<float>() - proj_check.cast<float>())
+                      .norm();
+              if (dist == min_dt_dist) {
+                nearest_pts.emplace_back(edge_pixel_start[i]);
+              }
+            }
+            bool has_same_pt = false;
+            for (int i = 0; i < nearest_pts.size(); ++i) {
+              if ((nearest_pts[i] - nearestPt).cast<float>().norm() < 0.0001) {
+                has_same_pt = true;
+              }
+              printf("cid: %d, i: %d, label: %d, nearest_pt: [%d %d]\n",
+                     target_cid, i, label, nearest_pts[i][0],
+                     nearest_pts[i][1]);
+            }
+            if (min_dt_dist < 2 && !has_same_pt/*(nearestPt_check - nearestPt).cast<float>().norm() > 0.0001*/) {
+              std::vector<uint8_t> edge_data(wG[0] * hG[0]);
+              std::vector<float> dt_data(wG[0] * hG[0]);
+              std::vector<float> label_data(wG[0] * hG[0]);
+              for (int i = 0; i < wG[0] * hG[0]; ++i) {
+                int val = edge_label_image_start[i][0];
+                if (val >= 255) {
+                  val = 255;
+                }
+                if (val <= 0) {
+                  val = 0;
+                }
+                edge_data[i] = (uint8_t)val;
+                dt_data[i] = dt_dx_dy_start[i][0];
+                label_data[i] = (float)edge_label_image_start[i][1];
+              }
+              cv::Mat edge =
+                  cv::Mat(hG[0], wG[0], CV_8UC1, edge_data.data()).clone();
+              cv::Mat distanceTransformMap =
+                  cv::Mat(hG[0], wG[0], CV_32FC1, dt_data.data()).clone();
+              cv::Mat labels =
+                  cv::Mat(hG[0], wG[0], CV_32FC1, label_data.data()).clone();
+
+              cv::imwrite("edge.png", edge);
+              cv::imwrite("dt.tiff", distanceTransformMap);
+              cv::imwrite("labels.tiff", labels);
+              printf(
+                  "target_cid: %d, nearest_pts_size: %d, nearestPt check "
+                  "failed, edge_pix_num: %d, point_checked_num: %d, dt_value: "
+                  "%f, min_dt_dist: %f, nearest_pt_diff: %f, proj_check: [%d "
+                  "%d], nearestPt: [%f %f], nearestPt_check: [%f %f]\n",
+                  target_cid, nearest_pts.size(),
+                  fh->edge_pixel_num[0][target_cid], point_checked_num, dt_val,
+                  min_dt_dist,
+                  (nearestPt_check - nearestPt).cast<float>().norm(),
+                  proj_check[0], proj_check[1], (float)nearestPt[0],
+                  (float)nearestPt[1], (float)nearestPt_check[0],
+                  (float)nearestPt_check[1]);
+              std::exit(1);
+            }
+            if (target_cid == 0) {
+              point_checked_num++;
+            }
+          }
           edge_target->setPixelCirc((float)nearestPt[0], (float)nearestPt[1],
                                     Vec3b(0, 0, 255), target_cid);
           edge_target->setPixel9(proj[0] + 0.5, proj[1] + 0.5, Vec3b(0, 255, 0),
@@ -3337,7 +3428,10 @@ void FullSystem::makeNewTraces(FrameHessian *newFrame, float *gtDepth) {
   // fh->pointHessiansInactive.reserve(numPointsTotal*1.2f);
   newFrame->pointHessiansMarginalized.reserve(numPointsTotal * 1.2f);
   newFrame->pointHessiansOut.reserve(numPointsTotal * 1.2f);
+  int new_pt_num_before = (int)newFrame->immaturePoints.size();
   for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    int pt_num_not_found_in_edge = 0;
+    int new_pt = 0;
     for (int y = patternPaddingSeed + 1; y < hG[0] - patternPaddingSeed - 2;
          y++)
       for (int x = patternPaddingSeed + 1; x < wG[0] - patternPaddingSeed - 2;
@@ -3354,21 +3448,43 @@ void FullSystem::makeNewTraces(FrameHessian *newFrame, float *gtDepth) {
         //                                              wG[1] * hG[1] * cid] +
         //                                              (ptp[0] -
         //                                              floorf((float)(ptp[0])));
-        if (!std::isfinite(impt->energyTH))
+#ifdef USE_EDGE_ALIGN
+        bool found = false;
+        Vec2i *edge_pixel_start =
+            newFrame->edge_pixels[0] + wG[0] * hG[0] * cid;
+        for (int i = 0; i < newFrame->edge_pixel_num[0][cid]; ++i) {
+          if ((edge_pixel_start[i] - Vec2i(x, y)).norm() == 0) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          pt_num_not_found_in_edge++;
+          // float nan_before = pt->energyTH;
+          impt->energyTH = NAN;
+          // printf("nan: [%f %f]\n", nan_before, pt->energyTH);
+        }
+#endif
+        if (!std::isfinite(impt->energyTH)) {
           delete impt; // 投影得到的不是有穷数
-        else
+        } else {
           newFrame->immaturePoints.push_back(impt);
+          new_pt++;
+        }
 #ifdef SHOW_DETECTION_MASK
         img->setPixel9(impt->u + 0.5, impt->v + 0.5, makeRainbow3B(1), cid);
 #endif
       }
+    printf("cid: %d, new_pt: %d, pt_num_not_found_in_edge: %d\n", cid, new_pt,
+           pt_num_not_found_in_edge);
   }
 #ifdef SHOW_DETECTION_MASK
   IOWrap::displayImage("new point detection mask", img);
   IOWrap::waitKey(0);
   delete img;
 #endif
-  // printf("MADE %d IMMATURE POINTS!\n", (int)newFrame->immaturePoints.size());
+  printf("NEW IMMATURE POINTS: [before after]: [%d %d]!\n", new_pt_num_before,
+         (int)newFrame->immaturePoints.size());
 }
 
 //* 计算frameHessian的预计算值, 和状态的delta值
