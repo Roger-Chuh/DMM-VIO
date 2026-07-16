@@ -249,8 +249,8 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH,
 
       if (my_sparsifyFactor > 1 && rand() % my_sparsifyFactor != 0)
         continue;
-      int dx = patternP[pnt][0] / pattern_scale;
-      int dy = patternP[pnt][1] / pattern_scale;
+      float dx = patternP[pnt][0] / pattern_scale;
+      float dy = patternP[pnt][1] / pattern_scale;
 
       Vec3 xyz_ci =
           Vec3(((originalInputSparse[i].u + dx) * fxi + cxi) * depth,

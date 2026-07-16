@@ -48,9 +48,9 @@ PangolinDSOViewer::PangolinDSOViewer(
 
   {
     boost::unique_lock<boost::mutex> lk(openImagesMutex);
-    internalVideoImg = new MinimalImageB3(w, this->h * kCameraNumUsed);
-    internalKFImg = new MinimalImageB3(w, this->h * kCameraNumUsed);
-    internalResImg = new MinimalImageB3(w, this->h * kCameraNumUsed);
+    internalVideoImg = new MinimalImageB3(w, this->h);
+    internalKFImg = new MinimalImageB3(w, this->h);
+    internalResImg = new MinimalImageB3(w, this->h);
     videoImgChanged = kfImgChanged = resImgChanged = true;
 
     internalVideoImg->setBlack();
@@ -578,15 +578,48 @@ void PangolinDSOViewer::pushLiveFrame(FrameHessian *image) {
 
   boost::unique_lock<boost::mutex> lk(openImagesMutex);
 
+  float alpha = 1.0f;
+
   for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    float dt_len =
+        image->max_dt_dx_dy[0][cid][0] - image->min_dt_dx_dy[0][cid][0];
+    Vec3f *dt_dx_dy_start = image->dt_dx_dy[0] + wG[0] * hG[0] * cid;
+    Vec2i *edge_label_image_start =
+        image->edge_label_image[0] + wG[0] * hG[0] * cid;
     for (int i = 0; i < w * h; i++) {
+      float gray_val = image->dI[i + w * h * cid][0] * 0.8 > 255.0f
+                           ? 255.0
+                           : image->dI[i + w * h * cid][0] * 0.8;
+#ifndef USE_EDGE_ALIGN
       internalVideoImg->data[i + w * h * cid][0] =
           internalVideoImg->data[i + w * h * cid][1] =
-              internalVideoImg->data[i + w * h * cid][2] =
-                  image->dI[i + w * h * cid][0] * 0.8 > 255.0f
-                      ? 255.0
-                      : image->dI[i + w * h * cid][0] * 0.8;
+              internalVideoImg->data[i + w * h * cid][2] = gray_val;
+#else
+      float dt = (*(dt_dx_dy_start + i))[0];
+      float dt_ratio =
+          (dt_len > 0) ? (dt - image->min_dt_dx_dy[0][cid][0]) / dt_len : 0;
+      dt = (dt_len > 0)
+               ? 255.0f * (dt - image->min_dt_dx_dy[0][cid][0]) / dt_len
+               : 0;
+      float edge_val = (float)(*(edge_label_image_start + i))[0];
+      bool is_edge_pixel = edge_val > 200.f;
+
+      if (dt < 0)
+        dt = 0;
+      if (dt > 255)
+        dt = 255;
+      if (edge_val < 0)
+        edge_val = 0;
+      if (edge_val > 255)
+        edge_val = 255;
+      internalVideoImg->data[i + w * h * cid] = Vec3b(
+          is_edge_pixel ? 0 : (1.0f - dt_ratio) * alpha * gray_val,
+          is_edge_pixel ? 0 : alpha * gray_val,
+          is_edge_pixel ? edge_val : (1.0f - dt_ratio) * alpha * gray_val);
+
+#endif
     }
+    internalVideoImg->putText(20, 20, std::to_string(int(image->mean_gray_val_each[cid])).c_str(), Vec3b(0, 255,255),cid);
   }
   videoImgChanged = true;
 }
@@ -595,7 +628,7 @@ bool PangolinDSOViewer::needPushDepthImage() {
   return setting_render_displayDepth;
 }
 
-void PangolinDSOViewer::pushDepthImage(MinimalImageB3 *image) {
+void PangolinDSOViewer::pushDepthImage(MinimalImageB3 *image, std::array<float, kCameraNumUsed> mean_gray_val) {
 
   if (!setting_render_displayDepth)
     return;
@@ -613,6 +646,9 @@ void PangolinDSOViewer::pushDepthImage(MinimalImageB3 *image) {
   last_map = time_now;
 
   memcpy(internalKFImg->data, image->data, w * h * 3 * kCameraNumUsed);
+  // for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+  //   internalKFImg->putText(20, 20, std::to_string(int(mena_gray_val[cid])).c_str(), Vec3b(0, 255,255),cid);
+  // }
   kfImgChanged = true;
 }
 

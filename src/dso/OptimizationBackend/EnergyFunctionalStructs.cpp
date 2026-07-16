@@ -116,11 +116,12 @@ void EFResidual::fixLinearizationF(EnergyFunctional *ef, int cid) {
   __m128 delta_a = _mm_set1_ps((float)(dp[6]));
   __m128 delta_b = _mm_set1_ps((float)(dp[7]));
 
-  for (int i = 0; i < patternNum; i += 4) {
+  for (int i = 0; i < patternNum * eachErrDim; i += 4) {
     // PATTERN: rtz = resF - [JI*Jp Ja]*delta.
     // TODO  PATTERN: rtz = resF - [JI*Jp Ja]*delta.
     // TODO J->resF
     // 是最新状态下的残差，并不是fej状态下的残差，现在要把残差恢复到fej状态，（所以用减号），如果打印出来会发现恢复到fej状态的残差后，残差会变大
+    // 残差 ← 残差 − J × Δx，
     __m128 rtz = _mm_load_ps(((float *)&J[cid]->resF) + i);
     //! res - J * delta_x
     // TODO 这是减法，subtract

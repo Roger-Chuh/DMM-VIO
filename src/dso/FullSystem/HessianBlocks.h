@@ -139,6 +139,9 @@ struct FrameHessian {
   //* 图像导数[0]:辐照度  [1]:x方向导数  [2]:y方向导数, （指针表示图像）
   Eigen::Vector3f *dI; //[PYR_LEVELS * kCameraNumUsed]; //!< 图像导数 // trace,
                        // fine tracking. Used for direction
+  Eigen::Vector3f
+      *dt_dx_dy_0; //[PYR_LEVELS * kCameraNumUsed]; //!< 图像导数 // trace,
+  // fine tracking. Used for direction
   //!< select (not for gradient histograms etc.)
   Eigen::Vector3f
       *dIp[PYR_LEVELS]; // * kCameraNumUsed]; //!< 各金字塔层的图像导数   //
@@ -147,7 +150,7 @@ struct FrameHessian {
   float *absSquaredGrad[PYR_LEVELS]; // * kCameraNumUsed]; //!< x,y
                                      // 方向梯度的平方和  // only used for
   //!< pixel select (histograms etc.). no NAN.
-
+  double timestamp;
   Eigen::Vector2i *edge_label_image[PYR_LEVELS]; // pyr_image resolution
   Eigen::Vector3f *dt_dx_dy[PYR_LEVELS];         // pyr_image resolution
   Eigen::Vector2i *label2xy[PYR_LEVELS];
@@ -156,7 +159,8 @@ struct FrameHessian {
   size_t edge_pixel_num[PYR_LEVELS][kCameraNumUsed];
   Eigen::Vector3f max_dt_dx_dy[PYR_LEVELS][kCameraNumUsed];
   Eigen::Vector3f min_dt_dx_dy[PYR_LEVELS][kCameraNumUsed];
-
+  float mean_gray_val = 0;
+  std::array<float, kCameraNumUsed> mean_gray_val_each = {0};
   bool addCamPrior;
 
   //* 都是ID
@@ -357,8 +361,12 @@ struct FrameHessian {
     flaggedForMarginalization = false;
     frameID = -1;
     efFrame = 0;
-    frameEnergyTH = 8 * 8 * patternNum;
-
+#ifndef USE_ZNCC
+    frameEnergyTH = 20 * 20 * patternNum; // 8 * 8 * patternNum;
+    frameEnergyTH = 1.5 * 1.5 * setting_outlierTH_LBA * setting_outlierTH_LBA /*setting_coarseCutoffTH * setting_coarseCutoffTH setting_outlierTH_epi_trace_on * setting_outlierTH_epi_trace_on*/ * patternNum;
+#else
+    frameEnergyTH = (1 * setting_variableScale) * (1 * setting_variableScale);
+#endif
     debugImage = 0;
 
     addCamPrior = false;
@@ -568,6 +576,8 @@ struct PointHessian {
   float color[MAX_RES_PER_POINT]; // * kCameraNumUsed]; // colors in host frame
   float weights[MAX_RES_PER_POINT]; // * kCameraNumUsed]; // host-weights for
                                     // respective residuals.
+  float weights_gray[MAX_RES_PER_POINT];
+  float hw_use;
 
   float u, v; //!< 像素点的位置
   int idx;
@@ -583,8 +593,9 @@ struct PointHessian {
   float idepth;             //!< 缩放scale倍的逆深度
   float idepth_before = 0.f; //!< 缩放scale倍的逆深度
   bool is_idp_optimized = false;
-  float step;          //!< 迭代优化每一步增量
-  float step_backup;   //!< 迭代优化上一步增量的备份
+  float step; //!< 迭代优化每一步增量
+  float step_backup = 0.f;
+  ;                    //!< 迭代优化上一步增量的备份
   float idepth_backup; //!< 上一次的逆深度值
 
   float nullspaces_scale; //!< 零空间 ?

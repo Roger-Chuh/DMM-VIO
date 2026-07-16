@@ -103,7 +103,7 @@ public:
     // can be used to get the raw image / intensity pyramid.
   }
 
-  virtual void pushDepthImage(MinimalImageB3 *image) override {
+  virtual void pushDepthImage(MinimalImageB3 *image, std::array<float, kCameraNumUsed> mena_gray_val) override {
     // can be used to get the raw image with depth overlay.
   }
 

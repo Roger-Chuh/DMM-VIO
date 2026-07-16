@@ -70,14 +70,97 @@ namespace dso {
 #define PYR_LEVELS 6 // 3
 //#define USE_ZNCC
 #else
-#define PYR_LEVELS 6
+#define PYR_LEVELS 3 // at least 3 levels
+//#define USE_CENTER_PIXEL_ONLY
 #endif
 
 #ifdef USE_ZNCC
 #define USE_ZNCC_WEIGHT
 #endif
 
+
+#define SHOW_ALIGN_FRAME
+//#define SAVE_IMAGES
+
+// ============== DEBUG: NaN detection switches =================
+// Uncomment to enable NaN/Inf/condition-number logging throughout the optimizer
+#define DEBUG_NAN
+
+#ifdef DEBUG_NAN
+#include <cmath>
+#include <cstdio>
+
+// Check scalar for NaN/Inf
+#define NAN_CHECK_SCALAR(val, name)                                    \
+  do {                                                                  \
+    if (!std::isfinite(val)) {                                          \
+      printf("[NAN_DETECT] %s = %g (NOT finite!)\n", name,            \
+             (double)(val));                                            \
+    }                                                                   \
+  } while (0)
+
+// Check Eigen vector/matrix for NaN/Inf (linear access)
+#define NAN_CHECK_EIGEN(mat, name)                                     \
+  do {                                                                  \
+    int _nf = 0;                                                        \
+    for (int _i = 0; _i < (mat).size(); _i++) {                        \
+      if (!std::isfinite((double)((mat)(_i))))                          \
+        _nf++;                                                          \
+    }                                                                   \
+    if (_nf > 0) {                                                      \
+      printf("[NAN_DETECT] %s: %d/%d non-finite, norm=%g\n",          \
+             name, _nf, (mat).size(), (double)(mat).norm());            \
+    }                                                                   \
+  } while (0)
+
+// Log condition number from min/max singular values
+#define NAN_LOG_COND(min_sv, max_sv, name)                             \
+  do {                                                                  \
+    double _c = (min_sv > 0 && std::isfinite(min_sv) &&                \
+                 std::isfinite(max_sv))                                 \
+                   ? ((double)(max_sv) / (double)(min_sv))              \
+                   : ((std::isfinite(max_sv) && max_sv > 0)             \
+                          ? 1.0 / 0.0                                   \
+                          : 0.0 / 0.0);                                 \
+    printf("[COND_NUM] %s: min_sv=%g, max_sv=%g, cond=%g\n", name,   \
+           (double)(min_sv), (double)(max_sv), _c);                     \
+  } while (0)
+
+#define NAN_PRINT(fmt, ...) printf("[NAN_DBG] " fmt, ##__VA_ARGS__)
+
+// Compute condition number from eigenvalues (symmetric matrix only)
+#define NAN_CHECK_COND(mat, name)                                          \
+  do {                                                                      \
+    if ((mat).rows() > 0 && (mat).cols() > 0) {                            \
+      Eigen::SelfAdjointEigenSolver<MatXX> _eig(mat);                      \
+      if (_eig.info() == Eigen::Success) {                                  \
+        double _minEv = _eig.eigenvalues().minCoeff();                     \
+        double _maxEv = _eig.eigenvalues().maxCoeff();                     \
+        double _cond = (std::abs(_minEv) > 1e-12)                           \
+                           ? (_maxEv / _minEv)                               \
+                           : std::numeric_limits<double>::infinity();        \
+        printf("[COND_NUM] %s: min_ev=%g, max_ev=%g, cond=%g\n",          \
+               name, _minEv, _maxEv, _cond);                                 \
+        int _nNeg = (_eig.eigenvalues().array() < 0).count();               \
+        if (_nNeg > 0)                                                        \
+          printf("[COND_NUM] %s: WARNING %d negative eigenvalues!\n",       \
+                 name, _nNeg);                                                \
+      }                                                                      \
+    }                                                                        \
+  } while (0)
+
+#else
+#define NAN_CHECK_SCALAR(val, name) ((void)0)
+#define NAN_CHECK_EIGEN(mat, name) ((void)0)
+#define NAN_LOG_COND(min_sv, max_sv, name) ((void)0)
+#define NAN_CHECK_COND(mat, name) ((void)0)
+#define NAN_PRINT(fmt, ...) ((void)0)
+#endif
+
 extern float setting_variableScale;
+extern float setting_variableScale_edge;
+// extern float setting_variableScale_edge_tracker;
+// extern float setting_variableScale_edge_seed;
 
 extern int setting_kfNumWithAffineFixed;
 
@@ -131,7 +214,7 @@ extern int setting_minFrameAge;
 extern int setting_maxOptIterations;
 extern int setting_minOptIterations;
 extern float setting_thOptIterations;
-extern float setting_outlierTH;
+//extern float setting_outlierTH;
 extern float setting_outlierTHSumComponent;
 
 extern int setting_pattern;
@@ -156,14 +239,52 @@ extern int setting_gammaWeightsPixelSelect;
 
 extern bool setting_forceAceptStep;
 
-extern float setting_huberTH;
-extern float setting_huberTH_loose;
+
+
+extern float setting_outlierTH_epi_trace_on;
+extern float setting_outlierTH_epi_linearize;
+extern float setting_outlierTH_zncc_angle_epi_trace_on;
+extern float setting_outlierTH_zncc_angle_epi_linearize;
+extern float setting_outlierTH_init;
+extern float setting_outlierTH_zncc_init;
+extern float setting_outlierTH_zncc_angle_init;
+extern float setting_outlierTH_tracker;
+extern float setting_outlierTH_loose_tracker;
+extern float setting_outlierTH_zncc_tracker;
+extern float setting_outlierTH_LBA;
+extern float setting_outlierTH_zncc_LBA;
+extern float setting_outlierTH_zncc_angle_LBA;
+
+
+//extern float setting_huberTH;
+//extern float setting_huberTH_loose;
+extern float setting_huberTH_epi_trace_on;
+extern float setting_huberTH_epi_linearize;
+extern float setting_huberTH_init;
+extern float setting_huberTH_zncc_init;
+extern float setting_huberTH_zncc_angle_init;
 extern float setting_huberTH_tracker;
 extern float setting_huberTH_loose_tracker;
+extern float setting_huberTH_zncc_tracker;
 extern float setting_huberTH_LBA;
-extern float setting_huberTH_zncc;
+extern float setting_huberTH_zncc_LBA;
+extern float setting_huberTH_zncc_angle_LBA;
 
-extern float setting_outlierTh_zncc;
+
+    extern float setting_energyTH_epi_trace_on;
+    extern float setting_energyTH_epi_linearize;
+    extern float setting_energyTH_init;
+    extern float setting_energyTH_zncc_init;
+  extern float setting_energyTH_zncc_angle_init;
+    extern float setting_energyTH_tracker;
+    extern float setting_energyTH_loose_tracker;
+    extern float setting_energyTH_zncc_tracker;
+    extern float setting_energyTH_LBA;
+extern float setting_energyTH_zncc_LBA;
+  extern float setting_energyTH_zncc_angle_LBA;
+
+
+
 
 extern bool setting_logStuff;
 extern float benchmarkSetting_fxfyfac;
@@ -181,6 +302,9 @@ extern float setting_frameEnergyTHFacMedian;
 extern float setting_overallEnergyTHWeight;
 extern float setting_coarseCutoffTH;
 extern float setting_coarseCutoffTH_loose;
+
+extern float setting_dtCutoffTH;
+extern float setting_dtCutoffTH_loose;
 
 extern float setting_minGradHistCut;
 extern float setting_minGradHistAdd;
@@ -222,14 +346,26 @@ extern float freeDebugParam4;
 extern float freeDebugParam5;
 
 void handleKey(char k);
-
-constexpr int pattern_scale = 2; // 1;
+#ifndef USE_EDGE_ALIGN
+constexpr float pattern_scale = 2; // 1;
+constexpr float pattern_scale_extra_edge = 1.0f;
+#else
+constexpr float pattern_scale = 2.0f;
+constexpr float pattern_scale_extra_edge = 0.1;//0.0f;
+#endif
 constexpr int pattern_index = 8;
 
-constexpr int pattern_scale_seed = 1;
+
+constexpr float pattern_scale_seed_init = 2.0f; //don't change
 constexpr int pattern_index_seed = 9;
 
-extern int staticPattern[12][40][2];
+#ifndef USE_EDGE_ALIGN
+constexpr float pattern_scale_seed_point_opt = pattern_scale_seed_init;
+#else
+constexpr float pattern_scale_seed_point_opt = 1.f;
+#endif
+
+extern float staticPattern[12][40][2];
 constexpr int staticPatternNum[12] = {1,  5,  5, 9,         9, 13,
                                       25, 21, 8, 24 /*25*/, 8, 8};
 constexpr int staticPatternPadding[12] = {1,
@@ -240,10 +376,10 @@ constexpr int staticPatternPadding[12] = {1,
                                           2,
                                           2,
                                           3,
-                                          2 * pattern_scale,
-                                          4,
-                                          2 * pattern_scale,
-                                          2 * pattern_scale};
+                                          2 * (int)(pattern_scale + 1.f),
+                                          4 * (int)(pattern_scale_seed_init > pattern_scale_seed_point_opt ?pattern_scale_seed_init:pattern_scale_seed_point_opt + 1.f),
+                                          2 * (int)(pattern_scale + 1.f),
+                                          2 * (int)(pattern_scale + 1.f)};
 
 // extern int staticPatternNum[10][1];
 // extern int staticPatternPadding[10];
@@ -267,5 +403,11 @@ constexpr int staticPatternPadding[12] = {1,
 constexpr int cannyThreshold1 = 60;
 constexpr int cannyThreshold2 = 90;
 
-constexpr bool adaptiveCannyThreshold = false;
+constexpr bool adaptiveCannyThreshold = true;
+
+#if defined(USE_EDGE_ALIGN) || defined(USE_ZNCC)
+#define eachErrDim 2
+#else
+#define eachErrDim 1
+#endif
 } // namespace dso

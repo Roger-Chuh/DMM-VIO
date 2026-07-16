@@ -25,8 +25,10 @@
 
 #include "util/NumType.h"
 #include "util/settings.h"
+#include "color_map.h"
 
 namespace dso {
+extern  ColorMap color_map;
 extern int wG[PYR_LEVELS], hG[PYR_LEVELS];
 extern float fxG[PYR_LEVELS], fyG[PYR_LEVELS], cxG[PYR_LEVELS], cyG[PYR_LEVELS];
 

@@ -52,6 +52,7 @@
 #include "estimator_config.h"
 #include "multi_camera_epipolar_search.h"
 #include "patch.h"
+#include "../util/color_map.h"
 
 namespace dso {
 namespace IOWrap {
@@ -182,6 +183,10 @@ public:
   bool initialized; //!< 是否完成初始化
   bool linearizeOperation;
 
+  int disable_kf = -1;
+  int disable_kf_last = -1;
+  bool disable_kf_real = false;
+
   void setGammaFunction(float *BInv);
 
   void setOriginalCalib(const VecXf &originalCalib, int originalW,
@@ -216,7 +221,7 @@ private:
   double linAllPointSinle(PointHessian *point, float outlierTHSlack, bool plot);
 
   // mainPipelineFunctions
-  std::pair<Vec4, bool> trackNewCoarse(FrameHessian *fh,
+  std::pair<Vec10, bool> trackNewCoarse(FrameHessian *fh,
                                        Sophus::SE3 *referenceToFrameHint = 0,
                                        Mat33 dRwb = Mat33::Identity());
 
@@ -248,7 +253,7 @@ private:
   // solce. eventually migrate to ef.
   void solveSystem(int iteration, double lambda);
 
-  Vec3 linearizeAll(bool fixLinearization);
+  Vec7 linearizeAll(int iter_num,bool fixLinearization, bool reset_backup_value);
 
   bool doStepFromBackup(float stepfacC, float stepfacT, float stepfacR,
                         float stepfacA, float stepfacD);
@@ -261,7 +266,7 @@ private:
 
   double calcMEnergy(bool useNewValues);
 
-  void linearizeAll_Reductor(bool fixLinearization,
+  void linearizeAll_Reductor(int iter_num,bool fixLinearization, bool reset_backup_value,
                              std::vector<PointFrameResidual *> *toRemove,
                              int min, int max, Vec10 *stats, int tid);
 
@@ -272,7 +277,7 @@ private:
   void applyRes_Reductor(bool copyJacobians, int min, int max, Vec10 *stats,
                          int tid);
 
-  void printOptRes(const Vec3 &res, double resL, double resM, double resPrior,
+  void printOptRes(const Vec7 &res, double resL, double resM, double resPrior,
                    double LExact, float a, float b);
 
   void debugPlotTracking();
@@ -344,6 +349,7 @@ private:
       frameHessians; //!< 关键帧 	// ONLY changed in marginalizeFrame and
                      //!< addFrame.
   std::vector<PointFrameResidual *> activeResiduals; //!< 新加入的激活点的残差
+  //ColorMap color_map = ColorMap(GetColorMap("jet"));;
   float currentMinActDist;                           //!<　激活点的阈值
 
   std::vector<float> allResVec; //!< 所有在当前最近帧上的残差值

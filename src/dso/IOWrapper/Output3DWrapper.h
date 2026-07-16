@@ -239,7 +239,7 @@ public:
    * Needs to prepare the depth image, so it is only called if
    * [needPushDepthImage()] returned true.
    */
-  virtual void pushDepthImage(MinimalImageB3 *image) {}
+  virtual void pushDepthImage(MinimalImageB3 *image, std::array<float, kCameraNumUsed> mena_gray_val) {}
 
   virtual bool needPushDepthImage() { return false; }
 

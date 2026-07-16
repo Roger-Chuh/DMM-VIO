@@ -44,18 +44,96 @@
 
 #include <algorithm>
 
+#include "IOWrapper/ImageRW.h"
+
 namespace dso {
 
 //@ 对残差进行线性化
 //@ 参数: [true是applyRes, 并去掉不好的残差] [false不进行固定线性化]
-void FullSystem::linearizeAll_Reductor(
-    bool fixLinearization, std::vector<PointFrameResidual *> *toRemove, int min,
-    int max, Vec10 *stats, int tid) {
+#define SHOW_CUR_FRAME_RES
+void FullSystem::linearizeAll_Reductor(int iter_num,
+    bool fixLinearization, bool reset_backup_value,
+    std::vector<PointFrameResidual *> *toRemove, int min, int max, Vec10 *stats,
+    int tid) {
+  double thr_draw = setting_huberTH_LBA;
+  std::array<Vec2f, kCameraNumUsed> other_residual{Vec2f(0, 0)};
+#if 1 // def USE_EDGE_ALIGN
+  std::array<Vec2f *, kCameraNumUsed> p_other_residual;
+  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    p_other_residual[cid] = &other_residual[cid];
+  }
+#else
+  std::array<Vec2f *, kCameraNumUsed> p_other_residual{nullptr};
+#endif
+  FrameHessian *newFrame = frameHessians.back();
+  std::array<int, kCameraNumUsed> inliner_count{0};
+#ifdef SHOW_CUR_FRAME_RES
+  MinimalImageB3 *img_target;
+  img_target = new MinimalImageB3(wG[0], hG[0]);
+  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    const Eigen::Vector3f *dIl_gray = newFrame->dI + wG[0] * hG[0] * cid;
+    for (int i = 0; i < wG[0] * hG[0]; i++) {
+      float colL = dIl_gray[i][0];
+      if (colL < 0)
+        colL = 0;
+      if (colL > 255)
+        colL = 255;
+      img_target->at(i, cid) = Vec3b(colL, colL, colL);
+    }
+  }
+#endif
   for (int k = min; k < max;
        k++) { /// 对每一个host点（landmark）遍历，算出他们的光度误差
     PointFrameResidual *r = activeResiduals[k];
     for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-      (*stats)[0] += r->linearize(&Hcalib, cid); // 线性化得到能量
+      Vec6f res = r->linearize(
+          &Hcalib, cid, nullptr /*p_other_residual[cid]*/); // 线性化得到能量;
+      if (r->target == newFrame && r->state_NewState[cid] == ResState::IN) {
+        if (r->state_residual_residual_gray[cid].hasNaN()) {
+          printf("r->state_residual_residual_gray[cid].hasNaN()\n");
+          std::exit(1);
+        }
+#ifdef SHOW_CUR_FRAME_RES
+        //img_target->setPixel9((int)r->centerProjectedTo[cid][0], (int)r->centerProjectedTo[cid][1], makeRainbow3B(1), cid);
+
+        double color_draw = (r->state_residual_residual_gray[cid][0] - 0) / (thr_draw - 0);
+        if (!std::isfinite(color_draw)) {
+          color_draw = 0.0;
+          printf("!std::isfinite(color_draw)\n");
+          std::exit(1);
+        }
+        if (color_draw < 0.0) color_draw = 0.0;
+        if (color_draw > 1.0) color_draw = 1.0;
+        Vec3 bgr_map = color_map.GetBgr(color_draw) * 255;
+        img_target->setPixelCirc((int)(r->projectedTo[cid][0][0] + 0.5f), (int)(r->projectedTo[cid][0][1] + 0.5f), Vec3b(bgr_map[0], bgr_map[1],bgr_map[2]), cid);
+#endif
+        inliner_count[cid]++;
+      }
+      if (reset_backup_value) {
+        r->point->step = r->point->step_backup = 0.f;
+        r->point->idepth_backup = r->point->idepth_zero_scaled;
+      }
+      if (k < 5 && cid == 0) {
+        Vec3f twc0 = r->host->PRE_camToWorld.translation().cast<float>();
+        Vec3f twc1 = r->target->PRE_camToWorld.translation().cast<float>();
+        printf("linearizeAll, reset_backup_value: %d, k: %d, host_fid: %d, "
+               "host_target_cid: [%d %d], host_uv: [%f %f], step: %f, "
+               "step_bakup: %f, idp: %f, idp_bakup: %f, "
+               "target_uv: (res->[%f %f], center->[%f %f]), factor_res: %f, other_res: %f, twc0: [%f "
+               "%f %f], twc1: [%f %f %f]\n",
+               reset_backup_value, k, r->host->frameID, r->host_cid, cid,
+               r->point->u, r->point->v, r->point->step, r->point->step_backup,
+               r->point->idepth_zero_scaled, r->point->idepth_backup,
+               r->projectedTo[cid][0][0], r->projectedTo[cid][0][1], r->centerProjectedTo[cid][0], r->centerProjectedTo[cid][1],
+               res[0], res[1] /*other_residual[cid]*/, twc0[0], twc0[1],
+               twc0[2], twc1[0], twc1[1], twc1[2]);
+        std::cout << "J[target_cid_now]->JIdx: "
+                  << r->J[cid]->JIdx[0].transpose() << std::endl;
+        std::cout << "J[target_cid_now]->JIdy: "
+                  << r->J[cid]->JIdx[1].transpose() << std::endl
+                  << std::endl;
+      }
+      (*stats).head(6) += res.head(6).cast<double>();
     }
     if (fixLinearization) { // 固定线性化（优化后执行）
       int active_count = 0;
@@ -125,6 +203,35 @@ void FullSystem::linearizeAll_Reductor(
       }
     }
   }
+  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    printf("!@#$ cid: %d, newFrame inliner num: %d, all num: %d\n", cid, inliner_count[cid], activeResiduals.size());
+  }
+#ifdef SHOW_CUR_FRAME_RES
+
+  for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+    Vec2i *edge_pixel_start = newFrame->edge_pixels[0] + wG[0] * hG[0] * cam;
+    for (int i = 0; i < newFrame->edge_pixel_num[0][cam]; ++i) {
+      int epx = edge_pixel_start[i][0];
+      int epy = edge_pixel_start[i][1];
+      if (epx < 10 || epx >= wG[0] - 10 || epy < 10 || epy >= hG[0] - 10)
+        continue;
+      img_target->setPixel1((float)epx + 0.5, (float)epy + 0.5, Vec3b(255,0, 255), cam);
+    }
+  }
+
+  IOWrap::displayImage("lba newFrame res", img_target);
+#ifdef SAVE_IMAGES
+  if (newFrame && newFrame->shell) {
+    // printf("time: %f, %f, %f\n", newFrame->shell->timestamp, newFrame->timestamp, newFrame->shell->timestamp_eval);
+    char buf[100];
+    snprintf(buf, 100, "/media/roger/Elements_SE/CI/dm_vio_results/lba_new_frame_res_%015lu_%d.png", (uint64_t)(newFrame->shell->timestamp_eval * 1e9), iter_num);
+    IOWrap::writeImage(buf, img_target);
+  }
+#endif
+  IOWrap::waitKey(1);
+
+  delete img_target;
+#endif
 }
 
 //@ 把线性化结果传给能量函数efResidual, copyJacobians [true: 更新jacobian]
@@ -135,7 +242,22 @@ void FullSystem::applyRes_Reductor(bool copyJacobians, int min, int max,
     // todo
     // 因为是刚把activeResidual线性化的，所以这里还是为activeResidual拷贝雅可比和residual
     for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+      PointFrameResidual *r = activeResiduals[k];
+      Vec3f twc = r->host->targetPrecalc[r->target->idx]
+                      .a_PRE_KtTll[r->host_cid * kCameraNumUsed + cid];
+      if (k < 5 && cid == 0) {
+        printf("before: k: %d, host_fid: %d, host_cid: %d, host_uv: [%f %f], "
+               "idp: %f, target_cid: %d, factor_res: %f, twc: [%f %f %f]\n",
+               k, r->host->frameID, r->host_cid, r->point->u, r->point->v,
+               r->point->idepth_zero_scaled, cid, -1.0, twc[0], twc[1], twc[2]);
+      }
       activeResiduals[k]->applyRes(true, cid);
+      if (k < 5 && cid == 0) {
+        printf("after: k: %d, host_fid: %d, host_cid: %d, host_uv: [%f %f], "
+               "idp: %f, target_cid: %d, factor_res: %f, twc: [%f %f %f]\n",
+               k, r->host->frameID, r->host_cid, r->point->u, r->point->v,
+               r->point->idepth_zero_scaled, cid, -1.0, twc[0], twc[1], twc[2]);
+      }
     }
   }
 }
@@ -163,7 +285,13 @@ void FullSystem::setNewFrameEnergyTH() {
     }
   }
   if (allResVec.size() == 0) {
-    newFrame->frameEnergyTH = 12 * 12 * patternNum;
+#ifndef USE_ZNCC
+    newFrame->frameEnergyTH = 20 * 20 * patternNum; // 12 * 12 * patternNum;
+    newFrame->frameEnergyTH = 1.5 * 1.5 * setting_outlierTH_LBA * setting_outlierTH_LBA /*setting_coarseCutoffTH * setting_coarseCutoffTH  setting_outlierTH_epi_trace_on * setting_outlierTH_epi_trace_on*/ * patternNum;
+#else
+    newFrame->frameEnergyTH =
+        (1 * setting_variableScale) * (1 * setting_variableScale);
+#endif
     return; // should never happen, but lets make sure.
   }
 
@@ -203,32 +331,52 @@ void FullSystem::setNewFrameEnergyTH() {
   // bad++; 	printf("EnergyTH: mean %f, median %f, result %f (in %d, out %d)!
   // \n", 			meanElement, nthElement,
   // sqrtf(newFrame->frameEnergyTH), good, bad);
+  // printf("fid: %d, newFrame->frameEnergyTH: %f\n", newFrame->frameID,
+  // newFrame->frameEnergyTH);
 }
 
 //@ 对残差进行线性化, 并去掉不在图像内, 并且残差大的
-Vec3 FullSystem::linearizeAll(bool fixLinearization) {
+Vec7 FullSystem::linearizeAll(int iter_num,bool fixLinearization, bool reset_backup_value) {
   double lastEnergyP = 0;
+  double lastEnergyP_gray = 0;
+  double znccP = 0;
+  double hwP = 0;
+  double hwP_gray = 0;
   double lastEnergyR = 0;
   double num = 0;
-
+  printf("linearizeAll, fid: %d, cur newFrame->frameEnergyTH: %f\n",
+         frameHessians.back()->frameID, frameHessians.back()->frameEnergyTH);
   std::vector<PointFrameResidual *> toRemove[NUM_THREADS];
   for (int i = 0; i < NUM_THREADS; i++)
     toRemove[i].clear();
 
   if (multiThreading) { // TODO 看多线程这个IndexThreadReduce
+    treadReduce.stats.head(5).setZero();
     treadReduce.reduce(boost::bind(&FullSystem::linearizeAll_Reductor, this,
-                                   fixLinearization, toRemove, _1, _2, _3, _4),
+                                   iter_num,fixLinearization, reset_backup_value,
+                                   toRemove, _1, _2, _3, _4),
                        0, activeResiduals.size(), 0);
     lastEnergyP = treadReduce.stats[0];
+    lastEnergyP_gray = treadReduce.stats[1];
+    znccP = treadReduce.stats[2];
+    hwP = treadReduce.stats[3];
+    hwP_gray = treadReduce.stats[4];
+    num = treadReduce.stats[5];
   } else {
-    Vec10 stats;
-    linearizeAll_Reductor(fixLinearization, toRemove, 0, activeResiduals.size(),
-                          &stats, 0);
+    Vec10 stats = Vec10::Zero();
+    linearizeAll_Reductor(iter_num,fixLinearization, reset_backup_value, toRemove, 0,
+                          activeResiduals.size(), &stats, 0);
     lastEnergyP = stats[0];
+    lastEnergyP_gray = stats[1];
+    znccP = stats[2];
+    hwP = stats[3];
+    hwP_gray = stats[4];
+    num = stats[5];
   }
 
   setNewFrameEnergyTH();
-
+  printf("linearizeAll, fid: %d, updated newFrame->frameEnergyTH: %f\n",
+         frameHessians.back()->frameID, frameHessians.back()->frameEnergyTH);
   if (fixLinearization) {
     //* 前面线性化, apply之后更新了state_state, 如果有相同的, 就更新状态
     /// state_state只有oob，in这些吧，都是enum，不是具体数值
@@ -279,8 +427,10 @@ Vec3 FullSystem::linearizeAll(bool fixLinearization) {
     // printf("FINAL LINEARIZATION: removed %d / %d residuals!\n", nResRemoved,
     // (int)activeResiduals.size());
   }
-
-  return Vec3(lastEnergyP, lastEnergyR, num); // 后面两个变量都没用
+ Vec7 ret = Vec7::Zero();
+  ret << lastEnergyP, lastEnergyR, num,
+              lastEnergyP_gray, znccP, hwP, hwP_gray;
+  return ret; // 后面两个变量都没用
 }
 
 // applies step to linearization point.
@@ -331,7 +481,9 @@ bool FullSystem::doStepFromBackup(float stepfacC, float stepfacT,
     Hcalib.setValue(Hcalib.value_backup + stepfacC * Hcalib.step);
     //* 相机内参, 光度参数更新
     for (FrameHessian *fh : frameHessians) {
-      fh->setState(fh->state_backup + pstepfac.cwiseProduct(fh->step));
+      VecState newState = fh->state_backup + pstepfac.cwiseProduct(fh->step);
+      NAN_CHECK_EIGEN(newState, "doStep newState");
+      fh->setState(newState);
       for (int cid = 0; cid < 1 /*kCameraNumUsed*/; ++cid) {
         sumA += fh->step[6 + cid * 2] * fh->step[6 + cid * 2];
         sumB += fh->step[7 + cid * 2] * fh->step[7 + cid * 2];
@@ -340,7 +492,10 @@ bool FullSystem::doStepFromBackup(float stepfacC, float stepfacT,
       sumR += fh->step.segment<3>(3).squaredNorm();
       //* 点的逆深度更新, 注意点逆深度没使用FEJ
       for (PointHessian *ph : fh->pointHessians) {
-        ph->setIdepth(ph->idepth_backup + stepfacD * ph->step);
+        float newIdepth = ph->idepth_backup + stepfacD * ph->step;
+        NAN_CHECK_SCALAR(newIdepth, "doStep newIdepth");
+        NAN_CHECK_SCALAR(ph->step, "doStep ph->step");
+        ph->setIdepth(newIdepth);
         sumID += ph->step * ph->step;
         sumNID += fabsf(ph->idepth_backup);
         numID++;
@@ -393,6 +548,8 @@ void FullSystem::backupState(bool backupLastStep) {
         fh->state_backup = fh->get_state();
         for (PointHessian *ph : fh->pointHessians) {
           ph->idepth_backup = ph->idepth;
+          printf("ccc, host_uv: [%f %f], idp: [%f %f %f]\n", ph->u, ph->v,
+                 ph->idepth, ph->idepth_scaled, ph->idepth_zero_scaled);
           ph->step_backup = ph->step;
         }
       }
@@ -429,6 +586,7 @@ void FullSystem::loadSateBackup() {
       ph->setIdepth(ph->idepth_backup);
 
       ph->setIdepthZero(ph->idepth_backup); // 没用FEJ
+      ph->step = ph->step_backup;
     }
   }
 
@@ -447,7 +605,7 @@ double FullSystem::calcMEnergy(bool useNewValues) {
   return ef->calcMEnergyF(useNewValues);
 }
 
-void FullSystem::printOptRes(const Vec3 &res, double resL, double resM,
+void FullSystem::printOptRes(const Vec7 &res, double resL, double resM,
                              double resPrior, double LExact, float a, float b) {
   printf("A(%f)=(AV %.3f). Num: A(%'d) + M(%'d); ab %f %f!\n", res[0],
          sqrtf((float)(res[0] / (patternNum * ef->resInA))), ef->resInA,
@@ -455,6 +613,9 @@ void FullSystem::printOptRes(const Vec3 &res, double resL, double resM,
 }
 
 //@ 对当前的关键帧进行GN优化
+#ifdef USE_MULTI_CAM
+//#define CHANGE_RES_NUM
+#endif
 float FullSystem::optimize(int mnumOptIts) {
   dmvio::TimeMeasurement timeMeasurement("FullSystemOptimize");
   if (frameHessians.size() < 2)
@@ -466,7 +627,11 @@ float FullSystem::optimize(int mnumOptIts) {
   if (mnumOptIts < setting_minOptIterations) {
     mnumOptIts = setting_minOptIterations + 3;
   }
-
+  if (allKeyFramesHistory.size() > 10) {
+    printf("FQ\n");
+    // std::exit(1);
+  }
+  int offset = 2;
   // get statistics and active residuals.
   //[ ***step 1*** ] 找出未线性化(边缘化)的残差, 加入activeResiduals
   /// this includes newest keyframe, and newly triangulated PointHesiian in
@@ -513,11 +678,14 @@ float FullSystem::optimize(int mnumOptIts) {
   //* 线性化, 参数: [true是进行固定线性化, 并去掉不好的残差]
   //[false不进行固定线性化]
   // TODO linearizeAll()的操作对象是 activeResiduals
-  Vec3 lastEnergy = linearizeAll(
-      false); // TODO
-              // 这里是第一次线性化，后面还没有优化，所以还没有剔除点的过程，对应pdf里“先第一次统一构建，再第二次里提出误差大的点”的说辞
+  printf("+++STEP -2, first time calc res and jac\n");
+  Vec7 lastEnergy = linearizeAll(-1 + offset,
+      false,
+      true); // TODO
+             // 这里是第一次线性化，后面还没有优化，所以还没有剔除点的过程，对应pdf里“先第一次统一构建，再第二次里提出误差大的点”的说辞
   //? 和linearizeAll计算的有啥区别
   // printf("check!!\n");
+  NAN_CHECK_EIGEN(lastEnergy, "initial lastEnergy");
   double lastEnergyL =
       calcLEnergy(); // islinearized的量的能量 //TODO
                      // 还能通过显式的残差构建来算energy，部分状态用的是Fej（idp，pose，camera），部分状态用的是最新估计（gradient，ab），但host帧的b0用的是fej，算是一个比较强的prior吧
@@ -525,11 +693,12 @@ float FullSystem::optimize(int mnumOptIts) {
       false); // HM部分的能量 //TODO
               // 指被marg掉的那些帧的残差，已经没有显式的残差构建了，只有H和m，
 
-  printf("********* energies: [%f %f %f]\n", lastEnergy(0), lastEnergyL,
-         lastEnergyM);
+  printf("********* energies: [%f %f %f %f]\n", lastEnergy(0), lastEnergyL,
+         lastEnergyM, lastEnergy[3]);
 
   // 把线性化的结果给efresidual //TODO
   // 刚刚首次计算的那些Jac，因为刚刚fixLinearization = false，都是船新的状态
+  printf("+++STEP -1, first time pass newly calced jac\n");
   if (multiThreading)
     treadReduce.reduce(
         boost::bind(&FullSystem::applyRes_Reductor, this, true, _1, _2, _3, _4),
@@ -547,9 +716,11 @@ float FullSystem::optimize(int mnumOptIts) {
   debugPlotTracking();
 
   double dynamicGTSAMWeight = 1.0;
-
+#ifndef USE_EDGE_ALIGN
   double minLambda = 1e-5;
-
+#else
+  double minLambda = 1e-1;
+#endif
   //[ ***step 3*** ] 迭代求解
   //	double lambda = 1e-1;
   double lambda = minLambda;
@@ -584,15 +755,37 @@ float FullSystem::optimize(int mnumOptIts) {
                    << sqrtf((float)(lastEnergy[0] / (patternNum * ef->resInA)))
                    << std::endl;
       }
+      if (std::isfinite(sqrtf((float)(lastEnergy[0] / (patternNum * ef->resInA)))) && sqrtf((float)(lastEnergy[0] / (patternNum * ef->resInA))) > 70000) {
+        MinimalImageB3 *img_target;
+        img_target = new MinimalImageB3(wG[0], hG[0]);
+        for (int cid = 0; cid < kCameraNumUsed;++cid) {
+          Vec3f* image = frameHessians.back()->dIp[0] + wG[0]*hG[0]*cid;
+          for (int i = 0; i < wG[0] * hG[0]; i++) {
+            float colL = image[i][0];
+            if (colL < 0)
+              colL = 0;
+            if (colL > 255)
+              colL = 255;
+            img_target->at(i, cid) = Vec3b(colL, colL, colL);
+          }
+        }
+        IOWrap::displayImage("target", img_target);
+        IOWrap::waitKey(0);
+      }
     }
 
     //[ ***step 3.2*** ] 求解系统
     // TODO 根据最新的状态重新计算新的残差
     solveSystem(iteration, lambda);
+    NAN_CHECK_EIGEN(ef->lastX, "ef->lastX after solveSystem");
+    NAN_PRINT("solveSystem: iter=%d, lambda=%g, lastX_norm=%g\n",
+              iteration, lambda, ef->lastX.norm());
     double incDirChange = (1e-20 + previousX.dot(ef->lastX)) /
                           (1e-20 + previousX.norm() * ef->lastX.norm());
+    NAN_CHECK_SCALAR(incDirChange, "incDirChange");
     previousX = ef->lastX;
-    std::cout << "ef->lastX: " << ef->lastX.transpose() << std::endl;
+    std::cout << "\n+++STEP 0, cur_iter: " << iteration
+              << ", cur_dx: " << ef->lastX.transpose() << std::endl;
     //? TUM自己的解法???
     if (std::isfinite(incDirChange) &&
         (setting_solverMode & SOLVER_STEPMOMENTUM)) {
@@ -618,9 +811,13 @@ float FullSystem::optimize(int mnumOptIts) {
     // 因为优化迭代还未完成，要继续更新线性化点（对梯度，ab是这样，pose idp
     // camera的雅可比不会变）【NEED TO PRINT SOM LOG】
     // 哪些时inlier，outler也不确定，毕竟优化还未完成
-    Vec3 newEnergy = linearizeAll(false);
+    printf("+++STEP 1, apply dx, re-calc res and jac\n");
+    Vec7 newEnergy = linearizeAll(iteration + offset,false, false);
+    NAN_CHECK_EIGEN(newEnergy, "newEnergy after linearizeAll");
     double newEnergyL = calcLEnergy();
+    NAN_CHECK_SCALAR(newEnergyL, "newEnergyL");
     double newEnergyM = calcMEnergy(true);
+    NAN_CHECK_SCALAR(newEnergyM, "newEnergyM");
 
     if (imuIntegration.getImuSettings().updateDynamicWeightDuringOptimization) {
       // Update dynamic weight before deciding whether to accept the step.
@@ -631,12 +828,14 @@ float FullSystem::optimize(int mnumOptIts) {
     }
 
     if (!setting_debugout_runquiet) {
-      printf("%s %d (L %.2f, dir %.2f, ss %.1f): \t",
+      printf("+++STEP 2, previousX: %f, num: %0.3f, resInA: %d, newEnergy: %0.3f, newEnergy_gray: %0.3f, zncc_angle: %0.3f, hw_lba: %0.3f, hw_gray_lba: %0.3f [|||] %s %d (L %.2f, dir "
+             "%.2f, ss %.1f): \t",previousX.norm(),newEnergy[2],ef->resInA,
+             std::sqrt(newEnergy[0] / newEnergy[2]), std::sqrt(newEnergy[3] / newEnergy[2]),newEnergy[4] / newEnergy[2],newEnergy[5] / newEnergy[2],newEnergy[6] / newEnergy[2],
              (newEnergy[0] + newEnergy[1] + newEnergyL +
                   newEnergyM / dynamicGTSAMWeight <
               lastEnergy[0] + lastEnergy[1] + lastEnergyL +
                   lastEnergyM / dynamicGTSAMWeight)
-                 ? "ACCEPT"
+                 ? "++++++ACCEPT"
                  : "REJECT",
              iteration, log10(lambda), incDirChange, stepsize);
       printOptRes(newEnergy, newEnergyL, newEnergyM, 0, 0,
@@ -649,6 +848,7 @@ float FullSystem::optimize(int mnumOptIts) {
                                    lastEnergy[0] + lastEnergy[1] + lastEnergyL +
                                        lastEnergyM / dynamicGTSAMWeight)) {
       // TODO 接受更新后的量, 把最新的雅可比状态传递给energyFunctional
+      printf("+++STEP 3.1.1, cur_iter: %d, pass newly calced jac\n", iteration);
       if (multiThreading)
         treadReduce.reduce(boost::bind(&FullSystem::applyRes_Reductor, this,
                                        true, _1, _2, _3, _4),
@@ -660,7 +860,11 @@ float FullSystem::optimize(int mnumOptIts) {
       lastEnergyL = newEnergyL;
       lastEnergyM = newEnergyM;
 
+#ifndef USE_EDGE_ALIGN
       lambda *= 0.25;
+#else
+      lambda *= 0.75;
+#endif
       lambda = std::max(lambda, minLambda);
 
       if (setting_useGTSAMIntegration) {
@@ -668,10 +872,23 @@ float FullSystem::optimize(int mnumOptIts) {
       }
     } else {
       // TODO 不接受, roll back
+      printf("+++STEP 3.2.1, cur_iter: %d, fallback state and restore last "
+             "state jac\n",
+             iteration);
       loadSateBackup();
-      lastEnergy = linearizeAll(
+      lastEnergy = linearizeAll(-2 + offset,
+          false,
           false); // TODO
                   // 理论上为了少算一次，应该把上次迭代的这部分变量也buffer住的，这里因为已经覆盖，只能重新计算一次
+      NAN_CHECK_EIGEN(lastEnergy, "REJECT lastEnergy after linearizeAll");
+#if defined(SHOW_CUR_FRAME_RES) && defined(SAVE_IMAGES)
+      FrameHessian *newFrame = frameHessians.back();
+      if (newFrame && newFrame->shell) {
+        char buf[100];
+        snprintf(buf, 100, "/media/roger/Elements_SE/CI/dm_vio_results/lba_new_frame_res_%015lu_%d.png", (uint64_t)(newFrame->shell->timestamp_eval * 1e9), iteration + offset);
+        std::system((std::string("rm \"") + buf + "\"").c_str());
+      }
+#endif
       lastEnergyL = calcLEnergy();
       lastEnergyM = calcMEnergy(false);
       lambda *= 1e2;
@@ -713,13 +930,18 @@ float FullSystem::optimize(int mnumOptIts) {
                       // 只要位姿更新了，就一定要重新计算以下这些相对位姿的值
 
   // 更新之后的能量
-  lastEnergy = linearizeAll(true);
+  lastEnergy = linearizeAll(mnumOptIts + offset,true, false);
 
   //* 能量函数太大, 投影的不好, 跟丢
   if (!std::isfinite((double)lastEnergy[0]) ||
       !std::isfinite((double)lastEnergy[1]) ||
-      !std::isfinite((double)lastEnergy[2])) {
-    std::cout << "Tracking lost after bundle adjustment!" << std::endl;
+      !std::isfinite((double)lastEnergy[2]) ||
+      !std::isfinite((double)lastEnergy[3])) {
+    std::cout << "Tracking lost after bundle adjustment! lastEnergy: "
+              << lastEnergy.transpose() << std::endl;
+    NAN_PRINT("TRACKING_LOST: lastEnergy=[%g %g %g %g %g %g %g]\n",
+              lastEnergy[0], lastEnergy[1], lastEnergy[2],
+              lastEnergy[3], lastEnergy[4], lastEnergy[5], lastEnergy[6]);
     isLost = true;
   }
 
@@ -777,15 +999,71 @@ double FullSystem::calcLEnergy() {
 }
 
 //@ 去除外点(残差数目变为0的)
+#define SHOW_DROPPED_POINTS_IN_CUR_FRAME
 void FullSystem::removeOutliers() {
   dmvio::TimeMeasurement timeMeasurement("removeOutliers");
+#ifdef SHOW_DROPPED_POINTS_IN_CUR_FRAME
+  MinimalImageB3 *img_target;
+  int lvl = 0;
+  img_target = new MinimalImageB3(wG[lvl], hG[lvl]);
+  for (int cid = 0; cid < kCameraNumUsed; ++cid) {
+    for (int i = 0; i < wG[lvl] * hG[lvl]; i++) {
+      // BRIGHTNESS TRANSFER
+      float colL = (*(frameHessians.back()->dIp[lvl] + wG[lvl] * hG[lvl] * cid + i))[0];
+      if (colL < 0)
+        colL = 0;
+      if (colL > 255)
+        colL = 255;
+      img_target->at(i, cid) = Vec3b(colL, colL, colL);
+    }
+  }
+#endif
   int numPointsDropped = 0;
+  int allPoints = 0;
+  Mat33f K = Mat33f::Identity();
+  K(0, 0) = Hcalib.fxl();
+  K(1, 1) = Hcalib.fyl();
+  K(0, 2) = Hcalib.cxl();
+  K(1, 2) = Hcalib.cyl();
+  FrameHessian* new_frame = frameHessians.back();
+
   for (FrameHessian *fh : frameHessians) {
     for (unsigned int i = 0; i < fh->pointHessians.size(); i++) {
       PointHessian *ph = fh->pointHessians[i];
       if (ph == 0)
         continue;
       // std::cout << "ph->residuals: " << ph->residuals.size() << std::endl;
+      allPoints++;
+#ifdef SHOW_DROPPED_POINTS_IN_CUR_FRAME
+      SE3 hostToNew_ = new_frame->PRE_worldToCam * fh->PRE_camToWorld;
+      for (int cid = 0; cid < kCameraNumUsed; ++cid)
+      {
+        SE3 hostToNew = fh->p_multi_camera->cid_to_T01_SE3[cid].inverse() *
+                      hostToNew_ *
+                      fh->p_multi_camera->cid_to_T01_SE3[ph->host_cid];
+        Mat33f KRKi =
+            K * hostToNew.rotationMatrix().cast<float>() * K.inverse();
+        Vec3f Kt = K * hostToNew.translation().cast<float>();
+        Vec3f pr = KRKi * Vec3f(ph->u, ph->v, 1);
+        Vec3f proj = pr + Kt * (ph->idepth_zero_scaled);
+        proj /= proj[2];
+
+        if (ph->residuals.size() == 0) {
+          img_target->setPixelCirc(proj[0], proj[1], Vec3b(0, 0, 255), cid);
+        } else {
+          for (int id = 0; id < ph->residuals.size(); ++id) {
+            if (ph->residuals[id]->target == new_frame && std::isfinite(ph->residuals[id]->state_zncc_angle[cid])){
+              // yellow
+              img_target->setPixelCirc(proj[0], proj[1], Vec3b(0, 255, 255), cid);
+              if (ph->residuals[id]->state_NewState[cid] == ResState::IN){
+                // green inlier
+                img_target->setPixelCirc(proj[0], proj[1], Vec3b(0, 255, 0), cid);
+              }
+            }
+          }
+        }
+      }
+#endif
       if (ph->residuals.size() == 0) // 如果该点的残差数为0, 则丢掉
       {
         fh->pointHessiansOut.push_back(ph);
@@ -798,6 +1076,29 @@ void FullSystem::removeOutliers() {
     }
   }
   ef->dropPointsF();
+  printf("numPointsDropped: [%d / %d]\n", numPointsDropped, allPoints);
+#ifdef SHOW_DROPPED_POINTS_IN_CUR_FRAME
+  for (int cam = 0; cam < kCameraNumUsed; ++cam) {
+    Vec2i *edge_pixel_start = new_frame->edge_pixels[0] + wG[0] * hG[0] * cam;
+    for (int i = 0; i < new_frame->edge_pixel_num[0][cam]; ++i) {
+      int epx = edge_pixel_start[i][0];
+      int epy = edge_pixel_start[i][1];
+      if (epx < 10 || epx >= wG[0] - 10 || epy < 10 || epy >= hG[0] - 10)
+        continue;
+      img_target->setPixel4((float)epx + 0.5, (float)epy + 0.5, Vec3b(255,0, 255), cam);
+    }
+  }
+  IOWrap::displayImage("dropped points", img_target);
+#ifdef SAVE_IMAGES
+  if (frameHessians.back() && frameHessians.back()->shell) {
+    char buf[100];
+    snprintf(buf, 100, "/media/roger/Elements_SE/CI/dm_vio_results/dropped_points_%015lu.png", (uint64_t)(frameHessians.back()->shell->timestamp_eval * 1e9));
+    IOWrap::writeImage(buf, img_target);
+  }
+#endif
+  IOWrap::waitKey(1);
+  delete img_target;
+#endif
 }
 
 //@ 得到各个状态的零空间

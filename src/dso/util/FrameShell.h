@@ -43,6 +43,8 @@ public:
   // set once after tracking
   SE3 camToTrackingRef;
   FrameShell *trackingRef;
+  float mean_gray_val = 0;
+  std::array<float, kCameraNumUsed> mean_gray_val_each = {0};
 
   // constantly adapted.
   SE3 camToWorld; // Write: TRACKING, while frame is still fresh; MAPPING: only

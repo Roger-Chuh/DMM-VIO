@@ -30,7 +30,7 @@
 namespace dso {
 int pyrLevelsUsed = PYR_LEVELS;
 
-float setting_variableScale = 30; // 100; // 10;//50;
+
 
 int setting_kfNumWithAffineFixed = 4;
 
@@ -57,7 +57,7 @@ double setting_maxTimeBetweenKeyframes = 0;
 // can make successive frames keyframes, which only rarely happens in RT mode.
 // Default is -0.5 with means that the parameter is 0.5 in non-RT mode and
 // inactive in RT mode. Fractional values are also possible.
-double setting_minFramesBetweenKeyframes = -0.5;
+double setting_minFramesBetweenKeyframes = 0.0;//0.5;//-0.5;
 
 // minimum idepth for keeping points in the optimization window.
 float setting_minIdepth = 0.02f;
@@ -68,14 +68,24 @@ float setting_keyframesPerSecond =
 bool setting_realTimeMaxKF =
     false; // if true, takes as many KF's as possible (will break the system if
            // the camera stays stationary)
-float setting_maxShiftWeightT = 0.1f /*0.01f*/ * (640 + 480);
+
 float setting_maxShiftWeightR = 0.0f * (640 + 480);
+#ifndef USE_EDGE_ALIGN
+float setting_maxShiftWeightT = 0.1f /*0.01f*/ * (640 + 480);
 float setting_maxShiftWeightRT = 0.001f /*0.05f*/ * (640 + 480);
+#else
+float setting_maxShiftWeightT = 0.01f /*0.01f*/ * (640 + 480);
+float setting_maxShiftWeightRT = 0.001f * (640 + 480);
+#endif
 #ifdef USE_MULTI_CAM
+#ifndef USE_EDGE_ALIGN
 float setting_kfGlobalWeight =
     0.4; // 0.5; // 1;   // general weight on threshold, the larger the more
          // KF's are
          // taken (e.g., 2 = double the amount of KF's).
+#else
+float setting_kfGlobalWeight = 1.0f;
+#endif
 #else
 float setting_kfGlobalWeight = 1.0f;
 #endif
@@ -108,7 +118,12 @@ float setting_initialRotPrior = 1e11;   // 5e7;// 1e11;
 float setting_initialTransPrior = 1e10; // 1e10;
 float setting_initialAffBPrior = 1e14;
 float setting_initialAffAPrior = 1e14;
+
+#if defined(USE_ZNCC) || defined(USE_EDGE_ALIGN)
 float setting_initialCalibHessian = 5e9;
+#else
+float setting_initialCalibHessian = 5e9;
+#endif
 
 /* some modes for solving the resulting linear system (e.g. orthogonalize wrt.
  * unobservable dimensions) */
@@ -120,10 +135,14 @@ bool setting_forceAceptStep = false;
 /* some thresholds on when to activate / marginalize points */
 float setting_minIdepthH_act = 100;
 float setting_minIdepthH_marg = 50;
-
+#if 1//ndef USE_EDGE_ALIGN
 float setting_desiredImmatureDensity = 1500; // immature points per frame
 float setting_desiredPointDensity =
     2000; // aimed total points in the active window.
+#else
+float setting_desiredImmatureDensity = 10000; // immature points per frame
+float setting_desiredPointDensity = 5000;
+#endif
 float setting_minPointsRemaining =
     0.05; // marg a frame if less than X% points remain.
 #ifndef USE_MULTI_CAM
@@ -134,17 +153,22 @@ float setting_maxLogAffFacInWindow =
 float setting_maxLogAffFacInWindow =
     2.3; // tolerate 10x times diff in AFFINE[0]
 #endif
+#if 1//ndef USE_EDGE_ALIGN
 int setting_minFrames = 5; // min frames in window.
 int setting_maxFrames = 7; // 12; // 7; // max frames in window.
+#else
+int setting_minFrames = 10; // min frames in window.
+int setting_maxFrames = 15; // 12; // 7; // max frames in window.
+#endif
 int setting_minFrameAge = 1;
-int setting_maxOptIterations = 10; // 6; // max GN iterations.
-int setting_minOptIterations = 5;  // 1; // min GN iterations.
+int setting_maxOptIterations = 5;//3;//5; // 6; // max GN iterations.
+int setting_minOptIterations = 2;  // 1; // min GN iterations.
 float setting_thOptIterations =
     1.2; // factor on break threshold for GN iteration (larger = break earlier)
 
 /* Outlier Threshold on photometric energy */
 //#ifndef USE_ZNCC
-float setting_outlierTH = 12 * 12; // higher -> less strict
+//float setting_outlierTH = 12 * 12; // higher -> less strict
 float setting_outlierTHSumComponent =
     50 * 50; // higher -> less strong gradient-based reweighting .
              //#else
@@ -177,47 +201,91 @@ int setting_minGoodResForMarg = 4;
 // 2 = apply inv. response & remove V.
 int setting_photometricCalibration = 2;
 bool setting_useExposure = true;
+#ifndef USE_EDGE_ALIGN
 float setting_affineOptModeA = 1e12; // 1e7;//1e12;//-1;//1e12; //-1: fix. >=0:
                                      // optimize (with prior, if > 0).
 float setting_affineOptModeB =
     1e8; // 1e3;//1e8;//-1;//1e8; //-1: fix. >=0: optimize (with prior, if > 0).
+#else
+float setting_affineOptModeA = 1e7;
+float setting_affineOptModeB = 1e3;
+#endif
 float setting_affineOptModeA_huberTH = 10000;
 float setting_affineOptModeB_huberTH = 10000;
 int setting_gammaWeightsPixelSelect =
     1; // 1 = use original intensity for pixel selection; 0 = use
        // gamma-corrected intensity.
 
-#ifndef USE_MULTI_CAM
-float setting_huberTH = 9;       // Huber Threshold
-float setting_huberTH_loose = 9; // Huber Threshold
-float setting_huberTH_tracker = 9;
-float setting_huberTH_loose_tracker = 9;
-#else
-float setting_huberTH = 9;        // Huber Threshold
-float setting_huberTH_loose = 40; // Huber Threshold
-float setting_huberTH_tracker = 9;
-float setting_huberTH_loose_tracker = 9;
-#endif
 
-#ifndef USE_ZNCC
-float setting_huberTH_LBA = 9;
-#else
-float setting_huberTH_LBA = 9; // 0.2;
-#endif
-float setting_outlierTh_zncc = 0.8;
-float setting_huberTH_zncc = 0.8 * 0.8; // 0.2;
+
+//float setting_huberTH = 9;       // Huber Threshold
+//float setting_huberTH_loose = 9; // Huber Threshold
+float setting_variableScale = 20; // 100; // 10;//50;
+
+float setting_variableScale_edge = 10;//
+// float setting_variableScale_edge_tracker = 30;
+// float setting_variableScale_edge_seed = 30;
+
+
+    //#ifndef USE_ZNCC
+float setting_coarseCutoffTH = 40;//40;//20;
+float setting_coarseCutoffTH_loose = 60;//590;
+float setting_dtCutoffTH = 10;//40;//20;(pixel)
+float setting_dtCutoffTH_loose = 10;//590;(pixel)
+    //#else
+// float setting_coarseCutoffTH = 0.5;
+    //#endif
+
+
+float setting_outlierTH_epi_trace_on = 20;//15;
+float setting_outlierTH_epi_linearize = 15;//10;
+float setting_outlierTH_zncc_angle_epi_trace_on = 0.3;
+float setting_outlierTH_zncc_angle_epi_linearize = 0.5;
+float setting_outlierTH_init = 20;//15;
+float setting_outlierTH_zncc_init = 0.3;
+float setting_outlierTH_zncc_angle_init = 0.8;
+float setting_outlierTH_tracker = setting_coarseCutoffTH;//10;
+float setting_outlierTH_loose_tracker = setting_coarseCutoffTH_loose;//15;
+float setting_outlierTH_zncc_tracker = 0.8; //used in trace on (not used)
+float setting_outlierTH_LBA = 15;//8; //used in trace on
+float setting_outlierTH_zncc_LBA = 0.1;//0.8; //used in trace on
+float setting_outlierTH_zncc_angle_LBA = 0.6;//0.8; //used in trace on
+
+
+
+float setting_huberTH_epi_trace_on = setting_outlierTH_epi_trace_on;
+float setting_huberTH_epi_linearize = setting_outlierTH_epi_linearize;
+float setting_huberTH_init = setting_outlierTH_init;
+float setting_huberTH_zncc_init = setting_outlierTH_zncc_init;
+float setting_huberTH_zncc_angle_init = setting_outlierTH_zncc_angle_init;
+float setting_huberTH_tracker = setting_outlierTH_tracker;
+float setting_huberTH_loose_tracker = setting_outlierTH_loose_tracker;
+float setting_huberTH_zncc_tracker = setting_outlierTH_zncc_tracker; // 0.2;//used in lba
+float setting_huberTH_LBA = setting_outlierTH_LBA; // 0.2;//used in lba
+float setting_huberTH_zncc_LBA = setting_outlierTH_zncc_LBA; // 0.2;//used in lba
+float setting_huberTH_zncc_angle_LBA = setting_outlierTH_zncc_angle_LBA; // 0.2;//used in lba
+
+
+
+     float setting_energyTH_epi_trace_on = setting_huberTH_epi_trace_on * setting_huberTH_epi_trace_on;
+     float setting_energyTH_epi_linearize = setting_huberTH_epi_linearize * setting_huberTH_epi_linearize;
+     float setting_energyTH_init = setting_huberTH_init * setting_huberTH_init;
+    float setting_energyTH_zncc_init = setting_huberTH_zncc_init * setting_huberTH_zncc_init;
+    float setting_energyTH_zncc_angle_init = setting_huberTH_zncc_angle_init * setting_huberTH_zncc_angle_init;
+     float setting_energyTH_tracker = setting_huberTH_tracker * setting_huberTH_tracker;
+     float setting_energyTH_loose_tracker = setting_huberTH_loose_tracker * setting_huberTH_loose_tracker;
+     float setting_energyTH_zncc_tracker = setting_huberTH_zncc_tracker * setting_huberTH_zncc_tracker;
+     float setting_energyTH_LBA = setting_huberTH_LBA * setting_huberTH_LBA;
+     float setting_energyTH_zncc_LBA = setting_huberTH_zncc_LBA * setting_huberTH_zncc_LBA;
+    float setting_energyTH_zncc_angle_LBA = setting_huberTH_zncc_angle_LBA * setting_huberTH_zncc_angle_LBA;
+
 
 // parameters controlling adaptive energy threshold computation.
 float setting_frameEnergyTHConstWeight = 0.5;
 float setting_frameEnergyTHN = 0.7f;
 float setting_frameEnergyTHFacMedian = 1.5;
 float setting_overallEnergyTHWeight = 1;
-//#ifndef USE_ZNCC
-float setting_coarseCutoffTH = 20;
-float setting_coarseCutoffTH_loose = 90;
-//#else
-// float setting_coarseCutoffTH = 0.5;
-//#endif
+
 
 // parameters controlling pixel selection
 float setting_minGradHistCut = 0.5; // 0.5;
@@ -259,7 +327,7 @@ float freeDebugParam4 = 1;
 float freeDebugParam5 = 1;
 
 bool debugSaveImages = false; // true;//false;
-bool multiThreading = true;
+bool multiThreading = false;  // true;
 bool disableAllDisplay = false;
 bool setting_logStuff = true;
 
@@ -298,7 +366,7 @@ void handleKey(char k) {
 
 // int pattern_scale = 2;
 
-int staticPattern[12][40][2] = {
+float staticPattern[12][40][2] = {
     {{0, 0},       {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, // .
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
@@ -308,7 +376,7 @@ int staticPattern[12][40][2] = {
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}},
 
-    {{0, -1},      {-1, 0},      {0, 0},       {1, 0},       {0, 1},
+    {{0, 0},       {0, -1},      {-1, 0},      {1, 0},       {0, 1},
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, // +
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
@@ -317,7 +385,7 @@ int staticPattern[12][40][2] = {
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}},
 
-    {{-1, -1},     {1, 1},       {0, 0},       {-1, 1},      {1, -1},
+    {{0, 0},       {-1, -1},     {1, 1},       {-1, 1},      {1, -1},
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, // x
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
@@ -326,8 +394,8 @@ int staticPattern[12][40][2] = {
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}},
 
-    {{-1, -1},     {-1, 0},      {-1, 1},      {-1, 0},
-     {0, 0},       {0, 1},       {1, -1},      {1, 0},
+    {{0, 0},       {-1, -1},     {-1, 0},      {-1, 1},
+     {-1, 0},      {0, 1},       {1, -1},      {1, 0},
      {1, 1},       {-100, -100}, // full-tight
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
@@ -338,8 +406,8 @@ int staticPattern[12][40][2] = {
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
      {-100, -100}, {-100, -100}},
 
-    {{0, -2},      {-1, -1},     {1, -1},      {-2, 0},
-     {0, 0},       {2, 0},       {-1, 1},      {1, 1},
+    {{0, 0},       {0, -2},      {-1, -1},     {1, -1},
+     {-2, 0},      {2, 0},       {-1, 1},      {1, 1},
      {0, 2},       {-100, -100}, // full-spread-9
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
@@ -350,8 +418,8 @@ int staticPattern[12][40][2] = {
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
      {-100, -100}, {-100, -100}},
 
-    {{0, -2},      {-1, -1},     {1, -1},      {-2, 0},
-     {0, 0},       {2, 0},       {-1, 1},      {1, 1},
+    {{0, 0},       {0, -2},      {-1, -1},     {1, -1},
+     {-2, 0},      {2, 0},       {-1, 1},      {1, 1},
      {0, 2},       {-2, -2}, // full-spread-13
      {-2, 2},      {2, -2},      {2, 2},       {-100, -100},
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
@@ -362,17 +430,18 @@ int staticPattern[12][40][2] = {
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
      {-100, -100}, {-100, -100}},
 
-    {{-2, -2},     {-2, -1},     {-2, -0},     {-2, 1},      {-2, 2},
-     {-1, -2},     {-1, -1},     {-1, -0},     {-1, 1},      {-1, 2}, // full-25
-     {-0, -2},     {-0, -1},     {-0, -0},     {-0, 1},      {-0, 2},
-     {+1, -2},     {+1, -1},     {+1, -0},     {+1, 1},      {+1, 2},
-     {+2, -2},     {+2, -1},     {+2, -0},     {+2, 1},      {+2, 2},
+    {{0, 0},       {-2, -2},     {-2, -1},     {-2, -0},     {-2, 1},
+     {-2, 2},      {-1, -2},     {-1, -1},     {-1, -0},     {-1, 1},
+     {-1, 2}, // full-25
+     {-0, -2},     {-0, -1},     {-0, 1},      {-0, 2},      {+1, -2},
+     {+1, -1},     {+1, -0},     {+1, 1},      {+1, 2},      {+2, -2},
+     {+2, -1},     {+2, -0},     {+2, 1},      {+2, 2},      {-100, -100},
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
-     {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}},
+     {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100}},
 
-    {{0, -2},      {-1, -1},     {1, -1},      {-2, 0},
-     {0, 0},       {2, 0},       {-1, 1},      {1, 1},
+    {{0, 0},       {0, -2},      {-1, -1},     {1, -1},
+     {-2, 0},      {2, 0},       {-1, 1},      {1, 1},
      {0, 2},       {-2, -2}, // full-spread-21
      {-2, 2},      {2, -2},      {2, 2},       {-3, -1},
      {-3, 1},      {3, -1},      {3, 1},       {1, -3},
@@ -383,11 +452,11 @@ int staticPattern[12][40][2] = {
      {-100, -100}, {-100, -100}, {-100, -100}, {-100, -100},
      {-100, -100}, {-100, -100}},
 
-    {{0 * pattern_scale, -2 * pattern_scale},
+    {{0 * pattern_scale, 0 * pattern_scale},
+     {0 * pattern_scale, -2 * pattern_scale},
      {-1 * pattern_scale, -1 * pattern_scale},
      {1 * pattern_scale, -1 * pattern_scale},
      {-2 * pattern_scale, 0 * pattern_scale},
-     {0 * pattern_scale, 0 * pattern_scale},
      {2 * pattern_scale, 0 * pattern_scale},
      {-1 * pattern_scale, 1 * pattern_scale},
      {0 * pattern_scale, 2 * pattern_scale},
@@ -424,19 +493,16 @@ int staticPattern[12][40][2] = {
      {-100, -100},
      {-100, -100}},
 
-    {{-4, -4},     {-4, -2},     {-4, -0},
-     {-4, 2},      {-4, 4},      {-2, -4},
-     {-2, -2},     {-2, -0},     {-2, 2},
-     {-2, 4}, // full-45-SPREAD
-     {-0, -4},     {-0, -2},     /*{+4, 4}*/ {-0, -0},
-     {-0, 2},      {-0, 4},      {+2, -4},
-     {+2, -2},     {+2, -0},     {+2, 2},
-     {+2, 4},      {+4, -4},     {+4, -2},
-     {+4, -0},     {+4, 2},      /*{-0, -0}*/ {+4, 4},
-     {-200, -200}, {-200, -200}, {-200, -200},
-     {-200, -200}, {-200, -200}, {-200, -200},
-     {-200, -200}, {-200, -200}, {-200, -200},
-     {-200, -200}, {-200, -200}, {-200, -200},
+    {{0, 0},       {-4, -4},     {-4, -2},     {-4, -0},
+     {-4, 2},      {-4, 4},      {-2, -4},     {-2, -2},
+     {-2, -0},     {-2, 2},      {-2, 4}, // full-45-SPREAD
+     {-0, -4},     {-0, -2},              /*{+4, 4} {-0, -0},*/
+     {-0, 2},      {-0, 4},      {+2, -4},     {+2, -2},
+     {+2, -0},     {+2, 2},      {+2, 4},      {+4, -4},
+     {+4, -2},     {+4, -0},     {+4, 2},      /*{-0, -0}*/ {+4, 4},
+     {-200, -200}, {-200, -200}, {-200, -200}, {-200, -200},
+     {-200, -200}, {-200, -200}, {-200, -200}, {-200, -200},
+     {-200, -200}, {-200, -200}, {-200, -200}, {-200, -200},
      {-200, -200}, {-200, -200}, {-200, -200}},
 
     {{0 * pattern_scale, 0 * pattern_scale},

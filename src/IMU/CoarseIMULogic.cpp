@@ -28,6 +28,7 @@
 #include "IMUUtils.h"
 #include <GTSAMIntegration/Marginalization.h>
 #include <util/TimeMeasurement.h>
+//#include "util/globalCalib.h"
 
 dmvio::CoarseIMULogic::CoarseIMULogic(
     std::unique_ptr<PoseTransformation> transformBAToIMU,
@@ -303,9 +304,9 @@ Sophus::SE3d dmvio::CoarseIMULogic::initCoarseGraph(
   return Sophus::SE3d(lastKFToCurr.matrix());
 }
 
-Sophus::SE3d dmvio::CoarseIMULogic::computeCoarseUpdate(
+Sophus::SE3d dmvio::CoarseIMULogic::computeCoarseUpdate(dso::Vec8 &inc_gtsam,
     const dso::Mat88 &H_in, const dso::Vec8 &b_in, float extrapFac,
-    float lambda, double &incA, double &incB, double &incNorm) {
+    float lambda, double &incA, double &incB, double &incNorm, bool force_zero_inc) {
   dmvio::TimeMeasurement timeMeasurement("computeCoarseUpdate");
 
   PoseTransformation &transformIMUToCoarse = *transformIMUToDSOForCoarse;
@@ -315,6 +316,37 @@ Sophus::SE3d dmvio::CoarseIMULogic::computeCoarseUpdate(
       transformIMUToCoarse, H_in * imuSettings.setting_weightDSOCoarse,
       b_in * imuSettings.setting_weightDSOCoarse,
       coarseValues->at<gtsam::Pose3>(currentPoseKey));
+  NAN_CHECK_EIGEN(H_in, "DSO H_in");
+  NAN_CHECK_EIGEN(b_in, "DSO b_in");
+  NAN_CHECK_EIGEN(dsoHAndB.first, "DSO H_conv(14x14)");
+  NAN_CHECK_EIGEN(dsoHAndB.second, "DSO b_conv");
+
+  // Check coarseValues for NaN before linearization.
+  for (const auto &kv : *coarseValues) {
+    unsigned char ch = gtsam::Symbol(kv.key).chr();
+    if (ch == 'p') {
+      const gtsam::Pose3 &p = kv.value.cast<gtsam::Pose3>();
+      if (p.matrix().hasNaN()) {
+        std::cout << "[NAN_DETECT] coarseValues key=" << gtsam::Symbol(kv.key)
+                  << " Pose3 has NaN!" << std::endl;
+        std::cout << "  matrix:\n" << p.matrix() << std::endl;
+      }
+    } else if (ch == 'v') {
+      const gtsam::Vector3 &v = kv.value.cast<gtsam::Vector3>();
+      if (v.hasNaN()) {
+        std::cout << "[NAN_DETECT] coarseValues key=" << gtsam::Symbol(kv.key)
+                  << " Vector3 has NaN! val=" << v.transpose() << std::endl;
+      }
+    } else if (ch == 'b') {
+      const gtsam::imuBias::ConstantBias &b =
+          kv.value.cast<gtsam::imuBias::ConstantBias>();
+      if (b.vector().hasNaN()) {
+        std::cout << "[NAN_DETECT] coarseValues key=" << gtsam::Symbol(kv.key)
+                  << " ConstantBias has NaN! val=" << b.vector().transpose()
+                  << std::endl;
+      }
+    }
+  }
 
   // Linearize factor graph.
   gtsam::GaussianFactorGraph::shared_ptr gfg =
@@ -323,6 +355,8 @@ Sophus::SE3d dmvio::CoarseIMULogic::computeCoarseUpdate(
 
   std::pair<gtsam::Matrix, gtsam::Vector> gtsamHAndB =
       gfg->hessian(coarseOrdering);
+  NAN_CHECK_EIGEN(gtsamHAndB.first, "GTSAM H_graph");
+  NAN_CHECK_EIGEN(gtsamHAndB.second, "GTSAM b_graph");
 
   int nrowsGT = gtsamHAndB.first.rows();
   gtsam::Matrix HComplete(nrowsGT + 2, nrowsGT + 2);
@@ -335,28 +369,47 @@ Sophus::SE3d dmvio::CoarseIMULogic::computeCoarseUpdate(
   // zeros.
   HComplete.block(0, 2, 2, nrowsGT) = gtsam::Matrix::Zero(2, nrowsGT);
 
+  NAN_CHECK_EIGEN(HComplete, "HComplete after GTSAM fill");
+
   // Add DSO part of the Hessian.
   HComplete.block(0, 0, 14, 14) += dsoHAndB.first;
+  NAN_CHECK_EIGEN(HComplete, "HComplete after DSO add");
 
   bComplete.segment(0, 2) = gtsam::Matrix::Zero(2, 1);
   bComplete.segment(2, nrowsGT) =
       -gtsamHAndB.second; // The b in GTSAM resembles -b in DSO!
   bComplete.segment(0, 14) += dsoHAndB.second;
+  NAN_CHECK_EIGEN(bComplete, "bComplete after assembly");
 
   // Use lambda multiplication...
   for (int i = 0; i < nrowsGT + 2; i++)
     HComplete(i, i) *= (1 + lambda);
 
+  NAN_CHECK_EIGEN(HComplete, "CoarseIMU HComplete");
+  NAN_CHECK_EIGEN(bComplete, "CoarseIMU bComplete");
   // --------------------------------------------------
   // Compute update step
   // --------------------------------------------------
-  gtsam::Vector inc = HComplete.ldlt().solve(-bComplete);
+  if (force_zero_inc) {
+      bComplete.setZero();
+  }
+  gtsam::Vector inc;
+  if (!force_zero_inc) {
+   inc = HComplete.ldlt().solve(-bComplete);
+  } else {
+    inc = gtsam::Vector::Zero(nrowsGT + 2);
+  }
+  inc_gtsam = inc;
+  NAN_CHECK_EIGEN(inc, "CoarseIMU LDLT inc");
+  NAN_PRINT("CoarseIMU solve: inc_norm=%g, nrows=%d\n", inc.norm(), nrowsGT + 2);
 
   inc *= extrapFac;
 
   if (imuSettings.fixKeyframeDuringCoarseTracking) {
     // GTSAM Pose contains first rotation, then translation -> only remove the
     // translational part.
+    // Fix the current frame's translation: inc layout = [affine_a, affine_b | current_rot(3) | current_trans(3) | other_vars...]
+    // Keep rotation adjustable, zero out translation so only IMU drives it.
     inc.segment(5, 3) = gtsam::Matrix::Zero(3, 1);
   }
 

@@ -29,6 +29,7 @@
 #include "IOWrapper/Output3DWrapper.h"
 #include "OptimizationBackend/MatrixAccumulators.h"
 #include "util/NumType.h"
+#include "util/color_map.h"
 #include "util/settings.h"
 #include "vector"
 #include <math.h>
@@ -49,7 +50,7 @@ public:
 
   ~CoarseTracker();
 
-  bool trackNewestCoarse(const std::vector<FrameHessian *> &frameHessians,
+  bool trackNewestCoarse(bool& disable_kf_bak, const std::vector<FrameHessian *> &frameHessians,
                          int all_keyframe_size, FrameHessian *lastRef,
                          FrameHessian *newFrameHessian, SE3 &lastToNew_out,
                          AffLight &aff_g2l_out, int coarsestLvl,
@@ -61,6 +62,7 @@ public:
   void makeK(CalibHessian *HCalib);
 
   bool debugPrint, debugPlot;
+  //ColorMap color_map = ColorMap(GetColorMap("jet"));
 
   Mat33f K[PYR_LEVELS];  // * kCameraNumUsed];
   Mat33f Ki[PYR_LEVELS]; // * kCameraNumUsed];
@@ -75,10 +77,12 @@ public:
   int w[PYR_LEVELS];     // * kCameraNumUsed];
   int h[PYR_LEVELS];     // * kCameraNumUsed];
 
-  void debugPlotIDepthMap(float *minID, float *maxID,
+  void debugPlotIDepthMap(std::vector<FrameHessian *> frameHessians,float *minID, float *maxID,
                           std::vector<IOWrap::Output3DWrapper *> &wraps) const;
 
   void debugPlotIDepthMapFloat(std::vector<IOWrap::Output3DWrapper *> &wraps);
+
+    bool NeedKF();
 
   FrameHessian *lastRef; //!< 参考帧
   AffLight lastRef_aff_g2l;
@@ -87,9 +91,14 @@ public:
   int refFrameID;         //!< 参考帧id
 
   // act as pure ouptut
-  Vec5 lastResiduals;
+  Vec10 lastResiduals;
+  Vec10 lastResidualNum;
+  Vec10 lastSaturatedRatio;
+  std::array<VecTrack, PYR_LEVELS> lastRS;
   Vec3 lastFlowIndicators; //!< 光流指示用, 只有平移和, 旋转+平移的像素移动
   double firstCoarseRMSE;
+  float  firstCoarseResNum;
+  float firstSaturatedRatio;
   SE3 thisToNext;
   Mat33 dRwb;
 
@@ -103,7 +112,7 @@ private:
   Vec6 calcResAndGS(int lvl, MatState &H_out, VecState &b_out,
                     const SE3 &refToNew, AffLight aff_g2l, float cutoffTH);
 
-  Vec6 calcRes(const int &iter,
+  VecTrack calcRes(const bool &disable_kf, const int &iter,
                const std::vector<FrameHessian *> &frameHessians,
                int all_keyframe_size, bool is_imu_ready, int lvl_target_,
                FrameHessian *lastRef, int lvl, const SE3 &refToNew_,

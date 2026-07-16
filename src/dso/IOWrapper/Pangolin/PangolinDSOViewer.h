@@ -99,7 +99,7 @@ public:
 
   virtual void pushLiveFrame(FrameHessian *image) override;
 
-  virtual void pushDepthImage(MinimalImageB3 *image) override;
+  virtual void pushDepthImage(MinimalImageB3 *image, std::array<float, kCameraNumUsed> mean_gray_val) override;
 
   virtual bool needPushDepthImage() override;
 

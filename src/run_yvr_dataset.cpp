@@ -74,7 +74,7 @@ std::string source = "";
 std::string imuFile = "";
 
 bool is_reverse = false;
-int start = 1; // 0;
+int start = 1;//365;//1; // 0;
 int ending = 100000;
 int maxPreloadImages =
     0; // If set we only preload if there are less images to be loade.
@@ -661,9 +661,41 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
 
   printf("EXIT NOW!\n");
 }
+static cv::Mat NonMaxSuppression(const cv::Mat& grad_mag, const cv::Mat& grad_x, const cv::Mat& grad_y)
+{
+  cv::Mat nms = cv::Mat::zeros(grad_mag.size(), CV_32F);
 
+  for (int y = 1; y < grad_mag.rows - 1; y++)
+  {
+    for (int x = 1; x < grad_mag.cols - 1; x++)
+    {
+      float gx = grad_x.at<float>(y, x);
+      float gy = grad_y.at<float>(y, x);
+      float mag = grad_mag.at<float>(y, x);
+
+      // 梯度方向上的两个相邻像素（插值）
+      float angle = std::atan2(gy, gx);
+      float cos_a = std::cos(angle);
+      float sin_a = std::sin(angle);
+
+      // 沿梯度方向插值采样
+      float mag_pos = grad_mag.at<float>(y + (int)std::round(sin_a),
+                                         x + (int)std::round(cos_a));
+      float mag_neg = grad_mag.at<float>(y - (int)std::round(sin_a),
+                                         x - (int)std::round(cos_a));
+
+      // 只保留局部极大值
+      if (mag >= mag_pos && mag >= mag_neg)
+        nms.at<float>(y, x) = mag;
+    }
+  }
+  return nms;
+}
 int main(int argc, char **argv) {
-
+  // Clean images directory before starting
+#ifdef SAVE_IMAGES
+  std::system("rm -rf \"/media/roger/Elements_SE/CI/dm_vio_results\" && mkdir -p \"/media/roger/Elements_SE/CI/dm_vio_results\"");
+#endif
   std::string config_path =
       "/home/roger/work/dm-vio/dm-vio/src/dso/config/calibconfig_stage0.toml";
   CalibIO::ConfigData configParams(config_path);
@@ -771,14 +803,17 @@ int main(int argc, char **argv) {
 
   // std::exit(2);
 
+  std::array<cv::Mat, 4> show_clahe_vec;
   std::array<cv::Mat, 4> show_mat_vec;
   std::array<cv::Mat, 4> show_edge_vec;
+  std::system("rm -rf \"/home/roger/work/dm-vio/images\" && mkdir -p \"/home/roger/work/dm-vio/images\"");
 #if 0
-    for (size_t i = 0; i < frameInfo_bak.size() /*&& key != 27*/; i++) {
+    for (size_t i = 1900; i < frameInfo_bak.size() /*&& key != 27*/; i++) {
         //    cerr <<
         //    "######################################################################################################"
         //            "##################################################### FRAME: "
         //         << i << ", cam_id: " << cam_id << endl;
+        printf("========== img_id: %d\n",i);
         for (int cam_id = 0; cam_id < kCameraNumUsed; ++cam_id) {
             std::string image_path = frameInfo_bak[i].cid_to_img_file_path.at(cam_id);
             // cerr << "Reading..." << image_path << endl;
@@ -786,20 +821,73 @@ int main(int argc, char **argv) {
             cv::Mat image = cv::imread(image_path, 0);
             cv::Mat image_before = image.clone();
             //VigCorrection(image, vig_mat);
+            //cv::GaussianBlur(image, image, {5, 5}, 0);
             cv::remap(image, image, cid_to_undist_map[cam_id].first, cid_to_undist_map[cam_id].second, cv::INTER_CUBIC);
-            cv::GaussianBlur(image, image, {5, 5}, 0);
             // if (cam_id == 0) {
             //    char filename[512];
             //    snprintf(filename, sizeof(filename), "/media/roger/Elements_SE/CI/gt/20240531/1/Camera0/pinhole/pinhole_%04d.png", i);
             //    cv::imwrite(filename, image);
             // }
+            cv::Mat output;
             cv::Mat edge;
-            cv::Canny(image, edge, 60, 90, 3, true);
+            cv::Mat img_enhanced;
+            double threshold = cv::threshold(image, output, 0, 255, cv::THRESH_TRIANGLE);
+            if (threshold > 100 || true) {
+              cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(4.0, cv::Size(16, 16));
+              clahe->apply(image, img_enhanced);
+              img_enhanced = image.clone();
+              cv::GaussianBlur(img_enhanced, img_enhanced, {9, 9}, 0);
+              threshold = cv::threshold(img_enhanced, output, 0, 255, cv::THRESH_OTSU);
+              if (1) {
+                cv::Canny(img_enhanced, edge, 0.4 * threshold, 0.5 * threshold, 3, true);
+              } else if (1){
+                cv::Mat blurred, grad_x, grad_y, grad_mag;
+                cv::GaussianBlur(image, blurred, cv::Size(3,3), 0);
+                cv::Sobel(blurred, grad_x, CV_32F, 1, 0, 3);
+                cv::Sobel(blurred, grad_y, CV_32F, 0, 1, 3);
+                cv::magnitude(grad_x, grad_y, grad_mag);
+
+                // 不做NMS，直接阈值 → 比Canny"胖"但位置一致
+                double threshold_val = 100;
+                cv::Mat nms = NonMaxSuppression(grad_mag, grad_x, grad_y);
+                cv::threshold(nms, edge, threshold_val, 255, cv::THRESH_BINARY);
+              } else if (1) {
+                cv::Mat mean, stddev_img, variance;
+
+                // 局部均值
+                cv::Mat blurred;
+                cv::boxFilter(img_enhanced, mean, CV_32F, cv::Size(7, 7));
+
+                // 局部均方
+                cv::Mat gray_sq;
+                cv::multiply(img_enhanced, img_enhanced, gray_sq, 1.0, CV_32F);
+                cv::Mat mean_sq;
+                cv::boxFilter(gray_sq, mean_sq, CV_32F, cv::Size(7, 7));
+
+                // 方差 = E(x²) - E(x)²
+                cv::Mat variance_map = mean_sq - mean.mul(mean);
+
+                // 阈值提取高纹理区域
+                cv::Mat texture_mask;
+                double threshold_val = 100;
+                cv::threshold(variance_map, edge, threshold_val, 255, cv::THRESH_BINARY);
+              }
+            } else {
+              cv::Canny(img_enhanced, edge, 1.5 * threshold, 2.5 * threshold, 3, false);
+            }
+            printf("threshold: %f\n", threshold);
+
             cv::cvtColor(image, image, cv::COLOR_GRAY2BGR);
-            show_mat_vec[cam_id] = image.clone();
+            cv::cvtColor(img_enhanced, img_enhanced, cv::COLOR_GRAY2BGR);
+           show_clahe_vec[cam_id] = img_enhanced.clone();
+           show_mat_vec[cam_id] = image.clone();
             show_edge_vec[cam_id] = edge.clone();
         }
-        cv::Mat img1, img2, img_show, edge_show;
+        cv::Mat img1, img2, clahe_show, img_show, edge_show;
+        cv::hconcat(show_clahe_vec[1], show_clahe_vec[2], img1);
+        cv::hconcat(show_clahe_vec[0], show_clahe_vec[3], img2);
+        cv::vconcat(img1, img2, clahe_show);
+        cv::imshow("Clahe", clahe_show);
         cv::hconcat(show_mat_vec[1], show_mat_vec[2], img1);
         cv::hconcat(show_mat_vec[0], show_mat_vec[3], img2);
         cv::vconcat(img1, img2, img_show);
@@ -808,7 +896,16 @@ int main(int argc, char **argv) {
         cv::hconcat(show_edge_vec[0], show_edge_vec[3], img2);
         cv::vconcat(img1, img2, edge_show);
         cv::imshow("Edge", edge_show);
-        cv::waitKey(0);
+      char buf_raw[100];
+      snprintf(buf_raw, 100, "/home/roger/work/dm-vio/images/raw_%04d.png", (int)i);
+      cv::imwrite(buf_raw, img_show);
+      char buf_clahe[100];
+      snprintf(buf_clahe, 100, "/home/roger/work/dm-vio/images/clahe_%04d.png", (int)i);
+      cv::imwrite(buf_clahe, clahe_show);
+      char buf_edge[100];
+      snprintf(buf_edge, 100, "/home/roger/work/dm-vio/images/edge_%04d.png", (int)i);
+      cv::imwrite(buf_edge, edge_show);
+      cv::waitKey(1);
     }
 #endif
   // std::cout << "K: \n" << K << std::endl;

@@ -661,7 +661,7 @@ private:
     }
   }
   ImageAndExposure *getImage_internal2(int id, int unused) {
-    printf("use16Bit: %d\n", use16Bit);
+    printf("use16Bit: %d, timestamps: %d\n", use16Bit, timestamps.size());
     if (use16Bit) {
       MinimalImage<unsigned short> *minimg = IOWrap::readImageBW_16U(files[id]);
       assert(minimg);

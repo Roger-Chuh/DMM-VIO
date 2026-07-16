@@ -102,16 +102,22 @@ PointFrameResidual::PointFrameResidual(PointHessian *point_,
 
 //@ 求对各个参数的导数, 和能量值
 //#define SHOW_IMAGE
-double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
+Vec6f PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now,
+                                    double *p_other_residual) {
+  Vec6f ret = Vec6f::Zero();
   // printf("fx fy cx cy: [%f %f %f %f]\n", HCalib->fxl(), HCalib->fyl(),
   // HCalib->cxl(), HCalib->cyl());
   J[target_cid_now]->ResetValues();
   state_NewEnergyWithOutlier[target_cid_now] = -1;
+  state_zncc_angle[target_cid_now] = NAN;
+  state_hw[target_cid_now] = NAN;
+  state_residual_residual_gray[target_cid_now] = Vec2f::Constant(NAN);
 
   if (state_state[target_cid_now] == ResState::OOB) {
     // printf("oob\n");
     state_NewState[target_cid_now] = ResState::OOB;
-    return state_energy[target_cid_now];
+    ret[0] = state_energy[target_cid_now];
+    return ret;
   }
   // TODO 同一个host有多个target，合理
   FrameFramePrecalc *precalc = &(
@@ -122,8 +128,17 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
   //  std::cout << "T_th:\n" << precalc->PRE_RTll << std::endl;
   //  std::cout << "t_th:\n" << precalc->PRE_tTll << std::endl;
   float energyLeft = 0;
+  float energyLeft_gray = 0;
+  const Eigen::Vector3f *dIl_gray = target->dI + wG[0] * hG[0] * target_cid_now;
+  const Eigen::Vector3f *host_dIl_gray = host->dI + wG[0] * hG[0] * host_cid;
+#ifndef USE_EDGE_ALIGN
   const Eigen::Vector3f *dIl = target->dI + wG[0] * hG[0] * target_cid_now;
   const Eigen::Vector3f *host_dIl = host->dI + wG[0] * hG[0] * host_cid;
+#else
+  const Eigen::Vector3f *dIl =
+      target->dt_dx_dy_0 + wG[0] * hG[0] * target_cid_now;
+  const Eigen::Vector3f *host_dIl = host->dt_dx_dy_0 + wG[0] * hG[0] * host_cid;
+#endif
   bool show_image = host_cid == 2 && target_cid_now == 3;
 #ifdef SHOW_IMAGE
   MinimalImageB3 *img_host;
@@ -133,13 +148,13 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
     img_target = new MinimalImageB3(wG[0], hG[0]);
     for (int i = 0; i < wG[0] * hG[0]; i++) {
       // BRIGHTNESS TRANSFER
-      float colL = host_dIl[i][0];
+      float colL = host_dIl_gray[i][0];
       if (colL < 0)
         colL = 0;
       if (colL > 255)
         colL = 255;
       img_host->at(i, host_cid) = Vec3b(colL, colL, colL);
-      colL = dIl[i][0];
+      colL = dIl_gray[i][0];
       if (colL < 0)
         colL = 0;
       if (colL > 255)
@@ -195,6 +210,7 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
 #endif
   const float *const color = point->color; // host帧上颜色
   const float *const weights = point->weights;
+  const float *const weights_gray = point->weights_gray;
 
   Vec2f affLL = precalc->PRE_aff_mode; // 待优化的a和b, 就是host和target合的
   float b0 = precalc->PRE_b0_mode; // 主帧的单独 b
@@ -218,7 +234,14 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
                       KliP, new_idepth)) {
       state_NewState[target_cid_now] = ResState::OOB;
       // printf("oob\n");
-      return state_energy[target_cid_now];
+#ifdef SHOW_IMAGE
+      if (show_image) {
+        delete img_host;
+        delete img_target;
+      }
+#endif
+      ret[0] = state_energy[target_cid_now];
+      return ret;
     } // 投影不在图像里, 则返回OOB
 
     centerProjectedTo[target_cid_now] = Vec3f(Ku, Kv, new_idepth);
@@ -415,6 +438,18 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
 
   Eigen::MatrixXf host_info, target_info;
   size_t count = 0;
+#ifdef USE_EDGE_ALIGN
+  Vec2i *edge_label_image_start =
+      target->edge_label_image[0] + wG[0] * hG[0] * target_cid_now;
+  Vec2i *label2xy_start = target->label2xy[0] + wG[0] * hG[0] * target_cid_now;
+  Vec2i proj_check =
+      (centerProjectedTo[target_cid_now].head(2) + Vec2f(0.5, 0.5)).cast<int>();
+  int label = edge_label_image_start[proj_check[0] + proj_check[1] * wG[0]][1];
+  Vec2f nearestPt = label2xy_start[label].cast<float>();
+  Vec3f nearestHitColor =
+      (getInterpolatedElement33(dIl, centerProjectedTo[target_cid_now][0],
+                                centerProjectedTo[target_cid_now][1], wG[0]));
+#endif
   for (int idx = 0; idx < patternNum; idx++) {
     float Ku, Kv;
     //? 为啥这里使用idepth_scaled, 上面使用的是zero； 答：
@@ -433,18 +468,29 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
     }
 #endif
 
-    Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
+    Vec3f hitColor = (getInterpolatedElement33(dIl_gray, Ku, Kv, wG[0]));
     // float residual = hitColor[0] - (float) (affLL[0] * color[idx] +
     // affLL[1]);
     Vec3f hostColor =
-        (getInterpolatedElement33(host_dIl, point->u + patternP[idx][0],
+        (getInterpolatedElement33(host_dIl_gray, point->u + patternP[idx][0],
                                   point->v + patternP[idx][1], wG[0]));
     float host_value_corrected = (float)(affLL[0] * color[idx] + affLL[1]);
-
+#ifdef USE_EDGE_ALIGN
+    Vec3f hitColor_edge = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
+    if (true && ((std::abs(hitColor_edge[1]) < 0.001f &&
+    std::abs(hitColor_edge[2]) < 0.001f) ||(std::abs(nearestHitColor[1]) < 0.001f &&
+    std::abs(nearestHitColor[2]) < 0.001f))) {
+      hitColor[0] = NAN;
+    }
+#endif
     if (!std::isfinite((float)hitColor[0])) {
       continue;
     }
+#if 0
     hostColor[0] = host_value_corrected;
+#else
+    hostColor[0] = color[idx];
+#endif
     host_info.conservativeResize(count + 1, 3);
     target_info.conservativeResize(count + 1, 3);
     host_info.row(count) = hostColor.transpose();
@@ -455,6 +501,9 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
   int patch_num = host_info.rows();
   float ws2 = 1;
   float zncc = 0;
+  float hw = 1;
+  float hw_gray = 1;
+  float angle = 0;
   if (patch_num != 0) {
 
     host_val_mean = host_info.col(0).sum() / patch_num;
@@ -494,7 +543,14 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
         patch_num != MAX_RES_PER_POINT) {
       state_NewState[target_cid_now] = ResState::OOB;
       // printf("oob\n");
-      return state_energy[target_cid_now];
+#ifdef SHOW_IMAGE
+      if (show_image) {
+        delete img_host;
+        delete img_target;
+      }
+#endif
+      ret[0] = state_energy[target_cid_now];
+      return ret;
     }
     // printf("zncc: %f, target_sigma: %f\n", zncc, target_sigma);
     assert(std::abs(zncc) < 1.00001);
@@ -502,7 +558,7 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
     ws2 = 2.0 / (r2 + 2.0);
     if (true) {
       assert(std::abs(zncc) < 1.00001);
-      float angle = (kOur_PI - std::acos(zncc)) / kOur_PI;
+      angle = (kOur_PI - std::acos(zncc)) / kOur_PI;
       if (false) {
         std::cout << "host_info.col(0): " << host_info.col(0).transpose()
                   << ", target_info.col(0): " << target_info.col(0).transpose()
@@ -525,7 +581,14 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
 #ifdef USE_ZNCC_WEIGHT
     if (zncc < -111110.5 /*0.8*/) {
       state_NewState[target_cid_now] = ResState::OOB;
-      return state_energy[target_cid_now];
+#ifdef SHOW_IMAGE
+      if (show_image) {
+        delete img_host;
+        delete img_target;
+      }
+#endif
+      ret[0] = state_energy[target_cid_now];
+      return ret;
     }
 #endif
     host_info.col(0) *= setting_variableScale;
@@ -536,18 +599,39 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
 
   int cnt = 0;
   float residual;
+  float residual_gray;
   bool has_nan_res = false;
   int continued_count = 0;
-  for (int idx = 0; idx < patternNum; idx++) {
+#ifdef SHOW_IMAGE
+  if (show_image) {
+    printf("======= show image ======\n");
+  }
+#endif
+    Vec2f res_sum = Vec2f::Zero();
+    int res_count = 0;
+  for (int idx = 0; idx <
+#ifndef USE_CENTER_PIXEL_ONLY
+  patternNum
+#else
+  1
+#endif
+  ; idx++) {
     float Ku, Kv;
     //? 为啥这里使用idepth_scaled, 上面使用的是zero； 答：
     //其实和上面一样的....同时调用了setIdepth() setIdepthZero()
     //! 答: 这里是求图像导数, 由于线性误差大, 就不使用FEJ, 所以使用当前的状态
     // TODO  这里求残差用的是最新状态重投影，而不是fej状态重投影
-    if (!projectPoint(point->u + patternP[idx][0], point->v + patternP[idx][1],
+    if (!projectPoint(point->u + patternP[idx][0] * pattern_scale_extra_edge, point->v + patternP[idx][1] * pattern_scale_extra_edge,
                       point->idepth_scaled, PRE_KRKiTll, PRE_KtTll, Ku, Kv)) {
       state_NewState[target_cid_now] = ResState::OOB;
-      return state_energy[target_cid_now];
+#ifdef SHOW_IMAGE
+      if (show_image) {
+        delete img_host;
+        delete img_target;
+      }
+#endif
+      ret[0] = state_energy[target_cid_now];
+      return ret;
     }
 
     // 像素坐标
@@ -555,23 +639,64 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
         Ku;
     projectedTo[target_cid_now][idx /*+ MAX_RES_PER_POINT * target_cid*/][1] =
         Kv;
-
+    if (idx == 0) {
+        if ((Vec2f(Ku, Kv) - centerProjectedTo[target_cid_now].head(2)).norm() > 0.001) {
+            // printf("center_projection differs too much, diff = %f, [%f %f], [%f %f]\n",(Vec2f(Ku, Kv) - centerProjectedTo[target_cid_now].head(2)).norm(), Ku, Kv, centerProjectedTo[target_cid_now][0], centerProjectedTo[target_cid_now][1]);
+        }
+    }
     Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
+    Vec3f hitColor_gray = (getInterpolatedElement33(dIl_gray, Ku, Kv, wG[0]));
     //* 残差对光度仿射a求导
     //! 光度参数使用固定线性化点了
     float drdA = (color[idx] - b0);
+#ifdef USE_EDGE_ALIGN
+    if (true &&
+        ((std::abs(hitColor[1]) < 0.001f && std::abs(hitColor[2]) < 0.001f) || (std::abs(nearestHitColor[1]) < 0.001f && std::abs(nearestHitColor[2]) < 0.001f))) {
+      hitColor[0] = NAN;
+    } else {
+    }
+#endif
     if (!std::isfinite((float)hitColor[0])) {
       state_NewState[target_cid_now] = ResState::OOB;
       // printf("oob, (float)hitColor[0]: %f\n", (float)hitColor[0]);
-      return state_energy[target_cid_now];
+#ifdef SHOW_IMAGE
+      if (show_image) {
+        delete img_host;
+        delete img_target;
+      }
+#endif
+      ret[0] = state_energy[target_cid_now];
+      return ret;
+    }
+    residual_gray =
+        hitColor_gray[0] - (float)(affLL[0] * color[idx] + affLL[1]);
+    if (p_other_residual) {
+      *p_other_residual = residual_gray;
     }
 
 #ifndef USE_ZNCC
+#ifndef USE_EDGE_ALIGN
     residual = hitColor[0] - (float)(affLL[0] * color[idx] + affLL[1]);
+#else
+    Vec3f hit_color_bak = setting_variableScale_edge * hitColor;
+#if 1
+    //hitColor[0] = setting_variableScale_edge * (nearestPt - Vec2f(Ku, Kv)).norm();
+    //hitColor.tail(2) = nearestHitColor.tail(2);
+#endif
+    residual = hitColor[0];
+    // printf("idx: %d, target_uv: [%f %f], res: %f\n", idx, Ku, Kv, residual);
+#endif
+
 #else
     float residual_bak =
         hitColor[0] - (float)(affLL[0] * color[idx] + affLL[1]);
-    float residual = 1 * (target_info(cnt, 0) - host_info(cnt, 0));
+    if (residual_bak != residual_gray) {
+      printf("residual_bak != residual_gray\n");
+      std::exit(1);
+    }
+    /*float*/ residual = 1 * (target_info(cnt, 0) - host_info(cnt, 0));
+    // printf("idx: %d, zncc_residual: %f, zncc: %f, angle: %f, is_inlier:
+    // %d\n", idx, residual, zncc, angle, angle > 0.7);
     if (std::isnan(residual)) {
       continued_count++;
       //            isGood = false;
@@ -582,13 +707,43 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
       cnt++;
       continue;
       state_NewState[target_cid_now] = ResState::OOB;
-      return state_energy[target_cid_now];
+#ifdef SHOW_IMAGE
+      if (show_image) {
+        delete img_host;
+        delete img_target;
+      }
+#endif
+      ret[0] = state_energy[target_cid_now];
+      return ret;
     }
 #endif
     Vec3f hostColor =
         (getInterpolatedElement33(host_dIl, point->u + patternP[idx][0],
                                   point->v + patternP[idx][1], wG[0]));
+    Vec3f hostColor_gray =
+        (getInterpolatedElement33(host_dIl_gray, point->u + patternP[idx][0],
+                                  point->v + patternP[idx][1], wG[0]));
 
+    if (pattern_scale_extra_edge != 1) {
+        if (idx == 0 && hostColor_gray[0] != color[idx]) {
+            printf("idx == 0 && hostColor_gray[0] != color[idx], [%f %f], pix: [%f "
+                   "%f]\n", hostColor_gray[0], color[idx], point->u, point->v);
+            std::exit(1);
+        }
+    } else {
+        if (hostColor_gray[0] != color[idx]) {
+            printf("idx == 0 && hostColor_gray[0] != color[idx], [%f %f], pix: [%f "
+                   "%f]\n", hostColor_gray[0], color[idx], point->u, point->v);
+            std::exit(1);
+        }
+    }
+    if (std::abs(hostColor_gray[0] - color[idx]) > 0.001f) {
+      printf("hostColor_gray[0] != color[idx], [%f %f], pix: [%f %f]\n",
+             hostColor_gray[0], color[idx], point->u, point->v);
+      std::exit(1);
+    }
+      res_sum += Vec2f(residual, residual_gray);
+      res_count++;
     // printf("value1: %f, value check: %f\n", hostColor[0], color[idx]);
     // assert(hostColor[0] == color[idx]);
     //        //* 残差对光度仿射a求导
@@ -598,20 +753,39 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
     //		{ state_NewState = ResState::OOB; return state_energy; }
 #ifdef SHOW_IMAGE
     if (show_image) {
-      std::cout << "idx: " << idx << ", hostColor: " << hostColor.transpose()
-                << ", hitColor: " << hitColor.transpose()
+      std::cout << "idx: " << idx << ", host_pix: " << point->u << ", "
+                << point->v << ", target_pix: " << Ku << ", " << Kv
+                << ", hostColor_gray(raw): " << hostColor_gray.transpose()
+                << ", hitColor_gray: " << hitColor_gray.transpose()
+                << ", hitColor(or dt, maybe over wrote): "
+                << hitColor.transpose()
+#ifdef USE_EDGE_ALIGN
+                << ", hit_color_bak: " << hit_color_bak.transpose()
+                << ", nearestHitColor: " << nearestHitColor.transpose()
+                << ", dist_to_nearest_pt: "
+                << (nearestPt - Vec2f(Ku, Kv)).norm()
+#endif
                 << ", affLL: " << affLL.transpose()
-                << ", color[idx]: " << color[idx]
-                << ", gray_diff: " << hostColor[0] - hitColor[0] << std::endl;
-      IOWrap::displayImage("host", img_host);
-      IOWrap::displayImage("target", img_target);
+                << ", color_raw[idx]: " << color[idx]
+                << ", gray_diff: " << hostColor_gray[0] - hitColor_gray[0]
+                << std::endl;
+      // IOWrap::displayImage("host", img_host);
+      // IOWrap::displayImage("target", img_target);
       // IOWrap::waitKey(0);
     }
 #endif
+    float w_gray = sqrtf(setting_outlierTHSumComponent /
+                         (setting_outlierTHSumComponent +
+                          hitColor_gray.tail<2>().squaredNorm()));
 #ifndef USE_ZNCC
+#ifndef USE_EDGE_ALIGN
+    float w = w_gray;
+#else
     float w = sqrtf(
         setting_outlierTHSumComponent /
         (setting_outlierTHSumComponent + hitColor.tail<2>().squaredNorm()));
+#endif
+
 #else
     // float w = sqrtf(setting_outlierTHSumComponent /
     // (setting_outlierTHSumComponent +
@@ -622,31 +796,64 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
 #endif
 #ifndef USE_ZNCC_WEIGHT
     w = 0.5f * (w + weights[idx]);
+    w_gray = 0.5f * (w_gray + weights_gray[idx]);
 #else
     w = 0.5f * (w + weights[idx]); // std::sqrt(ws2);
+    w_gray = 0.5f * (w_gray + weights_gray[idx]);
 #endif
 
 #ifndef USE_ZNCC
-    float hw =
-        fabsf(residual) < (setting_huberTH /*+ std::abs(affLL[1])*/)
+#if 1
+    hw_gray =
+        fabsf(residual_gray) < (setting_huberTH_LBA /*+ std::abs(affLL[1])*/)
             ? 1
-            : (setting_huberTH /*+ std::abs(affLL[1])*/) / fabsf(residual);
+            : (setting_huberTH_LBA /*+ std::abs(affLL[1])*/) / fabsf(residual_gray);
+    hw =
+        fabsf(residual) < (setting_huberTH_LBA /*+ std::abs(affLL[1])*/)
+            ? 1
+            : (setting_huberTH_LBA /*+ std::abs(affLL[1])*/) / fabsf(residual);
+#else
+#if 0 // eachErrDim == 2
+        fabsf(residual_gray) < (setting_huberTH /*+ std::abs(affLL[1])*/)
+            ? 1
+            : (setting_huberTH /*+ std::abs(affLL[1])*/) / fabsf(residual_gray);
+#else
+    fabsf(residual) < (setting_huberTH /*+ std::abs(affLL[1])*/)
+        ? 1
+        : (setting_huberTH /*+ std::abs(affLL[1])*/) / fabsf(residual);
+#endif
+#ifndef USE_EDGE_ALIGN
     if (true) {
       // ws2 *= ws2;
-      hw = ws2 > setting_huberTH_zncc ? 1 : ws2 / setting_huberTH_zncc;
+      hw = ws2 > setting_huberTH_zncc_LBA ? 1 : ws2 / setting_huberTH_zncc_LBA;
     }
+#endif
+#endif
     energyLeft += w * w * hw * residual * residual * (2 - hw);
+
+#if defined(USE_EDGE_ALIGN) && eachErrDim == 2
+    energyLeft_gray += w_gray * w_gray * hw_gray * residual_gray *
+                       residual_gray * (2 - hw_gray);
+#endif
 #else
-    float hw =
+    hw_gray =
+        fabsf(residual_gray) < (setting_huberTH /*+ std::abs(affLL[1])*/)
+            ? 1
+            : (setting_huberTH /*+ std::abs(affLL[1])*/) / fabsf(residual_gray);
+    hw =
         fabsf(residual) < (setting_huberTH_LBA + std::abs(affLL[1]))
             ? 1
             : (setting_huberTH_LBA + std::abs(affLL[1])) / fabsf(residual);
     if (true) {
       hw = ws2;
-      hw = ws2 > setting_huberTH_zncc ? 1 : ws2 / setting_huberTH_zncc;
+      hw = ws2 > setting_huberTH_zncc_LBA ? 1 : ws2 / setting_huberTH_zncc_LBA;
     }
     // energyLeft += w * w * hw * residual * residual * (2 - hw);
     energyLeft += hw * residual * residual * (2 - hw);
+#if eachErrDim == 2
+    energyLeft_gray += w_gray * w_gray * hw_gray * residual_gray *
+                       residual_gray * (2 - hw_gray);
+#endif
 #endif
 
     {
@@ -655,6 +862,9 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
       if (hw < 1)
         hw = sqrtf(hw);
       hw = hw * w;
+      if (hw_gray < 1)
+        hw_gray = sqrtf(hw_gray);
+      hw_gray = hw_gray * w_gray;
 
       hitColor[1] *= hw;
       hitColor[2] *= hw;
@@ -662,20 +872,39 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
       hostColor[1] *= hw;
       hostColor[2] *= hw;
 
+      hitColor_gray[1] *= hw_gray;
+      hitColor_gray[2] *= hw_gray;
+
+      hostColor_gray[1] *= hw_gray;
+      hostColor_gray[2] *= hw_gray;
+
       grad_new_target.row(cnt) *= hw;
       grad_new_host.row(cnt) *= hw;
-
+      // printf("residual_gray: %f, residual: %f, host_gray: %f, target_gray: %f, [a b]: [%f %f]\n", residual_gray, residual, color[idx], hitColor_gray[0], affLL[0], affLL[1]);
       //! 残差 res*w*sqrt(hw)
       J[target_cid_now]->resF[idx] = residual * hw;
+#if /*defined(USE_EDGE_ALIGN) &&*/ eachErrDim == 2
+      J[target_cid_now]->resF[idx + patternNum] = residual_gray * hw_gray;
+#endif
 
       //! 图像导数 dx dy
 #ifndef USE_INVERSE_COMPOSITIONAL
 #ifndef USE_ZNCC
       J[target_cid_now]->JIdx[0][idx] = hitColor[1];
       J[target_cid_now]->JIdx[1][idx] = hitColor[2];
+// #if defined(USE_EDGE_ALIGN) && eachErrDim == 2
+//       J[target_cid_now]->JIdx[0][idx + patternNum] =
+//           0; // default value is zero anyway
+//       J[target_cid_now]->JIdx[1][idx + patternNum] = 0;
+// #endif
 #else
       J[target_cid_now]->JIdx[0][idx] = grad_new_target(cnt, 0);
       J[target_cid_now]->JIdx[1][idx] = grad_new_target(cnt, 1);
+// #if eachErrDim == 2
+//         J[target_cid_now]->JIdx[0][idx + patternNum] =
+//           0; // default value is zero anyway
+//         J[target_cid_now]->JIdx[1][idx + patternNum] = 0;
+// #endif
 #endif
 #else
 #ifndef USE_ZNCC
@@ -686,19 +915,34 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
       J[target_cid_now]->JIdx[1][idx] = affLL[0] * grad_new_host(cnt, 1);
 #endif
 #endif
-
+#if eachErrDim == 2
+      // default value is zero anyway
+      J[target_cid_now]->JIdx[0][idx + patternNum] = 0;
+      J[target_cid_now]->JIdx[1][idx + patternNum] = 0;
+#endif
       //! 对光度合成后a b的导数 [Ii-b0  1]
       //! Ij - a*Ii - b  (a = tj*e^aj / ti*e^ai,   b = bj - a*bi) //TODO true
       //! dat Ij - [a*(Ii-b0) + b]
       // TODO bug 正负号有影响 ??? ab部分好确实差了一个负号
+#if 0
 #ifndef USE_INVERSE_COMPOSITIONAL
+#if 0 // ndef USE_EDGE_ALIGN
       J[target_cid_now]->JabF[0][idx] = drdA * hw;
       J[target_cid_now]->JabF[1][idx] = hw;
+#else
+      J[target_cid_now]->JabF[0][idx + (eachErrDim - 1) * patternNum] =
+          drdA * hw_gray;
+      J[target_cid_now]->JabF[1][idx + (eachErrDim - 1) * patternNum] = hw_gray;
+#endif
 #else
       J[target_cid_now]->JabF[0][idx] = drdA * hw;
       J[target_cid_now]->JabF[1][idx] = 1 * hw;
 #endif
-
+#else
+      J[target_cid_now]->JabF[0][idx + (eachErrDim - 1) * patternNum] =
+          drdA * hw_gray;
+      J[target_cid_now]->JabF[1][idx + (eachErrDim - 1) * patternNum] = hw_gray;
+#endif
 #ifndef USE_INVERSE_COMPOSITIONAL
       //! dIdx&dIdx hessian block
       // Jt * W * J = [gx; gy] * [gx gy] = [gxgx gxgy; gxgy gygy]
@@ -707,16 +951,19 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
       JIdxJIdx_11 += hitColor[2] * hitColor[2];
       JIdxJIdx_10 += hitColor[1] * hitColor[2];
       //! dIdx&dIdab hessian block
+#if !defined(USE_EDGE_ALIGN)
       JabJIdx_00 += drdA * hw * hitColor[1];
       JabJIdx_01 += drdA * hw * hitColor[2];
       JabJIdx_10 += hw * hitColor[1];
       JabJIdx_11 += hw * hitColor[2];
+#endif
 #else
       JIdxJIdx_00 += grad_new_target(cnt, 0) * grad_new_target(cnt, 0);
       JIdxJIdx_11 += grad_new_target(cnt, 1) * grad_new_target(cnt, 1);
       JIdxJIdx_10 += grad_new_target(cnt, 0) * grad_new_target(cnt, 1);
       //! dIdx&dIdab hessian block
       // TODO 即使用了zncc，但关于ab的雅可比任然需要用梯度
+#if 0 // 使用zncc时。梯度和ab没有交叉项，因为zncc残差需要用到梯度，但不需要用到ab
 #if 1
       JabJIdx_00 += drdA * hw * grad_new_target(cnt, 0);
       JabJIdx_01 += drdA * hw * grad_new_target(cnt, 1);
@@ -729,10 +976,11 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
       JabJIdx_11 += hw * hitColor(cnt, 1);
 #endif
 #endif
+#endif
       //! dIdab&dIdab hessian block
-      JabJab_00 += drdA * drdA * hw * hw;
-      JabJab_01 += drdA * hw * hw;
-      JabJab_11 += hw * hw;
+      JabJab_00 += drdA * drdA * hw_gray * hw_gray;
+      JabJab_01 += drdA * hw_gray * hw_gray;
+      JabJab_11 += hw_gray * hw_gray;
 #else
       //! dIdx&dIdx hessian block
       // Jt * W * J = [gx; gy] * [gx gy] = [gxgx gxgy; gxgy gygy]
@@ -753,41 +1001,55 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
       JIdxJIdx_10 +=
           affLL[0] * affLL[0] * grad_new_host(cnt, 0) * grad_new_host(cnt, 1);
       //! dIdx&dIdab hessian block
+#if 0 // 使用zncc时。梯度和ab没有交叉项，因为zncc残差需要用到梯度，但不需要用到ab
       JabJIdx_00 += drdA * hw * affLL[0] * grad_new_host(cnt, 0);
       JabJIdx_01 += drdA * hw * affLL[0] * grad_new_host(cnt, 1);
       JabJIdx_10 += hw * affLL[0] * grad_new_host(cnt, 0);
       JabJIdx_11 += hw * affLL[0] * grad_new_host(cnt, 1);
-
+#endif
 #endif
       //! dIdab&dIdab hessian block
-      JabJab_00 += drdA * drdA * hw * hw;
-      JabJab_01 += drdA * hw * hw;
-      JabJab_11 += hw * hw;
+      JabJab_00 += drdA * drdA * hw_gray * hw_gray;
+      JabJab_01 += drdA * hw_gray * hw_gray;
+      JabJab_11 += hw_gray * hw_gray;
 #endif
 #ifndef USE_ZNCC
-      wJI2_sum +=
-          hw * hw * (hitColor[1] * hitColor[1] + hitColor[2] * hitColor[2]);
+      wJI2_sum += hw * hw *
+                  (hitColor_gray[1] * hitColor_gray[1] +
+                   hitColor_gray[2] * hitColor_gray[2]);
 #else
       wJI2_sum += hw * hw * (grad_new_target.row(cnt).squaredNorm());
 #endif
-      if (setting_affineOptModeA < 0)
+      if (setting_affineOptModeA < 0) {
+#if 0 // ndef USE_EDGE_ALIGN
         J[target_cid_now]->JabF[0][idx] = 0;
-      if (setting_affineOptModeB < 0)
+#else
+        J[target_cid_now]->JabF[0][idx + (eachErrDim - 1) * patternNum] = 0;
+#endif
+      }
+      if (setting_affineOptModeB < 0) {
+#if 0 // ndef USE_EDGE_ALIGN
         J[target_cid_now]->JabF[1][idx] = 0;
-#ifdef USE_ZNCC
+#else
+        J[target_cid_now]->JabF[1][idx + (eachErrDim - 1) * patternNum] = 0;
+#endif
+      }
+#if eachErrDim == 1 && (defined(USE_ZNCC) || defined(USE_EDGE_ALIGN))
       J[target_cid_now]->JabF[0][idx] = 0;
       J[target_cid_now]->JabF[1][idx] = 0;
 #endif
     }
     cnt++;
   }
+    if (res_count != cnt) {
+        printf("res_count != cnt\n");
+        std::exit(3);
+    }
+    res_sum /= (float)res_count;
+#ifndef USE_CENTER_PIXEL_ONLY
   assert(cnt == count);
-#ifdef SHOW_IMAGE
-  if (show_image) {
-    IOWrap::waitKey(0);
-    delete img_host;
-    delete img_target;
-  }
+#else
+  assert(cnt == 1);
 #endif
 
   J[target_cid_now]->JIdx2(0, 0) =
@@ -805,10 +1067,16 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
   J[target_cid_now]->Jab2(0, 1) = JabJab_01; // TODO 光度x光度部分的小hessian
   J[target_cid_now]->Jab2(1, 0) = JabJab_01;
   J[target_cid_now]->Jab2(1, 1) = JabJab_11;
-#else
-  J[target_cid_now]->JabJIdx.setZero();
+#if defined(USE_EDGE_ALIGN) && eachErrDim == 1
   J[target_cid_now]->Jab2.setZero();
 #endif
+#else
+  J[target_cid_now]->JabJIdx.setZero();
+#if eachErrDim == 1
+  J[target_cid_now]->Jab2.setZero();
+#endif
+#endif
+
   state_NewEnergyWithOutlier[target_cid_now] = energyLeft;
   if (has_nan_res && false) {
     std::cout << "continued_count: " << continued_count << std::endl;
@@ -818,27 +1086,95 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
               << J[target_cid_now]->JabJIdx << std::endl;
     std::cout << "J[target_cid_now]->Jab2:\n"
               << J[target_cid_now]->Jab2 << std::endl;
-    std::cout << "J[target_cid_now]->JabF:\n"
-              << J[target_cid_now]->JabF[0] << std::endl;
-    std::cout << "J[target_cid_now]->resF:\n"
-              << J[target_cid_now]->resF << std::endl;
-    std::cout << "J[target_cid_now]->Jpdxi:\n"
-              << J[target_cid_now]->Jpdxi[0] << std::endl;
-    std::cout << "J[target_cid_now]->Jpdc:\n"
-              << J[target_cid_now]->Jpdc[0] << std::endl;
-    std::cout << "J[target_cid_now]->Jpdd:\n"
-              << J[target_cid_now]->Jpdd << std::endl;
-    std::cout << "J[target_cid_now]->JIdx:\n"
-              << J[target_cid_now]->JIdx[0] << std::endl;
+    std::cout << "J[target_cid_now]->JabF: "
+              << J[target_cid_now]->JabF[0].transpose() << std::endl;
+    std::cout << "J[target_cid_now]->resF: "
+              << J[target_cid_now]->resF.transpose() << std::endl;
+    std::cout << "J[target_cid_now]->Jpdxi: "
+              << J[target_cid_now]->Jpdxi[0].transpose() << std::endl;
+    std::cout << "J[target_cid_now]->Jpdc: "
+              << J[target_cid_now]->Jpdc[0].transpose() << std::endl;
+    std::cout << "J[target_cid_now]->Jpdd: "
+              << J[target_cid_now]->Jpdd.transpose() << std::endl;
+    std::cout << "J[target_cid_now]->JIdx: "
+              << J[target_cid_now]->JIdx[0].transpose() << std::endl;
+    std::cout << "J[target_cid_now]->JIdy: "
+              << J[target_cid_now]->JIdx[1].transpose() << std::endl;
 
-    std::cout << "energyLeft: \n" << energyLeft << std::endl;
+    std::cout << "energyLeft: " << energyLeft
+              << ", energyLeft_gray: " << energyLeft_gray << std::endl;
     // std::exit(31);
   }
+#if eachErrDim == 1
+#if defined(USE_EDGE_ALIGN) || defined(USE_ZNCC)
+  if (J[target_cid_now]->JabF[0].norm() > 0 ||
+      J[target_cid_now]->JabF[1].norm() > 0 ||
+      J[target_cid_now]->Jab2.norm() > 0 ||
+      J[target_cid_now]->JabJIdx.norm() > 0) {
+    printf("J[target_cid_now]->JabF.norm() > 0||J[target_cid_now]->Jab2.norm() "
+           "> 0 || J[target_cid_now]->JabJIdx.norm() > 0\n");
+    std::exit(1);
+  }
+#endif
+#else
+#if defined(USE_EDGE_ALIGN) || defined(USE_ZNCC)
+  if (/*J[target_cid_now]->resF.head(patternNum).norm() < 0.0001 ||*/
+#ifndef USE_CENTER_PIXEL_ONLY
+  J[target_cid_now]->resF.tail(patternNum).norm() < 0.0001 ||
+#endif
+      (J[target_cid_now]->JIdx[0].head(patternNum).norm() < 0.0001 &&
+      J[target_cid_now]->JIdx[1].head(patternNum).norm() < 0.0001) ||
+      J[target_cid_now]->JIdx[0].tail(patternNum).norm() > 0 ||
+      J[target_cid_now]->JIdx[1].tail(patternNum).norm() > 0 ||
+      J[target_cid_now]->JabF[0].tail(patternNum).norm() < 0.0001 ||
+      J[target_cid_now]->JabF[1].tail(patternNum).norm() < 0.0001 ||
+      J[target_cid_now]->JabF[0].head(patternNum).norm() > 0 ||
+      J[target_cid_now]->JabF[1].head(patternNum).norm() > 0 ||
+      J[target_cid_now]->Jab2.norm() < 0.0001 ||
+      J[target_cid_now]->JabJIdx.norm() > 0) {
+    printf("J[target_cid_now]->resF.head(patternNum).norm(): %f, "
+           "J[target_cid_now]->resF.tail(patternNum).norm(): %f, "
+           "J[target_cid_now]->JIdx[0].head(patternNum).norm(): %f, "
+           "J[target_cid_now]->JIdx[1].head(patternNum).norm(): %f, "
+           "J[target_cid_now]->JIdx[0].tail(patternNum).norm(): %f, "
+           "J[target_cid_now]->JIdx[1].tail(patternNum).norm(): %f, "
+           "J[target_cid_now]->JabF[0].tail(patternNum).norm(): %f, "
+           "J[target_cid_now]->JabF[1].tail(patternNum).norm(): %f, "
+           "J[target_cid_now]->JabF[0].head(patternNum).norm(): %f, "
+           "J[target_cid_now]->JabF[1].head(patternNum).norm(): %f, "
+           "J[target_cid_now]->Jab2.norm(): %f, "
+           "J[target_cid_now]->JabJIdx.norm(): %f\n",
+           J[target_cid_now]->resF.head(patternNum).norm(),
+           J[target_cid_now]->resF.tail(patternNum).norm(),
+           J[target_cid_now]->JIdx[0].head(patternNum).norm(),
+           J[target_cid_now]->JIdx[1].head(patternNum).norm(),
+           J[target_cid_now]->JIdx[0].tail(patternNum).norm(),
+           J[target_cid_now]->JIdx[1].tail(patternNum).norm(),
+           J[target_cid_now]->JabF[0].tail(patternNum).norm(),
+           J[target_cid_now]->JabF[1].tail(patternNum).norm(),
+           J[target_cid_now]->JabF[0].head(patternNum).norm(),
+           J[target_cid_now]->JabF[1].head(patternNum).norm(),
+           J[target_cid_now]->Jab2.norm(), J[target_cid_now]->JabJIdx.norm());
+    std::exit(1);
+  }
+#endif
+#endif
+#ifdef SHOW_IMAGE
+  if (show_image) {
+
+    IOWrap::displayImage("host", img_host);
+    IOWrap::displayImage("target", img_target);
+    IOWrap::waitKey(0);
+
+    delete img_host;
+    delete img_target;
+  }
+#endif
   //* 大于阈值则视为有外点
 #ifndef USE_ZNCC
   assert(continued_count == 0);
 #endif
-  if (zncc < setting_outlierTh_zncc ||
+  if ((zncc < setting_outlierTH_zncc_LBA && angle < setting_outlierTH_zncc_angle_LBA) ||
 #ifndef USE_ZNCC
       energyLeft > std::max<float>(host->frameEnergyTH,
                                    target->frameEnergyTH) /*|| wJI2_sum < 2*/
@@ -854,9 +1190,12 @@ double PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now) {
   } else {
     state_NewState[target_cid_now] = ResState::IN;
   }
-
+  state_zncc_angle[target_cid_now] = angle;
+  state_hw[target_cid_now] = hw;
+  state_residual_residual_gray[target_cid_now] = res_sum;
   state_NewEnergy[target_cid_now] = energyLeft;
-  return energyLeft;
+  ret << energyLeft, energyLeft_gray,angle,hw, hw_gray, 1.0f;
+  return ret;
 }
 
 void PointFrameResidual::debugPlot(int cid) {

@@ -99,6 +99,7 @@ typedef Eigen::Matrix<double, CPARS, 1> VecC;
 typedef Eigen::Matrix<float, CPARS, 1> VecCf;
 typedef Eigen::Matrix<double, 13, 1> Vec13;
 typedef Eigen::Matrix<double, 10, 1> Vec10;
+typedef Eigen::Matrix<double, 15, 1> VecTrack;
 typedef Eigen::Matrix<double, STATE_DIM, 1> VecState;
 typedef Eigen::Matrix<double, 9, 1> Vec9;
 typedef Eigen::Matrix<double, 8, 1> Vec8;
@@ -120,6 +121,7 @@ typedef Eigen::Matrix<float, 2 * kCameraNumUsed, 2 * kCameraNumUsed>
     MatStateAffinef;
 typedef Eigen::Matrix<float, 3, 1> Vec3f;
 typedef Eigen::Matrix<float, 2, 1> Vec2f;
+typedef Eigen::Matrix<float, 5, 1> Vec5f;
 typedef Eigen::Matrix<float, 6, 1> Vec6f;
 
 typedef Eigen::Matrix<double, 4, 9> Mat49;
@@ -137,7 +139,7 @@ typedef Eigen::Matrix<double, 8, 4> Mat84;
 typedef Eigen::Matrix<double, 4, 8> Mat48;
 typedef Eigen::Matrix<double, 4, 4> Mat44;
 
-typedef Eigen::Matrix<float, MAX_RES_PER_POINT, 1> VecNRf;
+typedef Eigen::Matrix<float, MAX_RES_PER_POINT * eachErrDim, 1> VecNRf;
 typedef Eigen::Matrix<float, MAX_RES_PER_POINT_SEED /* * kCameraNumUsed*/, 1>
     VecBigf;
 typedef Eigen::Matrix<float, 12, 1> Vec12f;

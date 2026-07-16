@@ -210,13 +210,20 @@ void dmvio::MainSettings::settingsDefault(int preset) {
 
     playbackSpeed = (preset == 0 ? 0 : 1.0);
     preload = preset == 1;
+#ifndef USE_EDGE_ALIGN
     setting_desiredImmatureDensity =
         5000; // * kCameraNumUsed; // 3000; // 1500;
     setting_desiredPointDensity =
         2000;                     // * kCameraNumUsed;    // 2000;    // 1000;
     setting_minFrames = 5;        // 15;//5;
-    setting_maxFrames = 7;        // 12;//7;//30;//7;
-    setting_maxOptIterations = 5; // 6;
+    setting_maxFrames = 7;        // 12;//7;
+#else
+    setting_desiredImmatureDensity = 5000;// 10000;
+    setting_desiredPointDensity = 2000;//5000;
+    setting_minFrames = 5;        // 15;//5;
+    setting_maxFrames = 7;        // 12;//7;
+#endif
+    setting_maxOptIterations = 3;//5; // 6;
     setting_minOptIterations = 2;
 
     setting_logStuff = false;

@@ -95,7 +95,7 @@ public:
   float neighboursDistL1[10]; //!< 最近10个点的距离
 
   float my_type;   //!< 第0层提取是1, 2, 4, 对应d, 2d, 4d, 其它层是1
-  float outlierTH; //!< 外点阈值
+  float energyTH; //!< 外点阈值
 };
 
 class CoarseInitializer {
@@ -189,7 +189,7 @@ private:
   float regWeight;      //!< 对逆深度的加权值, 0.8
   float couplingWeight; //!< 1
 
-  Vec3f calcResAndGS(int iter, int max_iter, int lvl, MatStatef &H_out,
+  Vec4f calcResAndGS(int iter, int max_iter, int lvl, MatStatef &H_out,
                      VecStatef &b_out, MatStatef &H_out_sc, VecStatef &b_out_sc,
                      const SE3 &refToNew, AffLight refToNew_aff, bool plot,
                      int &N, bool show_image = false, int lvl_target_ = -1);

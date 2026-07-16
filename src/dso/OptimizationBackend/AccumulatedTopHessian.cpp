@@ -112,7 +112,7 @@ void AccumulatedTopHessianSSE::addPoint(
         __m128 delta_a = _mm_set1_ps((float)(dp[6]));
         __m128 delta_b = _mm_set1_ps((float)(dp[7]));
 
-        for (int i = 0; i < patternNum; i += 4) {
+        for (int i = 0; i < patternNum * eachErrDim; i += 4) {
           // PATTERN: rtz = resF - [JI*Jp Ja]*delta.
           //! PATTERN: rtz = res_toZeroF - [JI*Jp Ja]*delta.
           //! rtz = res_toZeroF - [JI] * [Jp * delta_pose_camera_idp].
@@ -140,7 +140,7 @@ void AccumulatedTopHessianSSE::addPoint(
       Vec2f JI_r(0, 0);
       Vec2f Jab_r(0, 0);
       float rr = 0;
-      for (int i = 0; i < patternNum; i++) {
+      for (int i = 0; i < patternNum * eachErrDim; i++) {
         JI_r[0] += resApprox[i] * rJ->JIdx[0][i];
         JI_r[1] += resApprox[i] * rJ->JIdx[1][i];
         Jab_r[0] += resApprox[i] * rJ->JabF[0][i]; // TODO accumulate b = J^T *

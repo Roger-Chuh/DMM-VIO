@@ -343,7 +343,7 @@ void EnergyFunctional::resubstituteF_MT(VecX x, CalibHessian *HCalib, bool MT) {
     h->data->step.head<STATE_DIM>() =
         -x.segment<STATE_DIM>(CPARS + STATE_DIM * h->idx);
     // h->data->step.tail<2>().setZero();
-#ifdef USE_ZNCC
+#if defined(USE_ZNCC) || defined(USE_EDGE_ALIGN)
     std::cout << "fid: " << h->idx
               << ", pose_ab inc: " << h->data->step.transpose() << std::endl;
 #endif
@@ -407,6 +407,14 @@ void EnergyFunctional::resubstituteFPt(const VecCf &xc, Mat1Statef *xAd,
     }
     // TODO 已知pose ab的增量，求idp的增量, implicit schur trick
     p->data->step = -b * p->HdiF; // 逆深度的增量
+#if 1 // defined(USE_ZNCC) || defined(USE_EDGE_ALIGN)
+    if (k < 0 /*&& p->host_cid == 0*/) {
+      printf("update_idp, host_pix: [%f %f], idp_step: %f, idp_step_bakup: %f, "
+             "idp: %f, idp_bakup: %f\n",
+             p->data->u, p->data->v, p->data->step, p->data->step_backup,
+             p->data->idepth_zero_scaled, p->data->idepth_backup);
+    }
+#endif
     assert(std::isfinite(p->data->step));
   }
 }
@@ -493,7 +501,7 @@ void EnergyFunctional::calcLEnergyPt(int min, int max, Vec10 *stats, int tid) {
         __m128 delta_a = _mm_set1_ps((float)(dp[6]));
         __m128 delta_b = _mm_set1_ps((float)(dp[7]));
 
-        for (int i = 0; i + 3 < patternNum; i += 4) {
+        for (int i = 0; i + 3 < patternNum * eachErrDim; i += 4) {
           // PATTERN: E = (2*res_toZeroF + J*delta) * J*delta.
           //! PATTERN: E = (2*resb_toZeroF + J*delta) * J*delta.
           //! E = (f(x0)+J*dx)^2 = dx*H*dx + 2*J*dx*f(x0) + f(x0)^2 丢掉常数
@@ -519,7 +527,8 @@ void EnergyFunctional::calcLEnergyPt(int min, int max, Vec10 *stats, int tid) {
           E.updateSSENoShift(Jdelta);
         }
         // 128位对齐, 多出来部分
-        for (int i = ((patternNum >> 2) << 2); i < patternNum; i++) {
+        for (int i = (((patternNum * eachErrDim) >> 2) << 2);
+             i < patternNum * eachErrDim; i++) {
           // TODO 在像素投影点的扰动下，梯度，ab的变化带来的光度残差的增量
           float Jdelta = rJ->JIdx[0][i] * Jp_delta_x_1 +
                          rJ->JIdx[1][i] * Jp_delta_y_1 +
@@ -931,6 +940,10 @@ void EnergyFunctional::marginalizePointsF() {
   VecX Mb, Mbsc;
   accSSE_top_A->stitchDouble(M, Mb, this, false, false); // 不加先验, 在后面加了
   accSSE_bot->stitchDouble(Msc, Mbsc, this);
+  // std::cout <<"M:\n" << M << std::endl;
+  // std::cout <<"Mb: " << Mb.transpose() << std::endl;
+  // std::cout <<"Msc:\n" << Msc << std::endl;
+  // std::cout <<"Mbsc: " << Mbsc.transpose() << std::endl;
 
   resInM += accSSE_top_A->nres[0];
 
@@ -1212,6 +1225,9 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
     bFinal_top = bT_act + bM_top;
 
     lastHS = HFinal_top;
+    NAN_CHECK_COND(HFinal_top, "HFinal_top(ORTHO noSchur)");
+    NAN_CHECK_COND(H_sc, "H_sc(ORTHO Schur)");
+    NAN_CHECK_COND(lastHS, "lastHS(ORTHO pre-lambda)");
     lastbS = bFinal_top;
     // LM
     //* 这个阻尼也是加在Schur complement计算之后的
@@ -1226,6 +1242,9 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
     bFinal_top = bL_top + bM_top + bA_top - b_sc;
 
     lastHS = HFinal_top - H_sc;
+    NAN_CHECK_COND(HFinal_top, "HFinal_top(noSchur pre-lambda)");
+    NAN_CHECK_COND(H_sc, "H_sc(Schur complement)");
+    NAN_CHECK_COND(lastHS, "lastHS(pre-lambda)");
     lastbS = bFinal_top;
     //* 而这个就是阻尼加在了整个Hessian上
     //? 为什么呢, 是因为减去了零空间么  ??
@@ -1235,12 +1254,16 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
         H_sc * (1.0f / (1 + lambda)); // 因为Schur里面有个对角线的逆, 所以是倒数
   }
 
+  NAN_CHECK_EIGEN(HFinal_top, "HFinal_top");
+  NAN_CHECK_EIGEN(bFinal_top, "bFinal_top");
+  NAN_CHECK_COND(HFinal_top, "HFinal_top(lambda+Schur)");
+
   //[ ***step 3*** ] 使用SVD求解, 或者ldlt直接求解
   VecX x;
   if (setting_solverMode & SOLVER_SVD) {
-    // printf("solve c\n");
     //* 为数值稳定进行缩放
     VecX SVecI = HFinal_top.diagonal().cwiseSqrt().cwiseInverse();
+    NAN_CHECK_EIGEN(SVecI, "SVecI(diag scaling)");
     MatXX HFinalScaled = SVecI.asDiagonal() * HFinal_top * SVecI.asDiagonal();
     VecX bFinalScaled = SVecI.asDiagonal() * bFinal_top;
     //! Hx=b --->  U∑V^T*x = b
@@ -1255,6 +1278,9 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
       if (S[i] > maxSv)
         maxSv = S[i];
     }
+    NAN_LOG_COND(minSv, maxSv, "SVD solution");
+    NAN_PRINT("iter=%d, lambda=%g, nFrames=%d, S_size=%d\n",
+              iteration, lambda, nFrames, (int)S.size());
     //! Hx=b --->  U∑V^T*x = b  --->  ∑V^T*x = U^T*b
     VecX Ub = svd.matrixU().transpose() * bFinalScaled;
     int setZero = 0;
@@ -1277,6 +1303,7 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
     }
     //! x = V*∑^-1*U^T*b   把scaled的乘回来
     x = SVecI.asDiagonal() * svd.matrixV() * Ub;
+    NAN_CHECK_EIGEN(x, "SVD x(solution)");
 
   } else {
     VecX myX;
@@ -1288,20 +1315,29 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
       // as they don't depend on the points (as otherwise the Schur-complement
       // trick doesn't work like this anymore).
       MatXX HPassed = HL_top + HMForGTSAM + HA_top;
+      NAN_CHECK_EIGEN(HPassed, "HPassed");
       for (int i = 0; i < STATE_DIM * nFrames + CPARS; i++)
         HPassed(i, i) *= (1 + lambda);
       HPassed -= H_sc * (1.0f / (1 + lambda));
+      NAN_CHECK_COND(HPassed, "HPassed(GTSAM pre-solve)");
       x = gtsamIntegration.computeBAUpdate(
           HPassed, bL_top + bMGTSAM_top + bA_top - b_sc, lambda, frames,
           HL_top + HMForGTSAM + HA_top - H_sc);
+      NAN_CHECK_EIGEN(x, "GTSAM x(solution)");
+      NAN_PRINT("GTSAM solve: iter=%d, lambda=%g, x_norm=%g\n",
+                iteration, lambda, x.norm());
     } else {
       VecX SVecI =
           (HFinal_top.diagonal() + VecX::Constant(HFinal_top.cols(), 10))
               .cwiseSqrt()
               .cwiseInverse();
+      NAN_CHECK_EIGEN(SVecI, "LDLT SVecI");
       MatXX HFinalScaled = SVecI.asDiagonal() * HFinal_top * SVecI.asDiagonal();
       x = SVecI.asDiagonal() *
           HFinalScaled.ldlt().solve(SVecI.asDiagonal() * bFinal_top);
+      NAN_CHECK_EIGEN(x, "LDLT x(solution)");
+      NAN_PRINT("LDLT solve: iter=%d, lambda=%g, x_norm=%g\n",
+                iteration, lambda, x.norm());
     }
     // Important: x is -step !
   }

@@ -27,6 +27,7 @@
 #include <iostream>
 
 namespace dso {
+ColorMap color_map;
 int wG[PYR_LEVELS], hG[PYR_LEVELS];
 float fxG[PYR_LEVELS], fyG[PYR_LEVELS], cxG[PYR_LEVELS], cyG[PYR_LEVELS];
 
@@ -100,6 +101,7 @@ void setGlobalCalib(int w, int h, const Eigen::Matrix3f &K) {
     cxiG[level] = KiG[level](0, 2);
     cyiG[level] = KiG[level](1, 2);
   }
+  color_map = ColorMap(GetColorMap("jet"));
 }
 
 } // namespace dso
