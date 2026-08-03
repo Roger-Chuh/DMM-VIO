@@ -33,7 +33,6 @@ const float minUseGrad_pixsel = 10;
 template <int pot>
 inline int gridMaxSelection(Eigen::Vector3f *grads, bool *map_out, int w, int h,
                             float THFac) {
-
   memset(map_out, 0, sizeof(bool) * w * h);
 
   int numGood = 0;
@@ -122,7 +121,6 @@ inline int gridMaxSelection(Eigen::Vector3f *grads, bool *map_out, int w, int h,
 //* 同上, 只是把pot作为参数
 inline int gridMaxSelection(Eigen::Vector3f *grads, bool *map_out, int w, int h,
                             int pot, float THFac) {
-
   memset(map_out, 0, sizeof(bool) * w * h);
 
   int numGood = 0;
@@ -250,7 +248,6 @@ inline int makePixelStatus(Eigen::Vector3f *grads, bool *map, int w, int h,
   // 则返回
   if ((abs(newSparsity - sparsityFactor) < 1 && THFac == oldTHFac) ||
       (quotia > 0.8 && 1.0f / quotia > 0.8) || recsLeft == 0) {
-
     //		printf(" \n");
     // all good
     sparsityFactor = newSparsity;

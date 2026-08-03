@@ -35,6 +35,7 @@
 #include "util/NumType.h"
 #include <fstream>
 #include <iostream>
+#include <opencv2/core/mat.hpp>
 
 namespace dso {
 class MultiCamera;
@@ -363,7 +364,12 @@ struct FrameHessian {
     efFrame = 0;
 #ifndef USE_ZNCC
     frameEnergyTH = 20 * 20 * patternNum; // 8 * 8 * patternNum;
-    frameEnergyTH = 1.5 * 1.5 * setting_outlierTH_LBA * setting_outlierTH_LBA /*setting_coarseCutoffTH * setting_coarseCutoffTH setting_outlierTH_epi_trace_on * setting_outlierTH_epi_trace_on*/ * patternNum;
+    frameEnergyTH =
+        1.5 * 1.5 * setting_outlierTH_LBA *
+        setting_outlierTH_LBA /*setting_coarseCutoffTH * setting_coarseCutoffTH
+                                 setting_outlierTH_epi_trace_on *
+                                 setting_outlierTH_epi_trace_on*/
+        * patternNum;
 #else
     frameEnergyTH = (1 * setting_variableScale) * (1 * setting_variableScale);
 #endif
@@ -371,7 +377,12 @@ struct FrameHessian {
 
     addCamPrior = false;
   };
-
+  // cv::Mat GetCleanEdges(const cv::Mat& src_gray, double low_thresh, double
+  // high_thresh, int min_area_threshold = 50); cv::Mat CleanCannyEdges(const
+  // cv::Mat& src, int blurKsize = 9, double blurSigma = 3.0, bool useBilateral
+  // = false,
+  //                    double cannySigma = 0.33, int minEdgeLength = 30, bool
+  //                    doMorphClose = true, int morphKsize = 3);
   void makeImages(float *color, CalibHessian *HCalib);
 
   //* 获得先验信息矩阵， 怎么感觉除了第一帧没什么用

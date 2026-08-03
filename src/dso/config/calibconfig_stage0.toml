@@ -307,7 +307,9 @@ do_detection_only = false
 #dataSet = "/media/roger/Elements_SE/CI/gt2/SLAMRecord/1"
 
 
-dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/deoutlier/SLAMRecord/5"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/deoutlier/SLAMRecord/5"
+#dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/deoutlier/SLAMRecord/1"
+dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/deoutlier/SLAMRecord/3"
 
 #dataSet = "/media/roger/Elements_SE/CI/dvt/new_model/non_inertial/SLAMRecord/1"
 

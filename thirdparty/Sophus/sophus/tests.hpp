@@ -12,7 +12,6 @@ using namespace std;
 using namespace Eigen;
 
 template <class LieGroup> class Tests {
-
 public:
   typedef typename LieGroup::Scalar Scalar;
   typedef typename LieGroup::Transformation Transformation;
@@ -86,7 +85,6 @@ public:
   bool expMapTest() {
     bool passed = true;
     for (size_t i = 0; i < tangent_vec_.size(); ++i) {
-
       Tangent omega = tangent_vec_[i];
       Transformation exp_x = LieGroup::exp(omega).matrix();
       Transformation expmap_hat_x = (LieGroup::hat(omega)).exp();

@@ -141,7 +141,6 @@ void GradValAtDSobel(std::shared_ptr<AlgsImage> img, const Vec2i &px,
 bool Patch::SetFromImg(std::shared_ptr<AlgsImage> img, const int &level,
                        const Vec2 &px, bool &is_corner,
                        CameraBase *p_simple_camera) {
-
   int row = img->height;
   int col = img->width;
   Vec2 cur_px;
@@ -157,7 +156,6 @@ bool Patch::SetFromImg(std::shared_ptr<AlgsImage> img, const int &level,
   number_t dxy = 0;
 
   for (size_t i = 0; i < PATCH_SIZE; ++i) {
-
     // cur_px = px + pattern2[i];
     cur_px = px + pattern2_def.col(i);
 

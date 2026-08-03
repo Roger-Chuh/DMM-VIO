@@ -328,7 +328,6 @@ void DisconnectedDelayedGraph::addFactor(
 void DisconnectedDelayedGraph::marginalize(
     const gtsam::FastVector<gtsam::Key> &keysToMarginalize,
     gtsam::Values::shared_ptr values, gtsam::Values::shared_ptr currValues) {
-
   marginalizationOrder.push_back(keysToMarginalize);
 
   // Also save values

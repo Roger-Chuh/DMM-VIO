@@ -73,6 +73,7 @@ template <typename T> using Matrix6x3 = LinearAlgebraLib::Matrix<T, 6, 3>;
 template <typename T> using Vector3 = LinearAlgebraLib::Matrix<T, 3, 1>;
 template <typename T> using Vector6 = LinearAlgebraLib::Matrix<T, 6, 1>;
 
+using Mat3 = LinearAlgebraLib::Matrix<number_t, 3, 3>;
 using Mat4 = LinearAlgebraLib::Matrix<number_t, 4, 4>;
 using Mat36 = LinearAlgebraLib::Matrix<number_t, 3, 6>;
 using Vec2 = LinearAlgebraLib::Matrix<number_t, 2, 1>;
@@ -84,6 +85,10 @@ using VecX_uint8 =
     LinearAlgebraLib::Matrix<uint8_t, LinearAlgebraLib::Dynamic, 1>;
 using VecX_uint8_Map = LinearAlgebraLib::Map<VecX_uint8>;
 typedef Eigen::Matrix<number_t, Eigen::Dynamic, 1> VecX;
+using VecXc = LinearAlgebraLib::Matrix<std::complex<number_t>,
+                                       LinearAlgebraLib::Dynamic, 1>;
+using MatX = LinearAlgebraLib::Matrix<number_t, LinearAlgebraLib::Dynamic,
+                                      LinearAlgebraLib::Dynamic>;
 using Quaternion = LinearAlgebraLib::Quaternion<number_t>;
 
 // Check the dimensions of the input matrix

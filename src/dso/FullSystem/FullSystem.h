@@ -47,12 +47,12 @@
 #include "IMUInitialization/GravityInitializer.h"
 #include <math.h>
 
+#include "../util/color_map.h"
 #include "depth_filter_DSM.h"
 #include "epipolar_search.h"
 #include "estimator_config.h"
 #include "multi_camera_epipolar_search.h"
 #include "patch.h"
-#include "../util/color_map.h"
 
 namespace dso {
 namespace IOWrap {
@@ -222,8 +222,8 @@ private:
 
   // mainPipelineFunctions
   std::pair<Vec10, bool> trackNewCoarse(FrameHessian *fh,
-                                       Sophus::SE3 *referenceToFrameHint = 0,
-                                       Mat33 dRwb = Mat33::Identity());
+                                        Sophus::SE3 *referenceToFrameHint = 0,
+                                        Mat33 dRwb = Mat33::Identity());
 
   void traceNewCoarse(FrameHessian *fh, bool is_first_frame = false);
   void convert_to_ImageData(cv::Mat &data, ImageDataAM &image_data,
@@ -253,7 +253,8 @@ private:
   // solce. eventually migrate to ef.
   void solveSystem(int iteration, double lambda);
 
-  Vec7 linearizeAll(int iter_num,bool fixLinearization, bool reset_backup_value);
+  Vec7 linearizeAll(int iter_num, bool fixLinearization,
+                    bool reset_backup_value);
 
   bool doStepFromBackup(float stepfacC, float stepfacT, float stepfacR,
                         float stepfacA, float stepfacD);
@@ -266,7 +267,8 @@ private:
 
   double calcMEnergy(bool useNewValues);
 
-  void linearizeAll_Reductor(int iter_num,bool fixLinearization, bool reset_backup_value,
+  void linearizeAll_Reductor(int iter_num, bool fixLinearization,
+                             bool reset_backup_value,
                              std::vector<PointFrameResidual *> *toRemove,
                              int min, int max, Vec10 *stats, int tid);
 
@@ -349,8 +351,8 @@ private:
       frameHessians; //!< 关键帧 	// ONLY changed in marginalizeFrame and
                      //!< addFrame.
   std::vector<PointFrameResidual *> activeResiduals; //!< 新加入的激活点的残差
-  //ColorMap color_map = ColorMap(GetColorMap("jet"));;
-  float currentMinActDist;                           //!<　激活点的阈值
+  // ColorMap color_map = ColorMap(GetColorMap("jet"));;
+  float currentMinActDist; //!<　激活点的阈值
 
   std::vector<float> allResVec; //!< 所有在当前最近帧上的残差值
 

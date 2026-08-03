@@ -196,16 +196,15 @@ void IMUIntegration::updateCoarsePose(const Sophus::SE3 &refToFrame) {
   coarseLogic->updateCoarsePose(refToFrame);
 }
 
-Sophus::SE3 IMUIntegration::computeCoarseUpdate(dso::Vec8 &inc_gtsam, const dso::Mat88 &H_in,
-                                                const dso::Vec8 &b_in,
-                                                float extrapFac, float lambda,
-                                                double &incA, double &incB,
-                                                double &incNorm, bool force_zero_inc) {
-
+Sophus::SE3 IMUIntegration::computeCoarseUpdate(
+    dso::Vec8 &inc_gtsam, const dso::Mat88 &H_in, const dso::Vec8 &b_in,
+    float extrapFac, float lambda, double &incA, double &incB, double &incNorm,
+    bool force_zero_inc) {
   assert(isCoarseInitialized()); // Caller is responsible for not calling if not
                                  // initialized.
-  Sophus::SE3d newReferenceToFrame = coarseLogic->computeCoarseUpdate(inc_gtsam,
-      H_in, b_in, extrapFac, lambda, incA, incB, incNorm, force_zero_inc);
+  Sophus::SE3d newReferenceToFrame =
+      coarseLogic->computeCoarseUpdate(inc_gtsam, H_in, b_in, extrapFac, lambda,
+                                       incA, incB, incNorm, force_zero_inc);
 
   return newReferenceToFrame;
 }

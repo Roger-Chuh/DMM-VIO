@@ -113,10 +113,34 @@ getInterpolatedElement33(const Eigen::Vector3f *const mat, const float x,
   checkBoundsPlus1(ix, iy, width);
   /// mat传进来只是为了得到数据的地址,用以指向角点4邻域内的数据，它的内容并不参与计算，指针妙用
   /// 灰度值能插没错，x，y方向的梯度也能插？ 插出来的结果构成一个Vector3f
-  return dxdy * *(const Eigen::Vector3f *)(bp + 1 + width) +
-         (dy - dxdy) * *(const Eigen::Vector3f *)(bp + width) +
-         (dx - dxdy) * *(const Eigen::Vector3f *)(bp + 1) +
-         (1 - dx - dy + dxdy) * *(const Eigen::Vector3f *)(bp);
+  Vec3f ret = dxdy * *(const Eigen::Vector3f *)(bp + 1 + width) +
+              (dy - dxdy) * *(const Eigen::Vector3f *)(bp + width) +
+              (dx - dxdy) * *(const Eigen::Vector3f *)(bp + 1) +
+              (1 - dx - dy + dxdy) * *(const Eigen::Vector3f *)(bp);
+#if 1
+  return ret;
+#else
+  const Vec3f ret_bak = ret;
+  const Vec2 px = Vec2(x, y);
+  const int x0i = static_cast<int>(std::floor(px.x()));
+  const int x1i = x0i + 1;
+  const int y0i = static_cast<int>(std::floor(px.y()));
+  const int y1i = y0i + 1;
+
+  const float f00 = (mat[x0i + width * y0i][0]);
+  const float f10 = (mat[x1i + width * y0i][0]);
+  const float f01 = (mat[x0i + width * y1i][0]);
+  const float f11 = (mat[x1i + width * y1i][0]);
+
+  const float x0 = px.x() - x0i;
+  const float y0 = px.y() - y0i;
+  const float x1 = 1.0 - x0;
+  const float y1 = 1.0 - y0;
+  ret[0] = f00 * x1 * y1 + f10 * x0 * y1 + f01 * x1 * y0 + f11 * x0 * y0;
+  ret[1] = (f10 - f00) * y1 + (f11 - f01) * y0;
+  ret[2] = (f01 - f00) * x1 + (f11 - f10) * x0;
+  return ret;
+#endif
 }
 
 EIGEN_ALWAYS_INLINE Eigen::Vector3f getInterpolatedElement33OverAnd(

@@ -8391,7 +8391,8 @@ cxx::enable_if_t<
             detail::is_std_basic_string<T>>, // but not std::basic_string<CharT>
 #if defined(TOML11_HAS_STRING_VIEW)
         cxx::negation<detail::is_std_basic_string_view<
-            T>>, // but not std::basic_string_view<CharT>
+            T>>, // but not
+                 // std::basic_string_view<CharT>
 #endif
         cxx::negation<detail::has_from_toml_method<T, TC>>, // no T.from_toml()
         cxx::negation<detail::has_specialized_from<T>>,     // no toml::from<T>
@@ -8497,7 +8498,8 @@ cxx::enable_if_t<
             detail::is_std_basic_string<T>>, // but not std::basic_string<CharT>
 #if defined(TOML11_HAS_STRING_VIEW)
         cxx::negation<detail::is_std_basic_string_view<
-            T>>, // but not std::basic_string_view<CharT>
+            T>>, // but not
+                 // std::basic_string_view<CharT>
 #endif
         cxx::negation<detail::has_from_toml_method<T, TC>>, // no T.from_toml()
         cxx::negation<detail::has_specialized_from<T>>,     // no toml::from<T>

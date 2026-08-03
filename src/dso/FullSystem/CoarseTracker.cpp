@@ -517,7 +517,7 @@ void CoarseTracker::calcGSSSE(bool fix_ab_, bool is_imu_ready, int lvl_target_,
   b_out.segment<1>(7) *= SCALE_B;
 #endif
 }
-  static float FindMedian(const std::vector<float> &numbers) {
+static float FindMedian(const std::vector<float> &numbers) {
   if (numbers.empty()) {
     return 0.0f;
   }
@@ -540,20 +540,19 @@ void CoarseTracker::calcGSSSE(bool fix_ab_, bool is_imu_ready, int lvl_target_,
 //#define SHOW_KF_PROJ
 ////////////////////////// #define SHOW_ALIGN_FRAME
 //#define SHOW_ERROR_DISTRIBUTION
-VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
-                            const std::vector<FrameHessian *> &frameHessians,
-                            int all_keyframe_size, bool is_imu_ready,
-                            int lvl_target_, FrameHessian *lastRef, int lvl,
-                            const SE3 &refToNew_, AffLight aff_g2l,
-                            float cutoffTH, bool show_image) {
+VecTrack CoarseTracker::calcRes(
+    const bool &disable_kf, const int &iter,
+    const std::vector<FrameHessian *> &frameHessians, int all_keyframe_size,
+    bool is_imu_ready, int lvl_target_, FrameHessian *lastRef, int lvl,
+    const SE3 &refToNew_, AffLight aff_g2l, float cutoffTH, bool show_image) {
 
   bool force_host_target_same_cid = false; // false;
-  float count_thr = 10.0;//200.0;
+  float count_thr = 10.0;                  // 200.0;
   int count_step = 1;
 
   if (!force_host_target_same_cid) {
-    count_thr = 10.0;//200.0;
-    count_step = 1;//4;
+    count_thr = 10.0; // 200.0;
+    count_step = 1;   // 4;
   }
   float setting_huberTH_use;
   float dt_cutoffTH_use;
@@ -596,7 +595,7 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
   float sumSquaredShiftRT = 0;
   float sumSquaredShiftNum = 0;
   int numTermsInWarpedSum = 0;
-#if 0 //def SAVE_IMAGES
+#if 0 // def SAVE_IMAGES
   bool show_align_res = true;
 #else
   bool show_align_res = lvl == 0 && lvl == lvl_target && iter == -1;
@@ -615,7 +614,8 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
   if (show_align_res) {
     img_target_align = new MinimalImageB3(wG[lvl_target], hG[lvl_target]);
     for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-      const Eigen::Vector3f *dIl_gray = newFrame->dIp[lvl_target] + wG[lvl_target] * hG[lvl_target] * cid;
+      const Eigen::Vector3f *dIl_gray =
+          newFrame->dIp[lvl_target] + wG[lvl_target] * hG[lvl_target] * cid;
       for (int i = 0; i < wG[lvl_target] * hG[lvl_target]; i++) {
         float colL = dIl_gray[i][0];
         if (colL < 0)
@@ -682,7 +682,7 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
 #ifdef SHOW_KF_PROJ
       MinimalImageB3 *img_host;
       MinimalImageB3 *img_target;
-      int extra_scale = 0;//1;
+      int extra_scale = 0; // 1;
       float extra_scale_coord = std::pow(2, -extra_scale);
       if (show_kf_disp && !fh->pointHessians.empty()) {
         img_host =
@@ -749,8 +749,8 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
           }
           Eigen::Vector3f *dINewl_gray =
               newFrame->dIp[lvl_target] + wl_target * hl_target * target_cam;
-          Eigen::Vector3f *dINewl =
-              newFrame->dt_dx_dy[lvl_target] + wl_target * hl_target * target_cam;
+          Eigen::Vector3f *dINewl = newFrame->dt_dx_dy[lvl_target] +
+                                    wl_target * hl_target * target_cam;
           const float *const color = ph->color; // host帧上颜色
           SE3 fhToNew_ = newFrame->PRE_worldToCam * fh->PRE_camToWorld;
           SE3 fhToNew =
@@ -767,7 +767,8 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
           float new_idepth = ph->idepth / pt[2]; // 当前帧上的深度
           Vec3f hitColor, hostColor, hitColor_gray, hostColor_gray;
           hostColor = getInterpolatedElement33(dIHostl, ph->u, ph->v, wl);
-          hostColor_gray = getInterpolatedElement33(dIHostl_gray, ph->u, ph->v, wl);
+          hostColor_gray =
+              getInterpolatedElement33(dIHostl_gray, ph->u, ph->v, wl);
           bool is_in_frame = true, is_valid_projection = true;
           //* 图像边沿, 深度为负 则跳过
           if (!(Ku > 2 && Kv > 2 && Ku < wl_target - 3 && Kv < hl_target - 3 &&
@@ -777,25 +778,32 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
             hitColor_gray = Vec3f::Constant(std::nan(""));
           } else {
             hitColor = getInterpolatedElement33(dINewl, Ku, Kv, wl_target);
-            hitColor_gray = getInterpolatedElement33(dINewl_gray, Ku, Kv, wl_target);
+            hitColor_gray =
+                getInterpolatedElement33(dINewl_gray, Ku, Kv, wl_target);
           }
 #ifndef USE_EDGE_ALIGN
-          float residual =
-              hitColor_gray[0] - (float)(affLL[0] * hostColor_gray[0] + affLL[1]);
+          float residual = hitColor_gray[0] -
+                           (float)(affLL[0] * hostColor_gray[0] + affLL[1]);
 #else
           float residual = hitColor[0];
 #endif
           if (!std::isfinite((float)hitColor_gray[0])
 #ifdef USE_EDGE_ALIGN
-          || !std::isfinite((float)hitColor[0])
+              || !std::isfinite((float)hitColor[0])
 #endif
           ) {
             is_valid_projection = false;
           }
-          // printf("setting_huberTH_tracker: %f, residual_residual: %f, is_in_frame: %d,is_valid_projection: %d, [host target]: [%d %d], [fh == lastRef]: %d\n", setting_huberTH_tracker, residual, is_in_frame, is_valid_projection,
+          // printf("setting_huberTH_tracker: %f, residual_residual: %f,
+          // is_in_frame: %d,is_valid_projection: %d, [host target]: [%d %d],
+          // [fh == lastRef]: %d\n", setting_huberTH_tracker, residual,
+          // is_in_frame, is_valid_projection,
           //        ph->host_cid, target_cam, fh == lastRef);
           valid_point_count++;
-          // printf("is_in_frame: %d, is_valid_projection: %d, new_idepth: %f, target_cam: %d, lvl_target: %d, [wl_target hl_target]: [%d %d], target_uv: [%f %f]\n", is_in_frame, is_valid_projection, new_idepth, target_cam, lvl_target, wl_target, hl_target, Ku, Kv);
+          // printf("is_in_frame: %d, is_valid_projection: %d, new_idepth: %f,
+          // target_cam: %d, lvl_target: %d, [wl_target hl_target]: [%d %d],
+          // target_uv: [%f %f]\n", is_in_frame, is_valid_projection,
+          // new_idepth, target_cam, lvl_target, wl_target, hl_target, Ku, Kv);
           if (is_in_frame && is_valid_projection &&
               (ph->host_cid == target_cam || !force_host_target_same_cid) &&
               std::abs(residual) < setting_huberTH_tracker &&
@@ -874,8 +882,10 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
               }
               // IOWrap::displayImage("host frame 111", img_host);
               // IOWrap::displayImage("target frame 111", img_target);
-              // printf("host_cid: %d, target_cid: %d, good_res_count: %d,all_res_count: %d\n",
-              //        ph->host_cid, target_cam, good_res_count, ph->residuals.size());
+              // printf("host_cid: %d, target_cid: %d, good_res_count:
+              // %d,all_res_count: %d\n",
+              //        ph->host_cid, target_cam, good_res_count,
+              //        ph->residuals.size());
               // IOWrap::waitKey(0);
               //              delete img_host;
               //              delete img_target;
@@ -944,12 +954,15 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
       int hl = h[lvl];
       int wl_target = w[lvl_target];
       int hl_target = h[lvl_target];
-      Eigen::Vector3f *dINewl_gray = newFrame->dIp[lvl_target] + wl_target * hl_target * target_cid;
+      Eigen::Vector3f *dINewl_gray =
+          newFrame->dIp[lvl_target] + wl_target * hl_target * target_cid;
 #ifndef USE_EDGE_ALIGN
       Eigen::Vector3f *dINewl = dINewl_gray;
 #else
-      Eigen::Vector3f *dINewl = newFrame->dt_dx_dy[lvl_target] + wl_target * hl_target * target_cid;
-      float gray_val_target = (*(newFrame->dIp[lvl_target] + wl_target * hl_target * target_cid))[0];
+      Eigen::Vector3f *dINewl =
+          newFrame->dt_dx_dy[lvl_target] + wl_target * hl_target * target_cid;
+      float gray_val_target = (*(newFrame->dIp[lvl_target] +
+                                 wl_target * hl_target * target_cid))[0];
 #endif
       float fxl = fx[lvl];
       float fyl = fy[lvl];
@@ -1010,7 +1023,7 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
         float new_idepth = id / pt[2]; // 当前帧上的深度
 
         //#ifndef USE_MULTI_KEYFRAME_DISTANCE_MAP
-        if (lvl_target == 0 && lvl == 0 && i % 1/*32*/ == 0 &&
+        if (lvl_target == 0 && lvl == 0 && i % 1 /*32*/ == 0 &&
             (host_cid == target_cid ||
              !force_host_target_same_cid)) //* 第0层 每隔32个点
         {
@@ -1058,12 +1071,13 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
             hitColor_gray = Vec3f::Constant(std::nan(""));
           } else {
             hitColor = getInterpolatedElement33(dINewl, Ku, Kv, wl_target);
-            hitColor_gray = getInterpolatedElement33(dINewl_gray, Ku, Kv, wl_target);
+            hitColor_gray =
+                getInterpolatedElement33(dINewl_gray, Ku, Kv, wl_target);
           }
 
           if (!std::isfinite((float)hitColor_gray[0])
 #ifdef USE_EDGE_ALIGN
-|| !std::isfinite((float)hitColor[0])
+              || !std::isfinite((float)hitColor[0])
 #endif
           ) {
             is_valid_projection = false;
@@ -1085,32 +1099,43 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
           // printf("residual_residual: %f, is_in_frame: %d,
           // is_valid_projection: %d\n", residual, is_in_frame,
           // is_valid_projection);
-          float res_draw = fabsf(residual) > thr_draw ? thr_draw : fabsf(residual);
+          float res_draw =
+              fabsf(residual) > thr_draw ? thr_draw : fabsf(residual);
           if (!std::isfinite(res_draw)) {
             // printf("res_draw1: %f, residual: %f\n", res_draw, residual);
             // std::exit(2);
           }
           double color_draw = (res_draw - 0) / (thr_draw - 0);
-          if (!std::isfinite(color_draw)) color_draw = 0.0;
-          if (color_draw < 0.0) color_draw = 0.0;
-          if (color_draw > 1.0) color_draw = 1.0;
+          if (!std::isfinite(color_draw))
+            color_draw = 0.0;
+          if (color_draw < 0.0)
+            color_draw = 0.0;
+          if (color_draw > 1.0)
+            color_draw = 1.0;
           Vec3 bgr_map = color_map.GetBgr(color_draw) * 255;
 #ifdef SHOW_ALIGN_FRAME
-          if (show_align_res && is_in_frame && is_valid_projection && std::isfinite(residual) && std::isfinite(residual_gray)) {
-            // img_target_align->setPixelCirc(Ku, Kv, Vec3b(0, 0, 255), target_cid);
-            img_target_align->setPixelCirc(Ku, Kv, Vec3b(bgr_map[0], bgr_map[1], bgr_map[2]), target_cid);
+          if (show_align_res && is_in_frame && is_valid_projection &&
+              std::isfinite(residual) && std::isfinite(residual_gray)) {
+            // img_target_align->setPixelCirc(Ku, Kv, Vec3b(0, 0, 255),
+            // target_cid);
+            img_target_align->setPixelCirc(
+                Ku, Kv, Vec3b(bgr_map[0], bgr_map[1], bgr_map[2]), target_cid);
           }
 #endif
           if (is_in_frame && is_valid_projection &&
-              std::abs(residual) < /*setting_huberTH_use */ setting_huberTH_tracker) {
+              std::abs(residual) <
+                  /*setting_huberTH_use */ setting_huberTH_tracker) {
             if (!std::isfinite(residual)) {
               printf("residual has nan\n");
               std::exit(3);
             }
 #ifdef SHOW_ALIGN_FRAME
             if (show_align_res) {
-              // img_target_align->setPixelCirc(Ku, Kv, Vec3b(255, 0, 0), target_cid);
-              img_target_align->setPixelCirc(Ku, Kv, Vec3b(bgr_map[0], bgr_map[1], bgr_map[2]), target_cid);
+              // img_target_align->setPixelCirc(Ku, Kv, Vec3b(255, 0, 0),
+              // target_cid);
+              img_target_align->setPixelCirc(
+                  Ku, Kv, Vec3b(bgr_map[0], bgr_map[1], bgr_map[2]),
+                  target_cid);
             }
 #endif
             //            // translation and rotation (positive)
@@ -1151,42 +1176,47 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
 
         // 计算残差
         float refColor = lpc_color[i];
-        Vec3f hitColor_gray = getInterpolatedElement33(dINewl_gray, Ku, Kv, wl_target);
+        Vec3f hitColor_gray =
+            getInterpolatedElement33(dINewl_gray, Ku, Kv, wl_target);
         Vec3f hitColor = getInterpolatedElement33(dINewl, Ku, Kv, wl_target);
         if (!std::isfinite((float)hitColor_gray[0])
 #ifdef USE_EDGE_ALIGN
-        || !std::isfinite((float)hitColor[0])
+            || !std::isfinite((float)hitColor[0])
 #endif
         ) {
           continue;
         }
 
-
 #ifndef USE_EDGE_ALIGN
         hitColor = hitColor_gray;
         float residual = hitColor[0] - (float)(affLL[0] * refColor + affLL[1]);
 #else
-        float residual_gray = hitColor_gray[0] - (float)(affLL[0] * refColor + affLL[1]);
+        float residual_gray =
+            hitColor_gray[0] - (float)(affLL[0] * refColor + affLL[1]);
         float residual = hitColor[0];
 #endif
 
 #ifdef SHOW_ALIGN_FRAME
         if (show_align_res) {
           // img_target_align->setPixel9(Ku, Kv, Vec3b(0, 255, 0), target_cid);
-          float res_draw = fabsf(residual) > thr_draw ? thr_draw : fabsf(residual);
+          float res_draw =
+              fabsf(residual) > thr_draw ? thr_draw : fabsf(residual);
           if (!std::isfinite(res_draw)) {
             printf("res_draw2: %f, residual: %f\n", res_draw, residual);
             std::exit(2);
           }
           double color_draw = (res_draw - 0) / (thr_draw - 0);
-          if (!std::isfinite(color_draw)) color_draw = 0.0;
-          if (color_draw < 0.0) color_draw = 0.0;
-          if (color_draw > 1.0) color_draw = 1.0;
+          if (!std::isfinite(color_draw))
+            color_draw = 0.0;
+          if (color_draw < 0.0)
+            color_draw = 0.0;
+          if (color_draw > 1.0)
+            color_draw = 1.0;
           Vec3 bgr_map = color_map.GetBgr(color_draw) * 255;
-          img_target_align->setPixelCirc(Ku, Kv, Vec3b(bgr_map[0], bgr_map[1], bgr_map[2]), target_cid);
+          img_target_align->setPixelCirc(
+              Ku, Kv, Vec3b(bgr_map[0], bgr_map[1], bgr_map[2]), target_cid);
         }
 #endif
-
 
         /// 只算host点的残差，不算8个邻域内的残差了?
         float hw =
@@ -1198,7 +1228,7 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
 #ifdef USE_EDGE_ALIGN
         if (fabs(residual) > dt_cutoffTH_use * setting_variableScale) {
           point_num_without_edges++;
-          }
+        }
 #endif
         if (fabs(residual) > cutoffTH) {
           if (debugPlot) {
@@ -1206,9 +1236,9 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
           }
           if (
 #ifdef USE_EDGE_ALIGN
-        fabs(residual) < dt_cutoffTH_use * setting_variableScale  &&
+              fabs(residual) < dt_cutoffTH_use * setting_variableScale &&
 #endif
-           true) {
+              true) {
             E += maxEnergy; // 能量值
             numTermsInE++;  // E 中数目
             numSaturated++; // 大于阈值数目
@@ -1222,18 +1252,18 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
                 lpc_u[i], lpc_v[i],
                 Vec3b(residual + 128, residual + 128, residual + 128),
                 host_cid);
-//           if (
-// #ifdef USE_EDGE_ALIGN
-//         fabs(residual) > dt_cutoffTH_use * setting_variableScale  ||
-// #endif
-//            false) {
-//             point_num_without_edges++;
-//           }
+          //           if (
+          // #ifdef USE_EDGE_ALIGN
+          //         fabs(residual) > dt_cutoffTH_use * setting_variableScale ||
+          // #endif
+          //            false) {
+          //             point_num_without_edges++;
+          //           }
           E += hw * residual * residual * (2 - hw);
           numTermsInE++;
           hw_sum += hw;
           res_sum += Vec2f(residual, fabsf(residual_gray));
-          res_count +=1;
+          res_count += 1;
           // TODO 为凑雅可比buffer一些中间变量，这些变量不一定有明确物理含义
           buf_warped_idepth[host_cid * kCameraNumUsed + target_cid]
                            [numTermsInWarped /* + address_offset*/] =
@@ -1395,9 +1425,9 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
   float magic_num_all = 987654.0;
   float magic_num = 987654.0;
   for (int i = 0; i < rs.size(); ++i) {
-   if (std::isfinite(rs[i]) && rs[i] > magic_num_all) {
-     magic_num_all = rs[i];
-   }
+    if (std::isfinite(rs[i]) && rs[i] > magic_num_all) {
+      magic_num_all = rs[i];
+    }
     if (std::isfinite(rs[i]) && rs[i] > magic_num) {
       magic_num = rs[i];
     }
@@ -1407,75 +1437,85 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
 
   float min_T_all = magic_num_all;  // 123456;
   float min_RT_all = magic_num_all; // 123456;
-  float min_T = magic_num;  // 123456;
-  float min_RT = magic_num; // 123456;
+  float min_T = magic_num;          // 123456;
+  float min_RT = magic_num;         // 123456;
 
   float count_sum = 0;
   if (lvl == 0 && lvl_target == 0) {
-    std::cout << "disable_kf: "<< disable_kf<< ", before_CoarseTracker, rs: " << rs.transpose()
-              << ", sumSquaredShiftNum: " << sumSquaredShiftNum << ", count_sum: " << count_sum << std::endl;
+    std::cout << "disable_kf: " << disable_kf
+              << ", before_CoarseTracker, rs: " << rs.transpose()
+              << ", sumSquaredShiftNum: " << sumSquaredShiftNum
+              << ", count_sum: " << count_sum << std::endl;
   }
   if (true) {
 #ifndef USE_MULTI_KEYFRAME_DISTANCE_MAP
     // float min_T = magic_num;  // 123456;
     // float min_RT = magic_num; // 123456;
     if (lvl_target == 0 && lvl == 0) {
-    for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
-      for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
-        float count =
-            a_sumSquaredShiftNum[host_cid * kCameraNumUsed + target_cid] + 0.1;
-        if (lvl == 0 && lvl_target == 0 &&
-            (host_cid == target_cid || !force_host_target_same_cid)) {
-          printf(
-              "host_cid: %d, target_cid: %d, count: %f, [T RT]value: [%f %f], med[T RT]value_sw: [%f %f]\n",
-              host_cid, target_cid, count,
-              a_sumSquaredShiftT[host_cid * kCameraNumUsed + target_cid] /
-                  (count),
+      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
+        for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
+          float count =
+              a_sumSquaredShiftNum[host_cid * kCameraNumUsed + target_cid] +
+              0.1;
+          if (lvl == 0 && lvl_target == 0 &&
+              (host_cid == target_cid || !force_host_target_same_cid)) {
+            printf("host_cid: %d, target_cid: %d, count: %f, [T RT]value: [%f "
+                   "%f], med[T RT]value_sw: [%f %f]\n",
+                   host_cid, target_cid, count,
+                   a_sumSquaredShiftT[host_cid * kCameraNumUsed + target_cid] /
+                       (count),
+                   a_sumSquaredShiftRT[host_cid * kCameraNumUsed + target_cid] /
+                       (count),
+                   FindMedian(Ts), FindMedian(RTs));
+          }
+          if (count > 1.0) {
+            count_sum += count;
+          }
+          if (count < count_thr /*100.0*/) {
+            continue;
+          }
+          float T = a_sumSquaredShiftT[host_cid * kCameraNumUsed + target_cid] /
+                    (count);
+          float RT =
               a_sumSquaredShiftRT[host_cid * kCameraNumUsed + target_cid] /
-                  (count), FindMedian(Ts), FindMedian(RTs));
-        }
-        if (count > 1.0) {
-          count_sum += count;
-        }
-        if (count < count_thr /*100.0*/) {
-          continue;
-        }
-        float T = a_sumSquaredShiftT[host_cid * kCameraNumUsed + target_cid] /
-                  (count);
-        float RT = a_sumSquaredShiftRT[host_cid * kCameraNumUsed + target_cid] /
-                   (count);
-        Ts.emplace_back(T);
-        RTs.emplace_back(RT);
-        if (min_T > T) {
-          min_T = T;
-        }
-        if (min_RT > RT) {
-          min_RT = RT;
+              (count);
+          Ts.emplace_back(T);
+          RTs.emplace_back(RT);
+          if (min_T > T) {
+            min_T = T;
+          }
+          if (min_RT > RT) {
+            min_RT = RT;
+          }
         }
       }
-    }
-    VecTrack rs_before1 = rs;
-    if (std::abs(min_T - magic_num /*123456*/) > 1) {
-      rs_before1[2] = rs[2] = min_T;
-      if (Ts.empty()) {
-        printf("Ts.empty()\n");
+      VecTrack rs_before1 = rs;
+      if (std::abs(min_T - magic_num /*123456*/) > 1) {
+        rs_before1[2] = rs[2] = min_T;
+        if (Ts.empty()) {
+          printf("Ts.empty()\n");
+          std::exit(1);
+        }
+        rs[2] = FindMedian(Ts);
+      }
+      if (std::abs(min_RT - magic_num /*123456*/) > 1) {
+        rs_before1[4] = rs[4] = min_RT;
+        if (RTs.empty()) {
+          printf("RTs.empty()\n");
+          std::exit(1);
+        }
+        rs[4] = FindMedian(RTs);
+      }
+      std::cout << "rs_before1: " << rs_before1.transpose()
+                << "\nrs_ minT: " << min_T << ", minRT: " << min_RT
+                << "\nrs_after: " << rs.transpose() << std::endl;
+      if (!disable_kf && (std::abs(min_T - magic_num /*123456*/) < 1 ||
+                          std::abs(min_RT - magic_num /*123456*/) < 1)) {
+        printf(
+            "tracking lost, too few tracked vms, std::abs(min_T - magic_num "
+            "/*123456*/) < 1 || std::abs(min_RT - magic_num /*123456*/) < 1\n");
         std::exit(1);
       }
-      rs[2] = FindMedian(Ts);
-    }
-    if (std::abs(min_RT - magic_num /*123456*/) > 1) {
-      rs_before1[4] = rs[4] = min_RT;
-      if (RTs.empty()) {
-        printf("RTs.empty()\n");
-        std::exit(1);
-      }
-      rs[4] = FindMedian(RTs);
-    }
-    std::cout << "rs_before1: " << rs_before1.transpose()<< "\nrs_ minT: " << min_T << ", minRT: " << min_RT<<"\nrs_after: " << rs.transpose() << std::endl;
-    if (!disable_kf && (std::abs(min_T - magic_num /*123456*/) < 1 || std::abs(min_RT - magic_num /*123456*/) < 1)) {
-      printf("tracking lost, too few tracked vms, std::abs(min_T - magic_num /*123456*/) < 1 || std::abs(min_RT - magic_num /*123456*/) < 1\n");
-      std::exit(1);
-    }
     } else {
       if (sumSquaredShiftT > 0.0001 || sumSquaredShiftRT > 0.0001) {
         printf("sumSquaredShiftT > 0.0001 || sumSquaredShiftRT > 0.0001\n");
@@ -1495,9 +1535,10 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
                           0.1;
             if (lvl == 0 && lvl_target == 0 &&
                 (host_cid == target_cid || !force_host_target_same_cid)) {
-#if 1//ndef USE_EDGE_ALIGN
+#if 1 // ndef USE_EDGE_ALIGN
               printf("[kf_id / kf]: [%d / %d], host_cid: %d, target_cid: %d, "
-                     "count: %f, mean[T RT]value: [%f %f], med[T RT]value_sw: [%f %f]\n",
+                     "count: %f, mean[T RT]value: [%f %f], med[T RT]value_sw: "
+                     "[%f %f]\n",
                      id, v_a_sumSquaredShiftT.size(), host_cid, target_cid,
                      count,
                      v_a_sumSquaredShiftT[id][host_cid * kCameraNumUsed +
@@ -1505,7 +1546,8 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
                          (count),
                      v_a_sumSquaredShiftRT[id][host_cid * kCameraNumUsed +
                                                target_cid] /
-                         (count), FindMedian(Ts), FindMedian(RTs));
+                         (count),
+                     FindMedian(Ts), FindMedian(RTs));
 #endif
             }
             if (count > 1.0) {
@@ -1532,11 +1574,13 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
         }
       }
       VecTrack rs_before1 = rs;
-      float min_T_all_bak = min_T_all,min_RT_all_bak = min_RT_all;
-      if ((min_T_all > sumSquaredShiftT / (sumSquaredShiftNum + 0.1)) && (sumSquaredShiftT / (sumSquaredShiftNum + 0.1) > 0.1)) {
+      float min_T_all_bak = min_T_all, min_RT_all_bak = min_RT_all;
+      if ((min_T_all > sumSquaredShiftT / (sumSquaredShiftNum + 0.1)) &&
+          (sumSquaredShiftT / (sumSquaredShiftNum + 0.1) > 0.1)) {
         min_T_all = sumSquaredShiftT / (sumSquaredShiftNum + 0.1);
       }
-      if ((min_RT_all > sumSquaredShiftRT / (sumSquaredShiftNum + 0.1)) && (sumSquaredShiftRT / (sumSquaredShiftNum + 0.1) > 0.1)) {
+      if ((min_RT_all > sumSquaredShiftRT / (sumSquaredShiftNum + 0.1)) &&
+          (sumSquaredShiftRT / (sumSquaredShiftNum + 0.1) > 0.1)) {
         min_RT_all = sumSquaredShiftRT / (sumSquaredShiftNum + 0.1);
       }
       VecTrack rs_before2 = rs;
@@ -1551,7 +1595,6 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
         } else {
           rs[2] = FindMedian(Ts);
         }
-
       }
       if (std::abs(min_RT_all - magic_num_all /*123456*/) > 1) {
         rs_before2[4] = rs[4] = min_RT_all;
@@ -1564,15 +1607,24 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
         } else {
           rs[4] = FindMedian(RTs);
         }
-
       }
-      std::cout << "rs_before1: " << rs_before1.transpose()<< "\nrs_ minT_all_bak: " << min_T_all_bak << ", minRT_all_bak: " << min_RT_all_bak<< "\nrs_ minT_all_use: " << min_T_all << ", minRT_all_use: " << min_RT_all<< "\nrs_before2: " << rs_before2.transpose()<< "\nrs_after: " << rs.transpose() << std::endl;
+      std::cout << "rs_before1: " << rs_before1.transpose()
+                << "\nrs_ minT_all_bak: " << min_T_all_bak
+                << ", minRT_all_bak: " << min_RT_all_bak
+                << "\nrs_ minT_all_use: " << min_T_all
+                << ", minRT_all_use: " << min_RT_all
+                << "\nrs_before2: " << rs_before2.transpose()
+                << "\nrs_after: " << rs.transpose() << std::endl;
 
-    if (!disable_kf && (std::abs(min_T_all_bak - magic_num_all /*123456*/) < 1 || std::abs(min_RT_all_bak - magic_num_all /*123456*/) < 1)) {
-      printf("tracking lost, too few tracked vms, std::abs(min_T_all_bak - magic_num_all /*123456*/) < 1 || std::abs(min_RT_all_bak - magic_num_all /*123456*/) < 1\n");
-      std::exit(1);
-    }
-    }else {
+      if (!disable_kf &&
+          (std::abs(min_T_all_bak - magic_num_all /*123456*/) < 1 ||
+           std::abs(min_RT_all_bak - magic_num_all /*123456*/) < 1)) {
+        printf("tracking lost, too few tracked vms, std::abs(min_T_all_bak - "
+               "magic_num_all /*123456*/) < 1 || std::abs(min_RT_all_bak - "
+               "magic_num_all /*123456*/) < 1\n");
+        std::exit(1);
+      }
+    } else {
       if (sumSquaredShiftT > 0.0001 || sumSquaredShiftRT > 0.0001) {
         printf("sumSquaredShiftT > 0.0001 || sumSquaredShiftRT > 0.0001\n");
         std::exit(1);
@@ -1581,44 +1633,62 @@ VecTrack CoarseTracker::calcRes(const bool &disable_kf, const int &iter,
 #endif
   }
   std::cout << "after_CoarseTracker, rs: " << rs.transpose()
-              << ", sumSquaredShiftNum: " << sumSquaredShiftNum << ", count_sum: " << count_sum << std::endl;
+            << ", sumSquaredShiftNum: " << sumSquaredShiftNum
+            << ", count_sum: " << count_sum << std::endl;
   if (lvl == 0 && lvl_target == 0) {
     // printf("sumSquaredShiftT: %f\n", sumSquaredShiftT);
     // std::cout << "rs: " << rs.transpose() << std::endl;
     if (!disable_kf && (rs[2] < 0.00001 || rs[4] < 0.00001)) {
-      printf("tracking lost, rs[2] < 0.1 || rs[4] < 0.1, sumSquaredShiftT: %f, sumSquaredShiftRT: %f, sumSquaredShiftNum: %f\n", sumSquaredShiftT, sumSquaredShiftRT, sumSquaredShiftNum);
+      printf("tracking lost, rs[2] < 0.1 || rs[4] < 0.1, sumSquaredShiftT: %f, "
+             "sumSquaredShiftRT: %f, sumSquaredShiftNum: %f\n",
+             sumSquaredShiftT, sumSquaredShiftRT, sumSquaredShiftNum);
       std::exit(1);
     }
   }
 #ifdef SHOW_ALIGN_FRAME
   if (show_align_res) {
     for (int cam = 0; cam < kCameraNumUsed; ++cam) {
-      Vec2i *edge_pixel_start = newFrame->edge_pixels[lvl_target] + wG[lvl_target] * hG[lvl_target] * cam;
+      Vec2i *edge_pixel_start = newFrame->edge_pixels[lvl_target] +
+                                wG[lvl_target] * hG[lvl_target] * cam;
       for (int i = 0; i < newFrame->edge_pixel_num[lvl_target][cam]; ++i) {
         int epx = edge_pixel_start[i][0];
         int epy = edge_pixel_start[i][1];
-        if (epx < 10 || epx >= wG[lvl_target] - 10 || epy < 10 || epy >= hG[lvl_target] - 10)
+        if (epx < 10 || epx >= wG[lvl_target] - 10 || epy < 10 ||
+            epy >= hG[lvl_target] - 10)
           continue;
-        img_target_align->setPixel1((float)epx + 0.5, (float)epy + 0.5, Vec3b(255,0, 255), cam);
+        img_target_align->setPixel1((float)epx + 0.5, (float)epy + 0.5,
+                                    Vec3b(255, 0, 255), cam);
       }
     }
-    img_target_align->putText(100, 20, std::to_string((int)(rs[9] * 100)).c_str(), Vec3b(255, 255,0),0);
-    // img_target_align->putText(20, 100, std::to_string((int)disable_kf).c_str(), Vec3b(0, 255,0),0);
+    img_target_align->putText(100, 20,
+                              std::to_string((int)(rs[9] * 100)).c_str(),
+                              Vec3b(255, 255, 0), 0);
+    // img_target_align->putText(20, 100,
+    // std::to_string((int)disable_kf).c_str(), Vec3b(0, 255,0),0);
     if (lvl_target == 0) {
       for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-        img_target_align->putText(20, 20, std::to_string((int)(newFrame->mean_gray_val_each[cid])).c_str(), Vec3b(0, 255,255),cid);
+        img_target_align->putText(
+            20, 20,
+            std::to_string((int)(newFrame->mean_gray_val_each[cid])).c_str(),
+            Vec3b(0, 255, 255), cid);
       }
       if (newFrame && newFrame->shell) {
         char ts_buf[32];
-        snprintf(ts_buf, sizeof(ts_buf), "%.3f", newFrame->shell->timestamp_eval);
-        img_target_align->putText(20, 200, ts_buf, Vec3b(255, 255,0),0);
+        snprintf(ts_buf, sizeof(ts_buf), "%.3f",
+                 newFrame->shell->timestamp_eval);
+        img_target_align->putText(20, 200, ts_buf, Vec3b(255, 255, 0), 0);
       }
     }
     IOWrap::displayImage("align frame res", img_target_align);
 #ifdef SAVE_IMAGES
     if (newFrame && newFrame->shell) {
       char buf[100];
-      snprintf(buf, 100, "/media/roger/Elements_SE/CI/dm_vio_results/align_frame_%015lu_%d_%d_%d.png", (uint64_t)(newFrame->shell->timestamp_eval * 1e9), pyrLevelsUsed - 1 - lvl, pyrLevelsUsed - 1 - lvl_target, iter + 1);
+      snprintf(buf, 100,
+               "/media/roger/Elements_SE/CI/dm_vio_results/"
+               "align_frame_%015lu_%d_%d_%d.png",
+               (uint64_t)(newFrame->shell->timestamp_eval * 1e9),
+               pyrLevelsUsed - 1 - lvl, pyrLevelsUsed - 1 - lvl_target,
+               iter + 1);
       IOWrap::writeImage(buf, img_target_align);
     }
 #endif
@@ -1645,11 +1715,11 @@ void CoarseTracker::setCoarseTrackingRef(
 }
 
 //@ 对新来的帧进行跟踪, 优化得到位姿, 光度参数
-bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
-    const std::vector<FrameHessian *> &frameHessians, int all_keyframe_size,
-    FrameHessian *lastRef, FrameHessian *newFrameHessian, SE3 &lastToNew_out,
-    AffLight &aff_g2l_out, int coarsestLvl, Vec5 minResForAbort,
-    IOWrap::Output3DWrapper *wrap) {
+bool CoarseTracker::trackNewestCoarse(
+    bool &disable_kf_bak, const std::vector<FrameHessian *> &frameHessians,
+    int all_keyframe_size, FrameHessian *lastRef, FrameHessian *newFrameHessian,
+    SE3 &lastToNew_out, AffLight &aff_g2l_out, int coarsestLvl,
+    Vec5 minResForAbort, IOWrap::Output3DWrapper *wrap) {
   bool disable_kf_orig = disable_kf_bak;
   bool &disable_kf = disable_kf_bak;
   debugPlot = setting_render_displayCoarseTrackingFull;
@@ -1733,9 +1803,9 @@ bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
       if (lvl >= setting_pyrLvlWithAffineFixed ||
           all_keyframe_size <= setting_kfNumWithAffineFixed) {
         setting_coarseCutoffTH_use = setting_coarseCutoffTH_loose;
-          } else {
-            setting_coarseCutoffTH_use = setting_coarseCutoffTH;
-          }
+      } else {
+        setting_coarseCutoffTH_use = setting_coarseCutoffTH;
+      }
 #endif
       //[ ***step 1*** ] 计算残差, 保证最多60%残差大于阈值, 计算正规方程
       // TODO preCalculate some values w.r.t. current state estimate
@@ -1753,59 +1823,74 @@ bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
       //      ++target_cid)
       //      {
       printf("aa\n");
-      resOld =
-          calcRes(disable_kf, -1, frameHessians, all_keyframe_size, is_imu_ready,
-                  lvl_target, lastRef, lvl, refToNew_current, aff_g2l_current,
-                  setting_coarseCutoffTH_use * levelCutoffRepeat,
-                  lvl == 0 && lvl_target == 0);
+      resOld = calcRes(disable_kf, -1, frameHessians, all_keyframe_size,
+                       is_imu_ready, lvl_target, lastRef, lvl, refToNew_current,
+                       aff_g2l_current,
+                       setting_coarseCutoffTH_use * levelCutoffRepeat,
+                       lvl == 0 && lvl_target == 0);
       NAN_CHECK_EIGEN(resOld, "calcRes resOld");
       std::cout << "resOld111: " << resOld.transpose() << std::endl;
-      printf("bb, disable_kf: %d, disable_kf_orig: %d\n", disable_kf, disable_kf_orig);
+      printf("bb, disable_kf: %d, disable_kf_orig: %d\n", disable_kf,
+             disable_kf_orig);
       //      }
       //    }
       //* 保证大于阈值的点小于60%
-      //TODO 视觉点太少，求解时也会不稳定, 还是想尝试edge_scale_extra = 0
+      // TODO 视觉点太少，求解时也会不稳定, 还是想尝试edge_scale_extra = 0
       const int min_tracked_num = 100;
-      if (!std::isfinite(resOld[5]) || ((int)(resOld[1] * (1-resOld[5])) < min_tracked_num)) {
+      if (!std::isfinite(resOld[5]) ||
+          ((int)(resOld[1] * (1 - resOld[5])) < min_tracked_num)) {
         disable_kf = true;
       }
-      printf("cc, disable_kf: %d, disable_kf_orig: %d\n", disable_kf, disable_kf_orig);
+      printf("cc, disable_kf: %d, disable_kf_orig: %d\n", disable_kf,
+             disable_kf_orig);
       int increase_cutoff_count = 0;
-      int increase_cutoff_count_thr = 100;//5;//3;
-      while (std::isfinite(resOld[5]) && increase_cutoff_count < increase_cutoff_count_thr && resOld[5] >
+      int increase_cutoff_count_thr = 100; // 5;//3;
+      while (std::isfinite(resOld[5]) &&
+             increase_cutoff_count < increase_cutoff_count_thr &&
+             resOld[5] >
 #ifndef USE_EDGE_ALIGN
-      0.6
+                 0.6
 #else
-      0.8//0.97
+                 0.8            // 0.97
 #endif
-      && (levelCutoffRepeat < 50 || resOld[5] > 0.99)) {
+             && (levelCutoffRepeat < 50 || resOld[5] > 0.99)) {
 #ifndef USE_EDGE_ALIGN
         levelCutoffRepeat *= 2; // 超过阈值的多, 则放大阈值重新计算
 #else
-        levelCutoffRepeat *= 2;//1.2; // 超过阈值的多, 则放大阈值重新计算
+        levelCutoffRepeat *= 2; // 1.2; // 超过阈值的多, 则放大阈值重新计算
 #endif
         resOld.setZero();
         //      for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
         //        for (int target_cid = 0; target_cid < kCameraNumUsed;
         //        ++target_cid) {
-        resOld =
-            calcRes(disable_kf,-1, frameHessians, all_keyframe_size, is_imu_ready,
-                    lvl_target, lastRef, lvl, refToNew_current, aff_g2l_current,
-                    setting_coarseCutoffTH_use * levelCutoffRepeat,
-                    lvl == 0 && lvl_target == 0);
+        resOld = calcRes(disable_kf, -1, frameHessians, all_keyframe_size,
+                         is_imu_ready, lvl_target, lastRef, lvl,
+                         refToNew_current, aff_g2l_current,
+                         setting_coarseCutoffTH_use * levelCutoffRepeat,
+                         lvl == 0 && lvl_target == 0);
         //        }
         //      }
-        if (!std::isfinite(resOld[5]) || ((int)(resOld[1] * (1-resOld[5])) < min_tracked_num)) {
+        if (!std::isfinite(resOld[5]) ||
+            ((int)(resOld[1] * (1 - resOld[5])) < min_tracked_num)) {
           disable_kf = true;
         }
-        std::cout << "disable_kf: " << disable_kf <<  ", resOld: " << resOld.transpose() << std::endl;
+        std::cout << "disable_kf: " << disable_kf
+                  << ", resOld: " << resOld.transpose() << std::endl;
         increase_cutoff_count++;
-        if ((int)(resOld[1] * (1-resOld[5])) < min_tracked_num) {
+        if ((int)(resOld[1] * (1 - resOld[5])) < min_tracked_num) {
           increase_cutoff_count = 10000;
         }
         if (!setting_debugout_runquiet)
-          printf("all_keyframe_size: %d, setting_coarseCutoffTH_use: %f, [lvl lvl_target]: [%d %d],INCREASING cutoff to %f, increase_cutoff_count: %d, levelCutoffRepeat: %f, haveRepeated: %d, [lvl lvl_target]: [%d %d], (ratio is %f), calced_num: %d, inlier_num: %d!\n",all_keyframe_size, setting_coarseCutoffTH_use, lvl, lvl_target,
-                 setting_coarseCutoffTH_use * levelCutoffRepeat, increase_cutoff_count, levelCutoffRepeat, haveRepeated, lvl, lvl_target, resOld[5], (int)resOld[1], (int)(resOld[1] * (1-resOld[5])));
+          printf("all_keyframe_size: %d, setting_coarseCutoffTH_use: %f, [lvl "
+                 "lvl_target]: [%d %d],INCREASING cutoff to %f, "
+                 "increase_cutoff_count: %d, levelCutoffRepeat: %f, "
+                 "haveRepeated: %d, [lvl lvl_target]: [%d %d], (ratio is %f), "
+                 "calced_num: %d, inlier_num: %d!\n",
+                 all_keyframe_size, setting_coarseCutoffTH_use, lvl, lvl_target,
+                 setting_coarseCutoffTH_use * levelCutoffRepeat,
+                 increase_cutoff_count, levelCutoffRepeat, haveRepeated, lvl,
+                 lvl_target, resOld[5], (int)resOld[1],
+                 (int)(resOld[1] * (1 - resOld[5])));
       }
       if (increase_cutoff_count >= increase_cutoff_count_thr) {
         disable_kf = true;
@@ -1876,11 +1961,12 @@ bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
                            lastRef->ab_exposure, newFrame->ab_exposure,
                            lastRef_aff_g2l, aff_g2l_current)
                            .cast<float>();
-        printf(
-            "lvl %d, lvl_target: %d, it %d (l=%.3f / %.3f) %s: %.3f->%.3f (inlier: %d -> %d) (|inc| = "
-            "%.3f)! \t",
-            lvl, lvl_target, -1, lambda, 1.0f, "INITIAL_ERR", 0.0f, /*mean_err: */resOld[0] / resOld[1], 0,
-            /*inlier_num: */(int)resOld[1], /*inc norm: */0.0f);
+        printf("lvl %d, lvl_target: %d, it %d (l=%.3f / %.3f) %s: %.3f->%.3f "
+               "(inlier: %d -> %d) (|inc| = "
+               "%.3f)! \t",
+               lvl, lvl_target, -1, lambda, 1.0f, "INITIAL_ERR", 0.0f,
+               /*mean_err: */ resOld[0] / resOld[1], 0,
+               /*inlier_num: */ (int)resOld[1], /*inc norm: */ 0.0f);
         std::cout << refToNew_current.log().transpose() << " AFF "
                   << aff_g2l_current.vec().transpose() << " (rel "
                   << relAff.transpose() << ")\n";
@@ -1922,8 +2008,9 @@ bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
           // done inside...
           // TODO rog, like align frame in orca next, but with imu factors
           Vec8 inc_gtsam = Vec8::Zero();
-          refToNew_new = imuIntegration.computeCoarseUpdate(inc_gtsam,
-              H, b, extrapFac, lambda, incA, incB, incNorm, disable_kf);
+          refToNew_new = imuIntegration.computeCoarseUpdate(
+              inc_gtsam, H, b, extrapFac, lambda, incA, incB, incNorm,
+              disable_kf);
           NAN_CHECK_SCALAR(incA, "computeCoarseUpdate incA");
           NAN_CHECK_SCALAR(incB, "computeCoarseUpdate incB");
           NAN_CHECK_SCALAR(incNorm, "computeCoarseUpdate incNorm");
@@ -1944,10 +2031,17 @@ bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
 
           totalIncrement(6) = incA;
           totalIncrement(7) = incB;
-          printf("tracking_disable_kf: %d, totalIncrement.norm(): %f, incNorm: %f\n", disable_kf, totalIncrement.norm(), incNorm);
+          printf("tracking_disable_kf: %d, totalIncrement.norm(): %f, incNorm: "
+                 "%f\n",
+                 disable_kf, totalIncrement.norm(), incNorm);
           if (disable_kf) {
-            if (totalIncrement.norm() > 1e-8 || incNorm > 0.0 || inc_gtsam.norm() > 0.0){
-              printf("disable_kf && totalIncrement.norm() > 0.0, totalIncrement.norm(): %g, incNorm: %g, b:[%g %g %g %g %g %g %g %g]\n", totalIncrement.norm(), incNorm, b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7]);
+            if (totalIncrement.norm() > 1e-8 || incNorm > 0.0 ||
+                inc_gtsam.norm() > 0.0) {
+              printf("disable_kf && totalIncrement.norm() > 0.0, "
+                     "totalIncrement.norm(): %g, incNorm: %g, b:[%g %g %g %g "
+                     "%g %g %g %g]\n",
+                     totalIncrement.norm(), incNorm, b[0], b[1], b[2], b[3],
+                     b[4], b[5], b[6], b[7]);
               std::exit(2);
             }
           }
@@ -1973,14 +2067,16 @@ bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
               if (fix_ab) {
                 assert(inc.tail<2>().norm() == 0);
               }
-              inc.head<6>() = Hl.topLeftCorner<6, 6>().ldlt().solve(-b.head<6>());
+              inc.head<6>() =
+                  Hl.topLeftCorner<6, 6>().ldlt().solve(-b.head<6>());
               NAN_CHECK_EIGEN(inc.head<6>(), "coarse LDLT sub inc");
               inc.tail<2>().setZero();
             }
             if (!(setting_affineOptModeA < 0) &&
                 setting_affineOptModeB < 0) // fix b
             {
-              inc.head<7>() = Hl.topLeftCorner<7, 7>().ldlt().solve(-b.head<7>());
+              inc.head<7>() =
+                  Hl.topLeftCorner<7, 7>().ldlt().solve(-b.head<7>());
               NAN_CHECK_EIGEN(inc.head<7>(), "coarse LDLT fix-b inc");
               inc.tail<1>().setZero();
             }
@@ -1993,8 +2089,8 @@ bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
               HlStitch.col(6) = HlStitch.col(7);
               HlStitch.row(6) = HlStitch.row(7);
               bStitch[6] = bStitch[7];
-              Vec7 incStitch =
-                  HlStitch.topLeftCorner<7, 7>().ldlt().solve(-bStitch.head<7>());
+              Vec7 incStitch = HlStitch.topLeftCorner<7, 7>().ldlt().solve(
+                  -bStitch.head<7>());
               NAN_CHECK_EIGEN(incStitch, "coarse LDLT fix-a incStitch");
               inc.setZero();
               inc.head<6>() = incStitch.head<6>();
@@ -2004,9 +2100,10 @@ bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
           }
           inc *= extrapFac;
           NAN_CHECK_EIGEN(inc, "coarse inc after extrapFac");
-          printf("tracking_disable_kf: %d, inc.norm(): %f\n", disable_kf, inc.norm());
+          printf("tracking_disable_kf: %d, inc.norm(): %f\n", disable_kf,
+                 inc.norm());
           if (disable_kf) {
-            if (inc.norm() > 0.0){
+            if (inc.norm() > 0.0) {
               printf("disable_kf && inc.norm() > 0.0, dx: %f\n", inc.norm());
               std::exit(2);
             }
@@ -2041,9 +2138,9 @@ bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
         //        for (int target_cid = 0; target_cid < kCameraNumUsed;
         //        ++target_cid) {
         resNew =
-            calcRes(disable_kf, iteration, frameHessians, all_keyframe_size, is_imu_ready,
-                    lvl_target, lastRef, lvl, refToNew_new, aff_g2l_new,
-                    setting_coarseCutoffTH_use * levelCutoffRepeat,
+            calcRes(disable_kf, iteration, frameHessians, all_keyframe_size,
+                    is_imu_ready, lvl_target, lastRef, lvl, refToNew_new,
+                    aff_g2l_new, setting_coarseCutoffTH_use * levelCutoffRepeat,
                     lvl == 0 && lvl_target == 0);
         NAN_CHECK_EIGEN(resNew, "calcRes resNew");
         //        }
@@ -2057,13 +2154,17 @@ bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
                              lastRef->ab_exposure, newFrame->ab_exposure,
                              lastRef_aff_g2l, aff_g2l_new)
                              .cast<float>();
-          printf("lvl %d, lvl_target: %d, it %d (l=%f / %f) %s: mean_energy: [%.3f->%.3f], mean_res: [%.3f->%.3f || %.3f->%.3f], num: [(%d -> %d)], hw_tracker: [(%f -> %f)], Saturated_ratio: [(%f -> %f)] (|inc| = "
+          printf("lvl %d, lvl_target: %d, it %d (l=%f / %f) %s: mean_energy: "
+                 "[%.3f->%.3f], mean_res: [%.3f->%.3f || %.3f->%.3f], num: "
+                 "[(%d -> %d)], hw_tracker: [(%f -> %f)], Saturated_ratio: "
+                 "[(%f -> %f)] (|inc| = "
                  "%f)! \t",
                  lvl, lvl_target, iteration, lambda, extrapFac,
                  (accept ? "ACCEPT" : "REJECT"), resOld[0] / resOld[1],
-                 resNew[0] / resNew[1],resOld[7],resNew[7],resOld[8],resNew[8], (int)resOld[1], (int)resNew[1],resOld[6] / resOld[1],
-                 resNew[6] / resNew[1],resOld[5], resNew[5],
-                 incNorm);
+                 resNew[0] / resNew[1], resOld[7], resNew[7], resOld[8],
+                 resNew[8], (int)resOld[1], (int)resNew[1],
+                 resOld[6] / resOld[1], resNew[6] / resNew[1], resOld[5],
+                 resNew[5], incNorm);
           std::cout << refToNew_new.log().transpose() << " AFF "
                     << aff_g2l_new.vec().transpose() << " (rel "
                     << relAff.transpose() << ")\n";
@@ -2143,7 +2244,7 @@ bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
       //如果调整过阈值则重新计算这一层
       // set last residual for that level, as well as flow indicators.
       lastResiduals[lvl] = sqrtf((float)(resOld[0] / resOld[1]));
-      lastResidualNum[lvl] = (float)(resOld[1] * (1-resOld[5]));
+      lastResidualNum[lvl] = (float)(resOld[1] * (1 - resOld[5]));
       lastSaturatedRatio[lvl] = resOld[5];
       lastRS[lvl] = resOld;
       // TODO average optical flow
@@ -2162,7 +2263,9 @@ bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
           lvl++; // 这一层重新算一遍
         }
         haveRepeated = true;
-        printf("REPEAT LEVEL because levelCutoffRepeat is enlarged!, lvl: %d, lvl_target_: %d\n", lvl, lvl_target_);
+        printf("REPEAT LEVEL because levelCutoffRepeat is enlarged!, lvl: %d, "
+               "lvl_target_: %d\n",
+               lvl, lvl_target_);
       }
     }
   }
@@ -2192,7 +2295,9 @@ bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
                                   lastRef_aff_g2l, aff_g2l_out)
           .cast<float>();
 
-  printf("aff_g2l_out: [%f %f], relAff: [%f %f]\n", fabsf(aff_g2l_out.a), fabsf(aff_g2l_out.b), fabsf(logf((float)relAff[0])), fabsf((float)relAff[1]));
+  printf("aff_g2l_out: [%f %f], relAff: [%f %f]\n", fabsf(aff_g2l_out.a),
+         fabsf(aff_g2l_out.b), fabsf(logf((float)relAff[0])),
+         fabsf((float)relAff[1]));
   if ((setting_affineOptModeA == 0 &&
        (fabsf(logf((float)relAff[0])) > 1.5
 #ifndef USE_ZNCC
@@ -2219,9 +2324,11 @@ bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
   }
   if (lastLvl == 0 && lastLvl_target == 0) {
     if (dso::setting_useIMU) {
-      imuIntegration.addVisualToCoarseGraph(H, b, trackingGood
+      imuIntegration.addVisualToCoarseGraph(
+          H, b,
+          trackingGood
 #ifdef USE_EDGE_ALIGN
-      && lastResidualNum[0] > 1000/*3000*/ && !disable_kf/*_orig*/
+              && lastResidualNum[0] > 1000 /*3000*/ && !disable_kf /*_orig*/
 #endif
       );
     }
@@ -2232,8 +2339,8 @@ bool CoarseTracker::trackNewestCoarse(bool& disable_kf_bak,
   return trackingGood;
 }
 
-void CoarseTracker::debugPlotIDepthMap(std::vector<FrameHessian *> frameHessians,
-    float *minID_pt, float *maxID_pt,
+void CoarseTracker::debugPlotIDepthMap(
+    std::vector<FrameHessian *> frameHessians, float *minID_pt, float *maxID_pt,
     std::vector<IOWrap::Output3DWrapper *> &wraps) const {
   dmvio::TimeMeasurement timeMeasurement("debugPlotIDepthMap");
   if (wraps.empty() && !debugSaveImages) {
@@ -2297,7 +2404,7 @@ void CoarseTracker::debugPlotIDepthMap(std::vector<FrameHessian *> frameHessians
     for (int cid = 0; cid < kCameraNumUsed; ++cid) {
       Eigen::Vector3f *colorRef = lastRef->dIp[lvl] + h[lvl] * w[lvl] * cid;
       for (int i = 0; i < h[lvl] * w[lvl]; i++) {
-        int c = colorRef[i][0];// * 0.9f;
+        int c = colorRef[i][0]; // * 0.9f;
         if (c > 255)
           c = 255;
         mf.at(i, cid) = Vec3b(c, c, c); // TODO one channel to three channel
@@ -2343,32 +2450,42 @@ void CoarseTracker::debugPlotIDepthMap(std::vector<FrameHessian *> frameHessians
     }
 #ifdef USE_EDGE_ALIGN
     if (newFrame != frameHessians.back()) {
-      printf("newFrame != frameHessians.back(), [%p, %p], frameHessians.size(): %d\n", (void*)newFrame, (void*)frameHessians.back(), frameHessians.size());
+      printf("newFrame != frameHessians.back(), [%p, %p], "
+             "frameHessians.size(): %d\n",
+             (void *)newFrame, (void *)frameHessians.back(),
+             frameHessians.size());
       // std::exit(1);
     }
     if (lastRef != frameHessians.back()) {
-      printf("lastRef != frameHessians.back(), [%p, %p], frameHessians.size(): %d\n", (void*)lastRef, (void*)frameHessians.back(), frameHessians.size());
+      printf("lastRef != frameHessians.back(), [%p, %p], frameHessians.size(): "
+             "%d\n",
+             (void *)lastRef, (void *)frameHessians.back(),
+             frameHessians.size());
       std::exit(1);
     }
-    FrameHessian* new_frame;
+    FrameHessian *new_frame;
     new_frame = frameHessians.back();
     for (int cam = 0; cam < kCameraNumUsed; ++cam) {
-      Vec2i *edge_pixel_start = new_frame->edge_pixels[lvl] + wG[lvl] * hG[lvl] * cam;
+      Vec2i *edge_pixel_start =
+          new_frame->edge_pixels[lvl] + wG[lvl] * hG[lvl] * cam;
       for (int i = 0; i < new_frame->edge_pixel_num[lvl][cam]; ++i) {
         int epx = edge_pixel_start[i][0];
         int epy = edge_pixel_start[i][1];
         if (epx < 10 || epx >= wG[lvl] - 10 || epy < 10 || epy >= hG[lvl] - 10)
           continue;
-        mf.setPixel4((float)epx + 0.5, (float)epy + 0.5, Vec3b(255,0, 255), cam);
+        mf.setPixel4((float)epx + 0.5, (float)epy + 0.5, Vec3b(255, 0, 255),
+                     cam);
       }
     }
     for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-      mf.putText(20, 20, std::to_string(int(lastRef->mean_gray_val_each[cid])).c_str(), Vec3b(0, 255,255),cid);
+      mf.putText(20, 20,
+                 std::to_string(int(lastRef->mean_gray_val_each[cid])).c_str(),
+                 Vec3b(0, 255, 255), cid);
     }
     if (lastRef && lastRef->shell) {
       char ts_buf[32];
       snprintf(ts_buf, sizeof(ts_buf), "%.3f", lastRef->shell->timestamp_eval);
-      mf.putText(20, 100, ts_buf, Vec3b(255, 255,0),0);
+      mf.putText(20, 100, ts_buf, Vec3b(255, 255, 0), 0);
     }
 #endif
     IOWrap::displayImage(("coarseDepth LVL: " + std::to_string(lvl)).c_str(),
@@ -2378,7 +2495,10 @@ void CoarseTracker::debugPlotIDepthMap(std::vector<FrameHessian *> frameHessians
 #ifdef SAVE_IMAGES
       if (lastRef && lastRef->shell) {
         char buf[100];
-        snprintf(buf, 100, "/media/roger/Elements_SE/CI/dm_vio_results/kf_depth_%015lu.png", (uint64_t)(lastRef->shell->timestamp_eval * 1e9));
+        snprintf(
+            buf, 100,
+            "/media/roger/Elements_SE/CI/dm_vio_results/kf_depth_%015lu.png",
+            (uint64_t)(lastRef->shell->timestamp_eval * 1e9));
         IOWrap::writeImage(buf, &mf);
       }
 #endif

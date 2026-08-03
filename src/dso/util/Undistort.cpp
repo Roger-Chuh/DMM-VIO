@@ -887,7 +887,6 @@ void Undistort::readFromFile(const char *configFileName, int nPars,
     K(1, 2) = parsOrg[3];
     passthrough = true;
   } else {
-
     if (outputCalibration[2] > 1 || outputCalibration[3] > 1) {
       printf("\n\n\nWARNING: given output calibration (%f %f %f %f) seems "
              "wrong. It needs to be relative to image width / height!\n\n\n",

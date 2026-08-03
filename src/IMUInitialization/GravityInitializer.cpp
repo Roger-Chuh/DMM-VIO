@@ -74,8 +74,8 @@ double dmvio::getGravityError(const Sophus::SE3d &imuToWorld,
                               const Sophus::SE3d &imuToWorldGT) {
   Eigen::Vector3d g =
       (gtsam::Vector(3) << 0, 0, -9.8082)
-          .finished(); // Only the direction actually matters so it's ok if this
-                       // is not the actually used gravity.
+          .finished(); // Only the direction actually matters so it's ok
+                       // if this is not the actually used gravity.
   // g is in world coordinates, so check what g is in drone coordinates.
   Eigen::Vector3d gDrone = imuToWorld.inverse().rotationMatrix() * g;
   Eigen::Vector3d gDroneGT = imuToWorldGT.inverse().rotationMatrix() * g;

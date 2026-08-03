@@ -65,7 +65,7 @@ namespace dso { //! 这里u_ v_ 是加了0.5的
 //  idepth_GT = 0;
 //  quality = 10000;
 //}
-#if 1//ndef USE_EDGE_ALIGN
+#if 1 // ndef USE_EDGE_ALIGN
 #define USE_ZNCC_SEARCH
 #endif
 ImmaturePoint::ImmaturePoint(int u_, int v_, FrameHessian *host_, float type,
@@ -93,13 +93,14 @@ ImmaturePoint::ImmaturePoint(int u_, int v_, FrameHessian *host_, float type,
     color[idx] = ptc[0];
 #ifdef USE_EDGE_ALIGN
     Vec3f dt_dx_dy = getInterpolatedElement33BiLin(
-        host->dt_dx_dy[host_level_] + wG[host_level] * hG[host_level] * host_cid,
+        host->dt_dx_dy[host_level_] +
+            wG[host_level] * hG[host_level] * host_cid,
         u + dx, v + dy, wG[host_level]);
     distance_transform[idx] = dt_dx_dy[0];
 #endif
     if (!std::isfinite(color[idx])
 #ifdef USE_EDGE_ALIGN
-    || !std::isfinite(distance_transform[idx])
+        || !std::isfinite(distance_transform[idx])
 #endif
     ) {
       energyTH = NAN;
@@ -113,12 +114,12 @@ ImmaturePoint::ImmaturePoint(int u_, int v_, FrameHessian *host_, float type,
     weights_gray[idx] =
         sqrtf(setting_outlierTHSumComponent /
               (setting_outlierTHSumComponent + ptc.tail<2>().squaredNorm()));
-#if 1//ndef USE_EDGE_ALIGN
+#if 1 // ndef USE_EDGE_ALIGN
     weights[idx] = weights_gray[idx];
 #else
-    weights[idx] =
-        sqrtf(setting_outlierTHSumComponent /
-              (setting_outlierTHSumComponent + dt_dx_dy.tail<2>().squaredNorm()));
+    weights[idx] = sqrtf(
+        setting_outlierTHSumComponent /
+        (setting_outlierTHSumComponent + dt_dx_dy.tail<2>().squaredNorm()));
 #endif
   }
   for (int idx = 0; idx < patternNum; idx++) {
@@ -153,17 +154,20 @@ ImmaturePoint::ImmaturePoint(int u_, int v_, FrameHessian *host_, float type,
     weights_converged_gray[idx] =
         sqrtf(setting_outlierTHSumComponent /
               (setting_outlierTHSumComponent + ptc.tail<2>().squaredNorm()));
-#if 1//ndef USE_EDGE_ALIGN
+#if 1 // ndef USE_EDGE_ALIGN
     weights_converged[idx] = weights_converged_gray[idx];
 #else
-    weights_converged[idx] =
-        sqrtf(setting_outlierTHSumComponent /
-              (setting_outlierTHSumComponent + dt_dx_dy.tail<2>().squaredNorm()));
+    weights_converged[idx] = sqrtf(
+        setting_outlierTHSumComponent /
+        (setting_outlierTHSumComponent + dt_dx_dy.tail<2>().squaredNorm()));
 #endif
   }
 
-  energyTH = patternNumSeed * setting_outlierTH_epi_trace_on * setting_outlierTH_epi_trace_on;
-  energyTH_converged = patternNum * setting_outlierTH_init * setting_outlierTH_init;// 只被用来判断是不是finite，没用具体数值
+  energyTH = patternNumSeed * setting_outlierTH_epi_trace_on *
+             setting_outlierTH_epi_trace_on;
+  energyTH_converged =
+      patternNum * setting_outlierTH_init *
+      setting_outlierTH_init; // 只被用来判断是不是finite，没用具体数值
   energyTH *= setting_overallEnergyTHWeight * setting_overallEnergyTHWeight;
   energyTH_converged *=
       setting_overallEnergyTHWeight * setting_overallEnergyTHWeight;
@@ -210,7 +214,7 @@ float ImmaturePoint::CalcZncc(const Eigen::MatrixXf &host_,
   angle = std::isnan(angle) ? 1 : angle;
   float r2 = 2 - 2 * zncc;
   float ws2 = 2.0 / (r2 + 2.0);
-  return angle * std::sqrt(ws2)/*zncc*/;
+  return angle * std::sqrt(ws2) /*zncc*/;
 }
 ///@ 使用深度滤波对未成熟点进行深度估计
 //#define SHOW_TRACEON
@@ -234,10 +238,12 @@ ImmaturePointStatus ImmaturePoint::traceOn(
 #endif
 
   if (debugPrint) {
-    printf("is_first_frame: %d, cid: [%d %d], level: [%d], trace pt (%.1f %.1f) from frame %d to %d. Range %f -> %f. t %f %f "
-           "%f!\n",is_first_frame, host_cid, target_cid, lvl,
-           u, v, host->shell->id, frame->shell->id, idepth_min, idepth_max,
-           hostToFrame_Kt[0], hostToFrame_Kt[1], hostToFrame_Kt[2]);
+    printf("is_first_frame: %d, cid: [%d %d], level: [%d], trace pt (%.1f "
+           "%.1f) from frame %d to %d. Range %f -> %f. t %f %f "
+           "%f!\n",
+           is_first_frame, host_cid, target_cid, lvl, u, v, host->shell->id,
+           frame->shell->id, idepth_min, idepth_max, hostToFrame_Kt[0],
+           hostToFrame_Kt[1], hostToFrame_Kt[2]);
   }
   //	const float stepsize = 1.0;				// stepsize for
   // initial discrete search.
@@ -292,7 +298,8 @@ ImmaturePointStatus ImmaturePoint::traceOn(
   Vec2f rotatetPattern[MAX_RES_PER_POINT_SEED];
   for (int idx = 0; idx < patternNumSeed; idx++) {
     rotatetPattern[idx] =
-        Rplane * Vec2f(patternPSeed[idx][0] * pattern_scale_seed_point_opt, patternPSeed[idx][1] * pattern_scale_seed_point_opt);
+        Rplane * Vec2f(patternPSeed[idx][0] * pattern_scale_seed_point_opt,
+                       patternPSeed[idx][1] * pattern_scale_seed_point_opt);
     int absX = (int)abs(rotatetPattern[idx][0]);
     int absY = (int)abs(rotatetPattern[idx][1]);
     maxRotPatX = std::max(absX, maxRotPatX);
@@ -513,7 +520,8 @@ ImmaturePointStatus ImmaturePoint::traceOn(
   float errors[step_num];      //[150];
   float errors_zncc[step_num]; //[150];
   // float errors_edge[step_num]; //[150];
-  float bestU = 0, bestV = 0, bestEnergy = 1e10, bestEnergy_zncc = 0, best_mean_hw = 0;
+  float bestU = 0, bestV = 0, bestEnergy = 1e10, bestEnergy_zncc = 0,
+        best_mean_hw = 0;
   int bestIdx = -1;
 #ifdef SHOW_TRACEON
   if (show_image) {
@@ -558,12 +566,16 @@ ImmaturePointStatus ImmaturePoint::traceOn(
         img_target->setPixel9(ptx + rotatetPattern[idx][0],
                               pty + rotatetPattern[idx][1], makeRainbow3B(1),
                               target_cid);
-          if (i == 0){
-            img_target->setPixelCirc(ptx+ rotatetPattern[idx][0], pty+ rotatetPattern[idx][1], Vec3b(255, 0, 0), target_cid);
-          }
-          if (i == numSteps - 1){
-            img_target->setPixelCirc(ptx+ rotatetPattern[idx][0], pty+ rotatetPattern[idx][1], Vec3b(0, 255, 255), target_cid);
-          }
+        if (i == 0) {
+          img_target->setPixelCirc(ptx + rotatetPattern[idx][0],
+                                   pty + rotatetPattern[idx][1],
+                                   Vec3b(255, 0, 0), target_cid);
+        }
+        if (i == numSteps - 1) {
+          img_target->setPixelCirc(ptx + rotatetPattern[idx][0],
+                                   pty + rotatetPattern[idx][1],
+                                   Vec3b(0, 255, 255), target_cid);
+        }
       }
 #endif
       if (!std::isfinite(hitColor)) {
@@ -582,7 +594,9 @@ ImmaturePointStatus ImmaturePoint::traceOn(
                      ? 1
                      : setting_huberTH_trace_on / fabs(residual);
       if (debugPrint) {
-        printf("step: %d, idx: %d, residual: %f, setting_huberTH_trace_on: %f, hw: %f\n", i, idx, residual,setting_huberTH_trace_on, hw);
+        printf("step: %d, idx: %d, residual: %f, setting_huberTH_trace_on: %f, "
+               "hw: %f\n",
+               i, idx, residual, setting_huberTH_trace_on, hw);
       }
       hw_sum += hw;
       hw_count += 1;
@@ -598,7 +612,8 @@ ImmaturePointStatus ImmaturePoint::traceOn(
     }
     zncc_each = CalcZncc(host_val_each, target_val_each);
     if (debugPrint) {
-      printf("step %.1f %.1f (id %f): energy = %f! zncc_each: %f\n", ptx, pty, 0.0f, energy, zncc_each);
+      printf("step %.1f %.1f (id %f): energy = %f! zncc_each: %f\n", ptx, pty,
+             0.0f, energy, zncc_each);
     }
     errors[i] = energy;
     errors_zncc[i] = zncc_each;
@@ -655,7 +670,10 @@ ImmaturePointStatus ImmaturePoint::traceOn(
   float newQuality_all = std::max(newQuality, newQuality_zncc);
 #endif
   if (debugPrint) {
-    printf("\n++++++ best_step: %d, numSteps: %d, best_energy: %f, best_zncc: %f, best_mean_hw: %f, newQuality: %f, newQuality_zncc: %f\n",bestIdx, numSteps, bestEnergy, bestEnergy_zncc, best_mean_hw, newQuality, newQuality_zncc);
+    printf("\n++++++ best_step: %d, numSteps: %d, best_energy: %f, best_zncc: "
+           "%f, best_mean_hw: %f, newQuality: %f, newQuality_zncc: %f\n",
+           bestIdx, numSteps, bestEnergy, bestEnergy_zncc, best_mean_hw,
+           newQuality, newQuality_zncc);
   }
 #ifndef USE_ZNCC_SEARCH
   if (newQuality < quality[target_cid] || numSteps > 10) {
@@ -672,7 +690,8 @@ ImmaturePointStatus ImmaturePoint::traceOn(
   if (setting_trace_GNIterations > 0)
     bestEnergy = 1e5;
   int gnStepsGood = 0, gnStepsBad = 0;
-  float hw_sum = 0, hw_count = 0;;
+  float hw_sum = 0, hw_count = 0;
+  ;
   for (int it = 0; it < setting_trace_GNIterations; it++) {
     float H = 1, b = 0, energy = 0, zncc = 0;
     Eigen::MatrixXf host_val, target_val;
@@ -701,19 +720,20 @@ ImmaturePointStatus ImmaturePoint::traceOn(
         hitColor = getInterpolatedElement33(
             frame->dI + wG[lvl] * hG[lvl] * target_cid, posU, posV, wG[lvl]);
         hitColor_edge = getInterpolatedElement33(
-            frame->dt_dx_dy_0 + wG[lvl] * hG[lvl] * target_cid, posU, posV, wG[lvl]);
+            frame->dt_dx_dy_0 + wG[lvl] * hG[lvl] * target_cid, posU, posV,
+            wG[lvl]);
       } else {
         hitColor = getInterpolatedElement33(frame->dIp[lvl] +
                                                 wG[lvl] * hG[lvl] * target_cid,
                                             posU, posV, wG[lvl]);
-        hitColor_edge = getInterpolatedElement33(frame->dt_dx_dy[lvl] +
-                                                wG[lvl] * hG[lvl] * target_cid,
-                                            posU, posV, wG[lvl]);
+        hitColor_edge = getInterpolatedElement33(
+            frame->dt_dx_dy[lvl] + wG[lvl] * hG[lvl] * target_cid, posU, posV,
+            wG[lvl]);
       }
       /// 1维搜索，自变量只有一个，H和b都是一个数
       if (!std::isfinite((float)hitColor[0])
 #ifndef USE_ZNCC_SEARCH
-      || !std::isfinite((float)hitColor_edge[0])
+          || !std::isfinite((float)hitColor_edge[0])
 #endif
       ) {
         energy += 1e5;
@@ -726,15 +746,17 @@ ImmaturePointStatus ImmaturePoint::traceOn(
           dx * hitColor[1] + dy * hitColor[2]; /// 极线方向梯度, jacobian
 #else
       float residual = hitColor_edge[0];
-      float dResdDist =
-          dx * hitColor_edge[1] + dy * hitColor_edge[2]; /// 极线方向梯度, jacobian
+      float dResdDist = dx * hitColor_edge[1] +
+                        dy * hitColor_edge[2]; /// 极线方向梯度, jacobian
 #endif
 
       float hw = fabs(residual) < setting_huberTH_trace_on
                      ? 1
                      : setting_huberTH_trace_on / fabs(residual);
       if (debugPrint) {
-        printf("iter: %d, idx: %d, res: %f, hw: %f, setting_huberTH_trace_on: %f\n", it, idx, residual, hw, setting_huberTH_trace_on);
+        printf("iter: %d, idx: %d, res: %f, hw: %f, setting_huberTH_trace_on: "
+               "%f\n",
+               it, idx, residual, hw, setting_huberTH_trace_on);
       }
       /// 跟一维光流一样，只是不再是正方形邻域，变成了环形邻域
       H += hw * dResdDist * dResdDist;
@@ -742,8 +764,8 @@ ImmaturePointStatus ImmaturePoint::traceOn(
       hw_sum += hw;
       hw_count += 1.0;
 #ifdef USE_ZNCC_SEARCH
-      energy +=
-          weights_gray[idx] * weights_gray[idx] * hw * residual * residual * (2 - hw);
+      energy += weights_gray[idx] * weights_gray[idx] * hw * residual *
+                residual * (2 - hw);
 #else
       energy +=
           weights[idx] * weights[idx] * hw * residual * residual * (2 - hw);
@@ -757,7 +779,9 @@ ImmaturePointStatus ImmaturePoint::traceOn(
     }
     zncc = CalcZncc(host_val, target_val);
     if (debugPrint) {
-      printf("\n===== iter: %d, energy: %f, zncc: %f, best_energy: %f, best_zncc: %f\n", it, energy, zncc,bestEnergy,bestEnergy_zncc);
+      printf("\n===== iter: %d, energy: %f, zncc: %f, best_energy: %f, "
+             "best_zncc: %f\n",
+             it, energy, zncc, bestEnergy, bestEnergy_zncc);
     }
 #ifndef USE_ZNCC_SEARCH
     if ((zncc < bestEnergy_zncc) || (energy > bestEnergy)) {
@@ -822,8 +846,14 @@ ImmaturePointStatus ImmaturePoint::traceOn(
   if (show_image) {
     img_target->setPixelCirc(bestU, bestV, Vec3b(0, 0, 255), target_cid);
   }
-  if (debugPrint){
-    printf("\n##### bestEnergy: %f, energyTH: %f, setting_trace_extraSlackOnTH: %f, bestEnergy_zncc_angle: %f, setting_outlierTH_zncc_tracker: %f, setting_outlierTH_zncc_angle_epi_trace_on: %f\n", bestEnergy, energyTH, setting_trace_extraSlackOnTH,bestEnergy_zncc, setting_outlierTH_zncc_tracker, setting_outlierTH_zncc_angle_epi_trace_on);
+  if (debugPrint) {
+    printf(
+        "\n##### bestEnergy: %f, energyTH: %f, setting_trace_extraSlackOnTH: "
+        "%f, bestEnergy_zncc_angle: %f, setting_outlierTH_zncc_tracker: %f, "
+        "setting_outlierTH_zncc_angle_epi_trace_on: %f\n",
+        bestEnergy, energyTH, setting_trace_extraSlackOnTH, bestEnergy_zncc,
+        setting_outlierTH_zncc_tracker,
+        setting_outlierTH_zncc_angle_epi_trace_on);
   }
 #endif
   // ============== detect energy-based outlier. ===================
@@ -834,7 +864,8 @@ ImmaturePointStatus ImmaturePoint::traceOn(
   // getInterpolatedElement(frame->absSquaredGrad[2],bestU*0.25-0.375,
   // bestV*0.25-0.375, wG[2]);
   if (!(bestEnergy < energyTH * setting_trace_extraSlackOnTH) ||
-      bestEnergy_zncc < setting_outlierTH_zncc_angle_epi_trace_on/*setting_outlierTH_zncc_tracker*/)
+      bestEnergy_zncc <
+          setting_outlierTH_zncc_angle_epi_trace_on /*setting_outlierTH_zncc_tracker*/)
   //			|| (absGrad0*areaGradientSlackFactor < host->frameGradTH
   //		     && absGrad1*areaGradientSlackFactor <
   // host->frameGradTH*0.75f
@@ -861,7 +892,9 @@ ImmaturePointStatus ImmaturePoint::traceOn(
     } else {
 #ifdef SHOW_TRACEON
       if (show_image) {
-        printf("return 10, is_first_frame: %d,  host_cid: %d, target_cid: %d, idepth_min: %f, idepth_max: %f\n", is_first_frame, host_cid, target_cid, idepth_min, idepth_max);
+        printf("return 10, is_first_frame: %d,  host_cid: %d, target_cid: %d, "
+               "idepth_min: %f, idepth_max: %f\n",
+               is_first_frame, host_cid, target_cid, idepth_min, idepth_max);
         IOWrap::displayImage("host", img_host);
         IOWrap::displayImage("target", img_target);
         IOWrap::waitKey(0);
@@ -924,7 +957,9 @@ ImmaturePointStatus ImmaturePoint::traceOn(
   //              << ", affLL: " << affLL.transpose()
   //              << ", color[idx]: " << color[idx] << std::endl;
   if (show_image) {
-    printf("GOOD !!! is_first_frame: %d,  host_cid: %d, target_cid: %d, idepth_min: %f, idepth_max: %f\n", is_first_frame, host_cid, target_cid, idepth_min, idepth_max);
+    printf("GOOD !!! is_first_frame: %d,  host_cid: %d, target_cid: %d, "
+           "idepth_min: %f, idepth_max: %f\n",
+           is_first_frame, host_cid, target_cid, idepth_min, idepth_max);
     IOWrap::displayImage("host", img_host);
     IOWrap::displayImage("target", img_target);
     IOWrap::waitKey(0);
@@ -972,9 +1007,10 @@ float ImmaturePoint::calcResidual(CalibHessian *HCalib,
 
   for (int idx = 0; idx < patternNumSeed; idx++) {
     float Ku, Kv;
-    if (!projectPoint(this->u + patternPSeed[idx][0] * pattern_scale_seed_point_opt,
-                      this->v + patternPSeed[idx][1] * pattern_scale_seed_point_opt, idepth, PRE_KRKiTll,
-                      PRE_KtTll, Ku, Kv)) {
+    if (!projectPoint(
+            this->u + patternPSeed[idx][0] * pattern_scale_seed_point_opt,
+            this->v + patternPSeed[idx][1] * pattern_scale_seed_point_opt,
+            idepth, PRE_KRKiTll, PRE_KtTll, Ku, Kv)) {
       return 1e10;
     }
 
@@ -982,7 +1018,7 @@ float ImmaturePoint::calcResidual(CalibHessian *HCalib,
     Vec3f hitColor_edge = (getInterpolatedElement33(dIl_edge, Ku, Kv, wG[0]));
     if (!std::isfinite((float)hitColor[0])
 #ifndef USE_ZNCC_SEARCH
-    || !std::isfinite((float)hitColor_edge[0])
+        || !std::isfinite((float)hitColor_edge[0])
 #endif
     ) {
       return 1e10;
@@ -998,8 +1034,8 @@ float ImmaturePoint::calcResidual(CalibHessian *HCalib,
                    ? 1
                    : setting_huberTH_trace_on / fabsf(residual);
 #ifdef USE_ZNCC_SEARCH
-    energyLeft +=
-        weights_gray[idx] * weights_gray[idx] * hw * residual * residual * (2 - hw);
+    energyLeft += weights_gray[idx] * weights_gray[idx] * hw * residual *
+                  residual * (2 - hw);
 #else
     energyLeft +=
         weights[idx] * weights[idx] * hw * residual * residual * (2 - hw);
@@ -1037,8 +1073,9 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
   // TODO roger, only opt in level 0
   const Eigen::Vector3f *dIl = tmpRes->target->dIp[lvl_target] +
                                wG[lvl_target] * hG[lvl_target] * target_cid;
-  const Eigen::Vector3f *dIl_edge = tmpRes->target->dt_dx_dy[lvl_target] +
-                               wG[lvl_target] * hG[lvl_target] * target_cid;
+  const Eigen::Vector3f *dIl_edge =
+      tmpRes->target->dt_dx_dy[lvl_target] +
+      wG[lvl_target] * hG[lvl_target] * target_cid;
   const Mat33f &PRE_RTll =
       precalc->a_PRE_RTll[host_cid * kCameraNumUsed + target_cid];
   const Vec3f &PRE_tTll =
@@ -1115,11 +1152,12 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
 
     /// dIl传进来只是为了得到数据的地址,用以指向角点4邻域内的数据，它的内容并不参与计算，指针妙用
     Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[lvl_target]));
-    Vec3f hitColor_edge = (getInterpolatedElement33(dIl_edge, Ku, Kv, wG[lvl_target]));
+    Vec3f hitColor_edge =
+        (getInterpolatedElement33(dIl_edge, Ku, Kv, wG[lvl_target]));
 
     if (!std::isfinite((float)hitColor[0])
 #ifndef USE_ZNCC_SEARCH
-    || !std::isfinite((float)hitColor_edge[0])
+        || !std::isfinite((float)hitColor_edge[0])
 #endif
     ) {
       tmpRes->state_NewState = ResState::OOB;
@@ -1138,8 +1176,8 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
                    ? 1
                    : setting_huberTH_linearize / fabsf(residual);
 #ifdef USE_ZNCC_SEARCH
-    energyLeft +=
-        weights_gray[idx] * weights_gray[idx] * hw * residual * residual * (2 - hw);
+    energyLeft += weights_gray[idx] * weights_gray[idx] * hw * residual *
+                  residual * (2 - hw);
 #else
     energyLeft +=
         weights[idx] * weights[idx] * hw * residual * residual * (2 - hw);
@@ -1158,7 +1196,10 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
     float d_idepth =
         derive_idepth(PRE_tTll, u, v, dx, dy, dxInterp, dyInterp, drescale);
     if (print_info) {
-      printf("idx: %d, weights[idx]: %f,weights_gray[idx]: %f, residual: %f, setting_huberTH_linearize: %f\n", idx, weights[idx],weights_gray[idx], residual, setting_huberTH_linearize);
+      printf("idx: %d, weights[idx]: %f,weights_gray[idx]: %f, residual: %f, "
+             "setting_huberTH_linearize: %f\n",
+             idx, weights[idx], weights_gray[idx], residual,
+             setting_huberTH_linearize);
     }
 #ifdef USE_ZNCC_SEARCH
     hw *= weights_gray[idx] * weights_gray[idx];
@@ -1175,7 +1216,9 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
     valid_count++;
   }
   zncc = CalcZncc(host_val, target_val);
-  if (energyLeft > energyTH * outlierTHSlack || zncc < setting_outlierTH_zncc_angle_epi_linearize/*setting_outlierTH_zncc_tracker*/) {
+  if (energyLeft > energyTH * outlierTHSlack ||
+      zncc <
+          setting_outlierTH_zncc_angle_epi_linearize /*setting_outlierTH_zncc_tracker*/) {
     energyLeft = energyTH * outlierTHSlack;
     tmpRes->state_NewState = ResState::OUTLIER;
   } else {
@@ -1183,7 +1226,12 @@ double ImmaturePoint::linearizeResidual(const int &target_cid,
   }
 
   if (print_info) {
-    printf("hw_mean: %f, energyLeft: %f, zncc: %f, energyTH: %f, outlierTHSlack: %f, setting_outlierTH_zncc_tracker: %f, setting_outlierTH_zncc_angle_epi_linearize: %f\n", hw_sum / hw_count, energyLeft, zncc, energyTH, outlierTHSlack, setting_outlierTH_zncc_tracker, setting_outlierTH_zncc_angle_epi_linearize);
+    printf("hw_mean: %f, energyLeft: %f, zncc: %f, energyTH: %f, "
+           "outlierTHSlack: %f, setting_outlierTH_zncc_tracker: %f, "
+           "setting_outlierTH_zncc_angle_epi_linearize: %f\n",
+           hw_sum / hw_count, energyLeft, zncc, energyTH, outlierTHSlack,
+           setting_outlierTH_zncc_tracker,
+           setting_outlierTH_zncc_angle_epi_linearize);
   }
   tmpRes->state_NewEnergy = energyLeft;
   zncc_opt = zncc;

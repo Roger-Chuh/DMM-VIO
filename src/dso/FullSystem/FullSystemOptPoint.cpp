@@ -94,9 +94,9 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
       residuals[i].state_NewEnergy = residuals[i].state_energy = 0;
       residuals[i].state_NewState = ResState::OUTLIER;
       residuals[i].state_state = ResState::IN;
-      lastEnergy += point->linearizeResidual(nres_to_target_cid.at(i), &Hcalib,
-                                             1000, residuals + i, lastHdd,
-                                             lastbd, currentIdepth, lvl_target, false/*print*/);
+      lastEnergy += point->linearizeResidual(
+          nres_to_target_cid.at(i), &Hcalib, 1000, residuals + i, lastHdd,
+          lastbd, currentIdepth, lvl_target, false /*print*/);
       residuals[i].state_state = residuals[i].state_NewState;
       residuals[i].state_energy = residuals[i].state_NewEnergy;
       lastEnergy_zncc += point->zncc_opt;
@@ -128,7 +128,7 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
       float newEnergy = 0;
       float newEnergy_zncc = 0;
       hw_sum = 0;
-      hw_count =0;
+      hw_count = 0;
       for (int i = 0; i < nres; i++) {
         newEnergy += point->linearizeResidual(nres_to_target_cid.at(i), &Hcalib,
 #if 1 // ndef USE_MULTI_CAM //TODO roger, 不能完全不做deoutlier，outlier_thr =
@@ -140,9 +140,9 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
                                               ,
                                               residuals + i, newHdd, newbd,
                                               newIdepth, lvl_target);
-        if (std::isfinite(point->hw_use[nres_to_target_cid[i]])){
+        if (std::isfinite(point->hw_use[nres_to_target_cid[i]])) {
           hw_sum += point->hw_use[nres_to_target_cid[i]];
-          hw_count +=1;
+          hw_count += 1;
         }
         newEnergy_zncc += point->zncc_opt;
       }
@@ -218,7 +218,7 @@ FullSystem::optimizeImmaturePoint(ImmaturePoint *point, int minObs,
   p->setIdepth(currentIdepth);
   p->setPointStatus(PointHessian::ACTIVE);
   p->idepth_backup = currentIdepth;
-  p->hw_use = hw_sum/hw_count;
+  p->hw_use = hw_sum / hw_count;
   if (!add_to_residuals) {
     if (print) {
       printf("point activated! numGoodRes: %d\n", numGoodRes);

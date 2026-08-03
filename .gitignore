@@ -50,3 +50,8 @@ output_frameEnergyTh.txt
 output_rmse.txt
 scalesdso.txt
 usedSettingsdso.txt
+
+# ReCode local database
+.recode
+
+.history/

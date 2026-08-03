@@ -200,7 +200,6 @@ prepareInitValuesForPGBA(std::unique_ptr<gtsam::Values> &initValuesNew,
                          const std::unique_ptr<gtsam::Values> &initValues,
                          const gtsam::Values &baValues,
                          dmvio::IMUInitializerLogic &logic) {
-
   if (!initValues) {
     // If BA
     if (baValues.exists(gtsam::Symbol('s', 0))) {

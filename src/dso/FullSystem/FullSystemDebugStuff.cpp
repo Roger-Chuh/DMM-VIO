@@ -204,7 +204,6 @@ void FullSystem::debugPlot(std::string name, int cid) {
         img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 255, 255),
                           ph->host_cid);
     } else if ((int)(freeDebugParam5 + 0.5f) == 2) {
-
     } else if ((int)(freeDebugParam5 + 0.5f) == 3) {
       for (ImmaturePoint *ph : frameHessians[f]->immaturePoints) {
         if (ph == 0)

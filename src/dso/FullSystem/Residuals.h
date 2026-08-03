@@ -67,8 +67,8 @@ public:
       state_NewEnergy; //!< 新的能量, 如果大于阈值则把等于阈值
   std::array<double, kCameraNumUsed>
       state_NewEnergyWithOutlier; //!< 可能具有外点的能量, 可能大于阈值
-  std::array<double, kCameraNumUsed> state_zncc_angle; //!<
-  std::array<double, kCameraNumUsed> state_hw; //!<
+  std::array<double, kCameraNumUsed> state_zncc_angle;            //!<
+  std::array<double, kCameraNumUsed> state_hw;                    //!<
   std::array<Vec2f, kCameraNumUsed> state_residual_residual_gray; //!<
   void setState(ResState s, int cid) {
     //      for (int cid = 0; cid < kCameraNumUsed; ++cid) {

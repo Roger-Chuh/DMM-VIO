@@ -32,7 +32,6 @@ using namespace Sophus;
 using namespace std;
 
 template <class Scalar> void tests() {
-
   typedef Sim3Group<Scalar> Sim3Type;
   typedef RxSO3Group<Scalar> RxSO3Type;
   typedef typename Sim3Group<Scalar>::Point Point;

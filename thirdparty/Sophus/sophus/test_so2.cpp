@@ -30,7 +30,6 @@ using namespace Sophus;
 using namespace std;
 
 template <class Scalar> void tests() {
-
   typedef SO2Group<Scalar> SO2Type;
   typedef typename SO2Group<Scalar>::Point Point;
   typedef typename SO2Group<Scalar>::Tangent Tangent;

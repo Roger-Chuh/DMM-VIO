@@ -106,9 +106,10 @@ public:
   // the increment. b contains the following parameters: 3 for the rotation
   // ref_to_frame, 3 for the translation ref_to_frame, and 2 for affine
   // lightning parameters.
-  Sophus::SE3 computeCoarseUpdate(dso::Vec8 &inc_gtsam, const dso::Mat88 &H, const dso::Vec8 &b,
-                                  float extrapFac, float lambda, double &incA,
-                                  double &incB, double &incNorm, bool force_zero_inc = false);
+  Sophus::SE3 computeCoarseUpdate(dso::Vec8 &inc_gtsam, const dso::Mat88 &H,
+                                  const dso::Vec8 &b, float extrapFac,
+                                  float lambda, double &incA, double &incB,
+                                  double &incNorm, bool force_zero_inc = false);
 
   // Apply the update computed by the last call of computeCoarseUpdate.
   void acceptCoarseUpdate();

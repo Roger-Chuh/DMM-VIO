@@ -38,7 +38,6 @@ void AccumulatedTopHessianSSE::addPoint(
     EFPoint *p, EnergyFunctional const *const ef,
     int tid) // 0 = active, 1 = linearized, 2=marginalize
 {
-
   assert(mode == 0 || mode == 1 || mode == 2);
 
   VecCf dc = ef->cDeltaF; // TODO 内参的相对fej状态的变化量

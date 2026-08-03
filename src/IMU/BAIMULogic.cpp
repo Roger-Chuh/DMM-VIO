@@ -662,8 +662,8 @@ BAIMULogic::computeFactorForCoarseGraphAndMarginalCovariances() {
                                     uncertOrdering.end(), 0, accumFun);
   gtsam::Matrix margForFactor = computeSchurComplement(
       marginalized, secondMSize,
-      secondASize); // This method assumes that the variables to marginalize are
-                    // first.
+      secondASize); // This method assumes that the variables to
+                    // marginalize are first.
 
   gtsam::FastVector<size_t> connectedDims;
   for (auto &&key : factorOrdering) {

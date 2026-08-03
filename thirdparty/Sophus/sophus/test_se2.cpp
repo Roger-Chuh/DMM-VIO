@@ -31,7 +31,6 @@ using namespace Sophus;
 using namespace std;
 
 template <class Scalar> void tests() {
-
   typedef SO2Group<Scalar> SO2Type;
   typedef SE2Group<Scalar> SE2Type;
   typedef typename SE2Group<Scalar>::Point Point;

@@ -274,7 +274,6 @@ inline DiyFp GetCachedPowerByIndex(size_t index) {
 }
 
 inline DiyFp GetCachedPower(int e, int *K) {
-
   // int k = static_cast<int>(ceil((-61 - e) * 0.30102999566398114)) + 374;
   double dk = (-61 - e) * 0.30102999566398114 +
               347; // dk must be positive, so can do ceiling in positive

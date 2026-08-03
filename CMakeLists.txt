@@ -104,6 +104,27 @@ set(dso_SOURCE_FILES
         ${DSO_SOURCE_DIR}/FullSystem/ImmaturePoint.cpp
         ${DSO_SOURCE_DIR}/FullSystem/HessianBlocks.cpp
         ${DSO_SOURCE_DIR}/FullSystem/PixelSelector2.cpp
+		${DSO_SOURCE_DIR}/FullSystem/dlsd/dlsd.cc
+		${DSO_SOURCE_DIR}/FullSystem/dlsd/ED.cc
+		${DSO_SOURCE_DIR}/FullSystem/dlsd/EDLines.cc
+		${DSO_SOURCE_DIR}/FullSystem/dlsd/line_fit.cc
+		${DSO_SOURCE_DIR}/FullSystem/dlsd/math.cc
+		${DSO_SOURCE_DIR}/FullSystem/dlsd/NFA.cc
+		${DSO_SOURCE_DIR}/FullSystem/dlsd/polynomial.cc
+		${DSO_SOURCE_DIR}/FullSystem/line/EDLineDetector.cpp
+		${DSO_SOURCE_DIR}/FullSystem/line/LineDescriptor.cpp
+		${DSO_SOURCE_DIR}/FullSystem/edge_drawing/ed.cpp
+		${DSO_SOURCE_DIR}/FullSystem/ED_Lib/edge_drawing.cpp
+		${DSO_SOURCE_DIR}/FullSystem/ED_Lib/ED.cpp
+		${DSO_SOURCE_DIR}/FullSystem/ED_Lib/EDCircles.cpp
+		${DSO_SOURCE_DIR}/FullSystem/ED_Lib/EDColor.cpp
+		${DSO_SOURCE_DIR}/FullSystem/ED_Lib/EDLines.cpp
+		${DSO_SOURCE_DIR}/FullSystem/ED_Lib/EDPF.cpp
+		${DSO_SOURCE_DIR}/FullSystem/ED_Lib/NFA.cpp
+		# 注意：ED_Lib 的 test_ED.cpp / test_it.cpp / video_test.cpp 是独立演示程序，
+		# 由 ED_Lib/CMakeLists.txt 单独编译为可执行文件，不编入 dmvio 库。
+		${DSO_SOURCE_DIR}/FullSystem/edlines.cpp
+		${DSO_SOURCE_DIR}/FullSystem/lsdlines.cpp
 		${DSO_SOURCE_DIR}/OptimizationBackend/EnergyFunctional.cpp
 		${DSO_SOURCE_DIR}/OptimizationBackend/AccumulatedTopHessian.cpp
 		${DSO_SOURCE_DIR}/OptimizationBackend/AccumulatedSCHessian.cpp
@@ -260,3 +281,6 @@ else()
 endif()
 
 add_subdirectory(test)
+# ED_Lib 演示程序（test_it/test_ED/video_test）：已修复全局 main 入口与 ximgproc 依赖，
+# 作为独立可执行文件由该子目录构建。
+add_subdirectory(src/dso/FullSystem/ED_Lib)

@@ -30,8 +30,6 @@
 namespace dso {
 int pyrLevelsUsed = PYR_LEVELS;
 
-
-
 int setting_kfNumWithAffineFixed = 4;
 
 int setting_pyrLvlWithAffineFixed = 2;
@@ -57,7 +55,7 @@ double setting_maxTimeBetweenKeyframes = 0;
 // can make successive frames keyframes, which only rarely happens in RT mode.
 // Default is -0.5 with means that the parameter is 0.5 in non-RT mode and
 // inactive in RT mode. Fractional values are also possible.
-double setting_minFramesBetweenKeyframes = 0.0;//0.5;//-0.5;
+double setting_minFramesBetweenKeyframes = 0.0; // 0.5;//-0.5;
 
 // minimum idepth for keeping points in the optimization window.
 float setting_minIdepth = 0.02f;
@@ -135,7 +133,7 @@ bool setting_forceAceptStep = false;
 /* some thresholds on when to activate / marginalize points */
 float setting_minIdepthH_act = 100;
 float setting_minIdepthH_marg = 50;
-#if 1//ndef USE_EDGE_ALIGN
+#if 1                                        // ndef USE_EDGE_ALIGN
 float setting_desiredImmatureDensity = 1500; // immature points per frame
 float setting_desiredPointDensity =
     2000; // aimed total points in the active window.
@@ -151,9 +149,9 @@ float setting_maxLogAffFacInWindow =
          // larger than 1/X or X.
 #else
 float setting_maxLogAffFacInWindow =
-    2.3; // tolerate 10x times diff in AFFINE[0]
+    2.3;                    // tolerate 10x times diff in AFFINE[0]
 #endif
-#if 1//ndef USE_EDGE_ALIGN
+#if 1                      // ndef USE_EDGE_ALIGN
 int setting_minFrames = 5; // min frames in window.
 int setting_maxFrames = 7; // 12; // 7; // max frames in window.
 #else
@@ -161,14 +159,14 @@ int setting_minFrames = 10; // min frames in window.
 int setting_maxFrames = 15; // 12; // 7; // max frames in window.
 #endif
 int setting_minFrameAge = 1;
-int setting_maxOptIterations = 5;//3;//5; // 6; // max GN iterations.
-int setting_minOptIterations = 2;  // 1; // min GN iterations.
+int setting_maxOptIterations = 5; // 3;//5; // 6; // max GN iterations.
+int setting_minOptIterations = 2; // 1; // min GN iterations.
 float setting_thOptIterations =
     1.2; // factor on break threshold for GN iteration (larger = break earlier)
 
 /* Outlier Threshold on photometric energy */
 //#ifndef USE_ZNCC
-//float setting_outlierTH = 12 * 12; // higher -> less strict
+// float setting_outlierTH = 12 * 12; // higher -> less strict
 float setting_outlierTHSumComponent =
     50 * 50; // higher -> less strong gradient-based reweighting .
              //#else
@@ -216,42 +214,36 @@ int setting_gammaWeightsPixelSelect =
     1; // 1 = use original intensity for pixel selection; 0 = use
        // gamma-corrected intensity.
 
-
-
-//float setting_huberTH = 9;       // Huber Threshold
-//float setting_huberTH_loose = 9; // Huber Threshold
+// float setting_huberTH = 9;       // Huber Threshold
+// float setting_huberTH_loose = 9; // Huber Threshold
 float setting_variableScale = 20; // 100; // 10;//50;
 
-float setting_variableScale_edge = 10;//
+float setting_variableScale_edge = 20; //
 // float setting_variableScale_edge_tracker = 30;
 // float setting_variableScale_edge_seed = 30;
 
-
-    //#ifndef USE_ZNCC
-float setting_coarseCutoffTH = 40;//40;//20;
-float setting_coarseCutoffTH_loose = 60;//590;
-float setting_dtCutoffTH = 10;//40;//20;(pixel)
-float setting_dtCutoffTH_loose = 10;//590;(pixel)
-    //#else
+//#ifndef USE_ZNCC
+float setting_coarseCutoffTH = 40;       // 40;//20;
+float setting_coarseCutoffTH_loose = 60; // 590;
+float setting_dtCutoffTH = 10;           // 40;//20;(pixel)
+float setting_dtCutoffTH_loose = 10;     // 590;(pixel)
+                                         //#else
 // float setting_coarseCutoffTH = 0.5;
-    //#endif
+//#endif
 
-
-float setting_outlierTH_epi_trace_on = 20;//15;
-float setting_outlierTH_epi_linearize = 15;//10;
+float setting_outlierTH_epi_trace_on = 20;  // 15;
+float setting_outlierTH_epi_linearize = 15; // 10;
 float setting_outlierTH_zncc_angle_epi_trace_on = 0.3;
 float setting_outlierTH_zncc_angle_epi_linearize = 0.5;
-float setting_outlierTH_init = 20;//15;
+float setting_outlierTH_init = 20; // 15;
 float setting_outlierTH_zncc_init = 0.3;
 float setting_outlierTH_zncc_angle_init = 0.8;
-float setting_outlierTH_tracker = setting_coarseCutoffTH;//10;
-float setting_outlierTH_loose_tracker = setting_coarseCutoffTH_loose;//15;
-float setting_outlierTH_zncc_tracker = 0.8; //used in trace on (not used)
-float setting_outlierTH_LBA = 15;//8; //used in trace on
-float setting_outlierTH_zncc_LBA = 0.1;//0.8; //used in trace on
-float setting_outlierTH_zncc_angle_LBA = 0.6;//0.8; //used in trace on
-
-
+float setting_outlierTH_tracker = setting_coarseCutoffTH;             // 10;
+float setting_outlierTH_loose_tracker = setting_coarseCutoffTH_loose; // 15;
+float setting_outlierTH_zncc_tracker = 0.8;   // used in trace on (not used)
+float setting_outlierTH_LBA = 15;             // 8; //used in trace on
+float setting_outlierTH_zncc_LBA = 0.1;       // 0.8; //used in trace on
+float setting_outlierTH_zncc_angle_LBA = 0.6; // 0.8; //used in trace on
 
 float setting_huberTH_epi_trace_on = setting_outlierTH_epi_trace_on;
 float setting_huberTH_epi_linearize = setting_outlierTH_epi_linearize;
@@ -260,32 +252,40 @@ float setting_huberTH_zncc_init = setting_outlierTH_zncc_init;
 float setting_huberTH_zncc_angle_init = setting_outlierTH_zncc_angle_init;
 float setting_huberTH_tracker = setting_outlierTH_tracker;
 float setting_huberTH_loose_tracker = setting_outlierTH_loose_tracker;
-float setting_huberTH_zncc_tracker = setting_outlierTH_zncc_tracker; // 0.2;//used in lba
+float setting_huberTH_zncc_tracker =
+    setting_outlierTH_zncc_tracker;                // 0.2;//used in lba
 float setting_huberTH_LBA = setting_outlierTH_LBA; // 0.2;//used in lba
-float setting_huberTH_zncc_LBA = setting_outlierTH_zncc_LBA; // 0.2;//used in lba
-float setting_huberTH_zncc_angle_LBA = setting_outlierTH_zncc_angle_LBA; // 0.2;//used in lba
+float setting_huberTH_zncc_LBA =
+    setting_outlierTH_zncc_LBA; // 0.2;//used in lba
+float setting_huberTH_zncc_angle_LBA =
+    setting_outlierTH_zncc_angle_LBA; // 0.2;//used in lba
 
-
-
-     float setting_energyTH_epi_trace_on = setting_huberTH_epi_trace_on * setting_huberTH_epi_trace_on;
-     float setting_energyTH_epi_linearize = setting_huberTH_epi_linearize * setting_huberTH_epi_linearize;
-     float setting_energyTH_init = setting_huberTH_init * setting_huberTH_init;
-    float setting_energyTH_zncc_init = setting_huberTH_zncc_init * setting_huberTH_zncc_init;
-    float setting_energyTH_zncc_angle_init = setting_huberTH_zncc_angle_init * setting_huberTH_zncc_angle_init;
-     float setting_energyTH_tracker = setting_huberTH_tracker * setting_huberTH_tracker;
-     float setting_energyTH_loose_tracker = setting_huberTH_loose_tracker * setting_huberTH_loose_tracker;
-     float setting_energyTH_zncc_tracker = setting_huberTH_zncc_tracker * setting_huberTH_zncc_tracker;
-     float setting_energyTH_LBA = setting_huberTH_LBA * setting_huberTH_LBA;
-     float setting_energyTH_zncc_LBA = setting_huberTH_zncc_LBA * setting_huberTH_zncc_LBA;
-    float setting_energyTH_zncc_angle_LBA = setting_huberTH_zncc_angle_LBA * setting_huberTH_zncc_angle_LBA;
-
+float setting_energyTH_epi_trace_on =
+    setting_huberTH_epi_trace_on * setting_huberTH_epi_trace_on;
+float setting_energyTH_epi_linearize =
+    setting_huberTH_epi_linearize * setting_huberTH_epi_linearize;
+float setting_energyTH_init = setting_huberTH_init * setting_huberTH_init;
+float setting_energyTH_zncc_init =
+    setting_huberTH_zncc_init * setting_huberTH_zncc_init;
+float setting_energyTH_zncc_angle_init =
+    setting_huberTH_zncc_angle_init * setting_huberTH_zncc_angle_init;
+float setting_energyTH_tracker =
+    setting_huberTH_tracker * setting_huberTH_tracker;
+float setting_energyTH_loose_tracker =
+    setting_huberTH_loose_tracker * setting_huberTH_loose_tracker;
+float setting_energyTH_zncc_tracker =
+    setting_huberTH_zncc_tracker * setting_huberTH_zncc_tracker;
+float setting_energyTH_LBA = setting_huberTH_LBA * setting_huberTH_LBA;
+float setting_energyTH_zncc_LBA =
+    setting_huberTH_zncc_LBA * setting_huberTH_zncc_LBA;
+float setting_energyTH_zncc_angle_LBA =
+    setting_huberTH_zncc_angle_LBA * setting_huberTH_zncc_angle_LBA;
 
 // parameters controlling adaptive energy threshold computation.
 float setting_frameEnergyTHConstWeight = 0.5;
 float setting_frameEnergyTHN = 0.7f;
 float setting_frameEnergyTHFacMedian = 1.5;
 float setting_overallEnergyTHWeight = 1;
-
 
 // parameters controlling pixel selection
 float setting_minGradHistCut = 0.5; // 0.5;

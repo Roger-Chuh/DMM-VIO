@@ -520,7 +520,6 @@ public:
         of a block is reserved for a pointer to the previous block.
      */
     if (size > remaining) {
-
       wastedMemory += remaining;
 
       /* Allocate new storage. */

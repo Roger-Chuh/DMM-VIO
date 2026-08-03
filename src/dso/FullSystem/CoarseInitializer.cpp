@@ -355,14 +355,15 @@ bool CoarseInitializer::trackFrame(
 
         bool accept = eTotalOld > eTotalNew;
         float diff_ratio = (eTotalNew - eTotalOld) / eTotalOld;
-        printf("is_accept: %d, level: %d, hw_init: %f, [eTotalOld / eTotalNew]: [%0.1f / "
+        printf("is_accept: %d, level: %d, hw_init: %f, [eTotalOld / "
+               "eTotalNew]: [%0.1f / "
                "%0.1f], diff: "
                "%0.1f, diff_ratio: %0.4f, iter: %d, level: %d, incNorm: %f, "
                "lambda: "
                "%0.4f. [lvl_h / lvl_t]: [%d %d]\n",
-               accept, lvl, resNew[3],eTotalOld, eTotalNew, eTotalNew - eTotalOld,
-               (eTotalNew - eTotalOld) / eTotalOld, iteration, lvl, incNorm,
-               lambda, lvl, lvl_target);
+               accept, lvl, resNew[3], eTotalOld, eTotalNew,
+               eTotalNew - eTotalOld, (eTotalNew - eTotalOld) / eTotalOld,
+               iteration, lvl, incNorm, lambda, lvl, lvl_target);
         if (printDebug) {
           printf("lvl %d, it %d (l=%f) %s: %.5f + %.5f + %.5f -> %.5f + %.5f + "
                  "%.5f (%.2f->%.2f) (|inc| = %f)! \t",
@@ -1810,7 +1811,8 @@ Vec4f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
   Accumulator11 E;   // 1*1 的累加器
   acc9.initialize(); // 初始值, 分配空间
   E.initialize();
-  float hw_sum = 0, hw_count = 0;;
+  float hw_sum = 0, hw_count = 0;
+  ;
   for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
     int bad_pid_count = 0;
     //    for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
@@ -2091,7 +2093,10 @@ Vec4f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
           // x方向梯度 + y方向梯度)
           Vec3f hitColor =
               getInterpolatedElement33(colorNew, Ku, Kv, wl_target);
-          // printf("level: [%d %d], [w h]: [%d %d], idx: %d, offset: [%f %f], uv: [%f %f], dxdy: [%f %f]\n", lvl,lvl_target, wl, hl,idx, patternPSeed[idx][0], patternPSeed[idx][1], point->u, point->v, dx,dy);
+          // printf("level: [%d %d], [w h]: [%d %d], idx: %d, offset: [%f %f],
+          // uv: [%f %f], dxdy: [%f %f]\n", lvl,lvl_target, wl, hl,idx,
+          // patternPSeed[idx][0], patternPSeed[idx][1], point->u, point->v,
+          // dx,dy);
           Vec3f hostColor = getInterpolatedElement33(colorRef, point->u + dx,
                                                      point->v + dy, wl);
           // Vec3f hitColor = getInterpolatedElement33BiCub(colorNew, Ku, Kv,
@@ -2324,7 +2329,6 @@ Vec4f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
       int patch_num = host_info.rows();
       // assert(patch_num == MAX_RES_PER_POINT_SEED * kCameraNumUsed);
       if (patch_num != 0) {
-
         for (int id = 0; id < kCameraNumUsed; ++id) {
           if (cam_info[id] > 0) {
             // printf("id: %d\n", id);
@@ -2430,7 +2434,8 @@ Vec4f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
         //
         // std::cout << "init, grad_old_host: \n" <<
         // host_info.rightCols(2) << std::endl;
-        // std::cout << "init, grad_old_target: \n" << target_info.rightCols(2) <<std::endl;
+        // std::cout << "init, grad_old_target: \n" << target_info.rightCols(2)
+        // <<std::endl;
       }
 
 #endif
@@ -2866,7 +2871,8 @@ Vec4f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
           float residual = hitColor[0] - r2new_aff[0] * rlR - r2new_aff[1];
           // Huber权重
           float hw =
-              fabs(residual) < (setting_outlierTH_init /*+ std::abs(r2new_aff[1])*/)
+              fabs(residual) <
+                      (setting_outlierTH_init /*+ std::abs(r2new_aff[1])*/)
                   ? 1
                   : (setting_outlierTH_init /*+ std::abs(r2new_aff[1])*/) /
                         fabs(residual);
@@ -2874,7 +2880,9 @@ Vec4f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
             float ws2 = a_zncc_mean(target_cid);
             ws2 *= ws2;
             assert(ws2 > 0);
-            hw = ws2 > setting_huberTH_zncc_init ? 1 : ws2 / setting_huberTH_zncc_init;
+            hw = ws2 > setting_huberTH_zncc_init
+                     ? 1
+                     : ws2 / setting_huberTH_zncc_init;
           }
           // huberweight * (2-huberweight) = Objective Function
           // robust 权重和函数之间的关系
@@ -2903,11 +2911,11 @@ Vec4f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
 
           // printf("residual: %f, hw: %f\n", residual, hw);
 #ifndef USE_ZNCC_WEIGHT
-          float hw =
-              fabs(residual) < (setting_huberTH_init /*+ std::abs(r2new_aff[1])*/)
-                  ? 1
-                  : (setting_huberTH_init /*+ std::abs(r2new_aff[1])*/) /
-                        fabs(residual);
+          float hw = fabs(residual) <
+                             (setting_huberTH_init /*+ std::abs(r2new_aff[1])*/)
+                         ? 1
+                         : (setting_huberTH_init /*+ std::abs(r2new_aff[1])*/) /
+                               fabs(residual);
 #else
           float norm1 = a_host_info[target_cid].col(0).norm();
           float norm2 = a_target_info[target_cid].col(0).norm();
@@ -2933,7 +2941,9 @@ Vec4f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
           float hw =
               ws2; // std::sqrt(ws2);
                    // printf("norm12: [%f %f], hw: %f\n", norm1, norm2, hw);
-          hw = ws2 > setting_huberTH_zncc_init ? 1 : ws2 / setting_huberTH_zncc_init;
+          hw = ws2 > setting_huberTH_zncc_init
+                   ? 1
+                   : ws2 / setting_huberTH_zncc_init;
 #endif
           // printf("residual: %f, hw: %f\n", residual, hw);
           energy += hw * residual * residual * (2 - hw);
@@ -2977,23 +2987,39 @@ Vec4f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
           Vec6f d_res_d_pose_inverse_comp =
               hw * Vec2f(hostColor[1], hostColor[2]).transpose() *
               d_uv_d_pose_inverse_comp;
-          // printf("idx: %d, target_cid: %d, MAX_RES_PER_POINT_SEED: %d, index_to_count: %d, [row col]: [%d %d], grad_new_host [rows, cols]: [%d %d]\n",idx, target_cid,MAX_RES_PER_POINT_SEED, index_to_count.at(idx + MAX_RES_PER_POINT_SEED *
-          //                                                  target_cid), a_grad_new_host[target_cid].rows(), a_grad_new_host[target_cid].cols(), grad_new_host.rows(), grad_new_host.cols());
-          // printf("%f\n", grad_new_host(index_to_count.at(idx + MAX_RES_PER_POINT_SEED *
+          // printf("idx: %d, target_cid: %d, MAX_RES_PER_POINT_SEED: %d,
+          // index_to_count: %d, [row col]: [%d %d], grad_new_host [rows, cols]:
+          // [%d %d]\n",idx, target_cid,MAX_RES_PER_POINT_SEED,
+          // index_to_count.at(idx + MAX_RES_PER_POINT_SEED *
+          //                                                  target_cid),
+          //                                                  a_grad_new_host[target_cid].rows(),
+          //                                                  a_grad_new_host[target_cid].cols(),
+          //                                                  grad_new_host.rows(),
+          //                                                  grad_new_host.cols());
+          // printf("%f\n", grad_new_host(index_to_count.at(idx +
+          // MAX_RES_PER_POINT_SEED *
           //                                                  target_cid), 0));
           // printf("%f\n", a_grad_new_host[target_cid](idx, 0));
-          assert(std::abs(grad_new_host(index_to_count.at(idx + MAX_RES_PER_POINT_SEED *
-                                                           target_cid),
-                               0) - a_grad_new_host[target_cid](idx, 0)) < 0.0001f);
-          assert(std::abs(grad_new_host(index_to_count.at(idx + MAX_RES_PER_POINT_SEED *
-                                                           target_cid),
-                               1) - a_grad_new_host[target_cid](idx, 1)) < 0.0001f);
-          assert(std::abs(grad_new_target(index_to_count.at(
-                                     idx + MAX_RES_PER_POINT_SEED * target_cid),
-                                 0) - a_grad_new_target[target_cid](idx, 0)) < 0.0001f);
-          assert(std::abs(grad_new_target(index_to_count.at(
-                                     idx + MAX_RES_PER_POINT_SEED * target_cid),
-                                 1) - a_grad_new_target[target_cid](idx, 1)) < 0.0001f);
+          assert(std::abs(grad_new_host(
+                              index_to_count.at(idx + MAX_RES_PER_POINT_SEED *
+                                                          target_cid),
+                              0) -
+                          a_grad_new_host[target_cid](idx, 0)) < 0.0001f);
+          assert(std::abs(grad_new_host(
+                              index_to_count.at(idx + MAX_RES_PER_POINT_SEED *
+                                                          target_cid),
+                              1) -
+                          a_grad_new_host[target_cid](idx, 1)) < 0.0001f);
+          assert(std::abs(grad_new_target(
+                              index_to_count.at(idx + MAX_RES_PER_POINT_SEED *
+                                                          target_cid),
+                              0) -
+                          a_grad_new_target[target_cid](idx, 0)) < 0.0001f);
+          assert(std::abs(grad_new_target(
+                              index_to_count.at(idx + MAX_RES_PER_POINT_SEED *
+                                                          target_cid),
+                              1) -
+                          a_grad_new_target[target_cid](idx, 1)) < 0.0001f);
           Vec6f d_res_d_pose_fwd_jac =
               hw *
               Vec2f(a_grad_new_target[target_cid](idx, 0),
@@ -3087,8 +3113,8 @@ Vec4f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
           float d_res_d_idp_fwd_jac =
               hw *
               Vec2f(a_grad_new_target[target_cid](
-                        idx /*index_to_count.at(idx + MAX_RES_PER_POINT_SEED *
-                               target_cid)*/
+                        idx /*index_to_count.at(idx +
+                               MAX_RES_PER_POINT_SEED * target_cid)*/
                         ,
                         0),
                     a_grad_new_target[target_cid](idx, 1))
@@ -3178,16 +3204,18 @@ Vec4f CoarseInitializer::calcResAndGS(int iter, int max_iter, int lvl,
 #ifndef USE_ZNCC
           dd[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               dxInterp * dxdd +
-              dyInterp * dydd; //! dxfx * 1/Pz * (tx - u*tz) +　dyfy *
-                               //! 1/Pz * (tx - u*tz)
-          // printf("i: %d, host_cid: %d, target_cid: %d, idx: %d, residual: %f,
-          // J_idp: [%f %f %f], JtJ: %f, hw: %f, val[9]_accum: %f\n", i,
-          // host_cid, target_cid, idx, residual, dd[idx +
-          // MAX_RES_PER_POINT_SEED * target_cid_use], (float)(hw *
-          // Vec2f(hitColor[1], hitColor[2]).transpose() *  d_uv_d_pt3d *
-          // trans)[0], d_res_d_idp_fwd_jac, d_res_d_idp_fwd_jac *
-          // d_res_d_idp_fwd_jac, hw, JbBuffer_new[i + h[0] * w[0] *
-          // host_cid][9]);
+              dyInterp *
+                  dydd; //! dxfx * 1/Pz * (tx - u*tz) +　dyfy *
+                        //! 1/Pz * (tx - u*tz)
+                        // printf("i: %d, host_cid: %d, target_cid: %d, idx: %d,
+                        // residual: %f, J_idp: [%f %f %f], JtJ: %f, hw: %f,
+                        // val[9]_accum: %f\n", i, host_cid, target_cid, idx,
+                        // residual, dd[idx + MAX_RES_PER_POINT_SEED *
+                        // target_cid_use], (float)(hw * Vec2f(hitColor[1],
+                        // hitColor[2]).transpose() *  d_uv_d_pt3d * trans)[0],
+                        // d_res_d_idp_fwd_jac, d_res_d_idp_fwd_jac *
+                        // d_res_d_idp_fwd_jac, hw, JbBuffer_new[i + h[0] * w[0]
+                        // * host_cid][9]);
 #else
           dd[idx + MAX_RES_PER_POINT_SEED * target_cid_use] =
               d_res_d_idp_fwd_jac;
@@ -4234,7 +4262,8 @@ void CoarseInitializer::setFirst(CalibHessian *HCalib,
             Vec2i *edge_pixel_start =
                 firstFrame->edge_pixels[lvl] + wl * hl * cid;
             for (int i = 0; i < firstFrame->edge_pixel_num[lvl][cid]; ++i) {
-              if ((edge_pixel_start[i] - Vec2i(x, y)).norm() < 0.1) {
+              if ((edge_pixel_start[i] - Vec2i(x, y)).cast<float>().norm() <
+                  1.5f) {
                 found = true;
                 break;
               }
@@ -4270,7 +4299,8 @@ void CoarseInitializer::setFirst(CalibHessian *HCalib,
             float sumGrad2 = 0;
             // 计算pattern内像素梯度和
             for (int idx = 0; idx < patternNumSeed; idx++) {
-              int dx = patternPSeed[idx][0] * pattern_scale_seed_init; // pattern 的偏移
+              int dx = patternPSeed[idx][0] *
+                       pattern_scale_seed_init; // pattern 的偏移
               int dy = patternPSeed[idx][1] * pattern_scale_seed_init;
               float absgrad = cpt[dx + dy * w[lvl]].tail<2>().squaredNorm();
               sumGrad2 += absgrad;
@@ -4282,8 +4312,9 @@ void CoarseInitializer::setFirst(CalibHessian *HCalib,
             //
             //! 外点的阈值与pattern的大小有关, 一个像素是12*12
             //? 这个阈值怎么确定的...
-            pl[nl].energyTH =
-                patternNumSeed * /*kCameraNumUsed * */ setting_outlierTH_init * setting_outlierTH_init;
+            pl[nl].energyTH = patternNumSeed *
+                              /*kCameraNumUsed * */ setting_outlierTH_init *
+                              setting_outlierTH_init;
 
             nl++;
             assert(nl <= level_cid_to_npts[lvl][cid] /*npts*/);
@@ -4388,7 +4419,6 @@ double CoarseInitializer::MultiViewTriangulation(
 void CoarseInitializer::convert_to_ImageData(cv::Mat &data,
                                              ImageDataAM &image_data,
                                              uint8_t camera_id) {
-
   image_data.exposure_ts = 1;
   image_data.camera_id = camera_id;
   image_data.width = data.cols;
@@ -4590,7 +4620,8 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
             Vec2i *edge_pixel_start =
                 firstFrame->edge_pixels[lvl] + wl * hl * cid;
             for (int i = 0; i < firstFrame->edge_pixel_num[lvl][cid]; ++i) {
-              if ((edge_pixel_start[i] - Vec2i(x, y)).norm() < 0.1) {
+              if ((edge_pixel_start[i] - Vec2i(x, y)).cast<float>().norm() <
+                  1.5f) {
                 found = true;
                 break;
               }
@@ -4764,7 +4795,8 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
             float sumGrad2 = 0;
             // 计算pattern内像素梯度和
             for (int idx = 0; idx < patternNumSeed; idx++) {
-              int dx = patternPSeed[idx][0] * pattern_scale_seed_init; // pattern 的偏移
+              int dx = patternPSeed[idx][0] *
+                       pattern_scale_seed_init; // pattern 的偏移
               int dy = patternPSeed[idx][1] * pattern_scale_seed_init;
               float absgrad = cpt[dx + dy * w[lvl]].tail<2>().squaredNorm();
               sumGrad2 += absgrad;
@@ -4776,8 +4808,9 @@ void CoarseInitializer::setFirstStereo(CalibHessian *HCalib,
             //
             //! 外点的阈值与pattern的大小有关, 一个像素是12*12
             //? 这个阈值怎么确定的...
-            pl[nl].energyTH =
-                patternNumSeed * /*kCameraNumUsed * */ setting_outlierTH_init * setting_outlierTH_init;
+            pl[nl].energyTH = patternNumSeed *
+                              /*kCameraNumUsed * */ setting_outlierTH_init *
+                              setting_outlierTH_init;
             //              printf("reaching end, nl: %d\n", nl);
             nl++;
             assert(nl <= level_cid_to_npts[lvl][cid] /*npts*/);
@@ -4927,7 +4960,6 @@ void CoarseInitializer::resetPoints(int lvl) {
 
 //* 求出状态增量后, 计算被边缘化掉的逆深度, 更新逆深度
 void CoarseInitializer::doStep(int lvl, float lambda, Vec8f inc) {
-
   const float maxPixelStep = 0.25;
   const float idMaxStep = 1e10;
 

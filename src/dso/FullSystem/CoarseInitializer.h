@@ -94,7 +94,7 @@ public:
   float neighboursDist[10];   //!< 最近10个点的距离
   float neighboursDistL1[10]; //!< 最近10个点的距离
 
-  float my_type;   //!< 第0层提取是1, 2, 4, 对应d, 2d, 4d, 其它层是1
+  float my_type;  //!< 第0层提取是1, 2, 4, 对应d, 2d, 4d, 其它层是1
   float energyTH; //!< 外点阈值
 };
 

@@ -119,7 +119,6 @@ void MainSettings::parseArgument(char *arg, SettingsUtil &settingsUtil) {
   }
 
   if (1 == sscanf(arg, "mode=%d", &option)) {
-
     mode = option;
     if (option == 0) {
       printf("PHOTOMETRIC MODE WITH CALIBRATION!\n");
@@ -214,16 +213,16 @@ void dmvio::MainSettings::settingsDefault(int preset) {
     setting_desiredImmatureDensity =
         5000; // * kCameraNumUsed; // 3000; // 1500;
     setting_desiredPointDensity =
-        2000;                     // * kCameraNumUsed;    // 2000;    // 1000;
-    setting_minFrames = 5;        // 15;//5;
-    setting_maxFrames = 7;        // 12;//7;
+        2000;              // * kCameraNumUsed;    // 2000;    // 1000;
+    setting_minFrames = 5; // 15;//5;
+    setting_maxFrames = 7; // 12;//7;
 #else
-    setting_desiredImmatureDensity = 5000;// 10000;
-    setting_desiredPointDensity = 2000;//5000;
-    setting_minFrames = 5;        // 15;//5;
-    setting_maxFrames = 7;        // 12;//7;
+    setting_desiredImmatureDensity = 5000; // 10000;
+    setting_desiredPointDensity = 2000;    // 5000;
+    setting_minFrames = 5;                 // 15;//5;
+    setting_maxFrames = 7;                 // 12;//7;
 #endif
-    setting_maxOptIterations = 3;//5; // 6;
+    setting_maxOptIterations = 3; // 5; // 6;
     setting_minOptIterations = 2;
 
     setting_logStuff = false;

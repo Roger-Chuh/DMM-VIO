@@ -304,9 +304,10 @@ Sophus::SE3d dmvio::CoarseIMULogic::initCoarseGraph(
   return Sophus::SE3d(lastKFToCurr.matrix());
 }
 
-Sophus::SE3d dmvio::CoarseIMULogic::computeCoarseUpdate(dso::Vec8 &inc_gtsam,
-    const dso::Mat88 &H_in, const dso::Vec8 &b_in, float extrapFac,
-    float lambda, double &incA, double &incB, double &incNorm, bool force_zero_inc) {
+Sophus::SE3d dmvio::CoarseIMULogic::computeCoarseUpdate(
+    dso::Vec8 &inc_gtsam, const dso::Mat88 &H_in, const dso::Vec8 &b_in,
+    float extrapFac, float lambda, double &incA, double &incB, double &incNorm,
+    bool force_zero_inc) {
   dmvio::TimeMeasurement timeMeasurement("computeCoarseUpdate");
 
   PoseTransformation &transformIMUToCoarse = *transformIMUToDSOForCoarse;
@@ -391,25 +392,27 @@ Sophus::SE3d dmvio::CoarseIMULogic::computeCoarseUpdate(dso::Vec8 &inc_gtsam,
   // Compute update step
   // --------------------------------------------------
   if (force_zero_inc) {
-      bComplete.setZero();
+    bComplete.setZero();
   }
   gtsam::Vector inc;
   if (!force_zero_inc) {
-   inc = HComplete.ldlt().solve(-bComplete);
+    inc = HComplete.ldlt().solve(-bComplete);
   } else {
     inc = gtsam::Vector::Zero(nrowsGT + 2);
   }
   inc_gtsam = inc;
   NAN_CHECK_EIGEN(inc, "CoarseIMU LDLT inc");
-  NAN_PRINT("CoarseIMU solve: inc_norm=%g, nrows=%d\n", inc.norm(), nrowsGT + 2);
+  NAN_PRINT("CoarseIMU solve: inc_norm=%g, nrows=%d\n", inc.norm(),
+            nrowsGT + 2);
 
   inc *= extrapFac;
 
   if (imuSettings.fixKeyframeDuringCoarseTracking) {
     // GTSAM Pose contains first rotation, then translation -> only remove the
     // translational part.
-    // Fix the current frame's translation: inc layout = [affine_a, affine_b | current_rot(3) | current_trans(3) | other_vars...]
-    // Keep rotation adjustable, zero out translation so only IMU drives it.
+    // Fix the current frame's translation: inc layout = [affine_a, affine_b |
+    // current_rot(3) | current_trans(3) | other_vars...] Keep rotation
+    // adjustable, zero out translation so only IMU drives it.
     inc.segment(5, 3) = gtsam::Matrix::Zero(3, 1);
   }
 

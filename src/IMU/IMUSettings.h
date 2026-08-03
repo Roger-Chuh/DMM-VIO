@@ -75,7 +75,7 @@ public:
 #ifndef USE_EDGE_ALIGN
   double dynamicWeightRMSEThresh = 20; // 15; // 8.0;
 #else
-double dynamicWeightRMSEThresh = 20; // 15; // 8.0;
+  double dynamicWeightRMSEThresh = 20; // 15; // 8.0;
 #endif
 #else
   double dynamicWeightRMSEThresh = 15; // 8.0; // 2;//8.0;//4;//8.0;
@@ -119,7 +119,7 @@ double dynamicWeightRMSEThresh = 20; // 15; // 8.0;
              // is very far from optimum.
 
   // ----------- Settings for Coarse Tracking -----------
-  bool fixKeyframeDuringCoarseTracking = false;//true;
+  bool fixKeyframeDuringCoarseTracking = false; // true;
   bool addVisualToCoarseGraphIfTrackingBad =
       false; // Add visual factor even if tracking is bad.
 

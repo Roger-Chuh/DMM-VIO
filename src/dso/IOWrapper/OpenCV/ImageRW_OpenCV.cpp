@@ -96,7 +96,7 @@ MinimalImageB *readImageBW_8U2(
     // cv::Mat image_before = image.clone();
     VigCorrection(image, (*p_vig_mat));
 #ifdef USE_EDGE_ALIGN
-    //cv::GaussianBlur(image, image, {5, 5}, 0);
+    // cv::GaussianBlur(image, image, {5, 5}, 0);
 #endif
     cv::remap(image, image, (*p_cid_to_undist_map)[cam_id].first,
               (*p_cid_to_undist_map)[cam_id].second, cv::INTER_CUBIC);
@@ -203,19 +203,23 @@ MinimalImageB *readStreamBW_8U(char *data, int numBytes) {
 }
 
 void writeImage(std::string filename, MinimalImageB *img) {
-  cv::imwrite(filename, cv::Mat(img->h * kCameraNumUsed, img->w, CV_8U, img->data));
+  cv::imwrite(filename,
+              cv::Mat(img->h * kCameraNumUsed, img->w, CV_8U, img->data));
 }
 
 void writeImage(std::string filename, MinimalImageB3 *img) {
-  cv::imwrite(filename, cv::Mat(img->h * kCameraNumUsed, img->w, CV_8UC3, img->data));
+  cv::imwrite(filename,
+              cv::Mat(img->h * kCameraNumUsed, img->w, CV_8UC3, img->data));
 }
 
 void writeImage(std::string filename, MinimalImageF *img) {
-  cv::imwrite(filename, cv::Mat(img->h * kCameraNumUsed, img->w, CV_32F, img->data));
+  cv::imwrite(filename,
+              cv::Mat(img->h * kCameraNumUsed, img->w, CV_32F, img->data));
 }
 
 void writeImage(std::string filename, MinimalImageF3 *img) {
-  cv::imwrite(filename, cv::Mat(img->h * kCameraNumUsed, img->w, CV_32FC3, img->data));
+  cv::imwrite(filename,
+              cv::Mat(img->h * kCameraNumUsed, img->w, CV_32FC3, img->data));
 }
 
 } // namespace IOWrap

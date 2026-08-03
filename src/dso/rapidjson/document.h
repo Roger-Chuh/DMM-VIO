@@ -194,7 +194,6 @@ private:
  */
 template <bool Const, typename Encoding, typename Allocator>
 class GenericMemberIterator {
-
   friend class GenericValue<Encoding, Allocator>;
   template <bool, typename, typename> friend class GenericMemberIterator;
 

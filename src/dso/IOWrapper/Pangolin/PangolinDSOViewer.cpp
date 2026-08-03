@@ -619,7 +619,9 @@ void PangolinDSOViewer::pushLiveFrame(FrameHessian *image) {
 
 #endif
     }
-    internalVideoImg->putText(20, 20, std::to_string(int(image->mean_gray_val_each[cid])).c_str(), Vec3b(0, 255,255),cid);
+    internalVideoImg->putText(
+        20, 20, std::to_string(int(image->mean_gray_val_each[cid])).c_str(),
+        Vec3b(0, 255, 255), cid);
   }
   videoImgChanged = true;
 }
@@ -628,8 +630,8 @@ bool PangolinDSOViewer::needPushDepthImage() {
   return setting_render_displayDepth;
 }
 
-void PangolinDSOViewer::pushDepthImage(MinimalImageB3 *image, std::array<float, kCameraNumUsed> mean_gray_val) {
-
+void PangolinDSOViewer::pushDepthImage(
+    MinimalImageB3 *image, std::array<float, kCameraNumUsed> mean_gray_val) {
   if (!setting_render_displayDepth)
     return;
   if (disableAllDisplay)
@@ -647,7 +649,8 @@ void PangolinDSOViewer::pushDepthImage(MinimalImageB3 *image, std::array<float, 
 
   memcpy(internalKFImg->data, image->data, w * h * 3 * kCameraNumUsed);
   // for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-  //   internalKFImg->putText(20, 20, std::to_string(int(mena_gray_val[cid])).c_str(), Vec3b(0, 255,255),cid);
+  //   internalKFImg->putText(20, 20,
+  //   std::to_string(int(mena_gray_val[cid])).c_str(), Vec3b(0, 255,255),cid);
   // }
   kfImgChanged = true;
 }

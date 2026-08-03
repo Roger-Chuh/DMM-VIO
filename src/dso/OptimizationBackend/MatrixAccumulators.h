@@ -807,7 +807,6 @@ public:
   //@ [x, y]分别是10维向量, [a, c]是公共项对角线, [b]是公共项交叉项
   inline void updateSSE(const float *const x, const float *const y,
                         const float a, const float b, const float c) {
-
     Data[0] +=
         a * x[0] * x[0] + c * y[0] * y[0] + b * (x[0] * y[0] + y[0] * x[0]);
     Data[1] +=
@@ -940,7 +939,6 @@ public:
   inline void update(const float *const x4, const float *const x6,
                      const float *const y4, const float *const y6,
                      const float a, const float b, const float c) {
-
     Data[0] += a * x4[0] * x4[0] + c * y4[0] * y4[0] +
                b * (x4[0] * y4[0] + y4[0] * x4[0]);
     Data[1] += a * x4[1] * x4[0] + c * y4[1] * y4[0] +

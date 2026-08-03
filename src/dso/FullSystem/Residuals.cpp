@@ -478,8 +478,9 @@ Vec6f PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now,
 #ifdef USE_EDGE_ALIGN
     Vec3f hitColor_edge = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
     if (true && ((std::abs(hitColor_edge[1]) < 0.001f &&
-    std::abs(hitColor_edge[2]) < 0.001f) ||(std::abs(nearestHitColor[1]) < 0.001f &&
-    std::abs(nearestHitColor[2]) < 0.001f))) {
+                  std::abs(hitColor_edge[2]) < 0.001f) ||
+                 (std::abs(nearestHitColor[1]) < 0.001f &&
+                  std::abs(nearestHitColor[2]) < 0.001f))) {
       hitColor[0] = NAN;
     }
 #endif
@@ -607,21 +608,23 @@ Vec6f PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now,
     printf("======= show image ======\n");
   }
 #endif
-    Vec2f res_sum = Vec2f::Zero();
-    int res_count = 0;
+  Vec2f res_sum = Vec2f::Zero();
+  int res_count = 0;
   for (int idx = 0; idx <
 #ifndef USE_CENTER_PIXEL_ONLY
-  patternNum
+                    patternNum
 #else
-  1
+                    1
 #endif
-  ; idx++) {
+       ;
+       idx++) {
     float Ku, Kv;
     //? 为啥这里使用idepth_scaled, 上面使用的是zero； 答：
     //其实和上面一样的....同时调用了setIdepth() setIdepthZero()
     //! 答: 这里是求图像导数, 由于线性误差大, 就不使用FEJ, 所以使用当前的状态
     // TODO  这里求残差用的是最新状态重投影，而不是fej状态重投影
-    if (!projectPoint(point->u + patternP[idx][0] * pattern_scale_extra_edge, point->v + patternP[idx][1] * pattern_scale_extra_edge,
+    if (!projectPoint(point->u + patternP[idx][0] * pattern_scale_extra_edge,
+                      point->v + patternP[idx][1] * pattern_scale_extra_edge,
                       point->idepth_scaled, PRE_KRKiTll, PRE_KtTll, Ku, Kv)) {
       state_NewState[target_cid_now] = ResState::OOB;
 #ifdef SHOW_IMAGE
@@ -640,9 +643,14 @@ Vec6f PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now,
     projectedTo[target_cid_now][idx /*+ MAX_RES_PER_POINT * target_cid*/][1] =
         Kv;
     if (idx == 0) {
-        if ((Vec2f(Ku, Kv) - centerProjectedTo[target_cid_now].head(2)).norm() > 0.001) {
-            // printf("center_projection differs too much, diff = %f, [%f %f], [%f %f]\n",(Vec2f(Ku, Kv) - centerProjectedTo[target_cid_now].head(2)).norm(), Ku, Kv, centerProjectedTo[target_cid_now][0], centerProjectedTo[target_cid_now][1]);
-        }
+      if ((Vec2f(Ku, Kv) - centerProjectedTo[target_cid_now].head(2)).norm() >
+          0.001) {
+        // printf("center_projection differs too much, diff = %f, [%f %f], [%f
+        // %f]\n",(Vec2f(Ku, Kv) -
+        // centerProjectedTo[target_cid_now].head(2)).norm(), Ku, Kv,
+        // centerProjectedTo[target_cid_now][0],
+        // centerProjectedTo[target_cid_now][1]);
+      }
     }
     Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
     Vec3f hitColor_gray = (getInterpolatedElement33(dIl_gray, Ku, Kv, wG[0]));
@@ -651,7 +659,9 @@ Vec6f PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now,
     float drdA = (color[idx] - b0);
 #ifdef USE_EDGE_ALIGN
     if (true &&
-        ((std::abs(hitColor[1]) < 0.001f && std::abs(hitColor[2]) < 0.001f) || (std::abs(nearestHitColor[1]) < 0.001f && std::abs(nearestHitColor[2]) < 0.001f))) {
+        ((std::abs(hitColor[1]) < 0.001f && std::abs(hitColor[2]) < 0.001f) ||
+         (std::abs(nearestHitColor[1]) < 0.001f &&
+          std::abs(nearestHitColor[2]) < 0.001f))) {
       hitColor[0] = NAN;
     } else {
     }
@@ -680,8 +690,8 @@ Vec6f PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now,
 #else
     Vec3f hit_color_bak = setting_variableScale_edge * hitColor;
 #if 1
-    //hitColor[0] = setting_variableScale_edge * (nearestPt - Vec2f(Ku, Kv)).norm();
-    //hitColor.tail(2) = nearestHitColor.tail(2);
+    // hitColor[0] = setting_variableScale_edge * (nearestPt - Vec2f(Ku,
+    // Kv)).norm(); hitColor.tail(2) = nearestHitColor.tail(2);
 #endif
     residual = hitColor[0];
     // printf("idx: %d, target_uv: [%f %f], res: %f\n", idx, Ku, Kv, residual);
@@ -725,25 +735,27 @@ Vec6f PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now,
                                   point->v + patternP[idx][1], wG[0]));
 
     if (pattern_scale_extra_edge != 1) {
-        if (idx == 0 && hostColor_gray[0] != color[idx]) {
-            printf("idx == 0 && hostColor_gray[0] != color[idx], [%f %f], pix: [%f "
-                   "%f]\n", hostColor_gray[0], color[idx], point->u, point->v);
-            std::exit(1);
-        }
+      if (idx == 0 && hostColor_gray[0] != color[idx]) {
+        printf("idx == 0 && hostColor_gray[0] != color[idx], [%f %f], pix: [%f "
+               "%f]\n",
+               hostColor_gray[0], color[idx], point->u, point->v);
+        std::exit(1);
+      }
     } else {
-        if (hostColor_gray[0] != color[idx]) {
-            printf("idx == 0 && hostColor_gray[0] != color[idx], [%f %f], pix: [%f "
-                   "%f]\n", hostColor_gray[0], color[idx], point->u, point->v);
-            std::exit(1);
-        }
+      if (hostColor_gray[0] != color[idx]) {
+        printf("idx == 0 && hostColor_gray[0] != color[idx], [%f %f], pix: [%f "
+               "%f]\n",
+               hostColor_gray[0], color[idx], point->u, point->v);
+        std::exit(1);
+      }
     }
     if (std::abs(hostColor_gray[0] - color[idx]) > 0.001f) {
       printf("hostColor_gray[0] != color[idx], [%f %f], pix: [%f %f]\n",
              hostColor_gray[0], color[idx], point->u, point->v);
       std::exit(1);
     }
-      res_sum += Vec2f(residual, residual_gray);
-      res_count++;
+    res_sum += Vec2f(residual, residual_gray);
+    res_count++;
     // printf("value1: %f, value check: %f\n", hostColor[0], color[idx]);
     // assert(hostColor[0] == color[idx]);
     //        //* 残差对光度仿射a求导
@@ -807,11 +819,11 @@ Vec6f PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now,
     hw_gray =
         fabsf(residual_gray) < (setting_huberTH_LBA /*+ std::abs(affLL[1])*/)
             ? 1
-            : (setting_huberTH_LBA /*+ std::abs(affLL[1])*/) / fabsf(residual_gray);
-    hw =
-        fabsf(residual) < (setting_huberTH_LBA /*+ std::abs(affLL[1])*/)
-            ? 1
-            : (setting_huberTH_LBA /*+ std::abs(affLL[1])*/) / fabsf(residual);
+            : (setting_huberTH_LBA /*+ std::abs(affLL[1])*/) /
+                  fabsf(residual_gray);
+    hw = fabsf(residual) < (setting_huberTH_LBA /*+ std::abs(affLL[1])*/)
+             ? 1
+             : (setting_huberTH_LBA /*+ std::abs(affLL[1])*/) / fabsf(residual);
 #else
 #if 0 // eachErrDim == 2
         fabsf(residual_gray) < (setting_huberTH /*+ std::abs(affLL[1])*/)
@@ -840,10 +852,9 @@ Vec6f PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now,
         fabsf(residual_gray) < (setting_huberTH /*+ std::abs(affLL[1])*/)
             ? 1
             : (setting_huberTH /*+ std::abs(affLL[1])*/) / fabsf(residual_gray);
-    hw =
-        fabsf(residual) < (setting_huberTH_LBA + std::abs(affLL[1]))
-            ? 1
-            : (setting_huberTH_LBA + std::abs(affLL[1])) / fabsf(residual);
+    hw = fabsf(residual) < (setting_huberTH_LBA + std::abs(affLL[1]))
+             ? 1
+             : (setting_huberTH_LBA + std::abs(affLL[1])) / fabsf(residual);
     if (true) {
       hw = ws2;
       hw = ws2 > setting_huberTH_zncc_LBA ? 1 : ws2 / setting_huberTH_zncc_LBA;
@@ -880,7 +891,9 @@ Vec6f PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now,
 
       grad_new_target.row(cnt) *= hw;
       grad_new_host.row(cnt) *= hw;
-      // printf("residual_gray: %f, residual: %f, host_gray: %f, target_gray: %f, [a b]: [%f %f]\n", residual_gray, residual, color[idx], hitColor_gray[0], affLL[0], affLL[1]);
+      // printf("residual_gray: %f, residual: %f, host_gray: %f, target_gray:
+      // %f, [a b]: [%f %f]\n", residual_gray, residual, color[idx],
+      // hitColor_gray[0], affLL[0], affLL[1]);
       //! 残差 res*w*sqrt(hw)
       J[target_cid_now]->resF[idx] = residual * hw;
 #if /*defined(USE_EDGE_ALIGN) &&*/ eachErrDim == 2
@@ -1041,11 +1054,11 @@ Vec6f PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now,
     }
     cnt++;
   }
-    if (res_count != cnt) {
-        printf("res_count != cnt\n");
-        std::exit(3);
-    }
-    res_sum /= (float)res_count;
+  if (res_count != cnt) {
+    printf("res_count != cnt\n");
+    std::exit(3);
+  }
+  res_sum /= (float)res_count;
 #ifndef USE_CENTER_PIXEL_ONLY
   assert(cnt == count);
 #else
@@ -1120,10 +1133,10 @@ Vec6f PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now,
 #if defined(USE_EDGE_ALIGN) || defined(USE_ZNCC)
   if (/*J[target_cid_now]->resF.head(patternNum).norm() < 0.0001 ||*/
 #ifndef USE_CENTER_PIXEL_ONLY
-  J[target_cid_now]->resF.tail(patternNum).norm() < 0.0001 ||
+      J[target_cid_now]->resF.tail(patternNum).norm() < 0.0001 ||
 #endif
       (J[target_cid_now]->JIdx[0].head(patternNum).norm() < 0.0001 &&
-      J[target_cid_now]->JIdx[1].head(patternNum).norm() < 0.0001) ||
+       J[target_cid_now]->JIdx[1].head(patternNum).norm() < 0.0001) ||
       J[target_cid_now]->JIdx[0].tail(patternNum).norm() > 0 ||
       J[target_cid_now]->JIdx[1].tail(patternNum).norm() > 0 ||
       J[target_cid_now]->JabF[0].tail(patternNum).norm() < 0.0001 ||
@@ -1174,7 +1187,8 @@ Vec6f PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now,
 #ifndef USE_ZNCC
   assert(continued_count == 0);
 #endif
-  if ((zncc < setting_outlierTH_zncc_LBA && angle < setting_outlierTH_zncc_angle_LBA) ||
+  if ((zncc < setting_outlierTH_zncc_LBA &&
+       angle < setting_outlierTH_zncc_angle_LBA) ||
 #ifndef USE_ZNCC
       energyLeft > std::max<float>(host->frameEnergyTH,
                                    target->frameEnergyTH) /*|| wJI2_sum < 2*/
@@ -1194,7 +1208,7 @@ Vec6f PointFrameResidual::linearize(CalibHessian *HCalib, int target_cid_now,
   state_hw[target_cid_now] = hw;
   state_residual_residual_gray[target_cid_now] = res_sum;
   state_NewEnergy[target_cid_now] = energyLeft;
-  ret << energyLeft, energyLeft_gray,angle,hw, hw_gray, 1.0f;
+  ret << energyLeft, energyLeft_gray, angle, hw, hw_gray, 1.0f;
   return ret;
 }
 

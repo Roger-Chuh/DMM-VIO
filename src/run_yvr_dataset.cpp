@@ -56,7 +56,15 @@
 
 #include "../camera_model/camera_base.h"
 #include "../camera_model/pinhole_camera.h"
+#include "dso/FullSystem/ED_Lib/ED.h"
+#include "dso/FullSystem/ED_Lib/edge_drawing.hpp"
+#include "dso/FullSystem/HessianBlocks.cpp"
 #include "dso/FullSystem/algs_tools_images_buffer.h"
+#include "dso/FullSystem/dlsd/dlsd.h"
+#include "dso/FullSystem/edge_drawing/ed.hpp"
+#include "dso/FullSystem/edlines.h"
+#include "dso/FullSystem/line/LineDescriptor.hh"
+#include "dso/IOWrapper/OpenCV/ImageRW_OpenCV.cpp"
 #include "dso/camera_model/calib_xml.h"
 #include "dso/config/config.h"
 #include "dso/frontend/CameraDetection.h"
@@ -68,13 +76,12 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/opencv.hpp> // OpenCV的核心头文件，或者只包含<opencv2/core.hpp>
 #include <thread>
-
 std::string gtFile = "";
 std::string source = "";
 std::string imuFile = "";
 
 bool is_reverse = false;
-int start = 1;//365;//1; // 0;
+int start = 1; // 365;//1; // 0;
 int ending = 100000;
 int maxPreloadImages =
     0; // If set we only preload if there are less images to be loade.
@@ -463,6 +470,8 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
   for (int i = lstart;
        i >= 0 && i < frameInfo_bak.size() && linc * i < linc * lend;
        i += linc) {
+    // printf("iiii: %d, lstart: %d, lend: %d, linc: %d\n",i, lstart, lend,
+    // linc);
     idsToPlay.push_back(i);
     if (timesToPlayAt.size() == 0) {
       timesToPlayAt.push_back((double)0);
@@ -551,6 +560,7 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
       //            }
       // std::exit(8);
     }
+    printf("skipFrame: %d\n", skipFrame);
     if (!skipFrame) {
       if (imuDataSkipped && imuData) {
         imuData->insert(imuData->begin(), skippedIMUData.begin(),
@@ -661,14 +671,12 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
 
   printf("EXIT NOW!\n");
 }
-static cv::Mat NonMaxSuppression(const cv::Mat& grad_mag, const cv::Mat& grad_x, const cv::Mat& grad_y)
-{
+static cv::Mat NonMaxSuppression(const cv::Mat &grad_mag, const cv::Mat &grad_x,
+                                 const cv::Mat &grad_y) {
   cv::Mat nms = cv::Mat::zeros(grad_mag.size(), CV_32F);
 
-  for (int y = 1; y < grad_mag.rows - 1; y++)
-  {
-    for (int x = 1; x < grad_mag.cols - 1; x++)
-    {
+  for (int y = 1; y < grad_mag.rows - 1; y++) {
+    for (int x = 1; x < grad_mag.cols - 1; x++) {
       float gx = grad_x.at<float>(y, x);
       float gy = grad_y.at<float>(y, x);
       float mag = grad_mag.at<float>(y, x);
@@ -694,7 +702,8 @@ static cv::Mat NonMaxSuppression(const cv::Mat& grad_mag, const cv::Mat& grad_x,
 int main(int argc, char **argv) {
   // Clean images directory before starting
 #ifdef SAVE_IMAGES
-  std::system("rm -rf \"/media/roger/Elements_SE/CI/dm_vio_results\" && mkdir -p \"/media/roger/Elements_SE/CI/dm_vio_results\"");
+  std::system("rm -rf \"/media/roger/Elements_SE/CI/dm_vio_results\" && mkdir "
+              "-p \"/media/roger/Elements_SE/CI/dm_vio_results\"");
 #endif
   std::string config_path =
       "/home/roger/work/dm-vio/dm-vio/src/dso/config/calibconfig_stage0.toml";
@@ -748,20 +757,20 @@ int main(int argc, char **argv) {
     frameInfo_bak.emplace_back(frameInfo[id]);
   }
   CorrectImuReadings(imuData, imu_state_temp);
-  int w = 640 * 1;
-  int h = 480 * 1;
+  int image_w = 640 * 1;
+  int image_h = 480 * 1;
   int cid = 0;
 
   bool show = false;
 
-  GenUndistortionMap(multi_camera_calibed, w, h, kCameraNumUsed);
+  GenUndistortionMap(multi_camera_calibed, image_w, image_h, kCameraNumUsed);
 
-  dso::ImagesBuffer::Initial(40, w, h);
+  dso::ImagesBuffer::Initial(40, image_w, image_h);
   std::array<std::array<std::vector<number_t>, kCameraNumUsed>, PYR_LEVELS>
       level_cid_to_param;
   for (int level = 0; level < PYR_LEVELS; ++level) {
-    int ww = w >> level;
-    int hh = h >> level;
+    int ww = image_w >> level;
+    int hh = image_h >> level;
 
     float fx = K(0, 0) * std::pow(2, -level);
     float fy = K(1, 1) * std::pow(2, -level);
@@ -806,107 +815,192 @@ int main(int argc, char **argv) {
   std::array<cv::Mat, 4> show_clahe_vec;
   std::array<cv::Mat, 4> show_mat_vec;
   std::array<cv::Mat, 4> show_edge_vec;
-  std::system("rm -rf \"/home/roger/work/dm-vio/images\" && mkdir -p \"/home/roger/work/dm-vio/images\"");
+  std::system("rm -rf \"/home/roger/work/dm-vio/images\" && mkdir -p "
+              "\"/home/roger/work/dm-vio/images\"");
 #if 0
-    for (size_t i = 1900; i < frameInfo_bak.size() /*&& key != 27*/; i++) {
-        //    cerr <<
-        //    "######################################################################################################"
-        //            "##################################################### FRAME: "
-        //         << i << ", cam_id: " << cam_id << endl;
-        printf("========== img_id: %d\n",i);
-        for (int cam_id = 0; cam_id < kCameraNumUsed; ++cam_id) {
-            std::string image_path = frameInfo_bak[i].cid_to_img_file_path.at(cam_id);
-            // cerr << "Reading..." << image_path << endl;
-            // if (files[i].back() == '.') continue;  // skip . and ..
-            cv::Mat image = cv::imread(image_path, 0);
-            cv::Mat image_before = image.clone();
-            //VigCorrection(image, vig_mat);
-            //cv::GaussianBlur(image, image, {5, 5}, 0);
-            cv::remap(image, image, cid_to_undist_map[cam_id].first, cid_to_undist_map[cam_id].second, cv::INTER_CUBIC);
-            // if (cam_id == 0) {
-            //    char filename[512];
-            //    snprintf(filename, sizeof(filename), "/media/roger/Elements_SE/CI/gt/20240531/1/Camera0/pinhole/pinhole_%04d.png", i);
-            //    cv::imwrite(filename, image);
-            // }
-            cv::Mat output;
-            cv::Mat edge;
-            cv::Mat img_enhanced;
-            double threshold = cv::threshold(image, output, 0, 255, cv::THRESH_TRIANGLE);
-            if (threshold > 100 || true) {
-              cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(4.0, cv::Size(16, 16));
-              clahe->apply(image, img_enhanced);
-              img_enhanced = image.clone();
-              cv::GaussianBlur(img_enhanced, img_enhanced, {9, 9}, 0);
-              threshold = cv::threshold(img_enhanced, output, 0, 255, cv::THRESH_OTSU);
-              if (1) {
-                cv::Canny(img_enhanced, edge, 0.4 * threshold, 0.5 * threshold, 3, true);
-              } else if (1){
-                cv::Mat blurred, grad_x, grad_y, grad_mag;
-                cv::GaussianBlur(image, blurred, cv::Size(3,3), 0);
-                cv::Sobel(blurred, grad_x, CV_32F, 1, 0, 3);
-                cv::Sobel(blurred, grad_y, CV_32F, 0, 1, 3);
-                cv::magnitude(grad_x, grad_y, grad_mag);
+  for (size_t i = lstart; i < frameInfo_bak.size() /*&& key != 27*/; i++) {
+    //    cerr <<
+    //    "######################################################################################################"
+    //            "##################################################### FRAME:
+    //            "
+    //         << i << ", cam_id: " << cam_id << endl;
+    printf("========== img_id: %d\n", i);
+    for (int cam_id = 0; cam_id < kCameraNumUsed; ++cam_id) {
+      std::string image_path = frameInfo_bak[i].cid_to_img_file_path.at(cam_id);
+      cerr << "Reading..." << image_path << endl;
+      // if (files[i].back() == '.') continue;  // skip . and ..
+      cv::Mat image = cv::imread(image_path, 0);
+      VigCorrection(image, (vig_mat));
+      cv::Mat image_before = image.clone();
+      // VigCorrection(image, vig_mat);
+      // cv::GaussianBlur(image, image, {5, 5}, 0);
+      cv::remap(image, image, cid_to_undist_map[cam_id].first,
+                cid_to_undist_map[cam_id].second, cv::INTER_CUBIC);
+      // if (cam_id == 0) {
+      //    char filename[512];
+      //    snprintf(filename, sizeof(filename),
+      //    "/media/roger/Elements_SE/CI/gt/20240531/1/Camera0/pinhole/pinhole_%04d.png",
+      //    i); cv::imwrite(filename, image);
+      // }
+      cv::Mat output;
+      cv::Mat edge, img_temp, edge_opencv;
+      cv::Mat img_enhanced, img_enhanced_bak, img_no_use;
+      bool use_edge_drawing_impl = false;
+      edge_opencv = cv::Mat(image_h, image_w, CV_8UC1, cv::Scalar(255));
+      double threshold =
+          cv::threshold(image, output, 0, 255, cv::THRESH_TRIANGLE);
+      printf("threshold: %f\n", threshold);
+      cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(8.0, cv::Size(16, 16));
+      clahe->apply(image, img_enhanced);
+      img_enhanced = image.clone();
+      cv::GaussianBlur(img_enhanced, img_enhanced, {3, 3}, 0);
+      if (threshold > 100 || true) {
+        threshold =
+            cv::threshold(img_enhanced, output, 0, 255, cv::THRESH_OTSU);
+        if (1) {
+          cv::Canny(img_enhanced, edge, 0.4 * threshold, 0.8 * threshold, 3,
+                    true);
+#if 1
+          edge = GetCleanEdges(img_enhanced, 0.2 * threshold, 0.3 * threshold,
+                               150);
+          edge = CleanCannyEdges(image);
+          img_temp = img_enhanced.clone();
+          img_enhanced_bak = img_enhanced.clone();
+          cv::Canny(img_temp, img_no_use, 0.4 * threshold, 0.8 * threshold, 3,
+                    true);
 
-                // 不做NMS，直接阈值 → 比Canny"胖"但位置一致
-                double threshold_val = 100;
-                cv::Mat nms = NonMaxSuppression(grad_mag, grad_x, grad_y);
-                cv::threshold(nms, edge, threshold_val, 255, cv::THRESH_BINARY);
-              } else if (1) {
-                cv::Mat mean, stddev_img, variance;
+#if 1
+          edlines::boundingbox_t bbox_ed = {0, 0, image_w, image_h};
+          float scaleX = 0.5; // detect_level_ == 0 ? 0.5 : 1.0;
+          float scaleY = 0.5; // detect_level_ == 0 ? 0.5 : 1.0;
+          std::vector<edlines::line_float_t> lines_ed;
+#if 0
+          std::vector<DistortedLineSegment> distortedLineSegments;
+          dlsd(img_enhanced_bak, &multi_camera_calibed, cam_id,
+               distortedLineSegments, edge);
+          printf("aaa, distortedLineSegments: %d\n",
+                 distortedLineSegments.size());
+#elif 0
+          LBD::LineDescriptor lineDesc;
+          lines.clear();
+          line_float_t line_data;
+          LBD::ScaleLines linesInLeft;
+          LBD::ScaleLines linesInGood;
+          lineDesc.GetLineDescriptor(image, linesInLeft);
+#elif 0
+          int ret = EdgeDrawingLineDetector(image.data, image_w, image_h,
+                                            scaleX, scaleY, bbox, lines);
+#elif 0
+          edge = ed::detectEdges(img_enhanced_bak, 10, 4, 8);
+#elif 1
+          dso::ED::ED testED =
+              dso::ED::ED(img_enhanced_bak, dso::ED::SOBEL_OPERATOR, 30, 8, 1,
+                          MIN_PATH_LENGTH_IN_ED, 1.0, true);
+          edge_opencv = testED.getEdgeImage();
+          cv::Ptr<dso::ED::EdgeDrawing> ed = dso::ED::createEdgeDrawing();
+          vector<Vec6d> ellipses_open_cv;
+          vector<cv::Vec4f> lines_copen_cv;
+          ed->params.EdgeDetectionOperator = dso::ED::EdgeDrawing::SOBEL;
+          ed->params.GradientThresholdValue = 30;
+          ed->params.AnchorThresholdValue = 8;
+          ed->params.Sigma = 1.0;
+          ed->params.MinPathLength = MIN_PATH_LENGTH_IN_ED * img_enhanced_bak.cols / 640;
+          ed->detectEdges(img_enhanced_bak);
+          // ed->getEdgeImage(edge_opencv);
+          use_edge_drawing_impl = true;
+          edge = ed::detectEdges(img_enhanced_bak, 10, 4, 8).clone();
+#else
+#endif
+#endif
+#endif
+        } else if (1) {
+          cv::Mat blurred, grad_x, grad_y, grad_mag;
+          cv::GaussianBlur(image, blurred, cv::Size(3, 3), 0);
+          cv::Sobel(blurred, grad_x, CV_32F, 1, 0, 3);
+          cv::Sobel(blurred, grad_y, CV_32F, 0, 1, 3);
+          cv::magnitude(grad_x, grad_y, grad_mag);
 
-                // 局部均值
-                cv::Mat blurred;
-                cv::boxFilter(img_enhanced, mean, CV_32F, cv::Size(7, 7));
+          // 不做NMS，直接阈值 → 比Canny"胖"但位置一致
+          double threshold_val = 100;
+          cv::Mat nms = NonMaxSuppression(grad_mag, grad_x, grad_y);
+          cv::threshold(nms, edge, threshold_val, 255, cv::THRESH_BINARY);
+        } else if (1) {
+          cv::Mat mean, stddev_img, variance;
 
-                // 局部均方
-                cv::Mat gray_sq;
-                cv::multiply(img_enhanced, img_enhanced, gray_sq, 1.0, CV_32F);
-                cv::Mat mean_sq;
-                cv::boxFilter(gray_sq, mean_sq, CV_32F, cv::Size(7, 7));
+          // 局部均值
+          cv::Mat blurred;
+          cv::boxFilter(img_enhanced, mean, CV_32F, cv::Size(7, 7));
 
-                // 方差 = E(x²) - E(x)²
-                cv::Mat variance_map = mean_sq - mean.mul(mean);
+          // 局部均方
+          cv::Mat gray_sq;
+          cv::multiply(img_enhanced, img_enhanced, gray_sq, 1.0, CV_32F);
+          cv::Mat mean_sq;
+          cv::boxFilter(gray_sq, mean_sq, CV_32F, cv::Size(7, 7));
 
-                // 阈值提取高纹理区域
-                cv::Mat texture_mask;
-                double threshold_val = 100;
-                cv::threshold(variance_map, edge, threshold_val, 255, cv::THRESH_BINARY);
-              }
-            } else {
-              cv::Canny(img_enhanced, edge, 1.5 * threshold, 2.5 * threshold, 3, false);
-            }
-            printf("threshold: %f\n", threshold);
+          // 方差 = E(x²) - E(x)²
+          cv::Mat variance_map = mean_sq - mean.mul(mean);
 
-            cv::cvtColor(image, image, cv::COLOR_GRAY2BGR);
-            cv::cvtColor(img_enhanced, img_enhanced, cv::COLOR_GRAY2BGR);
-           show_clahe_vec[cam_id] = img_enhanced.clone();
-           show_mat_vec[cam_id] = image.clone();
-            show_edge_vec[cam_id] = edge.clone();
+          // 阈值提取高纹理区域
+          cv::Mat texture_mask;
+          double threshold_val = 100;
+          cv::threshold(variance_map, edge, threshold_val, 255,
+                        cv::THRESH_BINARY);
         }
-        cv::Mat img1, img2, clahe_show, img_show, edge_show;
-        cv::hconcat(show_clahe_vec[1], show_clahe_vec[2], img1);
-        cv::hconcat(show_clahe_vec[0], show_clahe_vec[3], img2);
-        cv::vconcat(img1, img2, clahe_show);
-        cv::imshow("Clahe", clahe_show);
-        cv::hconcat(show_mat_vec[1], show_mat_vec[2], img1);
-        cv::hconcat(show_mat_vec[0], show_mat_vec[3], img2);
-        cv::vconcat(img1, img2, img_show);
-        cv::imshow("Cam", img_show);
-        cv::hconcat(show_edge_vec[1], show_edge_vec[2], img1);
-        cv::hconcat(show_edge_vec[0], show_edge_vec[3], img2);
-        cv::vconcat(img1, img2, edge_show);
-        cv::imshow("Edge", edge_show);
-      char buf_raw[100];
-      snprintf(buf_raw, 100, "/home/roger/work/dm-vio/images/raw_%04d.png", (int)i);
-      cv::imwrite(buf_raw, img_show);
-      char buf_clahe[100];
-      snprintf(buf_clahe, 100, "/home/roger/work/dm-vio/images/clahe_%04d.png", (int)i);
-      cv::imwrite(buf_clahe, clahe_show);
-      char buf_edge[100];
-      snprintf(buf_edge, 100, "/home/roger/work/dm-vio/images/edge_%04d.png", (int)i);
-      cv::imwrite(buf_edge, edge_show);
-      cv::waitKey(1);
+      } else {
+        cv::Canny(img_enhanced, edge, 1.5 * threshold, 2.5 * threshold, 3,
+                  false);
+      }
+      printf("threshold: %f\n", threshold);
+
+      cv::cvtColor(image, image, cv::COLOR_GRAY2BGR);
+      cv::cvtColor(img_enhanced, img_enhanced, cv::COLOR_GRAY2BGR);
+      show_clahe_vec[cam_id] = img_enhanced.clone();
+      cv::Mat image_draw = image.clone();
+      for (size_t col = 0; col < img_enhanced.cols; ++col) {
+        for (size_t row = 0; row < img_enhanced.rows; ++row) {
+          if (edge_opencv.at<uchar>(row, col) == 255 && use_edge_drawing_impl) {
+            cv::circle(image_draw, cv::Point2f(col, row), 4,
+                       cv::Scalar(0, 255, 0), -1);
+          }
+          if (edge.at<uchar>(row, col) == 255) {
+            cv::circle(image_draw, cv::Point2f(col, row), 3,
+                       cv::Scalar(0, 0, 255), -1);
+          }
+        }
+      }
+      show_mat_vec[cam_id] = image_draw.clone();
+      show_edge_vec[cam_id] = edge.clone();
     }
+    cv::Mat img1, img2, clahe_show, img_show, edge_show;
+    cv::hconcat(show_clahe_vec[1], show_clahe_vec[2], img1);
+    cv::hconcat(show_clahe_vec[0], show_clahe_vec[3], img2);
+    cv::vconcat(img1, img2, clahe_show);
+    cv::imshow("Clahe", clahe_show);
+
+    cv::hconcat(show_edge_vec[1], show_edge_vec[2], img1);
+    cv::hconcat(show_edge_vec[0], show_edge_vec[3], img2);
+    cv::vconcat(img1, img2, edge_show);
+    cv::imshow("Edge", edge_show);
+
+    cv::hconcat(show_mat_vec[1], show_mat_vec[2], img1);
+    cv::hconcat(show_mat_vec[0], show_mat_vec[3], img2);
+    cv::vconcat(img1, img2, img_show);
+    cv::imshow("Cam", img_show);
+
+    char buf_raw[100];
+    snprintf(buf_raw, 100, "/home/roger/work/dm-vio/images/raw_%04d.png",
+             (int)i);
+    cv::imwrite(buf_raw, img_show);
+    char buf_clahe[100];
+    snprintf(buf_clahe, 100, "/home/roger/work/dm-vio/images/clahe_%04d.png",
+             (int)i);
+    cv::imwrite(buf_clahe, clahe_show);
+    char buf_edge[100];
+    snprintf(buf_edge, 100, "/home/roger/work/dm-vio/images/edge_%04d.png",
+             (int)i);
+    cv::imwrite(buf_edge, edge_show);
+    cv::waitKey(0);
+  }
 #endif
   // std::cout << "K: \n" << K << std::endl;
   // std::exit(-1);
@@ -962,10 +1056,10 @@ int main(int argc, char **argv) {
   use16Bit = false;
   ImageFolderReader *reader =
       new ImageFolderReader(source, mainSettings.calib, mainSettings.gammaCalib,
-                            mainSettings.vignette, use16Bit, true, w, h,
-                            &cid_to_undist_map, &vig_mat);
+                            mainSettings.vignette, use16Bit, true, image_w,
+                            image_h, &cid_to_undist_map, &vig_mat);
   reader->loadIMUData2(imu_stack, frameInfo_bak);
-  reader->setGlobalCalibration2(K.cast<float>(), w, h);
+  reader->setGlobalCalibration2(K.cast<float>(), image_w, image_h);
   // std::exit(2);
   if (!disableAllDisplay) {
     IOWrap::PangolinDSOViewer *viewer = new IOWrap::PangolinDSOViewer(

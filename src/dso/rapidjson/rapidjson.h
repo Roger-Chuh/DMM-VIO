@@ -258,7 +258,7 @@
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #define RAPIDJSON_ENDIAN RAPIDJSON_BIGENDIAN
 #else
-#      error Unknown machine endianness detected. User needs to define RAPIDJSON_ENDIAN.
+#error Unknown machine endianness detected. User needs to define RAPIDJSON_ENDIAN.
 #endif // __BYTE_ORDER__
 // Detect with GLIBC's endian.h
 #elif defined(__GLIBC__)
@@ -268,7 +268,7 @@
 #elif (__BYTE_ORDER == __BIG_ENDIAN)
 #define RAPIDJSON_ENDIAN RAPIDJSON_BIGENDIAN
 #else
-#      error Unknown machine endianness detected. User needs to define RAPIDJSON_ENDIAN.
+#error Unknown machine endianness detected. User needs to define RAPIDJSON_ENDIAN.
 #endif // __GLIBC__
 // Detect with _LITTLE_ENDIAN and _BIG_ENDIAN macro
 #elif defined(_LITTLE_ENDIAN) && !defined(_BIG_ENDIAN)
@@ -292,7 +292,7 @@
 #elif defined(RAPIDJSON_DOXYGEN_RUNNING)
 #define RAPIDJSON_ENDIAN
 #else
-#    error Unknown machine endianness detected. User needs to define RAPIDJSON_ENDIAN.
+#error Unknown machine endianness detected. User needs to define RAPIDJSON_ENDIAN.
 #endif
 #endif // RAPIDJSON_ENDIAN
 

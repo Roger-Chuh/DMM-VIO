@@ -94,8 +94,10 @@ private:
 
   //  number_t pixel_step_ = 1.0;
   // number_t rad_step_;
-  number_t search_zncc_threshold_ = setting_outlierTH_zncc_angle_epi_trace_on; // 0.7; // 0.9;
-  number_t opt_zncc_threshold_ = setting_outlierTH_zncc_angle_epi_linearize;    // 0.6;    // 0.8;
+  number_t search_zncc_threshold_ =
+      setting_outlierTH_zncc_angle_epi_trace_on; // 0.7; // 0.9;
+  number_t opt_zncc_threshold_ =
+      setting_outlierTH_zncc_angle_epi_linearize; // 0.6;    // 0.8;
 
   size_t max_iter_ = 5;
 

@@ -411,7 +411,6 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
 }
 
 int main(int argc, char **argv) {
-
   std::string config_path =
       "/home/roger/work/dm-vio/dm-vio/src/dso/config/calibconfig_stage0.toml";
   CalibIO::ConfigData configParams(config_path);

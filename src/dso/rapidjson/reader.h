@@ -1972,7 +1972,6 @@ private:
   };
 
   RAPIDJSON_FORCEINLINE Token Tokenize(Ch c) const {
-
 //!@cond RAPIDJSON_HIDDEN_FROM_DOXYGEN
 #define N NumberToken
 #define N16 N, N, N, N, N, N, N, N, N, N, N, N, N, N, N, N

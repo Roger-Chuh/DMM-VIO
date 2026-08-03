@@ -46,7 +46,6 @@ bool EFDeltaValid = false;
 //@ 计算adHost(F), adTarget(F)
 // 传的参数也没用啊
 void EnergyFunctional::setAdjointsF(CalibHessian *Hcalib) {
-
   if (adHost != 0)
     delete[] adHost;
   if (adTarget != 0)
@@ -421,7 +420,6 @@ void EnergyFunctional::resubstituteFPt(const VecCf &xc, Mat1Statef *xAd,
 
 //@ 也是求能量, 使用HM和bM求的, delta是绝对的
 double EnergyFunctional::calcMEnergyF(bool useNewValues) {
-
   assert(EFDeltaValid);
   assert(EFAdjointsValid);
   assert(EFIndicesValid);
@@ -450,7 +448,6 @@ double EnergyFunctional::calcMEnergyF(bool useNewValues) {
 
 //@ 计算所有点的能量E之和, delta是相对的
 void EnergyFunctional::calcLEnergyPt(int min, int max, Vec10 *stats, int tid) {
-
   Accumulator11 E;
   E.initialize();
   VecCf dc = cDeltaF;
@@ -576,9 +573,9 @@ double EnergyFunctional::calcLEnergyF_MT() {
 EFResidual *EnergyFunctional::insertResidual(PointFrameResidual *r,
                                              MultiCamera *p_multi_camera,
                                              bool add_connection) {
-  EFResidual *efr =
-      new EFResidual(r, r->point->efPoint, r->host->efFrame, r->target->efFrame,
-                     r->host_cid, /*r->target_cid,*/ p_multi_camera);
+  EFResidual *efr = new EFResidual(r, r->point->efPoint, r->host->efFrame,
+                                   r->target->efFrame, r->host_cid,
+                                   /*r->target_cid,*/ p_multi_camera);
   efr->idxInAll =
       r->point->efPoint->residualsAll.size(); // 在这个点的所有残差的id
   r->point->efPoint->residualsAll.push_back(
@@ -978,7 +975,6 @@ void EnergyFunctional::marginalizePointsF() {
 
 //@ 直接丢掉点, 不边缘化
 void EnergyFunctional::dropPointsF() {
-
   for (EFFrame *f : frames) {
     for (int i = 0; i < (int)f->points.size(); i++) {
       EFPoint *p = f->points[i];
@@ -1279,8 +1275,8 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
         maxSv = S[i];
     }
     NAN_LOG_COND(minSv, maxSv, "SVD solution");
-    NAN_PRINT("iter=%d, lambda=%g, nFrames=%d, S_size=%d\n",
-              iteration, lambda, nFrames, (int)S.size());
+    NAN_PRINT("iter=%d, lambda=%g, nFrames=%d, S_size=%d\n", iteration, lambda,
+              nFrames, (int)S.size());
     //! Hx=b --->  U∑V^T*x = b  --->  ∑V^T*x = U^T*b
     VecX Ub = svd.matrixU().transpose() * bFinalScaled;
     int setZero = 0;
@@ -1324,8 +1320,8 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
           HPassed, bL_top + bMGTSAM_top + bA_top - b_sc, lambda, frames,
           HL_top + HMForGTSAM + HA_top - H_sc);
       NAN_CHECK_EIGEN(x, "GTSAM x(solution)");
-      NAN_PRINT("GTSAM solve: iter=%d, lambda=%g, x_norm=%g\n",
-                iteration, lambda, x.norm());
+      NAN_PRINT("GTSAM solve: iter=%d, lambda=%g, x_norm=%g\n", iteration,
+                lambda, x.norm());
     } else {
       VecX SVecI =
           (HFinal_top.diagonal() + VecX::Constant(HFinal_top.cols(), 10))
@@ -1336,8 +1332,8 @@ void EnergyFunctional::solveSystemF(int iteration, double lambda,
       x = SVecI.asDiagonal() *
           HFinalScaled.ldlt().solve(SVecI.asDiagonal() * bFinal_top);
       NAN_CHECK_EIGEN(x, "LDLT x(solution)");
-      NAN_PRINT("LDLT solve: iter=%d, lambda=%g, x_norm=%g\n",
-                iteration, lambda, x.norm());
+      NAN_PRINT("LDLT solve: iter=%d, lambda=%g, x_norm=%g\n", iteration,
+                lambda, x.norm());
     }
     // Important: x is -step !
   }

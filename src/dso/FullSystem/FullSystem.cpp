@@ -59,8 +59,8 @@
 
 #include "../camera_model/pinhole_camera.h"
 #include "GTSAMIntegration/ExtUtils.h"
-#include "algs_tools_images_buffer.h"
 #include "IOWrapper/ImageRW.h"
+#include "algs_tools_images_buffer.h"
 #include "util/TimeMeasurement.h"
 
 using dmvio::GravityInitializer;
@@ -648,7 +648,7 @@ FullSystem::trackNewCoarse(FrameHessian *fh, Sophus::SE3 *referenceToFrameHint,
   int tryIterations = 0;
   //! 逐个尝试
   disable_kf_real = false;
-  if (referenceToFrameHint != 0){
+  if (referenceToFrameHint != 0) {
 #if 1
     lastF_2_fh_tries.clear();
     lastF_2_fh_tries.push_back(*referenceToFrameHint);
@@ -661,9 +661,9 @@ FullSystem::trackNewCoarse(FrameHessian *fh, Sophus::SE3 *referenceToFrameHint,
     AffLight aff_g2l_this = aff_last_2_l; // 上一帧的赋值当前帧
     //    std::array<AffLight, kCameraNumUsed> a_aff_g2l_this = a_aff_last_2_l;
     SE3 lastF_2_fh_this = lastF_2_fh_tries[i];
-    bool trackingIsGood = coarseTracker->trackNewestCoarse(disable_kf_real,
-        frameHessians, allFrameHistory.size(), lastF, fh, lastF_2_fh_this,
-        aff_g2l_this, pyrLevelsUsed - 1,
+    bool trackingIsGood = coarseTracker->trackNewestCoarse(
+        disable_kf_real, frameHessians, allFrameHistory.size(), lastF, fh,
+        lastF_2_fh_this, aff_g2l_this, pyrLevelsUsed - 1,
         achievedRes); // in each level has to be at least as good as the last
                       // try.
     if (disable_kf_real) {
@@ -751,7 +751,9 @@ FullSystem::trackNewCoarse(FrameHessian *fh, Sophus::SE3 *referenceToFrameHint,
   fh->shell->camToWorld =
       fh->shell->trackingRef->camToWorld * fh->shell->camToTrackingRef;
   fh->shell->trackingWasGood = trackingGoodRet;
-  printf("start !!!!! res_num_ratio, coarseTracker->firstCoarseRMSE: %f, achievedRes[0]: %f\n",coarseTracker->firstCoarseRMSE, achievedRes[0]);
+  printf("start !!!!! res_num_ratio, coarseTracker->firstCoarseRMSE: %f, "
+         "achievedRes[0]: %f\n",
+         coarseTracker->firstCoarseRMSE, achievedRes[0]);
   if (coarseTracker->firstCoarseRMSE < 0) {
     coarseTracker->firstCoarseRMSE = achievedRes[0];
     coarseTracker->firstCoarseResNum = coarseTracker->lastResidualNum[0];
@@ -792,7 +794,7 @@ void FullSystem::convert_to_ImageData(cv::Mat &data, ImageDataAM &image_data,
 //@ 利用新的帧 fh 对关键帧中的ImmaturePoint进行更新
 /// multi-small-baseline-stereo, update idepth
 #define SHOW_DEPTH_FILTER
-#if 1//ndef USE_EDGE_ALIGN
+#if 1 // ndef USE_EDGE_ALIGN
 #define USE_DSM_DEPTH_FILTER
 #endif
 void FullSystem::traceNewCoarse(FrameHessian *fh, bool is_first_frame) {
@@ -978,13 +980,13 @@ void FullSystem::traceNewCoarse(FrameHessian *fh, bool is_first_frame) {
         Vec3f pr = KRKi * Vec3f(ph->u, ph->v, 1);
         Vec3f proj = pr + Kt * 0.5f * (ph->idepth_max + ph->idepth_min);
         proj /= proj[2];
-        img_df->setPixelCirc(proj[0], proj[1], Vec3b(0, 0, 0),target_cid);
+        img_df->setPixelCirc(proj[0], proj[1], Vec3b(0, 0, 0), target_cid);
 #endif
         if (ph->lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_GOOD) {
           hw_sum += ph->hw_use[target_cid];
           hw_count++;
 #ifdef SHOW_DEPTH_FILTER
-          img_df->setPixelCirc(proj[0], proj[1], Vec3b(0, 255, 0),target_cid);
+          img_df->setPixelCirc(proj[0], proj[1], Vec3b(0, 255, 0), target_cid);
 #endif
           covisible_cid++;
           trace_good++;
@@ -993,21 +995,22 @@ void FullSystem::traceNewCoarse(FrameHessian *fh, bool is_first_frame) {
             ImmaturePointStatus::IPS_BADCONDITION) {
 #ifdef SHOW_DEPTH_FILTER
           // yellow
-          img_df->setPixelCirc(proj[0], proj[1], Vec3b(0, 255, 255),target_cid);
+          img_df->setPixelCirc(proj[0], proj[1], Vec3b(0, 255, 255),
+                               target_cid);
 #endif
           covisible_cid++;
           trace_badcondition++;
         }
         if (ph->lastTraceStatus[target_cid] == ImmaturePointStatus::IPS_OOB) {
 #ifdef SHOW_DEPTH_FILTER
-          img_df->setPixelCirc(proj[0], proj[1], Vec3b(255, 0, 0),target_cid);
+          img_df->setPixelCirc(proj[0], proj[1], Vec3b(255, 0, 0), target_cid);
 #endif
           trace_oob++;
         }
         if (ph->lastTraceStatus[target_cid] ==
             ImmaturePointStatus::IPS_OUTLIER) {
 #ifdef SHOW_DEPTH_FILTER
-          img_df->setPixelCirc(proj[0], proj[1], Vec3b(0, 0, 255),target_cid);
+          img_df->setPixelCirc(proj[0], proj[1], Vec3b(0, 0, 255), target_cid);
 #endif
           covisible_cid++;
           trace_out++;
@@ -1016,7 +1019,8 @@ void FullSystem::traceNewCoarse(FrameHessian *fh, bool is_first_frame) {
             ImmaturePointStatus::IPS_SKIPPED) {
 #ifdef SHOW_DEPTH_FILTER
           // Cyan
-          img_df->setPixelCirc(proj[0], proj[1], Vec3b(255, 255, 0),target_cid);
+          img_df->setPixelCirc(proj[0], proj[1], Vec3b(255, 255, 0),
+                               target_cid);
 #endif
           covisible_cid++;
           trace_skip++;
@@ -1025,7 +1029,8 @@ void FullSystem::traceNewCoarse(FrameHessian *fh, bool is_first_frame) {
             ImmaturePointStatus::IPS_UNINITIALIZED) {
 #ifdef SHOW_DEPTH_FILTER
           // pink / Magenta
-          img_df->setPixelCirc(proj[0], proj[1], Vec3b(255, 0, 255),target_cid);
+          img_df->setPixelCirc(proj[0], proj[1], Vec3b(255, 0, 255),
+                               target_cid);
 #endif
           covisible_cid++;
           trace_uninitialized++;
@@ -1184,7 +1189,7 @@ void FullSystem::traceNewCoarse(FrameHessian *fh, bool is_first_frame) {
 #endif
     }
   }
-  printf("hw_trace_on: %f\n", hw_sum/hw_count);
+  printf("hw_trace_on: %f\n", hw_sum / hw_count);
 #ifdef USE_DSM_DEPTH_FILTER
   printf("[dsm dso] traceOn stats: [%.1f %.1f], traceOn_ratio: %.3f\n",
          dsm_search_success_pid_count, dso_search_success_pid_count,
@@ -1202,7 +1207,10 @@ void FullSystem::traceNewCoarse(FrameHessian *fh, bool is_first_frame) {
 #ifdef SAVE_IMAGES
   if (fh && fh->shell) {
     char buf[100];
-    snprintf(buf, 100, "/media/roger/Elements_SE/CI/dm_vio_results/depth_filter_%015lu.png", (uint64_t)(fh->shell->timestamp_eval * 1e9));
+    snprintf(
+        buf, 100,
+        "/media/roger/Elements_SE/CI/dm_vio_results/depth_filter_%015lu.png",
+        (uint64_t)(fh->shell->timestamp_eval * 1e9));
     IOWrap::writeImage(buf, img_df);
   }
 #endif
@@ -1245,7 +1253,8 @@ void FullSystem::activatePointsMT_Reductor(
 #endif
   minObs = 1;
   for (int k = min; k < max; k++) {
-    (*optimized)[k] = optimizeImmaturePoint((*toOptimize)[k], minObs /*1*/, tr, true, false);
+    (*optimized)[k] =
+        optimizeImmaturePoint((*toOptimize)[k], minObs /*1*/, tr, true, false);
   }
   delete[] tr;
 }
@@ -1369,7 +1378,8 @@ void FullSystem::activatePointsMT() {
   }
 #endif
   int fid = 0;
-  int can_activate_count = 0;;
+  int can_activate_count = 0;
+  ;
   int pid_to_opt = 0;
   printf("start, frameHessians size: %d\n", frameHessians.size());
   for (FrameHessian *host : frameHessians) // go through all active frames
@@ -1434,7 +1444,6 @@ void FullSystem::activatePointsMT() {
         int u = ptp[0] / ptp[2] + 0.5f;
         int v = ptp[1] / ptp[2] + 0.5f;
         if ((u > 0 && v > 0 && u < wG[1] && v < hG[1])) {
-
         }
 #endif
         //* 未成熟点的激活条件
@@ -1450,15 +1459,18 @@ void FullSystem::activatePointsMT() {
 
         // if I cannot activate the point, skip it. Maybe also delete it.
 #ifdef SHOW_NEWLY_ACTIVATED_POINTS
-        img_target->setPixelCirc(2*u, 2 * v, Vec3b(0, 0, 255),target_cid);
+        img_target->setPixelCirc(2 * u, 2 * v, Vec3b(0, 0, 255), target_cid);
         if (ph->quality[target_cid] < setting_minTraceQuality) {
-          //cyan
-          img_target->setPixelCirc(2*u, 2 * v, Vec3b(255, 255, 0),target_cid);
+          // cyan
+          img_target->setPixelCirc(2 * u, 2 * v, Vec3b(255, 255, 0),
+                                   target_cid);
         } else if (ph->lastTracePixelInterval[target_cid] > 8) {
-          //pink
-          img_target->setPixelCirc(2*u, 2 * v, Vec3b(255, 0, 255),target_cid);
+          // pink
+          img_target->setPixelCirc(2 * u, 2 * v, Vec3b(255, 0, 255),
+                                   target_cid);
         } else if ((ph->idepth_max + ph->idepth_min) < 0) {
-          img_target->setPixelCirc(2*u, 2 * v, Vec3b(255, 255, 255),target_cid);
+          img_target->setPixelCirc(2 * u, 2 * v, Vec3b(255, 255, 255),
+                                   target_cid);
         }
 #endif
         if (!canActivate) {
@@ -1503,7 +1515,8 @@ void FullSystem::activatePointsMT() {
         if ((u > 0 && v > 0 && u < wG[1] && v < hG[1])) {
 #ifdef SHOW_NEWLY_ACTIVATED_POINTS
           // yellow
-          img_target->setPixelCirc(2*u, 2 * v, Vec3b(0, 255,255),target_cid);
+          img_target->setPixelCirc(2 * u, 2 * v, Vec3b(0, 255, 255),
+                                   target_cid);
 #endif
           can_activate_count++;
           // 距离地图 + 小数点
@@ -1521,20 +1534,17 @@ void FullSystem::activatePointsMT() {
           /// world cordinate w.r.t last frame.
           // TODO roger,
           // 这个阈值是4目共用的，可能某一目的数目会比较少，但整体点肯定是够的
-          if (dist >= currentMinActDist *
-                          ph->my_type
-#if 0//def USE_EDGE_ALIGN
+          if (dist >= currentMinActDist * ph->my_type
+#if 0 // def USE_EDGE_ALIGN
                           || true
-                          #endif
-                          ) /// 点越多, 距离阈值越大 [my_type 1 2 4]
+#endif
+              ) /// 点越多, 距离阈值越大 [my_type 1 2 4]
           {
             /// 每新activate一个点，那与这个点相关的distanceMap也要更新，很严谨
             coarseDistanceMap->addIntoDistFinal(u, v, target_cid);
             large_distance_count++;
             // toOptimize.push_back(ph);
-          } else
-          {
-
+          } else {
           }
         } else {
           in_valid_count++;
@@ -1618,7 +1628,7 @@ void FullSystem::activatePointsMT() {
   //[ ***step 4*** ] 把PointHessian加入到能量函数, 删除收敛的未成熟点,
   //或不好的点
   int optimized_points = 0;
-float hw_sum = 0,hw_count = 0;
+  float hw_sum = 0, hw_count = 0;
   for (unsigned k = 0; k < toOptimize.size(); k++) {
     PointHessian *newpoint = optimized[k];
     // newpoint->idepth_backup = newpoint->idepth;
@@ -1676,14 +1686,14 @@ float hw_sum = 0,hw_count = 0;
             (proj[0] > 10 && proj[1] > 10 && proj[0] < wG[0] - 10 &&
              proj[1] < hG[0] - 10)) {
           img_target->setPixelCirc(proj[0] + 0.5, proj[1] + 0.5,
-                                   Vec3b(255, 0,0), target_cam);
-          img_target->setPixelCirc(u + 0.5, v + 0.5, Vec3b(0, 255,0),
+                                   Vec3b(255, 0, 0), target_cam);
+          img_target->setPixelCirc(u + 0.5, v + 0.5, Vec3b(0, 255, 0),
                                    target_cam);
         }
       }
 #endif
       hw_sum += newpoint->hw_use;
-      hw_count +=1;
+      hw_count += 1;
       optimized_points++;
       newpoint->host->immaturePoints[ph->idxInImmaturePoints] = 0;
       /// 自己push_back到自己里面？
@@ -1732,14 +1742,19 @@ float hw_sum = 0,hw_count = 0;
       assert(newpoint == 0 || newpoint == (PointHessian *)((long)(-1)));
     }
   }
-  printf("hw_activate: %f, [success / toOpt/ canActivate]: [%d / %d / %d] points in activatePointsMT\n",
-         hw_sum / hw_count,optimized_points, toOptimize.size(), can_activate_count);
+  printf("hw_activate: %f, [success / toOpt/ canActivate]: [%d / %d / %d] "
+         "points in activatePointsMT\n",
+         hw_sum / hw_count, optimized_points, toOptimize.size(),
+         can_activate_count);
 #ifdef SHOW_NEWLY_ACTIVATED_POINTS
   IOWrap::displayImage("newly activated in target", img_target);
 #ifdef SAVE_IMAGES
   if (newestFh && newestFh->shell) {
     char buf[100];
-    snprintf(buf, 100, "/media/roger/Elements_SE/CI/dm_vio_results/newly_activate_%015lu.png", (uint64_t)(newestFh->shell->timestamp_eval * 1e9));
+    snprintf(
+        buf, 100,
+        "/media/roger/Elements_SE/CI/dm_vio_results/newly_activate_%015lu.png",
+        (uint64_t)(newestFh->shell->timestamp_eval * 1e9));
     IOWrap::writeImage(buf, img_target);
   }
 #endif
@@ -1913,20 +1928,26 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
   fh->ab_exposure = image->exposure_time;
   fh->timestamp = shell->timestamp;
   if (shell) {
-    printf("======================= processing frame %f ==========\n", shell->timestamp_eval);
+    printf("======================= processing frame %f ==========\n",
+           shell->timestamp_eval);
   }
   fh->makeImages(
       image->image,
       &Hcalib); // TODO generate pyraid, gamma correction, generate gradient
-  disable_kf = (fh->mean_gray_val < -25.f || fh->mean_gray_val > 1130.f) ? 1 : 0;
-  disable_kf = (fh->mean_gray_val < 40.f || fh->mean_gray_val > 1130.f) ? 1 : 0;
+  disable_kf =
+      (fh->mean_gray_val < -25.f || fh->mean_gray_val > 1130.f) ? 1 : 0;
+  disable_kf =
+      (fh->mean_gray_val < 30.0f /*40.f*/ || fh->mean_gray_val > 1130.f) ? 1
+                                                                         : 0;
   float last_kf_mean_gray_val = 0;
   if (allKeyFramesHistory.empty()) {
   } else {
     last_kf_mean_gray_val = allKeyFramesHistory.back()->mean_gray_val;
-    // disable_kf = disable_kf || std::abs(last_kf_mean_gray_val - fh->mean_gray_val) > 20.f;
+    // disable_kf = disable_kf || std::abs(last_kf_mean_gray_val -
+    // fh->mean_gray_val) > 20.f;
   }
-  printf("disable_kf: %d, cur_mean_gray_val: %f, last_kf_mean_gray_val: %f\n", disable_kf, fh->mean_gray_val, last_kf_mean_gray_val);
+  printf("disable_kf: %d, cur_mean_gray_val: %f, last_kf_mean_gray_val: %f\n",
+         disable_kf, fh->mean_gray_val, last_kf_mean_gray_val);
   for (int cid = 0; cid < kCameraNumUsed; ++cid) {
     printf("each mean_gray_val: %f\n", fh->mean_gray_val_each[cid]);
   }
@@ -2203,30 +2224,40 @@ void FullSystem::addActiveFrame(ImageAndExposure *image, int id,
                   (extra_ratio * setting_kfGlobalWeight) *
                       setting_maxAffineWeight * fabs(logf((float)refToFh[0])) >
               1 ||
-// #ifdef USE_MULTI_CAM
-//           1.2
-// #else
-//           2
-// #endif
-//                   * coarseTracker->firstCoarseRMSE <
-//               tres[0] ||
+          // #ifdef USE_MULTI_CAM
+          //           1.2
+          // #else
+          //           2
+          // #endif
+          //                   * coarseTracker->firstCoarseRMSE <
+          //               tres[0] ||
 
-                coarseTracker->lastResidualNum[0]/coarseTracker->firstCoarseResNum > 1.2 ||( coarseTracker->lastRS[0][9] < 0.2/*0.7*/ && (
+          coarseTracker->lastResidualNum[0] / coarseTracker->firstCoarseResNum >
+              1.2 ||
+          (coarseTracker->lastRS[0][9] < 0.2 /*0.7*/ &&
+           (
 #ifdef USE_MULTI_CAM
-1.2
+               1.2
 #else
-2
+               2
 #endif
-  * coarseTracker->firstCoarseRMSE <
-tres[0] ||
-                coarseTracker->lastResidualNum[0]/coarseTracker->firstCoarseResNum < 0.4/*0.2*/ || coarseTracker->lastSaturatedRatio[0] > 0.3/*0.6*/ || coarseTracker->lastResidualNum[0] < 1000/*3000 /*1000*/))||
+                       * coarseTracker->firstCoarseRMSE <
+                   tres[0] ||
+               coarseTracker->lastResidualNum[0] /
+                       coarseTracker->firstCoarseResNum <
+                   0.4 /*0.2*/
+               || coarseTracker->lastSaturatedRatio[0] > 0.3 /*0.6*/ ||
+               coarseTracker->lastResidualNum[0] < 1000 /*3000 /*1000*/)) ||
           (setting_maxTimeBetweenKeyframes > 0 &&
            timeSinceLastKeyframe > setting_maxTimeBetweenKeyframes) ||
           forceKF;
       needToMakeKF_tracker = needToMakeKF;
       printf(
-          "time: %0.4f, thr: %0.3f, res_num_ratio: [%0.3f], pt_wo_edges_ratio: %0.3f, last_res_num: %d, lastSaturatedRatio: %0.3f, [cur_res / first_res]: "
-          "[%0.3f / %0.3f] = %0.3f, affine_ratio: %0.3f, needToMakeKF: %d, affine_part_thr: "
+          "time: %0.4f, thr: %0.3f, res_num_ratio: [%0.3f], pt_wo_edges_ratio: "
+          "%0.3f, last_res_num: %d, lastSaturatedRatio: %0.3f, [cur_res / "
+          "first_res]: "
+          "[%0.3f / %0.3f] = %0.3f, affine_ratio: %0.3f, needToMakeKF: %d, "
+          "affine_part_thr: "
           "%0.3f, affine_abs_log: %0.3f\n",
           image->timestamp_eval,
           setting_kfGlobalWeight * setting_maxShiftWeightT *
@@ -2236,8 +2267,11 @@ tres[0] ||
               setting_kfGlobalWeight * setting_maxShiftWeightRT *
                   sqrtf((double)tres[3]) / (wG[0] + hG[0]) +
               setting_kfGlobalWeight * setting_maxAffineWeight *
-                  fabs(logf((float)refToFh[0])), coarseTracker->lastResidualNum[0]/coarseTracker->firstCoarseResNum,coarseTracker->lastRS[0][9], (int)coarseTracker->lastResidualNum[0],coarseTracker->lastSaturatedRatio[0],
-          tres[0], coarseTracker->firstCoarseRMSE,
+                  fabs(logf((float)refToFh[0])),
+          coarseTracker->lastResidualNum[0] / coarseTracker->firstCoarseResNum,
+          coarseTracker->lastRS[0][9], (int)coarseTracker->lastResidualNum[0],
+          coarseTracker->lastSaturatedRatio[0], tres[0],
+          coarseTracker->firstCoarseRMSE,
           tres[0] / coarseTracker->firstCoarseRMSE,
           std::exp(fabs(logf((float)refToFh[0]))), needToMakeKF,
           setting_kfGlobalWeight * setting_maxAffineWeight *
@@ -2261,59 +2295,108 @@ tres[0] ||
     }
 
 #if 1
-      // disable_kf = (fh->mean_gray_val < 35.f || fh->mean_gray_val > 130.f) ? 1 : 0;
-      // float last_kf_mean_gray_val = 0;
-      // if (allKeyFramesHistory.empty()) {
-      // } else {
-      //   last_kf_mean_gray_val = allKeyFramesHistory.back()->mean_gray_val;
-      //   // disable_kf = disable_kf || std::abs(last_kf_mean_gray_val - fh->mean_gray_val) > 20.f;
-      // }
-      // printf("disable_kf: %d, cur_mean_gray_val: %f, last_kf_mean_gray_val: %f\n", disable_kf, fh->mean_gray_val, last_kf_mean_gray_val);
-      // for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-      //   printf("each mean_gray_val: %f\n", fh->mean_gray_val_each[cid]);
-      // }
-      if (true && (disable_kf == 1)) {
-        needToMakeKF = false;
-        forceKF = false;
-        forceNoKF = true;
-      }
-    printf("++++ res_num_ratio 1: %f, time: %f, disable_kf_last: %d, lastSaturatedRatio: %f, needToMakeKF: %d, forceKF: %d, forceNoKF: %d, disable_kf: %d, points_wo_edge_ratio: %f\n", coarseTracker->lastResidualNum[0]/coarseTracker->firstCoarseResNum,image->timestamp_eval,disable_kf_last, coarseTracker->lastSaturatedRatio[0], needToMakeKF, forceKF, forceNoKF, disable_kf, coarseTracker->lastRS[0][9]);
-      if (disable_kf_last == 1 && disable_kf != 1 && needToMakeKF == false && coarseTracker->lastRS[0][9] < 0.2) {
-        needToMakeKF = true;
-        forceKF = false;
-        forceNoKF = false;
-      }
-    printf("++++ res_num_ratio 2: %f, time: %f, disable_kf_last: %d, lastSaturatedRatio: %f, needToMakeKF: %d, forceKF: %d, forceNoKF: %d, disable_kf: %d, points_wo_edge_ratio: %f\n", coarseTracker->lastResidualNum[0]/coarseTracker->firstCoarseResNum,image->timestamp_eval,disable_kf_last, coarseTracker->lastSaturatedRatio[0], needToMakeKF, forceKF, forceNoKF, disable_kf, coarseTracker->lastRS[0][9]);
+    // disable_kf = (fh->mean_gray_val < 35.f || fh->mean_gray_val > 130.f) ? 1
+    // : 0; float last_kf_mean_gray_val = 0; if (allKeyFramesHistory.empty()) {
+    // } else {
+    //   last_kf_mean_gray_val = allKeyFramesHistory.back()->mean_gray_val;
+    //   // disable_kf = disable_kf || std::abs(last_kf_mean_gray_val -
+    //   fh->mean_gray_val) > 20.f;
+    // }
+    // printf("disable_kf: %d, cur_mean_gray_val: %f, last_kf_mean_gray_val:
+    // %f\n", disable_kf, fh->mean_gray_val, last_kf_mean_gray_val); for (int
+    // cid = 0; cid < kCameraNumUsed; ++cid) {
+    //   printf("each mean_gray_val: %f\n", fh->mean_gray_val_each[cid]);
+    // }
+    if (true && (disable_kf == 1)) {
+      needToMakeKF = false;
+      forceKF = false;
+      forceNoKF = true;
+    }
+    printf("++++ res_num_ratio 1: %f, time: %f, disable_kf_last: %d, "
+           "lastSaturatedRatio: %f, needToMakeKF: %d, forceKF: %d, forceNoKF: "
+           "%d, disable_kf: %d, points_wo_edge_ratio: %f\n",
+           coarseTracker->lastResidualNum[0] / coarseTracker->firstCoarseResNum,
+           image->timestamp_eval, disable_kf_last,
+           coarseTracker->lastSaturatedRatio[0], needToMakeKF, forceKF,
+           forceNoKF, disable_kf, coarseTracker->lastRS[0][9]);
+    if (disable_kf_last == 1 && disable_kf != 1 && needToMakeKF == false &&
+        coarseTracker->lastRS[0][9] < 0.2) {
+      needToMakeKF = true;
+      forceKF = false;
+      forceNoKF = false;
+    }
+    printf("++++ res_num_ratio 2: %f, time: %f, disable_kf_last: %d, "
+           "lastSaturatedRatio: %f, needToMakeKF: %d, forceKF: %d, forceNoKF: "
+           "%d, disable_kf: %d, points_wo_edge_ratio: %f\n",
+           coarseTracker->lastResidualNum[0] / coarseTracker->firstCoarseResNum,
+           image->timestamp_eval, disable_kf_last,
+           coarseTracker->lastSaturatedRatio[0], needToMakeKF, forceKF,
+           forceNoKF, disable_kf, coarseTracker->lastRS[0][9]);
 #endif
-    printf("++++ res_num_ratio 3: %f, time: %f, disable_kf_last: %d, lastSaturatedRatio: %f, needToMakeKF: %d, forceKF: %d, forceNoKF: %d, disable_kf: %d, points_wo_edge_ratio: %f\n", coarseTracker->lastResidualNum[0]/coarseTracker->firstCoarseResNum,image->timestamp_eval,disable_kf_last, coarseTracker->lastSaturatedRatio[0], needToMakeKF, forceKF, forceNoKF, disable_kf, coarseTracker->lastRS[0][9]);
-
+    printf("++++ res_num_ratio 3: %f, time: %f, disable_kf_last: %d, "
+           "lastSaturatedRatio: %f, needToMakeKF: %d, forceKF: %d, forceNoKF: "
+           "%d, disable_kf: %d, points_wo_edge_ratio: %f\n",
+           coarseTracker->lastResidualNum[0] / coarseTracker->firstCoarseResNum,
+           image->timestamp_eval, disable_kf_last,
+           coarseTracker->lastSaturatedRatio[0], needToMakeKF, forceKF,
+           forceNoKF, disable_kf, coarseTracker->lastRS[0][9]);
 
 #ifdef SHOW_ALIGN_FRAME
     char buf[100];
-    snprintf(buf, 100, "/media/roger/Elements_SE/CI/dm_vio_results/align_frame_%015lu_%d_%d_%d.png", (uint64_t)(image->timestamp_eval * 1e9), pyrLevelsUsed - 1, pyrLevelsUsed - 1, 0);
+    snprintf(buf, 100,
+             "/media/roger/Elements_SE/CI/dm_vio_results/"
+             "align_frame_%015lu_%d_%d_%d.png",
+             (uint64_t)(image->timestamp_eval * 1e9), pyrLevelsUsed - 1,
+             pyrLevelsUsed - 1, 0);
     cv::Mat img = cv::imread(buf, -1);
     if (!img.empty()) {
-      cv::putText(img, "tracker_kf: " + std::to_string((int)needToMakeKF_tracker), cv::Point(250, 30),
-                      cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(0, 255, 0), 2);
-      cv::putText(img, "disable_kf_last: " + std::to_string((int)disable_kf_last), cv::Point(250, 130),
-                      cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(0, 255, 0), 2);
-      cv::putText(img, "disable_kf: " + std::to_string((int)disable_kf), cv::Point(250, 230),
-                      cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(0, 255, 0), 2);
-      cv::putText(img, "final_kf: " + std::to_string((int)needToMakeKF), cv::Point(250, 330),
-                      cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(0, 255, 0), 2);
-      cv::putText(img, "thr: " + std::to_string((int)((setting_kfGlobalWeight * setting_maxShiftWeightT *
-                  sqrtf((double)tres[1]) / (wG[0] + hG[0]) +
-              setting_kfGlobalWeight * setting_maxShiftWeightR *
-                  sqrtf((double)tres[2]) / (wG[0] + hG[0]) +
-              setting_kfGlobalWeight * setting_maxShiftWeightRT *
-                  sqrtf((double)tres[3]) / (wG[0] + hG[0]) +
-              setting_kfGlobalWeight * setting_maxAffineWeight *
-              fabs(logf((float)refToFh[0]))) * 100)) + " T: " + std::to_string((int)((setting_kfGlobalWeight * setting_maxShiftWeightT *
-              sqrtf((double)tres[1]) / (wG[0] + hG[0])) * 100)) + " RT: " + std::to_string((int)((setting_kfGlobalWeight * setting_maxShiftWeightRT *
-              sqrtf((double)tres[3]) / (wG[0] + hG[0])) * 100)) + " AFFINE: " + std::to_string((int)((setting_kfGlobalWeight * setting_maxAffineWeight *
-              fabs(logf((float)refToFh[0]))) * 100)), cv::Point(10, 430),
-                      cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(0, 255, 0), 2);
-      printf("time: %f, tres: [%f %f %f], refToFh: [%f %f]\n", image->timestamp_eval , tres[1], tres[2], tres[3], refToFh[0], refToFh[1]);
+      cv::putText(img,
+                  "tracker_kf: " + std::to_string((int)needToMakeKF_tracker),
+                  cv::Point(250, 30), cv::FONT_HERSHEY_COMPLEX, 1,
+                  cv::Scalar(0, 255, 0), 2);
+      cv::putText(img,
+                  "disable_kf_last: " + std::to_string((int)disable_kf_last),
+                  cv::Point(250, 130), cv::FONT_HERSHEY_COMPLEX, 1,
+                  cv::Scalar(0, 255, 0), 2);
+      cv::putText(img, "disable_kf: " + std::to_string((int)disable_kf),
+                  cv::Point(250, 230), cv::FONT_HERSHEY_COMPLEX, 1,
+                  cv::Scalar(0, 255, 0), 2);
+      cv::putText(img, "final_kf: " + std::to_string((int)needToMakeKF),
+                  cv::Point(250, 330), cv::FONT_HERSHEY_COMPLEX, 1,
+                  cv::Scalar(0, 255, 0), 2);
+      cv::putText(
+          img,
+          "thr: " +
+              std::to_string(
+                  (int)((setting_kfGlobalWeight * setting_maxShiftWeightT *
+                             sqrtf((double)tres[1]) / (wG[0] + hG[0]) +
+                         setting_kfGlobalWeight * setting_maxShiftWeightR *
+                             sqrtf((double)tres[2]) / (wG[0] + hG[0]) +
+                         setting_kfGlobalWeight * setting_maxShiftWeightRT *
+                             sqrtf((double)tres[3]) / (wG[0] + hG[0]) +
+                         setting_kfGlobalWeight * setting_maxAffineWeight *
+                             fabs(logf((float)refToFh[0]))) *
+                        100)) +
+              " T: " +
+              std::to_string(
+                  (int)((setting_kfGlobalWeight * setting_maxShiftWeightT *
+                         sqrtf((double)tres[1]) / (wG[0] + hG[0])) *
+                        100)) +
+              " RT: " +
+              std::to_string(
+                  (int)((setting_kfGlobalWeight * setting_maxShiftWeightRT *
+                         sqrtf((double)tres[3]) / (wG[0] + hG[0])) *
+                        100)) +
+              " AFFINE: " +
+              std::to_string(
+                  (int)((setting_kfGlobalWeight * setting_maxAffineWeight *
+                         fabs(logf((float)refToFh[0]))) *
+                        100)),
+          cv::Point(10, 430), cv::FONT_HERSHEY_COMPLEX, 1,
+          cv::Scalar(0, 255, 0), 2);
+      printf("time: %f, tres: [%f %f %f], refToFh: [%f %f]\n",
+             image->timestamp_eval, tres[1], tres[2], tres[3], refToFh[0],
+             refToFh[1]);
       cv::imwrite(buf, img);
     }
 #endif
@@ -2326,7 +2409,9 @@ tres[0] ||
       int framesBetweenKFs = fh->shell->id - prevKFId - 1;
 
       // Enforce setting_minFramesBetweenKeyframes.
-      printf("res_num_ratio, framesBetweenKFs: %d, setting_minFramesBetweenKeyframes: %d\n", framesBetweenKFs, (int)setting_minFramesBetweenKeyframes);
+      printf("res_num_ratio, framesBetweenKFs: %d, "
+             "setting_minFramesBetweenKeyframes: %d\n",
+             framesBetweenKFs, (int)setting_minFramesBetweenKeyframes);
       if (framesBetweenKFs <
           (int)setting_minFramesBetweenKeyframes) // if integer value is smaller
                                                   // we just skip.
@@ -2341,7 +2426,10 @@ tres[0] ||
         double fractionalPart = setting_minFramesBetweenKeyframes -
                                 (int)setting_minFramesBetweenKeyframes;
         framesBetweenKFsRest += fractionalPart;
-        std::cout << "res_num_ratio, framesBetweenKFs: "<< framesBetweenKFs <<", fractionalPart: " << fractionalPart <<", framesBetweenKFsRest: " <<framesBetweenKFsRest << std::endl;
+        std::cout << "res_num_ratio, framesBetweenKFs: " << framesBetweenKFs
+                  << ", fractionalPart: " << fractionalPart
+                  << ", framesBetweenKFsRest: " << framesBetweenKFsRest
+                  << std::endl;
         if (framesBetweenKFsRest >= 1.0) {
           std::cout << "2, Skipping KF because of minFramesBetweenKeyframes."
                     << std::endl;
@@ -2395,7 +2483,9 @@ tres[0] ||
 void FullSystem::deliverTrackedFrame(FrameHessian *fh, bool needKF,
                                      bool forceKF, bool forceNoKF) {
   disable_kf_last = disable_kf;
-  printf("res_num_ratio, deliverTrackedFrame, needKF: %d, forceKF: %d, forceNoKF: %d\n", needKF,forceKF, forceNoKF);
+  printf("res_num_ratio, deliverTrackedFrame, needKF: %d, forceKF: %d, "
+         "forceNoKF: %d\n",
+         needKF, forceKF, forceNoKF);
   dmvio::TimeMeasurement timeMeasurement("deliverTrackedFrame");
   // There seems to be exactly one instance where needKF is false but the mapper
   // creates a keyframe nevertheless: if it is the second tracked frame (so it
@@ -3193,8 +3283,8 @@ void FullSystem::makeKeyFrame(FrameHessian *fh, bool forceKF, bool forceNoKF) {
     printf("end ==== res_num_ratio, setCoarseTrackingRef\n");
     coarseTracker_forNewKF->setCoarseTrackingRef(frameHessians);
 
-    coarseTracker_forNewKF->debugPlotIDepthMap(frameHessians,
-        &minIdJetVisTracker, &maxIdJetVisTracker, outputWrapper);
+    coarseTracker_forNewKF->debugPlotIDepthMap(
+        frameHessians, &minIdJetVisTracker, &maxIdJetVisTracker, outputWrapper);
     coarseTracker_forNewKF->debugPlotIDepthMapFloat(outputWrapper);
   }
   // for (int cid = 0; cid < kCameraNumUsed; ++cid) {
@@ -3720,14 +3810,14 @@ void FullSystem::makeNewTraces(FrameHessian *newFrame, float *gtDepth) {
         //                                              (ptp[0] -
         //                                              floorf((float)(ptp[0])));
 #ifdef SHOW_DETECTION_MASK
-      img->setPixelCirc(impt->u, impt->v, Vec3b(0, 0, 255), cid);
+        img->setPixelCirc(impt->u, impt->v, Vec3b(0, 0, 255), cid);
 #endif
 #ifdef USE_EDGE_ALIGN
         bool found = false;
         Vec2i *edge_pixel_start =
             newFrame->edge_pixels[0] + wG[0] * hG[0] * cid;
         for (int i = 0; i < newFrame->edge_pixel_num[0][cid]; ++i) {
-          if ((edge_pixel_start[i] - Vec2i(x, y)).norm() < 0.1) {
+          if ((edge_pixel_start[i] - Vec2i(x, y)).cast<float>().norm() < 1.5f) {
             found = true;
             break;
           }

@@ -36,7 +36,6 @@ namespace dso {
 using namespace boost::placeholders;
 
 template <typename Running> class IndexThreadReduce {
-
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
@@ -71,7 +70,6 @@ public:
   inline void
   reduce(boost::function<void(int, int, Running *, int)> callPerIndex,
          int first, int end, int stepSize = 0) {
-
     memset(&stats, 0, sizeof(Running));
 
     //		if(!multiThreading)

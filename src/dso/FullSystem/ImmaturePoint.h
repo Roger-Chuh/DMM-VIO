@@ -37,7 +37,7 @@ public:
   ResState state_NewState; //!< 新计算的逆深度残差的状态
   double state_NewEnergy;  //!< 新计算的残差值
   FrameHessian *target;
-    float hw_use;
+  float hw_use;
 };
 
 enum ImmaturePointStatus {
@@ -57,18 +57,25 @@ class ImmaturePoint {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-    float setting_outlierTH_trace_on = setting_outlierTH_epi_trace_on;//9; // setting_huberTH_loose;
-    float setting_outlierTH_linearize = setting_outlierTH_epi_linearize;//9;    // setting_huberTH_loose;
+  float setting_outlierTH_trace_on =
+      setting_outlierTH_epi_trace_on; // 9; // setting_huberTH_loose;
+  float setting_outlierTH_linearize =
+      setting_outlierTH_epi_linearize; // 9;    // setting_huberTH_loose;
 
-    float setting_huberTH_trace_on = setting_huberTH_epi_trace_on;//9; // setting_huberTH_loose;
-  float setting_huberTH_linearize = setting_huberTH_epi_linearize;//9;    // setting_huberTH_loose;
+  float setting_huberTH_trace_on =
+      setting_huberTH_epi_trace_on; // 9; // setting_huberTH_loose;
+  float setting_huberTH_linearize =
+      setting_huberTH_epi_linearize; // 9;    // setting_huberTH_loose;
 
-    float setting_energyTH_trace_on = setting_energyTH_epi_trace_on;//9; // setting_huberTH_loose;
-    float setting_energyTH_linearize = setting_energyTH_epi_linearize;//9;    // setting_huberTH_loose;
+  float setting_energyTH_trace_on =
+      setting_energyTH_epi_trace_on; // 9; // setting_huberTH_loose;
+  float setting_energyTH_linearize =
+      setting_energyTH_epi_linearize; // 9;    // setting_huberTH_loose;
 
   // static values
   float color[MAX_RES_PER_POINT_SEED]; //!< 原图上pattern上对应的像素值
-  float distance_transform[MAX_RES_PER_POINT_SEED]; //!< 原图上pattern上对应的像素值
+  float distance_transform
+      [MAX_RES_PER_POINT_SEED]; //!< 原图上pattern上对应的像素值
   float weights
       [MAX_RES_PER_POINT_SEED]; //!< 原图上pattern对应的权重(与梯度成反比)
   float weights_gray
@@ -126,7 +133,8 @@ public:
   double linearizeResidual(const int &target_cid, CalibHessian *HCalib,
                            const float outlierTHSlack,
                            ImmaturePointTemporaryResidual *tmpRes, float &Hdd,
-                           float &bd, float idepth, int lvl_target = 0, bool print_info = false);
+                           float &bd, float idepth, int lvl_target = 0,
+                           bool print_info = false);
 
   float getdPixdd(CalibHessian *HCalib, ImmaturePointTemporaryResidual *tmpRes,
                   float idepth);
