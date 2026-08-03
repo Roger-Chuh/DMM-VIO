@@ -18,8 +18,8 @@ struct TofConfigParams {
 };
 
 class TofConfigLoad {
-public:
-  static TofConfigParams LoadTofCalibInfo(const std::string &filePath);
+ public:
+  static TofConfigParams LoadTofCalibInfo(const std::string& filePath);
 };
-} // namespace dso::CalibIO
-#endif // YVR_CALIB_TOFCONFIG_H
+}  // namespace dso::CalibIO
+#endif  // YVR_CALIB_TOFCONFIG_H

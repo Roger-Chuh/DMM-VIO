@@ -72,7 +72,7 @@ struct TagDetection {
   std::pair<float, float> interpolate(float x, float y) const;
 
   //! Used to eliminate redundant tags
-  bool overlapsTooMuch(const TagDetection &other) const;
+  bool overlapsTooMuch(const TagDetection& other) const;
 
   //! Relative pose of tag with respect to the camera
   /* Returns the relative location and orientation of the tag using a
@@ -82,29 +82,24 @@ struct TagDetection {
      calibration (focal length and principal point); Result is in
      camera frame (z forward, x right, y down)
   */
-  Eigen::Matrix4d getRelativeTransform(double tag_size, double fx, double fy,
-                                       double px, double py) const;
+  Eigen::Matrix4d getRelativeTransform(double tag_size, double fx, double fy, double px, double py) const;
 
   //! Recover rotation matrix and translation vector of April tag relative to
   //! camera.
   // Result is in object frame (x forward, y left, z up)
-  void getRelativeTranslationRotation(double tag_size, double fx, double fy,
-                                      double px, double py,
-                                      Eigen::Vector3d &trans,
-                                      Eigen::Matrix3d &rot) const;
+  void getRelativeTranslationRotation(double tag_size, double fx, double fy, double px, double py,
+                                      Eigen::Vector3d& trans, Eigen::Matrix3d& rot) const;
 
   //! Draw the detection within the supplied image, including boarders and tag
   //! ID.
-  void draw(cv::Mat &image) const;
+  void draw(cv::Mat& image) const;
 
   //! Compare function to sort detections by std::sort
-  static bool sortByIdCompare(const TagDetection &a, const TagDetection &b) {
-    return (a.id < b.id);
-  }
+  static bool sortByIdCompare(const TagDetection& a, const TagDetection& b) { return (a.id < b.id); }
 };
 
-} // namespace AprilTags
+}  // namespace AprilTags
 
-} // namespace dso
+}  // namespace dso
 
 #endif

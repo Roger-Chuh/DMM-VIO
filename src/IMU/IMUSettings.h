@@ -42,25 +42,23 @@ namespace dmvio {
 // - Values set using commandline arguments.
 struct IMUState;
 class IMUSettings {
-public:
-  void registerArgs(dmvio::SettingsUtil &set);
+ public:
+  void registerArgs(dmvio::SettingsUtil& set);
 
   // Prefix for all results files.
   std::string resultsPrefix = "";
 
-  IMUInitSettings initSettings; // settings for the IMU initializer.
-  double maxTimeBetweenInitFrames =
-      100000.0; // Maximum time between the first 2 frames for DSO.
+  IMUInitSettings initSettings;                // settings for the IMU initializer.
+  double maxTimeBetweenInitFrames = 100000.0;  // Maximum time between the first 2 frames for DSO.
 
   // Don't add IMU data between the first two keyframes. Should not be set when
   // the IMU initializer is active (unless disableVIOUntilFirstInit=false).
   bool skipFirstKeyframe = false;
 
   // Weight wrt DSO.
-  double setting_weightDSOCoarse =
-      1.0; // / 1000; // DSO weight for coarse tracking.
-  double setting_weightDSOToGTSAM = 1.0; // / 60000; // DSO weight for BA.
-  float maxFrameEnergyThreshold = 10000; // Maximum energy threshold for DSO.
+  double setting_weightDSOCoarse = 1.0;   // / 1000; // DSO weight for coarse tracking.
+  double setting_weightDSOToGTSAM = 1.0;  // / 60000; // DSO weight for BA.
+  float maxFrameEnergyThreshold = 10000;  // Maximum energy threshold for DSO.
 
   // ----------- BA Settings -----------
   // Settings regarding dynamic photometric weight.
@@ -68,21 +66,20 @@ public:
 #ifndef USE_ZNCC
   double dynamicWeightRMSEThresh = 8.0;
 #else
-  double dynamicWeightRMSEThresh = 8.0; // 2;//8.0;//4;//8.0;
+  double dynamicWeightRMSEThresh = 8.0;  // 2;//8.0;//4;//8.0;
 #endif
 #else
 #ifndef USE_ZNCC
 #ifndef USE_EDGE_ALIGN
-  double dynamicWeightRMSEThresh = 20; // 15; // 8.0;
+  double dynamicWeightRMSEThresh = 20;  // 15; // 8.0;
 #else
-  double dynamicWeightRMSEThresh = 20; // 15; // 8.0;
+  double dynamicWeightRMSEThresh = 20;  // 15; // 8.0;
 #endif
 #else
-  double dynamicWeightRMSEThresh = 15; // 8.0; // 2;//8.0;//4;//8.0;
+  double dynamicWeightRMSEThresh = 15;  // 8.0; // 2;//8.0;//4;//8.0;
 #endif
 #endif
-  bool updateDynamicWeightDuringOptimization =
-      true; // false;//true;//false;//true;
+  bool updateDynamicWeightDuringOptimization = true;  // false;//true;//false;//true;
 
   // When the scale changes less than this threshold over
   // generalScaleIntervalSize optimizations we fix it. Disabled by default but
@@ -96,32 +93,26 @@ public:
   int numMeasurementsGravityInit = 40;
 
   // Settings what to optimize in the main BA.
-  bool setting_optScaleBA = true; // false;//true;
+  bool setting_optScaleBA = true;  // false;//true;
   bool setting_optGravity = true;
   bool setting_optIMUExtrinsics = false;
 
   // Settings regarding priors.
-  bool setting_prior_bias =
-      false; // Only relevant if disableVIOUntilFirstInit=false
-  bool setting_prior_velocity =
-      false; // Only relevant if disableVIOUntilFirstInit=false
-  IMUTransformPriorSettings
-      transformPriors; // Prior settings for gravity and IMU extrinsics.
-  bool gravityDirectionFixZ =
-      true; // Fix z-axis of gravity direction (as yaw is not observable).
+  bool setting_prior_bias = false;            // Only relevant if disableVIOUntilFirstInit=false
+  bool setting_prior_velocity = false;        // Only relevant if disableVIOUntilFirstInit=false
+  IMUTransformPriorSettings transformPriors;  // Prior settings for gravity and IMU extrinsics.
+  bool gravityDirectionFixZ = true;           // Fix z-axis of gravity direction (as yaw is not observable).
 
   // Don't include IMU variables when calculating whether the BA optimization
   // can break.
   bool alwaysCanBreakIMU = false;
 
-  bool useScaleDiagonalHack =
-      false; // This can be used to improve performance when the initial scale
-             // is very far from optimum.
+  bool useScaleDiagonalHack = false;  // This can be used to improve performance when the initial scale
+                                      // is very far from optimum.
 
   // ----------- Settings for Coarse Tracking -----------
-  bool fixKeyframeDuringCoarseTracking = false; // true;
-  bool addVisualToCoarseGraphIfTrackingBad =
-      false; // Add visual factor even if tracking is bad.
+  bool fixKeyframeDuringCoarseTracking = false;      // true;
+  bool addVisualToCoarseGraphIfTrackingBad = false;  // Add visual factor even if tracking is bad.
 
   // Priors from BA when initialization CoarseGraph:
   double baToCoarseRotVariance = 1.0;
@@ -131,8 +122,7 @@ public:
   double baToCoarseGyrBiasVariance = 5e-2;
 
   // Settings regarding bias transfer between coarse tracking and BA.
-  bool setting_transferCovToCoarse =
-      true; // Transfer covariance from BA to tracking.
+  bool setting_transferCovToCoarse = true;  // Transfer covariance from BA to tracking.
   double transferCovToCoarseMultiplier = 1.0;
 
   // ----------- Settings for debugging. -----------
@@ -146,22 +136,21 @@ public:
 // Contains IMU-Calibration and can read them from file.
 // Default contains values for EuRoC.
 class IMUCalibration {
-public:
+ public:
   IMUCalibration();
 
   IMUCalibration(std::string settingsFilename);
 
-  IMUCalibration(const Sophus::SE3d &tCamImu);
+  IMUCalibration(const Sophus::SE3d& tCamImu);
 
   void loadFromFile(std::string settingsFilename);
-  void loadFromFile2(const dso::IMUState &imu_state);
+  void loadFromFile2(const dso::IMUState& imu_state);
 
-  void
-  saveToFile(std::string filename); // Save T_cam_imu to as a camchain.yaml.
+  void saveToFile(std::string filename);  // Save T_cam_imu to as a camchain.yaml.
 
   // The noise values are registered as settings so they can be set from
   // commandline and from the settings yaml.
-  void registerArgs(dmvio::SettingsUtil &set);
+  void registerArgs(dmvio::SettingsUtil& set);
 
   Sophus::SE3d T_cam_imu;
   // Old defaults for EuRoC.
@@ -175,10 +164,10 @@ public:
   gtsam::Vector3 gravity = (gtsam::Vector(3) << 0, 0, -9.8082).finished();
   ;
 
-private:
+ private:
   void initDefault();
 };
 
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_IMUSETTINGS_H
+#endif  // DMVIO_IMUSETTINGS_H

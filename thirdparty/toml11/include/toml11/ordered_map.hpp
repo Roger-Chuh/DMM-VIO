@@ -9,15 +9,16 @@
 namespace toml {
 
 namespace detail {
-template <typename Cmp> struct ordered_map_ebo_container {
-  Cmp cmp_; // empty base optimization for empty Cmp type
+template <typename Cmp>
+struct ordered_map_ebo_container {
+  Cmp cmp_;  // empty base optimization for empty Cmp type
 };
-} // namespace detail
+}  // namespace detail
 
 template <typename Key, typename Val, typename Cmp = std::equal_to<Key>,
           typename Allocator = std::allocator<std::pair<Key, Val>>>
 class ordered_map : detail::ordered_map_ebo_container<Cmp> {
-public:
+ public:
   using key_type = Key;
   using mapped_type = Val;
   using value_type = std::pair<Key, Val>;
@@ -35,40 +36,33 @@ public:
   using size_type = typename container_type::size_type;
   using difference_type = typename container_type::difference_type;
 
-private:
+ private:
   using ebo_base = detail::ordered_map_ebo_container<Cmp>;
 
-public:
+ public:
   ordered_map() = default;
   ~ordered_map() = default;
-  ordered_map(const ordered_map &) = default;
-  ordered_map(ordered_map &&) = default;
-  ordered_map &operator=(const ordered_map &) = default;
-  ordered_map &operator=(ordered_map &&) = default;
+  ordered_map(const ordered_map&) = default;
+  ordered_map(ordered_map&&) = default;
+  ordered_map& operator=(const ordered_map&) = default;
+  ordered_map& operator=(ordered_map&&) = default;
 
-  ordered_map(const ordered_map &other, const Allocator &alloc)
-      : container_(other.container_, alloc) {}
-  ordered_map(ordered_map &&other, const Allocator &alloc)
-      : container_(std::move(other.container_), alloc) {}
+  ordered_map(const ordered_map& other, const Allocator& alloc) : container_(other.container_, alloc) {}
+  ordered_map(ordered_map&& other, const Allocator& alloc) : container_(std::move(other.container_), alloc) {}
 
-  explicit ordered_map(const Cmp &cmp, const Allocator &alloc = Allocator())
-      : ebo_base{cmp}, container_(alloc) {}
-  explicit ordered_map(const Allocator &alloc) : container_(alloc) {}
+  explicit ordered_map(const Cmp& cmp, const Allocator& alloc = Allocator()) : ebo_base{cmp}, container_(alloc) {}
+  explicit ordered_map(const Allocator& alloc) : container_(alloc) {}
 
   template <typename InputIterator>
-  ordered_map(InputIterator first, InputIterator last, const Cmp &cmp = Cmp(),
-              const Allocator &alloc = Allocator())
+  ordered_map(InputIterator first, InputIterator last, const Cmp& cmp = Cmp(), const Allocator& alloc = Allocator())
       : ebo_base{cmp}, container_(first, last, alloc) {}
   template <typename InputIterator>
-  ordered_map(InputIterator first, InputIterator last, const Allocator &alloc)
-      : container_(first, last, alloc) {}
+  ordered_map(InputIterator first, InputIterator last, const Allocator& alloc) : container_(first, last, alloc) {}
 
-  ordered_map(std::initializer_list<value_type> v, const Cmp &cmp = Cmp(),
-              const Allocator &alloc = Allocator())
+  ordered_map(std::initializer_list<value_type> v, const Cmp& cmp = Cmp(), const Allocator& alloc = Allocator())
       : ebo_base{cmp}, container_(std::move(v), alloc) {}
-  ordered_map(std::initializer_list<value_type> v, const Allocator &alloc)
-      : container_(std::move(v), alloc) {}
-  ordered_map &operator=(std::initializer_list<value_type> v) {
+  ordered_map(std::initializer_list<value_type> v, const Allocator& alloc) : container_(std::move(v), alloc) {}
+  ordered_map& operator=(std::initializer_list<value_type> v) {
     this->container_ = std::move(v);
     return *this;
   }
@@ -86,13 +80,13 @@ public:
 
   void clear() { container_.clear(); }
 
-  void push_back(const value_type &v) {
+  void push_back(const value_type& v) {
     if (this->contains(v.first)) {
       throw std::out_of_range("ordered_map: value already exists");
     }
     container_.push_back(v);
   }
-  void push_back(value_type &&v) {
+  void push_back(value_type&& v) {
     if (this->contains(v.first)) {
       throw std::out_of_range("ordered_map: value already exists");
     }
@@ -119,35 +113,31 @@ public:
     container_.emplace_back(std::move(k), std::move(v));
   }
 
-  std::size_t count(const key_type &key) const {
+  std::size_t count(const key_type& key) const {
     if (this->find(key) != this->end()) {
       return 1;
     } else {
       return 0;
     }
   }
-  bool contains(const key_type &key) const {
-    return this->find(key) != this->end();
+  bool contains(const key_type& key) const { return this->find(key) != this->end(); }
+  iterator find(const key_type& key) noexcept {
+    return std::find_if(this->begin(), this->end(),
+                        [&key, this](const value_type& v) { return this->cmp_(v.first, key); });
   }
-  iterator find(const key_type &key) noexcept {
-    return std::find_if(
-        this->begin(), this->end(),
-        [&key, this](const value_type &v) { return this->cmp_(v.first, key); });
-  }
-  const_iterator find(const key_type &key) const noexcept {
-    return std::find_if(
-        this->begin(), this->end(),
-        [&key, this](const value_type &v) { return this->cmp_(v.first, key); });
+  const_iterator find(const key_type& key) const noexcept {
+    return std::find_if(this->begin(), this->end(),
+                        [&key, this](const value_type& v) { return this->cmp_(v.first, key); });
   }
 
-  mapped_type &at(const key_type &k) {
+  mapped_type& at(const key_type& k) {
     const auto iter = this->find(k);
     if (iter == this->end()) {
       throw std::out_of_range("ordered_map: no such element");
     }
     return iter->second;
   }
-  mapped_type const &at(const key_type &k) const {
+  mapped_type const& at(const key_type& k) const {
     const auto iter = this->find(k);
     if (iter == this->end()) {
       throw std::out_of_range("ordered_map: no such element");
@@ -155,7 +145,7 @@ public:
     return iter->second;
   }
 
-  mapped_type &operator[](const key_type &k) {
+  mapped_type& operator[](const key_type& k) {
     const auto iter = this->find(k);
     if (iter == this->end()) {
       this->container_.emplace_back(k, mapped_type{});
@@ -164,7 +154,7 @@ public:
     return iter->second;
   }
 
-  mapped_type const &operator[](const key_type &k) const {
+  mapped_type const& operator[](const key_type& k) const {
     const auto iter = this->find(k);
     if (iter == this->end()) {
       throw std::out_of_range("ordered_map: no such element");
@@ -174,50 +164,42 @@ public:
 
   key_compare key_comp() const { return this->cmp_; }
 
-  void swap(ordered_map &other) { container_.swap(other.container_); }
+  void swap(ordered_map& other) { container_.swap(other.container_); }
 
-private:
+ private:
   container_type container_;
 };
 
 template <typename K, typename V, typename C, typename A>
-bool operator==(const ordered_map<K, V, C, A> &lhs,
-                const ordered_map<K, V, C, A> &rhs) {
-  return lhs.size() == rhs.size() &&
-         std::equal(lhs.begin(), lhs.end(), rhs.begin());
+bool operator==(const ordered_map<K, V, C, A>& lhs, const ordered_map<K, V, C, A>& rhs) {
+  return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
 }
 template <typename K, typename V, typename C, typename A>
-bool operator!=(const ordered_map<K, V, C, A> &lhs,
-                const ordered_map<K, V, C, A> &rhs) {
+bool operator!=(const ordered_map<K, V, C, A>& lhs, const ordered_map<K, V, C, A>& rhs) {
   return !(lhs == rhs);
 }
 template <typename K, typename V, typename C, typename A>
-bool operator<(const ordered_map<K, V, C, A> &lhs,
-               const ordered_map<K, V, C, A> &rhs) {
-  return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(),
-                                      rhs.end());
+bool operator<(const ordered_map<K, V, C, A>& lhs, const ordered_map<K, V, C, A>& rhs) {
+  return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
 template <typename K, typename V, typename C, typename A>
-bool operator>(const ordered_map<K, V, C, A> &lhs,
-               const ordered_map<K, V, C, A> &rhs) {
+bool operator>(const ordered_map<K, V, C, A>& lhs, const ordered_map<K, V, C, A>& rhs) {
   return rhs < lhs;
 }
 template <typename K, typename V, typename C, typename A>
-bool operator<=(const ordered_map<K, V, C, A> &lhs,
-                const ordered_map<K, V, C, A> &rhs) {
+bool operator<=(const ordered_map<K, V, C, A>& lhs, const ordered_map<K, V, C, A>& rhs) {
   return !(lhs > rhs);
 }
 template <typename K, typename V, typename C, typename A>
-bool operator>=(const ordered_map<K, V, C, A> &lhs,
-                const ordered_map<K, V, C, A> &rhs) {
+bool operator>=(const ordered_map<K, V, C, A>& lhs, const ordered_map<K, V, C, A>& rhs) {
   return !(lhs < rhs);
 }
 
 template <typename K, typename V, typename C, typename A>
-void swap(ordered_map<K, V, C, A> &lhs, ordered_map<K, V, C, A> &rhs) {
+void swap(ordered_map<K, V, C, A>& lhs, ordered_map<K, V, C, A>& rhs) {
   lhs.swap(rhs);
   return;
 }
 
-} // namespace toml
-#endif // TOML11_ORDERED_MAP_HPP
+}  // namespace toml
+#endif  // TOML11_ORDERED_MAP_HPP

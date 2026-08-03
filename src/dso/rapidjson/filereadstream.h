@@ -35,8 +35,8 @@ RAPIDJSON_NAMESPACE_BEGIN
     \note implements Stream concept
 */
 class FileReadStream {
-public:
-  typedef char Ch; //!< Character type (byte).
+ public:
+  typedef char Ch;  //!< Character type (byte).
 
   //! Constructor.
   /*!
@@ -44,9 +44,15 @@ public:
       \param buffer user-supplied buffer.
       \param bufferSize size of buffer in bytes. Must >=4 bytes.
   */
-  FileReadStream(std::FILE *fp, char *buffer, size_t bufferSize)
-      : fp_(fp), buffer_(buffer), bufferSize_(bufferSize), bufferLast_(0),
-        current_(buffer_), readCount_(0), count_(0), eof_(false) {
+  FileReadStream(std::FILE* fp, char* buffer, size_t bufferSize)
+      : fp_(fp),
+        buffer_(buffer),
+        bufferSize_(bufferSize),
+        bufferLast_(0),
+        current_(buffer_),
+        readCount_(0),
+        count_(0),
+        eof_(false) {
     RAPIDJSON_ASSERT(fp_ != 0);
     RAPIDJSON_ASSERT(bufferSize >= 4);
     Read();
@@ -58,28 +64,24 @@ public:
     Read();
     return c;
   }
-  size_t Tell() const {
-    return count_ + static_cast<size_t>(current_ - buffer_);
-  }
+  size_t Tell() const { return count_ + static_cast<size_t>(current_ - buffer_); }
 
   // Not implemented
   void Put(Ch) { RAPIDJSON_ASSERT(false); }
   void Flush() { RAPIDJSON_ASSERT(false); }
-  Ch *PutBegin() {
+  Ch* PutBegin() {
     RAPIDJSON_ASSERT(false);
     return 0;
   }
-  size_t PutEnd(Ch *) {
+  size_t PutEnd(Ch*) {
     RAPIDJSON_ASSERT(false);
     return 0;
   }
 
   // For encoding detection only.
-  const Ch *Peek4() const {
-    return (current_ + 4 - !eof_ <= bufferLast_) ? current_ : 0;
-  }
+  const Ch* Peek4() const { return (current_ + 4 - !eof_ <= bufferLast_) ? current_ : 0; }
 
-private:
+ private:
   void Read() {
     if (current_ < bufferLast_)
       ++current_;
@@ -97,13 +99,13 @@ private:
     }
   }
 
-  std::FILE *fp_;
-  Ch *buffer_;
+  std::FILE* fp_;
+  Ch* buffer_;
   size_t bufferSize_;
-  Ch *bufferLast_;
-  Ch *current_;
+  Ch* bufferLast_;
+  Ch* current_;
   size_t readCount_;
-  size_t count_; //!< Number of characters read
+  size_t count_;  //!< Number of characters read
   bool eof_;
 };
 
@@ -113,4 +115,4 @@ RAPIDJSON_NAMESPACE_END
 RAPIDJSON_DIAG_POP
 #endif
 
-#endif // RAPIDJSON_FILESTREAM_H_
+#endif  // RAPIDJSON_FILESTREAM_H_

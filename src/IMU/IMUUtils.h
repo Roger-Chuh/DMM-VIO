@@ -34,32 +34,26 @@ class IMUCalibration;
 
 class TransformDSOToIMU;
 
-void integrateIMUData(const IMUData &imuData,
-                      gtsam::PreintegratedImuMeasurements &preintegrated);
+void integrateIMUData(const IMUData& imuData, gtsam::PreintegratedImuMeasurements& preintegrated);
 
 gtsam::noiseModel::Diagonal::shared_ptr computeBiasNoiseModel(
-    const IMUCalibration &imuCalibration,
-    const gtsam::PreintegratedImuMeasurements &imuMeasurements);
+    const IMUCalibration& imuCalibration, const gtsam::PreintegratedImuMeasurements& imuMeasurements);
 
 // Settings regarding prior on the symbols optimized by TransformDSOToIMU.
 class IMUTransformPriorSettings {
-public:
-  double priorExtrinsicsRot =
-      0.01; // rotational and translational prior for extrinsics.
+ public:
+  double priorExtrinsicsRot = 0.01;  // rotational and translational prior for extrinsics.
   double priorExtrinsicsTrans = 0.1;
-  double priorGravityDirection =
-      0.4; // Prior on gravity direction (first xy and then z).
+  double priorGravityDirection = 0.4;  // Prior on gravity direction (first xy and then z).
   double priorGravityDirectionZ = 0.0001;
 
-  void registerArgs(dmvio::SettingsUtil &set, std::string prefix = "");
+  void registerArgs(dmvio::SettingsUtil& set, std::string prefix = "");
 };
 
 // Add values for the variables optimized by TransformDSOToIMU and return a list
 // of prior factors, according to the IMUTransformPriorSettings.
-std::vector<gtsam::NonlinearFactor::shared_ptr>
-getPriorsAndAddValuesForTransform(const TransformDSOToIMU &transform,
-                                  const IMUTransformPriorSettings &settings,
-                                  gtsam::Values &values);
+std::vector<gtsam::NonlinearFactor::shared_ptr> getPriorsAndAddValuesForTransform(
+    const TransformDSOToIMU& transform, const IMUTransformPriorSettings& settings, gtsam::Values& values);
 
-} // namespace dmvio
-#endif // DMVIO_IMUUTILS_H
+}  // namespace dmvio
+#endif  // DMVIO_IMUUTILS_H

@@ -13,16 +13,13 @@ namespace toml {
 namespace detail {
 
 template <typename TC>
-bool skip_whitespace(location &loc, const context<TC> &ctx) {
+bool skip_whitespace(location& loc, const context<TC>& ctx) {
   return syntax::ws(ctx.toml_spec()).scan(loc).is_ok();
 }
 
 template <typename TC>
-bool skip_empty_lines(location &loc, const context<TC> &ctx) {
-  return repeat_at_least(1, sequence(syntax::ws(ctx.toml_spec()),
-                                     syntax::newline(ctx.toml_spec())))
-      .scan(loc)
-      .is_ok();
+bool skip_empty_lines(location& loc, const context<TC>& ctx) {
+  return repeat_at_least(1, sequence(syntax::ws(ctx.toml_spec()), syntax::newline(ctx.toml_spec()))).scan(loc).is_ok();
 }
 
 // For error recovery.
@@ -30,7 +27,7 @@ bool skip_empty_lines(location &loc, const context<TC> &ctx) {
 // In case if a comment line contains an invalid character, we need to skip it
 // to advance parsing.
 template <typename TC>
-void skip_comment_block(location &loc, const context<TC> &ctx) {
+void skip_comment_block(location& loc, const context<TC>& ctx) {
   while (!loc.eof()) {
     skip_whitespace(loc, ctx);
     if (loc.current() == '#') {
@@ -42,7 +39,7 @@ void skip_comment_block(location &loc, const context<TC> &ctx) {
         }
       }
     } else if (syntax::newline(ctx.toml_spec()).scan(loc).is_ok()) {
-      ; // an empty line. skip this also
+      ;  // an empty line. skip this also
     } else {
       // the next token is neither a comment nor empty line.
       return;
@@ -52,11 +49,9 @@ void skip_comment_block(location &loc, const context<TC> &ctx) {
 }
 
 template <typename TC>
-void skip_empty_or_comment_lines(location &loc, const context<TC> &ctx) {
-  const auto &spec = ctx.toml_spec();
-  repeat_at_least(0, sequence(syntax::ws(spec), maybe(syntax::comment(spec)),
-                              syntax::newline(spec)))
-      .scan(loc);
+void skip_empty_or_comment_lines(location& loc, const context<TC>& ctx) {
+  const auto& spec = ctx.toml_spec();
+  repeat_at_least(0, sequence(syntax::ws(spec), maybe(syntax::comment(spec)), syntax::newline(spec))).scan(loc);
   return;
 }
 
@@ -67,7 +62,7 @@ void skip_empty_or_comment_lines(location &loc, const context<TC> &ctx) {
 // skipping invalid value while error recovery, we don't need to check the
 // syntax. Here we just skip string-like region until closing quote is found.
 template <typename TC>
-void skip_string_like(location &loc, const context<TC> &) {
+void skip_string_like(location& loc, const context<TC>&) {
   // if """ is found, skip until the closing """ is found.
   if (literal("\"\"\"").scan(loc).is_ok()) {
     while (!loc.eof()) {
@@ -105,21 +100,21 @@ void skip_string_like(location &loc, const context<TC> &) {
   return;
 }
 
-template <typename TC> void skip_value(location &loc, const context<TC> &ctx);
 template <typename TC>
-void skip_array_like(location &loc, const context<TC> &ctx);
+void skip_value(location& loc, const context<TC>& ctx);
 template <typename TC>
-void skip_inline_table_like(location &loc, const context<TC> &ctx);
+void skip_array_like(location& loc, const context<TC>& ctx);
 template <typename TC>
-void skip_key_value_pair(location &loc, const context<TC> &ctx);
+void skip_inline_table_like(location& loc, const context<TC>& ctx);
+template <typename TC>
+void skip_key_value_pair(location& loc, const context<TC>& ctx);
 
 template <typename TC>
-result<value_t, error_info> guess_value_type(const location &loc,
-                                             const context<TC> &ctx);
+result<value_t, error_info> guess_value_type(const location& loc, const context<TC>& ctx);
 
 template <typename TC>
-void skip_array_like(location &loc, const context<TC> &ctx) {
-  const auto &spec = ctx.toml_spec();
+void skip_array_like(location& loc, const context<TC>& ctx) {
+  const auto& spec = ctx.toml_spec();
   assert(loc.current() == '[');
   loc.advance();
 
@@ -132,8 +127,7 @@ void skip_array_like(location &loc, const context<TC> &ctx) {
       skip_inline_table_like(loc, ctx);
     } else if (loc.current() == '[') {
       const auto checkpoint = loc;
-      if (syntax::std_table(spec).scan(loc).is_ok() ||
-          syntax::array_table(spec).scan(loc).is_ok()) {
+      if (syntax::std_table(spec).scan(loc).is_ok() || syntax::array_table(spec).scan(loc).is_ok()) {
         loc = checkpoint;
         break;
       }
@@ -152,7 +146,7 @@ void skip_array_like(location &loc, const context<TC> &ctx) {
       }
       break;
     } else if (loc.current() == ']') {
-      break; // found closing bracket
+      break;  // found closing bracket
     } else {
       loc.advance();
     }
@@ -161,29 +155,28 @@ void skip_array_like(location &loc, const context<TC> &ctx) {
 }
 
 template <typename TC>
-void skip_inline_table_like(location &loc, const context<TC> &ctx) {
+void skip_inline_table_like(location& loc, const context<TC>& ctx) {
   assert(loc.current() == '{');
   loc.advance();
 
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   while (!loc.eof()) {
     if (loc.current() == '\n' && !spec.v1_1_0_allow_newlines_in_inline_tables) {
-      break; // missing closing `}`.
+      break;  // missing closing `}`.
     } else if (loc.current() == '\"' || loc.current() == '\'') {
       skip_string_like(loc, ctx);
     } else if (loc.current() == '#') {
       skip_comment_block(loc, ctx);
       if (!spec.v1_1_0_allow_newlines_in_inline_tables) {
         // comment must end with newline.
-        break; // missing closing `}`.
+        break;  // missing closing `}`.
       }
     } else if (loc.current() == '[') {
       const auto checkpoint = loc;
-      if (syntax::std_table(spec).scan(loc).is_ok() ||
-          syntax::array_table(spec).scan(loc).is_ok()) {
+      if (syntax::std_table(spec).scan(loc).is_ok() || syntax::array_table(spec).scan(loc).is_ok()) {
         loc = checkpoint;
-        break; // missing closing `}`.
+        break;  // missing closing `}`.
       }
       // if it is not a table-definition, then it is an array.
       skip_array_like(loc, ctx);
@@ -200,7 +193,8 @@ void skip_inline_table_like(location &loc, const context<TC> &ctx) {
   return;
 }
 
-template <typename TC> void skip_value(location &loc, const context<TC> &ctx) {
+template <typename TC>
+void skip_value(location& loc, const context<TC>& ctx) {
   value_t ty = guess_value_type(loc, ctx).unwrap_or(value_t::empty);
   if (ty == value_t::string) {
     skip_string_like(loc, ctx);
@@ -210,13 +204,12 @@ template <typename TC> void skip_value(location &loc, const context<TC> &ctx) {
     // In case of multiline tables, it may skip key-value pair but not the
     // whole table.
     skip_inline_table_like(loc, ctx);
-  } else // others are an "in-line" values. skip until the next line
+  } else  // others are an "in-line" values. skip until the next line
   {
     while (!loc.eof()) {
       if (loc.current() == '\n') {
         break;
-      } else if (loc.current() == ',' || loc.current() == ']' ||
-                 loc.current() == '}') {
+      } else if (loc.current() == ',' || loc.current() == ']' || loc.current() == '}') {
         break;
       }
       loc.advance();
@@ -226,7 +219,7 @@ template <typename TC> void skip_value(location &loc, const context<TC> &ctx) {
 }
 
 template <typename TC>
-void skip_key_value_pair(location &loc, const context<TC> &ctx) {
+void skip_key_value_pair(location& loc, const context<TC>& ctx) {
   while (!loc.eof()) {
     if (loc.current() == '=') {
       skip_whitespace(loc, ctx);
@@ -242,8 +235,8 @@ void skip_key_value_pair(location &loc, const context<TC> &ctx) {
 }
 
 template <typename TC>
-void skip_until_next_table(location &loc, const context<TC> &ctx) {
-  const auto &spec = ctx.toml_spec();
+void skip_until_next_table(location& loc, const context<TC>& ctx) {
+  const auto& spec = ctx.toml_spec();
   while (!loc.eof()) {
     if (loc.current() == '\n') {
       loc.advance();
@@ -263,8 +256,8 @@ void skip_until_next_table(location &loc, const context<TC> &ctx) {
   }
 }
 
-} // namespace detail
-} // namespace toml
+}  // namespace detail
+}  // namespace toml
 
 #if defined(TOML11_COMPILE_SOURCES)
 namespace toml {
@@ -272,59 +265,31 @@ struct type_config;
 struct ordered_type_config;
 
 namespace detail {
-extern template bool skip_whitespace<type_config>(location &loc,
-                                                  const context<type_config> &);
-extern template bool
-skip_empty_lines<type_config>(location &loc, const context<type_config> &);
-extern template void
-skip_comment_block<type_config>(location &loc, const context<type_config> &);
-extern template void
-skip_empty_or_comment_lines<type_config>(location &loc,
-                                         const context<type_config> &);
-extern template void
-skip_string_like<type_config>(location &loc, const context<type_config> &);
-extern template void skip_array_like<type_config>(location &loc,
-                                                  const context<type_config> &);
-extern template void
-skip_inline_table_like<type_config>(location &loc,
-                                    const context<type_config> &);
-extern template void skip_value<type_config>(location &loc,
-                                             const context<type_config> &);
-extern template void
-skip_key_value_pair<type_config>(location &loc, const context<type_config> &);
-extern template void
-skip_until_next_table<type_config>(location &loc, const context<type_config> &);
+extern template bool skip_whitespace<type_config>(location& loc, const context<type_config>&);
+extern template bool skip_empty_lines<type_config>(location& loc, const context<type_config>&);
+extern template void skip_comment_block<type_config>(location& loc, const context<type_config>&);
+extern template void skip_empty_or_comment_lines<type_config>(location& loc, const context<type_config>&);
+extern template void skip_string_like<type_config>(location& loc, const context<type_config>&);
+extern template void skip_array_like<type_config>(location& loc, const context<type_config>&);
+extern template void skip_inline_table_like<type_config>(location& loc, const context<type_config>&);
+extern template void skip_value<type_config>(location& loc, const context<type_config>&);
+extern template void skip_key_value_pair<type_config>(location& loc, const context<type_config>&);
+extern template void skip_until_next_table<type_config>(location& loc, const context<type_config>&);
 
-extern template bool
-skip_whitespace<ordered_type_config>(location &loc,
-                                     const context<ordered_type_config> &);
-extern template bool
-skip_empty_lines<ordered_type_config>(location &loc,
-                                      const context<ordered_type_config> &);
-extern template void
-skip_comment_block<ordered_type_config>(location &loc,
-                                        const context<ordered_type_config> &);
-extern template void skip_empty_or_comment_lines<ordered_type_config>(
-    location &loc, const context<ordered_type_config> &);
-extern template void
-skip_string_like<ordered_type_config>(location &loc,
-                                      const context<ordered_type_config> &);
-extern template void
-skip_array_like<ordered_type_config>(location &loc,
-                                     const context<ordered_type_config> &);
-extern template void skip_inline_table_like<ordered_type_config>(
-    location &loc, const context<ordered_type_config> &);
-extern template void
-skip_value<ordered_type_config>(location &loc,
-                                const context<ordered_type_config> &);
-extern template void
-skip_key_value_pair<ordered_type_config>(location &loc,
-                                         const context<ordered_type_config> &);
-extern template void skip_until_next_table<ordered_type_config>(
-    location &loc, const context<ordered_type_config> &);
+extern template bool skip_whitespace<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template bool skip_empty_lines<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template void skip_comment_block<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template void skip_empty_or_comment_lines<ordered_type_config>(location& loc,
+                                                                      const context<ordered_type_config>&);
+extern template void skip_string_like<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template void skip_array_like<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template void skip_inline_table_like<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template void skip_value<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template void skip_key_value_pair<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template void skip_until_next_table<ordered_type_config>(location& loc, const context<ordered_type_config>&);
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_COMPILE_SOURCES
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_COMPILE_SOURCES
 
-#endif // TOML11_SKIP_HPP
+#endif  // TOML11_SKIP_HPP

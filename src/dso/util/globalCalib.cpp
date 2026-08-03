@@ -38,33 +38,33 @@ Eigen::Matrix3f KG[PYR_LEVELS], KiG[PYR_LEVELS];
 float wM3G;
 float hM3G;
 
-void setGlobalCalib(int w, int h, const Eigen::Matrix3f &K) {
+void setGlobalCalib(int w, int h, const Eigen::Matrix3f& K) {
   int wlvl = w;
   int hlvl = h;
   pyrLevelsUsed = 1;
 #ifdef USE_MULTI_CAM
-  int ratio = 1; // 10;
+  int ratio = 1;  // 10;
 #else
   int ratio = 1;
 #endif
-  while (wlvl % 2 == 0 && hlvl % 2 == 0 &&
-         wlvl * hlvl > /*3000 */ 5000 * ratio && pyrLevelsUsed < PYR_LEVELS) {
+  while (wlvl % 2 == 0 && hlvl % 2 == 0 && wlvl * hlvl > /*3000 */ 5000 * ratio && pyrLevelsUsed < PYR_LEVELS) {
     wlvl /= 2;
     hlvl /= 2;
     pyrLevelsUsed++;
   }
-  printf("using pyramid levels 0 to %d. coarsest resolution: %d x %d!\n",
-         pyrLevelsUsed - 1, wlvl, hlvl);
+  printf("using pyramid levels 0 to %d. coarsest resolution: %d x %d!\n", pyrLevelsUsed - 1, wlvl, hlvl);
   if (wlvl > 100 && hlvl > 100) {
-    printf("\n\n===============WARNING!===================\n "
-           "using not enough pyramid levels.\n"
-           "Consider scaling to a resolution that is a multiple of a power of "
-           "2.\n");
+    printf(
+        "\n\n===============WARNING!===================\n "
+        "using not enough pyramid levels.\n"
+        "Consider scaling to a resolution that is a multiple of a power of "
+        "2.\n");
   }
   if (pyrLevelsUsed < 3) {
-    printf("\n\n===============WARNING!===================\n "
-           "I need higher resolution.\n"
-           "I will probably segfault.\n");
+    printf(
+        "\n\n===============WARNING!===================\n "
+        "I need higher resolution.\n"
+        "I will probably segfault.\n");
   }
 
   wM3G = w - 3;
@@ -92,8 +92,7 @@ void setGlobalCalib(int w, int h, const Eigen::Matrix3f &K) {
     cxG[level] = (cxG[0] + 0.5) / ((int)1 << level) - 0.5;
     cyG[level] = (cyG[0] + 0.5) / ((int)1 << level) - 0.5;
 
-    KG[level] << fxG[level], 0.0, cxG[level], 0.0, fyG[level], cyG[level], 0.0,
-        0.0, 1.0; // synthetic
+    KG[level] << fxG[level], 0.0, cxG[level], 0.0, fyG[level], cyG[level], 0.0, 0.0, 1.0;  // synthetic
     KiG[level] = KG[level].inverse();
 
     fxiG[level] = KiG[level](0, 0);
@@ -104,4 +103,4 @@ void setGlobalCalib(int w, int h, const Eigen::Matrix3f &K) {
   color_map = ColorMap(GetColorMap("jet"));
 }
 
-} // namespace dso
+}  // namespace dso

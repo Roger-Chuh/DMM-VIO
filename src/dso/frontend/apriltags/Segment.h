@@ -10,15 +10,13 @@ namespace AprilTags {
 
 //! Represents a line fit to a set of pixels whose gradients are similiar.
 class Segment {
-public:
+ public:
   Segment();
 
-  static int const minimumSegmentSize =
-      4; //!< Minimum number of pixels in a segment before we'll fit a line to
-         //!< it.
-  static float const
-      minimumLineLength; //!< In pixels. Calculated based on minimum plausible
-                         //!< decoding size for Tag9 family.
+  static int const minimumSegmentSize = 4;  //!< Minimum number of pixels in a segment before we'll fit a line to
+                                            //!< it.
+  static float const minimumLineLength;     //!< In pixels. Calculated based on minimum plausible
+                                            //!< decoding size for Tag9 family.
 
   float getX0() const { return x0; }
   void setX0(float newValue) { x0 = newValue; }
@@ -47,18 +45,18 @@ public:
   //! ID of Segment.
   int getId() const { return segmentId; }
 
-  std::vector<Segment *> children;
+  std::vector<Segment*> children;
 
-private:
+ private:
   float x0, y0, x1, y1;
-  float theta;  // gradient direction (points towards white)
-  float length; // length of line segment in pixels
+  float theta;   // gradient direction (points towards white)
+  float length;  // length of line segment in pixels
   int segmentId;
   static int idCounter;
 };
 
-} // namespace AprilTags
+}  // namespace AprilTags
 
-} // namespace dso
+}  // namespace dso
 
 #endif

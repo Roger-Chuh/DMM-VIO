@@ -35,20 +35,19 @@ namespace dmvio {
 
 // Helper for recording live data to file.
 class DatasetSaver {
-public:
+ public:
   DatasetSaver(std::string saveFolder);
 
   // timestamp in seconds, exposure in milliseconds.
   void addImage(cv::Mat mat, double timestamp, double exposure);
 
-  void addIMUData(double timestamp, std::vector<float> accData,
-                  std::vector<float> gyrData);
+  void addIMUData(double timestamp, std::vector<float> accData, std::vector<float> gyrData);
 
   void saveImagesWorker();
 
   void end();
 
-private:
+ private:
   std::string imgSaveFolder;
 
   std::ofstream timesFile, imuFile;
@@ -63,5 +62,5 @@ private:
   bool running = true;
 };
 
-} // namespace dmvio
-#endif // DMVIO_DATASETSAVER_H
+}  // namespace dmvio
+#endif  // DMVIO_DATASETSAVER_H

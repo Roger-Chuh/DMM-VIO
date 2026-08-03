@@ -3,7 +3,8 @@
 
 namespace toml {
 
-template <typename T> struct from;
+template <typename T>
+struct from;
 // {
 //     static T from_toml(const toml::value& v)
 //     {
@@ -11,5 +12,5 @@ template <typename T> struct from;
 //     }
 // };
 
-} // namespace toml
-#endif // TOML11_FROM_HPP
+}  // namespace toml
+#endif  // TOML11_FROM_HPP

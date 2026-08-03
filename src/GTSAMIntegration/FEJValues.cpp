@@ -23,10 +23,9 @@
 #include "FEJValues.h"
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 
-void dmvio::setFEJMapForGraph(gtsam::NonlinearFactorGraph &graph,
-                              const std::shared_ptr<FEJValues> &fejValues) {
-  for (auto &&factor : graph) {
-    auto *casted = dynamic_cast<FactorHandlingFEJ *>(factor.get());
+void dmvio::setFEJMapForGraph(gtsam::NonlinearFactorGraph& graph, const std::shared_ptr<FEJValues>& fejValues) {
+  for (auto&& factor : graph) {
+    auto* casted = dynamic_cast<FactorHandlingFEJ*>(factor.get());
     if (casted) {
       casted->setFEJValues(fejValues);
     }

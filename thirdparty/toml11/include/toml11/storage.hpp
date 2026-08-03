@@ -16,29 +16,30 @@ namespace detail {
 // `std::vector<std::unique_ptr<toml::value>>`. Although `std::unique_ptr` is
 // noncopyable, we want to make `toml::value` copyable. `storage` is introduced
 // to resolve those problems.
-template <typename T> struct storage {
+template <typename T>
+struct storage {
   using value_type = T;
 
   explicit storage(value_type v) : ptr_(cxx::make_unique<T>(std::move(v))) {}
   ~storage() = default;
 
-  storage(const storage &rhs) : ptr_(cxx::make_unique<T>(*rhs.ptr_)) {}
-  storage &operator=(const storage &rhs) {
+  storage(const storage& rhs) : ptr_(cxx::make_unique<T>(*rhs.ptr_)) {}
+  storage& operator=(const storage& rhs) {
     this->ptr_ = cxx::make_unique<T>(*rhs.ptr_);
     return *this;
   }
 
-  storage(storage &&) = default;
-  storage &operator=(storage &&) = default;
+  storage(storage&&) = default;
+  storage& operator=(storage&&) = default;
 
   bool is_ok() const noexcept { return static_cast<bool>(ptr_); }
 
-  value_type &get() const noexcept { return *ptr_; }
+  value_type& get() const noexcept { return *ptr_; }
 
-private:
+ private:
   std::unique_ptr<value_type> ptr_;
 };
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_STORAGE_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_STORAGE_HPP

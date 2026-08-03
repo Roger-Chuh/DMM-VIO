@@ -21,7 +21,7 @@ namespace ed {
  * @param anchor_thresh [in] minimum gradient diff of anchors
  */
 cv::Mat /*std::vector<std::list<cv::Point>>*/
-detectEdges(const cv::Mat &image, const int proposal_thresh = 36,
-            const int anchor_interval = 4, const int anchor_thresh = 8);
-} // namespace ed
-} // namespace dso
+detectEdges(const cv::Mat& image, const int proposal_thresh = 36, const int anchor_interval = 4,
+            const int anchor_thresh = 8);
+}  // namespace ed
+}  // namespace dso

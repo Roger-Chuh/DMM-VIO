@@ -9,7 +9,7 @@ namespace dso {
 namespace AprilTags {
 
 class Gaussian {
-public:
+ public:
   static bool warned;
 
   //! Returns a Gaussian filter of size n.
@@ -29,15 +29,12 @@ public:
    *  @param r the resultant array of pixels
    *  @param roff
    */
-  static void convolveSymmetricCentered(const std::vector<float> &a,
-                                        unsigned int aoff, unsigned int alen,
-                                        const std::vector<float> &f,
-                                        std::vector<float> &r,
-                                        unsigned int roff);
+  static void convolveSymmetricCentered(const std::vector<float>& a, unsigned int aoff, unsigned int alen,
+                                        const std::vector<float>& f, std::vector<float>& r, unsigned int roff);
 };
 
-} // namespace AprilTags
+}  // namespace AprilTags
 
-} // namespace dso
+}  // namespace dso
 
 #endif

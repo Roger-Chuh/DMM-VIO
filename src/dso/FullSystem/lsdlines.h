@@ -32,9 +32,8 @@ typedef struct {
 @brief��
 
 */
-int LsdLineDetector(unsigned char *src, int w, int h, float scaleX,
-                    float scaleY, boundingbox_t bbox,
-                    std::vector<line_float_t> &lines);
-} // namespace lsdlines
-} // namespace dso
+int LsdLineDetector(unsigned char* src, int w, int h, float scaleX, float scaleY, boundingbox_t bbox,
+                    std::vector<line_float_t>& lines);
+}  // namespace lsdlines
+}  // namespace dso
 #endif

@@ -44,10 +44,11 @@ RAPIDJSON_NAMESPACE_BEGIN
     \tparam StreamType Class derived from \c std::basic_ostream.
 */
 
-template <typename StreamType> class BasicOStreamWrapper {
-public:
+template <typename StreamType>
+class BasicOStreamWrapper {
+ public:
   typedef typename StreamType::char_type Ch;
-  BasicOStreamWrapper(StreamType &stream) : stream_(stream) {}
+  BasicOStreamWrapper(StreamType& stream) : stream_(stream) {}
 
   void Put(Ch c) { stream_.put(c); }
 
@@ -66,20 +67,20 @@ public:
     RAPIDJSON_ASSERT(false);
     return 0;
   }
-  char *PutBegin() {
+  char* PutBegin() {
     RAPIDJSON_ASSERT(false);
     return 0;
   }
-  size_t PutEnd(char *) {
+  size_t PutEnd(char*) {
     RAPIDJSON_ASSERT(false);
     return 0;
   }
 
-private:
-  BasicOStreamWrapper(const BasicOStreamWrapper &);
-  BasicOStreamWrapper &operator=(const BasicOStreamWrapper &);
+ private:
+  BasicOStreamWrapper(const BasicOStreamWrapper&);
+  BasicOStreamWrapper& operator=(const BasicOStreamWrapper&);
 
-  StreamType &stream_;
+  StreamType& stream_;
 };
 
 typedef BasicOStreamWrapper<std::ostream> OStreamWrapper;
@@ -91,4 +92,4 @@ RAPIDJSON_DIAG_POP
 
 RAPIDJSON_NAMESPACE_END
 
-#endif // RAPIDJSON_OSTREAMWRAPPER_H_
+#endif  // RAPIDJSON_OSTREAMWRAPPER_H_

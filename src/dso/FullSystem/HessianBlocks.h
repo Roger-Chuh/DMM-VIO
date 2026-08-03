@@ -41,8 +41,8 @@ namespace dso {
 class MultiCamera;
 //* 求得两个参考帧之间的光度仿射变换系数
 // 设from是 i->j(ref->tar);  to是 k->j; 则结果是 i->k 的变换系数.
-inline Vec2 affFromTo(const Vec2 &from,
-                      const Vec2 &to) // contains affine parameters as XtoWorld.
+inline Vec2 affFromTo(const Vec2& from,
+                      const Vec2& to)  // contains affine parameters as XtoWorld.
 {
   return Vec2(from[0] / to[0], (from[1] - to[1]) / to[0]);
 }
@@ -59,7 +59,7 @@ class EFFrame;
 
 class EFPoint;
 //? 这是干什么用的? 是为了求解时候的数值稳定?
-#define SCALE_IDEPTH 1.0f // scales internal value to idepth.
+#define SCALE_IDEPTH 1.0f  // scales internal value to idepth.
 #define SCALE_XI_ROT 1.0f
 // #define SCALE_XI_TRANS 0.5f
 #define SCALE_XI_TRANS 1.0f
@@ -84,46 +84,42 @@ struct FrameFramePrecalc {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   // static values
   static int instanceCounter;
-  FrameHessian *host;   // defines row
-  FrameHessian *target; // defines column
+  FrameHessian* host;    // defines row
+  FrameHessian* target;  // defines column
 
-  std::array<FrameHessian *, kCameraNumUsed> a_host;   // defines row
-  std::array<FrameHessian *, kCameraNumUsed> a_target; // defines column
+  std::array<FrameHessian*, kCameraNumUsed> a_host;    // defines row
+  std::array<FrameHessian*, kCameraNumUsed> a_target;  // defines column
 
   // precalc values
-  Mat33f PRE_RTll; // host 到 target 之间优化后旋转矩阵 R
-  std::array<Mat33f, kCameraNumUsed * kCameraNumUsed>
-      a_PRE_RTll;     // host 到 target 之间优化后旋转矩阵 R
-  Mat33f PRE_KRKiTll; // k*R*k_inv
-  Mat33f PRE_RKiTll;  // R*k_inv
-  Mat33f PRE_RTll_0; // host 到 target之间初始的旋转矩阵, 优化更新前
-  std::array<Mat33f, kCameraNumUsed * kCameraNumUsed>
-      a_PRE_RTll_0; // host 到 target之间初始的旋转矩阵, 优化更新前
+  Mat33f PRE_RTll;                                                 // host 到 target 之间优化后旋转矩阵 R
+  std::array<Mat33f, kCameraNumUsed * kCameraNumUsed> a_PRE_RTll;  // host 到 target 之间优化后旋转矩阵 R
+  Mat33f PRE_KRKiTll;                                              // k*R*k_inv
+  Mat33f PRE_RKiTll;                                               // R*k_inv
+  Mat33f PRE_RTll_0;  // host 到 target之间初始的旋转矩阵, 优化更新前
+  std::array<Mat33f, kCameraNumUsed * kCameraNumUsed> a_PRE_RTll_0;  // host 到 target之间初始的旋转矩阵, 优化更新前
 
-  Vec2f PRE_aff_mode; // 能量函数对仿射系数处理后的, 总系数
-  float PRE_b0_mode;  // host的光度仿射系数b
+  Vec2f PRE_aff_mode;  // 能量函数对仿射系数处理后的, 总系数
+  float PRE_b0_mode;   // host的光度仿射系数b
 
   std::array<Vec2f, kCameraNumUsed> a_PRE_aff_mode;
   Vec4f PRE_b0_mode_vec;
 
-  Vec3f PRE_tTll; //  host 到 target之间优化后的平移 t
-  std::array<Vec3f, kCameraNumUsed * kCameraNumUsed>
-      a_PRE_tTll;   //  host 到 target之间优化后的平移 t
-  Vec3f PRE_KtTll;  // K*t
-  Vec3f PRE_tTll_0; //  host 到 target之间初始的平移, 优化更新前
-  std::array<Vec3f, kCameraNumUsed * kCameraNumUsed>
-      a_PRE_tTll_0; //  host 到 target之间初始的平移, 优化更新前
+  Vec3f PRE_tTll;                                                 //  host 到 target之间优化后的平移 t
+  std::array<Vec3f, kCameraNumUsed * kCameraNumUsed> a_PRE_tTll;  //  host 到 target之间优化后的平移 t
+  Vec3f PRE_KtTll;                                                // K*t
+  Vec3f PRE_tTll_0;  //  host 到 target之间初始的平移, 优化更新前
+  std::array<Vec3f, kCameraNumUsed * kCameraNumUsed> a_PRE_tTll_0;  //  host 到 target之间初始的平移, 优化更新前
 
   std::array<Mat33f, kCameraNumUsed * kCameraNumUsed> a_PRE_KRKiTll;
   std::array<Vec3f, kCameraNumUsed * kCameraNumUsed> a_PRE_KtTll;
 
-  float distanceLL; // 两帧间距离
+  float distanceLL;  // 两帧间距离
 
   inline ~FrameFramePrecalc() {}
 
   inline FrameFramePrecalc() { host = target = 0; }
 
-  void set(FrameHessian *host, FrameHessian *target, CalibHessian *HCalib);
+  void set(FrameHessian* host, FrameHessian* target, CalibHessian* HCalib);
   //  void set(std::array<FrameHessian *, kCameraNumUsed> a_host,
   //           std::array<FrameHessian *, kCameraNumUsed> a_target,
   //           std::array<CalibHessian *, kCameraNumUsed> a_HCalib);
@@ -132,30 +128,28 @@ struct FrameFramePrecalc {
 //* 相机位姿+相机光度Hessian
 struct FrameHessian {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  EFFrame *efFrame; //!< 帧的能量函数
+  EFFrame* efFrame;  //!< 帧的能量函数
 
   // constant info & pre-calculated values
   // DepthImageWrap* frame;
-  FrameShell *shell; //!< 帧的"壳", 保存一些不变的,要留下来的量
+  FrameShell* shell;  //!< 帧的"壳", 保存一些不变的,要留下来的量
   //* 图像导数[0]:辐照度  [1]:x方向导数  [2]:y方向导数, （指针表示图像）
-  Eigen::Vector3f *dI; //[PYR_LEVELS * kCameraNumUsed]; //!< 图像导数 // trace,
-                       // fine tracking. Used for direction
-  Eigen::Vector3f
-      *dt_dx_dy_0; //[PYR_LEVELS * kCameraNumUsed]; //!< 图像导数 // trace,
+  Eigen::Vector3f* dI;          //[PYR_LEVELS * kCameraNumUsed]; //!< 图像导数 // trace,
+                                // fine tracking. Used for direction
+  Eigen::Vector3f* dt_dx_dy_0;  //[PYR_LEVELS * kCameraNumUsed]; //!< 图像导数 // trace,
   // fine tracking. Used for direction
   //!< select (not for gradient histograms etc.)
-  Eigen::Vector3f
-      *dIp[PYR_LEVELS]; // * kCameraNumUsed]; //!< 各金字塔层的图像导数   //
-                        // coarse tracking / coarse
+  Eigen::Vector3f* dIp[PYR_LEVELS];  // * kCameraNumUsed]; //!< 各金字塔层的图像导数   //
+                                     // coarse tracking / coarse
   //!< initializer. NAN in [0] only.
-  float *absSquaredGrad[PYR_LEVELS]; // * kCameraNumUsed]; //!< x,y
-                                     // 方向梯度的平方和  // only used for
+  float* absSquaredGrad[PYR_LEVELS];  // * kCameraNumUsed]; //!< x,y
+                                      // 方向梯度的平方和  // only used for
   //!< pixel select (histograms etc.). no NAN.
   double timestamp;
-  Eigen::Vector2i *edge_label_image[PYR_LEVELS]; // pyr_image resolution
-  Eigen::Vector3f *dt_dx_dy[PYR_LEVELS];         // pyr_image resolution
-  Eigen::Vector2i *label2xy[PYR_LEVELS];
-  Eigen::Vector2i *edge_pixels[PYR_LEVELS];
+  Eigen::Vector2i* edge_label_image[PYR_LEVELS];  // pyr_image resolution
+  Eigen::Vector3f* dt_dx_dy[PYR_LEVELS];          // pyr_image resolution
+  Eigen::Vector2i* label2xy[PYR_LEVELS];
+  Eigen::Vector2i* edge_pixels[PYR_LEVELS];
   size_t label_num[PYR_LEVELS][kCameraNumUsed];
   size_t edge_pixel_num[PYR_LEVELS][kCameraNumUsed];
   Eigen::Vector3f max_dt_dx_dy[PYR_LEVELS][kCameraNumUsed];
@@ -165,34 +159,29 @@ struct FrameHessian {
   bool addCamPrior;
 
   //* 都是ID
-  int frameID; //!< 所有关键帧的序号(FrameShell)	// incremental ID for
+  int frameID;  //!< 所有关键帧的序号(FrameShell)	// incremental ID for
   //!< keyframes only!
-  static int instanceCounter; //!< 计数器
-  int idx;                    //!< 激活关键帧的序号(FrameHessian)
+  static int instanceCounter;  //!< 计数器
+  int idx;                     //!< 激活关键帧的序号(FrameHessian)
 
   // Photometric Calibration Stuff
-  float frameEnergyTH; //!< 阈值 //// set dynamically depending on tracking
+  float frameEnergyTH;  //!< 阈值 //// set dynamically depending on tracking
   //!< residual
   float ab_exposure;
   // VecCamNum ab_exposure_vec;
 
   bool flaggedForMarginalization;
 
-  MultiCamera *p_multi_camera;
-  std::vector<PointHessian *> pointHessians; // contains all ACTIVE points.
-  std::vector<PointHessian *>
-      pointHessiansMarginalized; // contains all MARGINALIZED points (= fully
+  MultiCamera* p_multi_camera;
+  std::vector<PointHessian*> pointHessians;              // contains all ACTIVE points.
+  std::vector<PointHessian*> pointHessiansMarginalized;  // contains all MARGINALIZED points (= fully
   // marginalized, usually because point went
   // OOB.)
-  std::array<std::vector<PointHessian *>, kCameraNumUsed> cid_to_pointHessians;
-  std::vector<PointHessian *>
-      pointHessiansOut; // contains all OUTLIER points (= discarded.).
-  std::array<std::vector<PointHessian *>, kCameraNumUsed>
-      cid_to_pointHessiansOut;
-  std::vector<ImmaturePoint *>
-      immaturePoints; // contains all OUTLIER points (= discarded.).
-  std::array<std::vector<ImmaturePoint *>, kCameraNumUsed>
-      cid_to_immaturePoints;
+  std::array<std::vector<PointHessian*>, kCameraNumUsed> cid_to_pointHessians;
+  std::vector<PointHessian*> pointHessiansOut;  // contains all OUTLIER points (= discarded.).
+  std::array<std::vector<PointHessian*>, kCameraNumUsed> cid_to_pointHessiansOut;
+  std::vector<ImmaturePoint*> immaturePoints;  // contains all OUTLIER points (= discarded.).
+  std::array<std::vector<ImmaturePoint*>, kCameraNumUsed> cid_to_immaturePoints;
 
   //* 零空间, 好奇怎么求???
   Mat66 nullspaces_pose;
@@ -200,75 +189,66 @@ struct FrameHessian {
   Vec6 nullspaces_scale;
 
   // variable info.
-  SE3 worldToCam_evalPT; //!< 在估计的相机位姿, //TODO 这是线性化点
-                         // todo roger, apply extrinsic
+  SE3 worldToCam_evalPT;  //!< 在估计的相机位姿, //TODO 这是线性化点
+                          // todo roger, apply extrinsic
 
   std::array<SE3, kCameraNumUsed> cid_to_worldToCam_evalPT;
   // [0-5: 位姿左乘小量. 6-7: a,b 光度仿射系数]
   // TODO* 这三个是与线性化点的增量(相对于固定线性化点的增量),
   // 而光度参数不是增量, state就是值 !!!
-  VecState state_zero; //!< 固定的线性化点的状态增量, 为了计算进行缩放, //TODO
+  VecState state_zero;  //!< 固定的线性化点的状态增量, 为了计算进行缩放, //TODO
 
   //!< 是世界系下绝对pose Tcw的增量
-  VecState state_scaled; //!< 乘上比例系数的状态增量, 这个是真正求的值!!!
-  VecState state; //!< 计算的状态增量// [0-5: worldToCam-leftEps. 6-7: a,b]
+  VecState state_scaled;  //!< 乘上比例系数的状态增量, 这个是真正求的值!!!
+  VecState state;         //!< 计算的状态增量// [0-5: worldToCam-leftEps. 6-7: a,b]
   //* step是与上一次优化结果的状态增量, [8 ,9]直接就设置为0了
-  VecState step;         //!< 求解正规方程得到的增量
-  VecState step_backup;  //!< 上一次的增量备份
-  VecState state_backup; //!< 上一次状态的备份
+  VecState step;          //!< 求解正规方程得到的增量
+  VecState step_backup;   //!< 上一次的增量备份
+  VecState state_backup;  //!< 上一次状态的备份
 
   //内联提高效率, 返回上面的值
-  EIGEN_STRONG_INLINE const SE3 &get_worldToCam_evalPT() const {
-    return worldToCam_evalPT;
-  }
+  EIGEN_STRONG_INLINE const SE3& get_worldToCam_evalPT() const { return worldToCam_evalPT; }
 
-  EIGEN_STRONG_INLINE const VecState &get_state_zero() const {
+  EIGEN_STRONG_INLINE const VecState& get_state_zero() const {
     return state_zero;
-  } // the first 6 parameters of state_zero seem to be always 0 (as this part
+  }  // the first 6 parameters of state_zero seem to be always 0 (as this part
   // ist represented by the worldToCam_evalPT. The last two parameters on the
   // other hand are not zero.
-  EIGEN_STRONG_INLINE const VecState &get_state() const { return state; }
+  EIGEN_STRONG_INLINE const VecState& get_state() const { return state; }
 
-  EIGEN_STRONG_INLINE const VecState &get_state_scaled() const {
-    return state_scaled;
-  }
+  EIGEN_STRONG_INLINE const VecState& get_state_scaled() const { return state_scaled; }
 
   EIGEN_STRONG_INLINE const VecState get_state_minus_stateZero() const {
     return get_state() - get_state_zero();
-  } // TODO x小量可以直接减 lie algebra
+  }  // TODO x小量可以直接减 lie algebra
 
   // precalc values
-  SE3 PRE_worldToCam; //!< 预计算的, 位姿状态增量更新到位姿上
+  SE3 PRE_worldToCam;  //!< 预计算的, 位姿状态增量更新到位姿上
   SE3 PRE_camToWorld;
-  std::vector<FrameFramePrecalc, Eigen::aligned_allocator<FrameFramePrecalc>>
-      targetPrecalc;          //!< 对于其它帧的预运算值
-  MinimalImageB3 *debugImage; //!< 小图???
+  std::vector<FrameFramePrecalc, Eigen::aligned_allocator<FrameFramePrecalc>> targetPrecalc;  //!< 对于其它帧的预运算值
+  MinimalImageB3* debugImage;                                                                 //!< 小图???
 
-  inline Vec6 w2c_leftEps() const {
-    return get_state_scaled().head<6>();
-  } //* 返回位姿状态增量
+  inline Vec6 w2c_leftEps() const { return get_state_scaled().head<6>(); }  //* 返回位姿状态增量
   inline AffLight aff_g2l() const {
     return AffLight(get_state_scaled()[6], get_state_scaled()[7]);
-  } //* 返回光度仿射系数
+  }  //* 返回光度仿射系数
   inline AffLight aff_g2l_0() const {
-    return AffLight(get_state_zero()[6] * SCALE_A,
-                    get_state_zero()[7] * SCALE_B);
-  } //* 返回线性化点处的仿射系数增量
-    //  inline AffLight aff_g2l(int cid) const {
-    //    return AffLight(get_state_scaled()[6 + 2 * cid],
-    //                    get_state_scaled()[7 + 2 * cid]);
-    //  } //* 返回光度仿射系数
-    //  inline AffLight aff_g2l_0(int cid) const {
-    //    return AffLight(get_state_zero()[6 + 2 * cid] * SCALE_A,
-    //                    get_state_zero()[7 + 2 * cid] * SCALE_B);
-    //  } //* 返回线性化点处的仿射系数增量
+    return AffLight(get_state_zero()[6] * SCALE_A, get_state_zero()[7] * SCALE_B);
+  }  //* 返回线性化点处的仿射系数增量
+     //  inline AffLight aff_g2l(int cid) const {
+     //    return AffLight(get_state_scaled()[6 + 2 * cid],
+     //                    get_state_scaled()[7 + 2 * cid]);
+     //  } //* 返回光度仿射系数
+     //  inline AffLight aff_g2l_0(int cid) const {
+     //    return AffLight(get_state_zero()[6 + 2 * cid] * SCALE_A,
+     //                    get_state_zero()[7 + 2 * cid] * SCALE_B);
+     //  } //* 返回线性化点处的仿射系数增量
 
   //* 设置FEJ点状态增量
-  void setStateZero(const VecState &state_zero);
+  void setStateZero(const VecState& state_zero);
 
   //* 设置增量, 同时复制state和state_scale
-  inline void setState(const VecState &state) {
-
+  inline void setState(const VecState& state) {
     this->state = state;
     state_scaled.segment<3>(0) = SCALE_XI_TRANS * state.segment<3>(0);
     state_scaled.segment<3>(3) = SCALE_XI_ROT * state.segment<3>(3);
@@ -285,8 +265,7 @@ struct FrameHessian {
   };
 
   //* 设置增量, 传入state_scaled
-  inline void setStateScaled(const VecState &state_scaled) {
-
+  inline void setStateScaled(const VecState& state_scaled) {
     this->state_scaled = state_scaled;
     state.segment<3>(0) = SCALE_XI_TRANS_INVERSE * state_scaled.segment<3>(0);
     state.segment<3>(3) = SCALE_XI_ROT_INVERSE * state_scaled.segment<3>(3);
@@ -303,7 +282,7 @@ struct FrameHessian {
   };
 
   //* 设置当前位姿, 和状态增量, 同时设置了FEJ点
-  inline void setEvalPT(const SE3 &worldToCam_evalPT, const VecState &state) {
+  inline void setEvalPT(const SE3& worldToCam_evalPT, const VecState& state) {
     // std::cout<<"worldToCam_evalPT:
     // \n"<<worldToCam_evalPT.matrix3x4()<<std::endl;
     this->worldToCam_evalPT = worldToCam_evalPT;
@@ -312,13 +291,12 @@ struct FrameHessian {
   };
 
   //* 设置当前位姿, 光度仿射系数, FEJ点
-  inline void setEvalPT_scaled(const SE3 &worldToCam_evalPT,
-                               const AffLight &aff_g2l) {
+  inline void setEvalPT_scaled(const SE3& worldToCam_evalPT, const AffLight& aff_g2l) {
     VecState initial_state = VecState::Zero();
-    initial_state[6] = aff_g2l.a; // 直接设置光度系数a和b
+    initial_state[6] = aff_g2l.a;  // 直接设置光度系数a和b
     initial_state[7] = aff_g2l.b;
     this->worldToCam_evalPT = worldToCam_evalPT;
-    setStateScaled(initial_state); // TODO pose增量必须是0
+    setStateScaled(initial_state);  // TODO pose增量必须是0
     setStateZero(this->get_state());
   };
   //  //* 设置当前位姿, 光度仿射系数, FEJ点
@@ -352,24 +330,21 @@ struct FrameHessian {
       delete[] edge_pixels[i];
     }
 
-    if (debugImage != 0)
-      delete debugImage;
+    if (debugImage != 0) delete debugImage;
   };
 
-  inline FrameHessian(MultiCamera *p_multi_camera_)
-      : p_multi_camera(p_multi_camera_) {
-    instanceCounter++; //! 若是发生拷贝, 就不会增加了
+  inline FrameHessian(MultiCamera* p_multi_camera_) : p_multi_camera(p_multi_camera_) {
+    instanceCounter++;  //! 若是发生拷贝, 就不会增加了
     flaggedForMarginalization = false;
     frameID = -1;
     efFrame = 0;
 #ifndef USE_ZNCC
-    frameEnergyTH = 20 * 20 * patternNum; // 8 * 8 * patternNum;
-    frameEnergyTH =
-        1.5 * 1.5 * setting_outlierTH_LBA *
-        setting_outlierTH_LBA /*setting_coarseCutoffTH * setting_coarseCutoffTH
-                                 setting_outlierTH_epi_trace_on *
-                                 setting_outlierTH_epi_trace_on*/
-        * patternNum;
+    frameEnergyTH = 20 * 20 * patternNum;  // 8 * 8 * patternNum;
+    frameEnergyTH = 1.5 * 1.5 * setting_outlierTH_LBA *
+                    setting_outlierTH_LBA /*setting_coarseCutoffTH * setting_coarseCutoffTH
+                                             setting_outlierTH_epi_trace_on *
+                                             setting_outlierTH_epi_trace_on*/
+                    * patternNum;
 #else
     frameEnergyTH = (1 * setting_variableScale) * (1 * setting_variableScale);
 #endif
@@ -383,36 +358,35 @@ struct FrameHessian {
   // = false,
   //                    double cannySigma = 0.33, int minEdgeLength = 30, bool
   //                    doMorphClose = true, int morphKsize = 3);
-  void makeImages(float *color, CalibHessian *HCalib);
+  void makeImages(float* color, CalibHessian* HCalib);
 
   //* 获得先验信息矩阵， 怎么感觉除了第一帧没什么用
-  inline VecState getPrior() // TODO 得到帧位姿的先验
+  inline VecState getPrior()  // TODO 得到帧位姿的先验
   // 第0帧，pose和ab都有先验，非0帧只有ab有先验，pose没有
   {
     VecState p = VecState::Zero();
-    if (frameID == 0) //* 第一帧就用初始值做先验
+    if (frameID == 0)  //* 第一帧就用初始值做先验
     {
       p.head<3>() = Vec3::Constant(setting_initialTransPrior);
       p.segment<3>(3) = Vec3::Constant(setting_initialRotPrior);
       // 用位运算, 有点东西
-      if (setting_solverMode & SOLVER_REMOVE_POSEPRIOR)
-        p.head<6>().setZero();
+      if (setting_solverMode & SOLVER_REMOVE_POSEPRIOR) p.head<6>().setZero();
       for (int cid = 0; cid < 1 /*kCameraNumUsed*/; ++cid) {
-        p[6 + cid * 2] = setting_initialAffAPrior; // 1e14
-        p[7 + cid * 2] = setting_initialAffBPrior; // 1e14
+        p[6 + cid * 2] = setting_initialAffAPrior;  // 1e14
+        p[7 + cid * 2] = setting_initialAffBPrior;  // 1e14
       }
-    } else //* 否则根据模式决定
+    } else  //* 否则根据模式决定
     {
       for (int cid = 0; cid < 1 /*kCameraNumUsed*/; ++cid) {
-        if (setting_affineOptModeA < 0) //* 小于零是固定的不优化
+        if (setting_affineOptModeA < 0)  //* 小于零是固定的不优化
           p[6 + cid * 2] = setting_initialAffAPrior;
         else
-          p[6 + cid * 2] = setting_affineOptModeA; // 1e12
+          p[6 + cid * 2] = setting_affineOptModeA;  // 1e12
 
         if (setting_affineOptModeB < 0)
           p[7 + cid * 2] = setting_initialAffBPrior;
         else
-          p[7 + cid * 2] = setting_affineOptModeB; // 1e8
+          p[7 + cid * 2] = setting_affineOptModeB;  // 1e8
       }
     }
     //? 8,9是干嘛的呢???  没用....
@@ -422,8 +396,7 @@ struct FrameHessian {
     if (addCamPrior) {
       p.head<3>() = Vec3::Constant(setting_initialTransPrior);
       p.segment<3>(3) = Vec3::Constant(setting_initialRotPrior);
-      if (setting_solverMode & SOLVER_REMOVE_POSEPRIOR)
-        p.head<6>().setZero();
+      if (setting_solverMode & SOLVER_REMOVE_POSEPRIOR) p.head<6>().setZero();
     }
 
     return p;
@@ -437,20 +410,19 @@ struct CalibHessian {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   static int instanceCounter;
   // * 4×1的向量
-  VecC value_zero;     //!< FEJ固定点
-  VecC value_scaled;   //!< 乘以scale的内参
-  VecCf value_scaledf; //!< float型的内参
-  VecCf value_scaledi; //!< 逆, 应该是求导用为, 1/fx, 1/fy, -cx/fx, -cy/fy
-  VecC value;          //!< 没乘scale的
-  VecC step;           //!< 迭代中的增量
-  VecC step_backup;    //!< 上一次增量备份
-  VecC value_backup;   //!< 上一次值的备份
-  VecC value_minus_value_zero; //!< 减去线性化点
+  VecC value_zero;              //!< FEJ固定点
+  VecC value_scaled;            //!< 乘以scale的内参
+  VecCf value_scaledf;          //!< float型的内参
+  VecCf value_scaledi;          //!< 逆, 应该是求导用为, 1/fx, 1/fy, -cx/fx, -cy/fy
+  VecC value;                   //!< 没乘scale的
+  VecC step;                    //!< 迭代中的增量
+  VecC step_backup;             //!< 上一次增量备份
+  VecC value_backup;            //!< 上一次值的备份
+  VecC value_minus_value_zero;  //!< 减去线性化点
 
   inline ~CalibHessian() { instanceCounter--; }
 
   inline CalibHessian() {
-
     VecC initial_value = VecC::Zero();
     initial_value[0] = fxG[0];
     initial_value[1] = fyG[0];
@@ -471,33 +443,30 @@ struct CalibHessian {
 
     instanceCounter++;
     //响应函数
-    for (int i = 0; i < 256; i++)
-      Binv[i] = B[i] = i; // set gamma function to identity
+    for (int i = 0; i < 256; i++) Binv[i] = B[i] = i;  // set gamma function to identity
   };
 
-  inline void setMultiCamera(MultiCamera *p_multi_camera_) {
-    p_multi_camera = p_multi_camera_;
-  }
+  inline void setMultiCamera(MultiCamera* p_multi_camera_) { p_multi_camera = p_multi_camera_; }
 
   // normal mode: use the optimized parameters everywhere!
-  inline float &fxl() { return value_scaledf[0]; }
+  inline float& fxl() { return value_scaledf[0]; }
 
-  inline float &fyl() { return value_scaledf[1]; }
+  inline float& fyl() { return value_scaledf[1]; }
 
-  inline float &cxl() { return value_scaledf[2]; }
+  inline float& cxl() { return value_scaledf[2]; }
 
-  inline float &cyl() { return value_scaledf[3]; }
+  inline float& cyl() { return value_scaledf[3]; }
 
-  inline float &fxli() { return value_scaledi[0]; }
+  inline float& fxli() { return value_scaledi[0]; }
 
-  inline float &fyli() { return value_scaledi[1]; }
+  inline float& fyli() { return value_scaledi[1]; }
 
-  inline float &cxli() { return value_scaledi[2]; }
+  inline float& cxli() { return value_scaledi[2]; }
 
-  inline float &cyli() { return value_scaledi[3]; }
+  inline float& cyli() { return value_scaledi[3]; }
 
   //* 通过value设置
-  inline void setValue(const VecC &value) {
+  inline void setValue(const VecC& value) {
     // [0-3: Kl, 4-7: Kr, 8-12: l2r] what's this, stereo camera???
     this->value = value;
     value_scaled[0] = SCALE_F * value[0];
@@ -534,7 +503,7 @@ struct CalibHessian {
   };
 
   //* 通过value_scaled赋值
-  inline void setValueScaled(const VecC &value_scaled) {
+  inline void setValueScaled(const VecC& value_scaled) {
     this->value_scaled = value_scaled;
     this->value_scaledf = this->value_scaled.cast<float>();
     value[0] = SCALE_F_INVERSE * value_scaled[0];
@@ -556,22 +525,18 @@ struct CalibHessian {
   //* 响应函数的导数
   EIGEN_STRONG_INLINE float getBGradOnly(float color) {
     int c = color + 0.5f;
-    if (c < 5)
-      c = 5;
-    if (c > 250)
-      c = 250;
+    if (c < 5) c = 5;
+    if (c > 250) c = 250;
     return B[c + 1] - B[c];
   }
   //* 响应函数逆的导数
   EIGEN_STRONG_INLINE float getBInvGradOnly(float color) {
     int c = color + 0.5f;
-    if (c < 5)
-      c = 5;
-    if (c > 250)
-      c = 250;
+    if (c < 5) c = 5;
+    if (c > 250) c = 250;
     return Binv[c + 1] - Binv[c];
   }
-  MultiCamera *p_multi_camera;
+  MultiCamera* p_multi_camera;
   Mat3 intr;
   Mat3 intr_inv;
 };
@@ -581,48 +546,42 @@ struct CalibHessian {
 struct PointHessian {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   static int instanceCounter;
-  EFPoint *efPoint; //!< 点的能量函数
+  EFPoint* efPoint;  //!< 点的能量函数
 
   // static values
-  float color[MAX_RES_PER_POINT]; // * kCameraNumUsed]; // colors in host frame
-  float weights[MAX_RES_PER_POINT]; // * kCameraNumUsed]; // host-weights for
-                                    // respective residuals.
+  float color[MAX_RES_PER_POINT];    // * kCameraNumUsed]; // colors in host frame
+  float weights[MAX_RES_PER_POINT];  // * kCameraNumUsed]; // host-weights for
+                                     // respective residuals.
   float weights_gray[MAX_RES_PER_POINT];
   float hw_use;
 
-  float u, v; //!< 像素点的位置
+  float u, v;  //!< 像素点的位置
   int idx;
-  float energyTH;     //!< 光度误差阈值
-  FrameHessian *host; //!< 主帧
-  bool hasDepthPrior; //!< 初始化得到的点是有深度先验的, 其它没有
+  float energyTH;      //!< 光度误差阈值
+  FrameHessian* host;  //!< 主帧
+  bool hasDepthPrior;  //!< 初始化得到的点是有深度先验的, 其它没有
 
-  float my_type; //不同类型点, 显示用
+  float my_type;  //不同类型点, 显示用
 
-  float idepth_scaled;      //!< target还是host上点逆深度 ??
-  float idepth_zero_scaled; //!< FEJ使用, 点在host上x=0初始逆深度
-  float idepth_zero;        //!< 缩放了scale倍的固定线性化点逆深度
-  float idepth;             //!< 缩放scale倍的逆深度
-  float idepth_before = 0.f; //!< 缩放scale倍的逆深度
+  float idepth_scaled;        //!< target还是host上点逆深度 ??
+  float idepth_zero_scaled;   //!< FEJ使用, 点在host上x=0初始逆深度
+  float idepth_zero;          //!< 缩放了scale倍的固定线性化点逆深度
+  float idepth;               //!< 缩放scale倍的逆深度
+  float idepth_before = 0.f;  //!< 缩放scale倍的逆深度
   bool is_idp_optimized = false;
-  float step; //!< 迭代优化每一步增量
+  float step;  //!< 迭代优化每一步增量
   float step_backup = 0.f;
-  ;                    //!< 迭代优化上一步增量的备份
-  float idepth_backup; //!< 上一次的逆深度值
+  ;                     //!< 迭代优化上一步增量的备份
+  float idepth_backup;  //!< 上一次的逆深度值
 
-  float nullspaces_scale; //!< 零空间 ?
-  float idepth_hessian;   //!< 对应的hessian矩阵值
-  float maxRelBaseline;   //!< 衡量该点的最大基线长度
+  float nullspaces_scale;  //!< 零空间 ?
+  float idepth_hessian;    //!< 对应的hessian矩阵值
+  float maxRelBaseline;    //!< 衡量该点的最大基线长度
   int numGoodResiduals;
 
   int host_cid;
 
-  enum PtStatus {
-    ACTIVE = 0,
-    INACTIVE,
-    OUTLIER,
-    OOB,
-    MARGINALIZED
-  }; // 这些状态都没啥用.....
+  enum PtStatus { ACTIVE = 0, INACTIVE, OUTLIER, OOB, MARGINALIZED };  // 这些状态都没啥用.....
   PtStatus status;
 
   inline void setPointStatus(PtStatus s) { status = s; }
@@ -637,33 +596,30 @@ struct PointHessian {
     this->idepth_scaled = idepth_scaled;
   }
 
-  inline void setIdepthZero(float idepth) { // TODO
+  inline void setIdepthZero(float idepth) {  // TODO
     // 调完setIdepthZero会立马调setIdepthScaled，所以idp的线性化点是一直在变的，等于没固定线性化点,
     // idp的状态是在一直更新的，不是固定的
     idepth_zero = idepth;
     idepth_zero_scaled = SCALE_IDEPTH * idepth;
-    nullspaces_scale = -(idepth * 1.001 - idepth / 1.001) * 500; //? 为啥这么求
+    nullspaces_scale = -(idepth * 1.001 - idepth / 1.001) * 500;  //? 为啥这么求
   }
 
-  std::vector<PointFrameResidual *>
-      residuals; // only contains good residuals (not OOB and not OUTLIER).
+  std::vector<PointFrameResidual*> residuals;  // only contains good residuals (not OOB and not OUTLIER).
   // Arbitrary order.
   //  std::array<std::array<std::pair<PointFrameResidual *, ResState>, 2>,
   //             kCameraNumUsed>
   //      lastResiduals; //[2]; // contains information about residuals to the
   //      last
-  std::array<
-      std::pair<PointFrameResidual *, std::array<ResState, kCameraNumUsed>>, 2>
-      lastResiduals; //[2]; // contains information about residuals to the last
-                     // two
+  std::array<std::pair<PointFrameResidual*, std::array<ResState, kCameraNumUsed>>, 2>
+      lastResiduals;  //[2]; // contains information about residuals to the last
+                      // two
   // (!) frames. ([0] = latest, [1] = the one before).
 
   void release();
 
   //  PointHessian(const ImmaturePoint *const rawPoint, CalibHessian *Hcalib);
 
-  PointHessian(const ImmaturePoint *const rawPoint, CalibHessian *Hcalibconst,
-               int &host_cid_);
+  PointHessian(const ImmaturePoint* const rawPoint, CalibHessian* Hcalibconst, int& host_cid_);
 
   inline ~PointHessian() {
     assert(efPoint == 0);
@@ -672,10 +628,9 @@ struct PointHessian {
   }
 
   //@ 判断其它帧上的点是否不值得要了
-  inline bool isOOB(const std::vector<FrameHessian *> &toKeep,
-                    const std::vector<FrameHessian *> &toMarg) const {
+  inline bool isOOB(const std::vector<FrameHessian*>& toKeep, const std::vector<FrameHessian*>& toMarg) const {
     int visInToMarg = 0;
-    for (PointFrameResidual *r : residuals) {
+    for (PointFrameResidual* r : residuals) {
       int in_count = kCameraNumUsed;
       for (int cid = 0; cid < kCameraNumUsed; ++cid) {
         if (r->state_state[cid] != ResState::IN) {
@@ -687,18 +642,16 @@ struct PointHessian {
         continue;
       }
       // TODO roger, only need good residuals
-      for (FrameHessian *k : toMarg) {
+      for (FrameHessian* k : toMarg) {
         if (r->target == k) {
-          visInToMarg++; // 在要边缘化掉的帧被观测的数量
+          visInToMarg++;  // 在要边缘化掉的帧被观测的数量
         }
       }
     }
     //[1]: 原本是很好的一个点，但是边缘化一帧后，残差变太少了, 边缘化or丢掉
-    if ((int)residuals.size() >=
-            setting_minGoodActiveResForMarg && // 残差数大于一定数目
+    if ((int)residuals.size() >= setting_minGoodActiveResForMarg &&  // 残差数大于一定数目
         numGoodResiduals > setting_minGoodResForMarg + 10 &&
-        (int)residuals.size() - visInToMarg <
-            setting_minGoodActiveResForMarg) //剩余残差足够少
+        (int)residuals.size() - visInToMarg < setting_minGoodActiveResForMarg)  //剩余残差足够少
       return true;
 
     //[2]: 最新一帧的投影在图像外了, 看不见了, 边缘化or丢掉
@@ -709,14 +662,11 @@ struct PointHessian {
       if (lastResiduals[0].second[cid] == ResState::OOB) {
         oob_count++;
       }
-      if (lastResiduals[0].second[cid] == ResState::OUTLIER &&
-          lastResiduals[1].second[cid] == ResState::OUTLIER) {
+      if (lastResiduals[0].second[cid] == ResState::OUTLIER && lastResiduals[1].second[cid] == ResState::OUTLIER) {
         outlier_count++;
       }
     }
-    if (oob_count ==
-        kCameraNumUsed /*lastResiduals[0].second == ResState::OOB*/)
-      return true; //上一帧是OOB
+    if (oob_count == kCameraNumUsed /*lastResiduals[0].second == ResState::OOB*/) return true;  //上一帧是OOB
     //[3]: 残差比较少, 新加入的, 不边缘化
     if (residuals.size() < 2
 #ifndef USE_BUNDLED_RES
@@ -728,16 +678,15 @@ struct PointHessian {
     //[4]: 前两帧投影都是外点, 边缘化or丢掉
     if (outlier_count == kCameraNumUsed/*lastResiduals[0].second == ResState::OUTLIER &&
         lastResiduals[1].second == ResState::OUTLIER*/) {
-      return true; //前两帧都是外点
+      return true;  //前两帧都是外点
     }
     return false;
   }
 
   //内点条件
   inline bool isInlierNew() {
-    return (int)residuals.size() >= setting_minGoodActiveResForMarg &&
-           numGoodResiduals >= setting_minGoodResForMarg;
+    return (int)residuals.size() >= setting_minGoodActiveResForMarg && numGoodResiduals >= setting_minGoodResForMarg;
   }
 };
 
-} // namespace dso
+}  // namespace dso

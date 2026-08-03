@@ -40,29 +40,24 @@ namespace dmvio {
 // relative pose from referenceToFrame to absolute poses in IMU frame. It adds
 // IMU-Factors between successive frames.
 class CoarseIMULogic {
-public:
+ public:
   // Typically initCoarseGraph should also be called before using this.
   // Note that a reference to imuCalibration and imuSettings is kept, so they
   // need to be kept alive.
-  CoarseIMULogic(
-      std::unique_ptr<PoseTransformation> transformBAToIMU,
-      boost::shared_ptr<gtsam::PreintegrationParams> preintegrationParams,
-      const IMUCalibration &imuCalibration, IMUSettings &imuSettings);
+  CoarseIMULogic(std::unique_ptr<PoseTransformation> transformBAToIMU,
+                 boost::shared_ptr<gtsam::PreintegrationParams> preintegrationParams,
+                 const IMUCalibration& imuCalibration, IMUSettings& imuSettings);
 
   // (Re-)initialize the coarse tracking graph after a new reference frame has
   // been activated.
-  Sophus::SE3d
-  initCoarseGraph(int keyframeId,
-                  std::unique_ptr<InformationBAToCoarse> informationBAToCoarse);
+  Sophus::SE3d initCoarseGraph(int keyframeId, std::unique_ptr<InformationBAToCoarse> informationBAToCoarse);
 
   // Adds an new frame with IMU data to the coarse factor graph, marginalizes
   // old variables, and returns an estimate for the relative pose of the newly
   // added frame. dontMargFrame is the id of a frame (usually a prepared KF)
   // which should not be marginalized.
-  Sophus::SE3d addIMUData(const IMUData &imuData, int frameId,
-                          double frameTimestamp, int lastFrameId,
-                          boost::shared_ptr<gtsam::PreintegratedImuMeasurements>
-                              additionalMeasurements = nullptr,
+  Sophus::SE3d addIMUData(const IMUData& imuData, int frameId, double frameTimestamp, int lastFrameId,
+                          boost::shared_ptr<gtsam::PreintegratedImuMeasurements> additionalMeasurements = nullptr,
                           int dontMargFrame = -1);
 
   // ------------------------------
@@ -70,7 +65,7 @@ public:
   // IMUIntegration):
 
   // Passes the new coarse pose.
-  void updateCoarsePose(const Sophus::SE3d &pose);
+  void updateCoarsePose(const Sophus::SE3d& pose);
 
   // This method integrates the CoarseTracker optimization with GTSAM. It is
   // called in each iteration, and will compute the increment for the
@@ -80,18 +75,15 @@ public:
   // the increment. b contains the following parameters: 3 for the rotation
   // ref_to_frame, 3 for the translation ref_to_frame, and 2 for affine
   // lightning parameters.
-  Sophus::SE3d computeCoarseUpdate(dso::Vec8 &inc_gtsam, const dso::Mat88 &H,
-                                   const dso::Vec8 &b, float extrapFac,
-                                   float lambda, double &incA, double &incB,
-                                   double &incNorm,
+  Sophus::SE3d computeCoarseUpdate(dso::Vec8& inc_gtsam, const dso::Mat88& H, const dso::Vec8& b, float extrapFac,
+                                   float lambda, double& incA, double& incB, double& incNorm,
                                    bool force_zero_inc = false);
 
   // Apply the update computed by the last call of computeCoarseUpdate.
   void acceptCoarseUpdate();
 
   // Add linearized visual factor to the coarse graph.
-  void addVisualToCoarseGraph(const dso::Mat88 &H, const dso::Vec8 &b,
-                              bool trackingIsGood);
+  void addVisualToCoarseGraph(const dso::Mat88& H, const dso::Vec8& b, bool trackingIsGood);
 
   Sophus::SE3d getCoarseKFPose();
 
@@ -99,20 +91,19 @@ public:
 
   gtsam::Vector3 getVelocity(int frameId);
 
-  void printCoarseBiases(const dmvio::GTData *gtData, int frameId);
+  void printCoarseBiases(const dmvio::GTData* gtData, int frameId);
 
   double getScale() const;
 
-private:
+ private:
   // Shared with parent IMUIntegration.
-  IMUSettings &imuSettings;
-  const IMUCalibration &imuCalibration;
+  IMUSettings& imuSettings;
+  const IMUCalibration& imuCalibration;
 
   std::shared_ptr<PoseTransformation> transformBAToIMU;
   // Usually of type TransformDSOToIMU
-  std::unique_ptr<PoseTransformation>
-      transformIMUToDSOForCoarse; // Usually of type
-                                  // TransformIMUToDSOForCoarse<T>
+  std::unique_ptr<PoseTransformation> transformIMUToDSOForCoarse;  // Usually of type
+                                                                   // TransformIMUToDSOForCoarse<T>
   double scale = 1.0;
 
   boost::shared_ptr<gtsam::PreintegrationParams> preintegrationParams;
@@ -132,5 +123,5 @@ private:
   std::ofstream coarseBiasFile;
 };
 
-} // namespace dmvio
-#endif // DMVIO_COARSEIMULOGIC_H
+}  // namespace dmvio
+#endif  // DMVIO_COARSEIMULOGIC_H

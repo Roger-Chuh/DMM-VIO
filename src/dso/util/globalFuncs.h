@@ -46,15 +46,15 @@ inline void checkBoundsPlus1(int ix, int iy, const int width) {
   // getInterpolatedElement33BiLin are actually used in the code.
   // + getInterpolatedElement11BiCub and getInterpolatedElement are used in
   // Undistort.
-  int height = 512; // TODO: Pass the actual height to the function (should be
-                    // optimized out if not used anyway, so no performance hit).
+  int height = 512;  // TODO: Pass the actual height to the function (should be
+                     // optimized out if not used anyway, so no performance hit).
   bool oob = ix < 0 || iy < 0 || ix + 1 >= width || iy + 1 >= height;
   if (oob) {
 #ifdef STACKTRACE
     std::cout << boost::stacktrace::stacktrace();
 #endif
-    std::cout << "ERROR: Trying to access invalid element: ix: " << ix
-              << " iy: " << iy << " width: " << width << std::endl;
+    std::cout << "ERROR: Trying to access invalid element: ix: " << ix << " iy: " << iy << " width: " << width
+              << std::endl;
     assert(0);
   }
 #endif
@@ -62,8 +62,7 @@ inline void checkBoundsPlus1(int ix, int iy, const int width) {
 
 // reads interpolated element from a uchar* array
 // SSE2 optimization possible
-EIGEN_ALWAYS_INLINE float getInterpolatedElement(const float *const mat,
-                                                 const float x, const float y,
+EIGEN_ALWAYS_INLINE float getInterpolatedElement(const float* const mat, const float x, const float y,
                                                  const int width) {
   // stats.num_pixelInterpolations++;
 
@@ -72,51 +71,44 @@ EIGEN_ALWAYS_INLINE float getInterpolatedElement(const float *const mat,
   float dx = x - ix;
   float dy = y - iy;
   float dxdy = dx * dy;
-  const float *bp = mat + ix + iy * width;
+  const float* bp = mat + ix + iy * width;
 
   checkBoundsPlus1(ix, iy, width);
 
-  float res = dxdy * bp[1 + width] + (dy - dxdy) * bp[width] +
-              (dx - dxdy) * bp[1] + (1 - dx - dy + dxdy) * bp[0];
+  float res = dxdy * bp[1 + width] + (dy - dxdy) * bp[width] + (dx - dxdy) * bp[1] + (1 - dx - dy + dxdy) * bp[0];
 
   return res;
 }
 
-EIGEN_ALWAYS_INLINE Eigen::Vector3f
-getInterpolatedElement43(const Eigen::Vector4f *const mat, const float x,
-                         const float y, const int width) {
+EIGEN_ALWAYS_INLINE Eigen::Vector3f getInterpolatedElement43(const Eigen::Vector4f* const mat, const float x,
+                                                             const float y, const int width) {
   int ix = (int)x;
   int iy = (int)y;
   float dx = x - ix;
   float dy = y - iy;
   float dxdy = dx * dy;
-  const Eigen::Vector4f *bp = mat + ix + iy * width;
+  const Eigen::Vector4f* bp = mat + ix + iy * width;
 
   checkBoundsPlus1(ix, iy, width);
 
-  return dxdy * *(const Eigen::Vector3f *)(bp + 1 + width) +
-         (dy - dxdy) * *(const Eigen::Vector3f *)(bp + width) +
-         (dx - dxdy) * *(const Eigen::Vector3f *)(bp + 1) +
-         (1 - dx - dy + dxdy) * *(const Eigen::Vector3f *)(bp);
+  return dxdy * *(const Eigen::Vector3f*)(bp + 1 + width) + (dy - dxdy) * *(const Eigen::Vector3f*)(bp + width) +
+         (dx - dxdy) * *(const Eigen::Vector3f*)(bp + 1) + (1 - dx - dy + dxdy) * *(const Eigen::Vector3f*)(bp);
 }
 
-EIGEN_ALWAYS_INLINE Eigen::Vector3f
-getInterpolatedElement33(const Eigen::Vector3f *const mat, const float x,
-                         const float y, const int width) {
+EIGEN_ALWAYS_INLINE Eigen::Vector3f getInterpolatedElement33(const Eigen::Vector3f* const mat, const float x,
+                                                             const float y, const int width) {
   int ix = (int)x;
   int iy = (int)y;
   float dx = x - ix;
   float dy = y - iy;
   float dxdy = dx * dy;
-  const Eigen::Vector3f *bp = mat + ix + iy * width;
+  const Eigen::Vector3f* bp = mat + ix + iy * width;
 
   checkBoundsPlus1(ix, iy, width);
   /// mat传进来只是为了得到数据的地址,用以指向角点4邻域内的数据，它的内容并不参与计算，指针妙用
   /// 灰度值能插没错，x，y方向的梯度也能插？ 插出来的结果构成一个Vector3f
-  Vec3f ret = dxdy * *(const Eigen::Vector3f *)(bp + 1 + width) +
-              (dy - dxdy) * *(const Eigen::Vector3f *)(bp + width) +
-              (dx - dxdy) * *(const Eigen::Vector3f *)(bp + 1) +
-              (1 - dx - dy + dxdy) * *(const Eigen::Vector3f *)(bp);
+  Vec3f ret = dxdy * *(const Eigen::Vector3f*)(bp + 1 + width) + (dy - dxdy) * *(const Eigen::Vector3f*)(bp + width) +
+              (dx - dxdy) * *(const Eigen::Vector3f*)(bp + 1) + (1 - dx - dy + dxdy) * *(const Eigen::Vector3f*)(bp);
 #if 1
   return ret;
 #else
@@ -143,73 +135,66 @@ getInterpolatedElement33(const Eigen::Vector3f *const mat, const float x,
 #endif
 }
 
-EIGEN_ALWAYS_INLINE Eigen::Vector3f getInterpolatedElement33OverAnd(
-    const Eigen::Vector3f *const mat, const bool *overMat, const float x,
-    const float y, const int width, bool &over_out) {
+EIGEN_ALWAYS_INLINE Eigen::Vector3f getInterpolatedElement33OverAnd(const Eigen::Vector3f* const mat,
+                                                                    const bool* overMat, const float x, const float y,
+                                                                    const int width, bool& over_out) {
   int ix = (int)x;
   int iy = (int)y;
   float dx = x - ix;
   float dy = y - iy;
   float dxdy = dx * dy;
-  const Eigen::Vector3f *bp = mat + ix + iy * width;
+  const Eigen::Vector3f* bp = mat + ix + iy * width;
 
-  const bool *bbp = overMat + ix + iy * width;
+  const bool* bbp = overMat + ix + iy * width;
   over_out = bbp[1 + width] && bbp[1] && bbp[width] && bbp[0];
 
   checkBoundsPlus1(ix, iy, width);
 
-  return dxdy * *(const Eigen::Vector3f *)(bp + 1 + width) +
-         (dy - dxdy) * *(const Eigen::Vector3f *)(bp + width) +
-         (dx - dxdy) * *(const Eigen::Vector3f *)(bp + 1) +
-         (1 - dx - dy + dxdy) * *(const Eigen::Vector3f *)(bp);
+  return dxdy * *(const Eigen::Vector3f*)(bp + 1 + width) + (dy - dxdy) * *(const Eigen::Vector3f*)(bp + width) +
+         (dx - dxdy) * *(const Eigen::Vector3f*)(bp + 1) + (1 - dx - dy + dxdy) * *(const Eigen::Vector3f*)(bp);
 }
 
-EIGEN_ALWAYS_INLINE Eigen::Vector3f
-getInterpolatedElement33OverOr(const Eigen::Vector3f *const mat,
-                               const bool *overMat, const float x,
-                               const float y, const int width, bool &over_out) {
+EIGEN_ALWAYS_INLINE Eigen::Vector3f getInterpolatedElement33OverOr(const Eigen::Vector3f* const mat,
+                                                                   const bool* overMat, const float x, const float y,
+                                                                   const int width, bool& over_out) {
   int ix = (int)x;
   int iy = (int)y;
   float dx = x - ix;
   float dy = y - iy;
   float dxdy = dx * dy;
-  const Eigen::Vector3f *bp = mat + ix + iy * width;
+  const Eigen::Vector3f* bp = mat + ix + iy * width;
 
-  const bool *bbp = overMat + ix + iy * width;
+  const bool* bbp = overMat + ix + iy * width;
   over_out = bbp[1 + width] || bbp[1] || bbp[width] || bbp[0];
 
   checkBoundsPlus1(ix, iy, width);
 
-  return dxdy * *(const Eigen::Vector3f *)(bp + 1 + width) +
-         (dy - dxdy) * *(const Eigen::Vector3f *)(bp + width) +
-         (dx - dxdy) * *(const Eigen::Vector3f *)(bp + 1) +
-         (1 - dx - dy + dxdy) * *(const Eigen::Vector3f *)(bp);
+  return dxdy * *(const Eigen::Vector3f*)(bp + 1 + width) + (dy - dxdy) * *(const Eigen::Vector3f*)(bp + width) +
+         (dx - dxdy) * *(const Eigen::Vector3f*)(bp + 1) + (1 - dx - dy + dxdy) * *(const Eigen::Vector3f*)(bp);
 }
 
-EIGEN_ALWAYS_INLINE float
-getInterpolatedElement31(const Eigen::Vector3f *const mat, const float x,
-                         const float y, const int width) {
+EIGEN_ALWAYS_INLINE float getInterpolatedElement31(const Eigen::Vector3f* const mat, const float x, const float y,
+                                                   const int width) {
   int ix = (int)x;
   int iy = (int)y;
   float dx = x - ix;
   float dy = y - iy;
   float dxdy = dx * dy;
-  const Eigen::Vector3f *bp = mat + ix + iy * width;
+  const Eigen::Vector3f* bp = mat + ix + iy * width;
 
   checkBoundsPlus1(ix, iy, width);
 
-  return dxdy * (*(const Eigen::Vector3f *)(bp + 1 + width))[0] +
-         (dy - dxdy) * (*(const Eigen::Vector3f *)(bp + width))[0] +
-         (dx - dxdy) * (*(const Eigen::Vector3f *)(bp + 1))[0] +
-         (1 - dx - dy + dxdy) * (*(const Eigen::Vector3f *)(bp))[0];
+  return dxdy * (*(const Eigen::Vector3f*)(bp + 1 + width))[0] +
+         (dy - dxdy) * (*(const Eigen::Vector3f*)(bp + width))[0] +
+         (dx - dxdy) * (*(const Eigen::Vector3f*)(bp + 1))[0] +
+         (1 - dx - dy + dxdy) * (*(const Eigen::Vector3f*)(bp))[0];
 }
 
-EIGEN_ALWAYS_INLINE Eigen::Vector3f
-getInterpolatedElement13BiLin(const float *const mat, const float x,
-                              const float y, const int width) {
+EIGEN_ALWAYS_INLINE Eigen::Vector3f getInterpolatedElement13BiLin(const float* const mat, const float x, const float y,
+                                                                  const int width) {
   int ix = (int)x;
   int iy = (int)y;
-  const float *bp = mat + ix + iy * width;
+  const float* bp = mat + ix + iy * width;
 
   checkBoundsPlus1(ix, iy, width);
 
@@ -225,16 +210,14 @@ getInterpolatedElement13BiLin(const float *const mat, const float x,
   float leftInt = dy * bl + (1 - dy) * tl;
   float rightInt = dy * br + (1 - dy) * tr;
 
-  return Eigen::Vector3f(dx * rightInt + (1 - dx) * leftInt, rightInt - leftInt,
-                         botInt - topInt);
+  return Eigen::Vector3f(dx * rightInt + (1 - dx) * leftInt, rightInt - leftInt, botInt - topInt);
 }
 
-EIGEN_ALWAYS_INLINE Eigen::Vector3f
-getInterpolatedElement33BiLin(const Eigen::Vector3f *const mat, const float x,
-                              const float y, const int width) {
+EIGEN_ALWAYS_INLINE Eigen::Vector3f getInterpolatedElement33BiLin(const Eigen::Vector3f* const mat, const float x,
+                                                                  const float y, const int width) {
   int ix = (int)x;
   int iy = (int)y;
-  const Eigen::Vector3f *bp = mat + ix + iy * width;
+  const Eigen::Vector3f* bp = mat + ix + iy * width;
 
   checkBoundsPlus1(ix, iy, width);
 
@@ -250,55 +233,47 @@ getInterpolatedElement33BiLin(const Eigen::Vector3f *const mat, const float x,
   float leftInt = dy * bl + (1 - dy) * tl;
   float rightInt = dy * br + (1 - dy) * tr;
 
-  return Eigen::Vector3f(dx * rightInt + (1 - dx) * leftInt, // 像素值
-                         rightInt - leftInt,                 // x方向梯度
-                         botInt - topInt);                   // y方向梯度
+  return Eigen::Vector3f(dx * rightInt + (1 - dx) * leftInt,  // 像素值
+                         rightInt - leftInt,                  // x方向梯度
+                         botInt - topInt);                    // y方向梯度
 }
 
-EIGEN_ALWAYS_INLINE float
-getInterpolatedElement11Cub(const float *const p,
-                            const float x) // for x=0, this returns p[1].
+EIGEN_ALWAYS_INLINE float getInterpolatedElement11Cub(const float* const p,
+                                                      const float x)  // for x=0, this returns p[1].
 {
   return p[1] + 0.5f * x *
                     (p[2] - p[0] +
-                     x * (2.0f * p[0] - 5.0f * p[1] + 4.0f * p[2] - p[3] +
-                          x * (3.0f * (p[1] - p[2]) + p[3] - p[0])));
+                     x * (2.0f * p[0] - 5.0f * p[1] + 4.0f * p[2] - p[3] + x * (3.0f * (p[1] - p[2]) + p[3] - p[0])));
 }
 
-EIGEN_ALWAYS_INLINE Eigen::Vector2f
-getInterpolatedElement12Cub(const float *const p,
-                            const float x) // for x=0, this returns p[1].
+EIGEN_ALWAYS_INLINE Eigen::Vector2f getInterpolatedElement12Cub(const float* const p,
+                                                                const float x)  // for x=0, this returns p[1].
 {
   float c1 = 0.5f * (p[2] - p[0]);
   float c2 = p[0] - 2.5f * p[1] + 2 * p[2] - 0.5f * p[3];
   float c3 = 0.5f * (3.0f * (p[1] - p[2]) + p[3] - p[0]);
   float xx = x * x;
   float xxx = xx * x;
-  return Eigen::Vector2f(p[1] + x * c1 + xx * c2 + xxx * c3,
-                         c1 + x * 2.0f * c2 + xx * 3.0f * c3);
+  return Eigen::Vector2f(p[1] + x * c1 + xx * c2 + xxx * c3, c1 + x * 2.0f * c2 + xx * 3.0f * c3);
 }
 
-EIGEN_ALWAYS_INLINE Eigen::Vector2f
-getInterpolatedElement32Cub(const Eigen::Vector3f *const p,
-                            const float x) // for x=0, this returns p[1].
+EIGEN_ALWAYS_INLINE Eigen::Vector2f getInterpolatedElement32Cub(const Eigen::Vector3f* const p,
+                                                                const float x)  // for x=0, this returns p[1].
 {
   float c1 = 0.5f * (p[2][0] - p[0][0]);
   float c2 = p[0][0] - 2.5f * p[1][0] + 2 * p[2][0] - 0.5f * p[3][0];
   float c3 = 0.5f * (3.0f * (p[1][0] - p[2][0]) + p[3][0] - p[0][0]);
   float xx = x * x;
   float xxx = xx * x;
-  return Eigen::Vector2f(p[1][0] + x * c1 + xx * c2 + xxx * c3,
-                         c1 + x * 2.0f * c2 + xx * 3.0f * c3);
+  return Eigen::Vector2f(p[1][0] + x * c1 + xx * c2 + xxx * c3, c1 + x * 2.0f * c2 + xx * 3.0f * c3);
 }
 
-EIGEN_ALWAYS_INLINE float getInterpolatedElement11BiCub(const float *const mat,
-                                                        const float x,
-                                                        const float y,
+EIGEN_ALWAYS_INLINE float getInterpolatedElement11BiCub(const float* const mat, const float x, const float y,
                                                         const int width) {
   int ix = (int)x;
   int iy = (int)y;
   float dx = x - ix;
-  const float *bp = mat + ix + iy * width;
+  const float* bp = mat + ix + iy * width;
 
   float val[4];
   val[0] = getInterpolatedElement11Cub(bp - width - 1, dx);
@@ -310,13 +285,12 @@ EIGEN_ALWAYS_INLINE float getInterpolatedElement11BiCub(const float *const mat,
   return getInterpolatedElement11Cub(val, dy);
 }
 
-EIGEN_ALWAYS_INLINE Eigen::Vector3f
-getInterpolatedElement13BiCub(const float *const mat, const float x,
-                              const float y, const int width) {
+EIGEN_ALWAYS_INLINE Eigen::Vector3f getInterpolatedElement13BiCub(const float* const mat, const float x, const float y,
+                                                                  const int width) {
   int ix = (int)x;
   int iy = (int)y;
   float dx = x - ix;
-  const float *bp = mat + ix + iy * width;
+  const float* bp = mat + ix + iy * width;
 
   float val[4];
   float grad[4];
@@ -342,13 +316,12 @@ getInterpolatedElement13BiCub(const float *const mat, const float x,
   return Eigen::Vector3f(v[0], getInterpolatedElement11Cub(grad, dy), v[1]);
 }
 
-EIGEN_ALWAYS_INLINE Eigen::Vector3f
-getInterpolatedElement33BiCub(const Eigen::Vector3f *const mat, const float x,
-                              const float y, const int width) {
+EIGEN_ALWAYS_INLINE Eigen::Vector3f getInterpolatedElement33BiCub(const Eigen::Vector3f* const mat, const float x,
+                                                                  const float y, const int width) {
   int ix = (int)x;
   int iy = (int)y;
   float dx = x - ix;
-  const Eigen::Vector3f *bp = mat + ix + iy * width;
+  const Eigen::Vector3f* bp = mat + ix + iy * width;
 
   float val[4];
   float grad[4];
@@ -374,102 +347,80 @@ getInterpolatedElement33BiCub(const Eigen::Vector3f *const mat, const float x,
   return Eigen::Vector3f(v[0], getInterpolatedElement11Cub(grad, dy), v[1]);
 }
 
-EIGEN_ALWAYS_INLINE Eigen::Vector4f
-getInterpolatedElement44(const Eigen::Vector4f *const mat, const float x,
-                         const float y, const int width) {
+EIGEN_ALWAYS_INLINE Eigen::Vector4f getInterpolatedElement44(const Eigen::Vector4f* const mat, const float x,
+                                                             const float y, const int width) {
   int ix = (int)x;
   int iy = (int)y;
   float dx = x - ix;
   float dy = y - iy;
   float dxdy = dx * dy;
-  const Eigen::Vector4f *bp = mat + ix + iy * width;
+  const Eigen::Vector4f* bp = mat + ix + iy * width;
 
-  return dxdy * *(bp + 1 + width) + (dy - dxdy) * *(bp + width) +
-         (dx - dxdy) * *(bp + 1) + (1 - dx - dy + dxdy) * *(bp);
+  return dxdy * *(bp + 1 + width) + (dy - dxdy) * *(bp + width) + (dx - dxdy) * *(bp + 1) +
+         (1 - dx - dy + dxdy) * *(bp);
 }
 
-EIGEN_ALWAYS_INLINE Eigen::Vector2f
-getInterpolatedElement42(const Eigen::Vector4f *const mat, const float x,
-                         const float y, const int width) {
+EIGEN_ALWAYS_INLINE Eigen::Vector2f getInterpolatedElement42(const Eigen::Vector4f* const mat, const float x,
+                                                             const float y, const int width) {
   int ix = (int)x;
   int iy = (int)y;
   float dx = x - ix;
   float dy = y - iy;
   float dxdy = dx * dy;
-  const Eigen::Vector4f *bp = mat + ix + iy * width;
+  const Eigen::Vector4f* bp = mat + ix + iy * width;
 
-  return dxdy * *(const Eigen::Vector2f *)(bp + 1 + width) +
-         (dy - dxdy) * *(const Eigen::Vector2f *)(bp + width) +
-         (dx - dxdy) * *(const Eigen::Vector2f *)(bp + 1) +
-         (1 - dx - dy + dxdy) * *(const Eigen::Vector2f *)(bp);
+  return dxdy * *(const Eigen::Vector2f*)(bp + 1 + width) + (dy - dxdy) * *(const Eigen::Vector2f*)(bp + width) +
+         (dx - dxdy) * *(const Eigen::Vector2f*)(bp + 1) + (1 - dx - dy + dxdy) * *(const Eigen::Vector2f*)(bp);
 }
 
 inline Vec3f makeRainbowf3F(float id) {
   id *= freeDebugParam3;
-  if (id < 0)
-    return Vec3f(1, 1, 1);
+  if (id < 0) return Vec3f(1, 1, 1);
 
   int icP = id;
   float ifP = id - icP;
   icP = icP % 3;
 
-  if (icP == 0)
-    return Vec3f((1 - ifP), ifP, 0);
-  if (icP == 1)
-    return Vec3f(0, (1 - ifP), ifP);
-  if (icP == 2)
-    return Vec3f(ifP, 0, (1 - ifP));
+  if (icP == 0) return Vec3f((1 - ifP), ifP, 0);
+  if (icP == 1) return Vec3f(0, (1 - ifP), ifP);
+  if (icP == 2) return Vec3f(ifP, 0, (1 - ifP));
   assert(false);
   return Vec3f(1, 1, 1);
 }
 
 inline Vec3b makeRainbow3B(float id) {
   id *= freeDebugParam3;
-  if (!(id > 0))
-    return Vec3b(255, 255, 255);
+  if (!(id > 0)) return Vec3b(255, 255, 255);
 
   int icP = id;
   float ifP = id - icP;
   icP = icP % 3;
 
-  if (icP == 0)
-    return Vec3b(255 * (1 - ifP), 255 * ifP, 0);
-  if (icP == 1)
-    return Vec3b(0, 255 * (1 - ifP), 255 * ifP);
-  if (icP == 2)
-    return Vec3b(255 * ifP, 0, 255 * (1 - ifP));
+  if (icP == 0) return Vec3b(255 * (1 - ifP), 255 * ifP, 0);
+  if (icP == 1) return Vec3b(0, 255 * (1 - ifP), 255 * ifP);
+  if (icP == 2) return Vec3b(255 * ifP, 0, 255 * (1 - ifP));
   return Vec3b(255, 255, 255);
 }
 
 inline Vec3b makeJet3B(float id) {
-  if (id <= 0)
-    return Vec3b(128, 0, 0);
-  if (id >= 1)
-    return Vec3b(0, 0, 128);
+  if (id <= 0) return Vec3b(128, 0, 0);
+  if (id >= 1) return Vec3b(0, 0, 128);
 
   int icP = (id * 8);
   float ifP = (id * 8) - icP;
 
-  if (icP == 0)
-    return Vec3b(255 * (0.5 + 0.5 * ifP), 0, 0);
-  if (icP == 1)
-    return Vec3b(255, 255 * (0.5 * ifP), 0);
-  if (icP == 2)
-    return Vec3b(255, 255 * (0.5 + 0.5 * ifP), 0);
-  if (icP == 3)
-    return Vec3b(255 * (1 - 0.5 * ifP), 255, 255 * (0.5 * ifP));
-  if (icP == 4)
-    return Vec3b(255 * (0.5 - 0.5 * ifP), 255, 255 * (0.5 + 0.5 * ifP));
-  if (icP == 5)
-    return Vec3b(0, 255 * (1 - 0.5 * ifP), 255);
-  if (icP == 6)
-    return Vec3b(0, 255 * (0.5 - 0.5 * ifP), 255);
-  if (icP == 7)
-    return Vec3b(0, 0, 255 * (1 - 0.5 * ifP));
+  if (icP == 0) return Vec3b(255 * (0.5 + 0.5 * ifP), 0, 0);
+  if (icP == 1) return Vec3b(255, 255 * (0.5 * ifP), 0);
+  if (icP == 2) return Vec3b(255, 255 * (0.5 + 0.5 * ifP), 0);
+  if (icP == 3) return Vec3b(255 * (1 - 0.5 * ifP), 255, 255 * (0.5 * ifP));
+  if (icP == 4) return Vec3b(255 * (0.5 - 0.5 * ifP), 255, 255 * (0.5 + 0.5 * ifP));
+  if (icP == 5) return Vec3b(0, 255 * (1 - 0.5 * ifP), 255);
+  if (icP == 6) return Vec3b(0, 255 * (0.5 - 0.5 * ifP), 255);
+  if (icP == 7) return Vec3b(0, 0, 255 * (1 - 0.5 * ifP));
   return Vec3b(255, 255, 255);
 }
 
-inline Vec3b makeRedGreen3B(float val) // 0 = red, 1=green, 0.5=yellow.
+inline Vec3b makeRedGreen3B(float val)  // 0 = red, 1=green, 0.5=yellow.
 {
   if (val < 0)
     return Vec3b(0, 0, 255);
@@ -481,4 +432,4 @@ inline Vec3b makeRedGreen3B(float val) // 0 = red, 1=green, 0.5=yellow.
     return Vec3b(0, 255, 0);
 }
 
-} // namespace dso
+}  // namespace dso

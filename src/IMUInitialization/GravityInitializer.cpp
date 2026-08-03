@@ -26,14 +26,12 @@
 using dmvio::GravityInitializer;
 using dmvio::IMUIntegration;
 
-GravityInitializer::GravityInitializer(int numMeasurementsToUse,
-                                       const IMUCalibration &imuCalibration)
+GravityInitializer::GravityInitializer(int numMeasurementsToUse, const IMUCalibration& imuCalibration)
     : maxNumMeasurements(numMeasurementsToUse) {
   gravity = imuCalibration.gravity;
 }
 
-Sophus::SE3d GravityInitializer::addMeasure(const IMUData &imuData,
-                                            const Sophus::SE3d &currToFirst) {
+Sophus::SE3d GravityInitializer::addMeasure(const IMUData& imuData, const Sophus::SE3d& currToFirst) {
   int numMeasure = 0;
   Eigen::Vector3d measure(0.0, 0.0, 0.0);
   std::cout << "--------------- imuData.size() " << imuData.size() << std::endl;
@@ -52,7 +50,7 @@ Sophus::SE3d GravityInitializer::addMeasure(const IMUData &imuData,
   }
 
   Eigen::Vector3d filteredM(0.0, 0.0, 0.0);
-  for (auto &&m : measures) {
+  for (auto&& m : measures) {
     std::cout << "--------------- m: " << m.transpose() << std::endl;
     filteredM += m;
   }
@@ -62,27 +60,22 @@ Sophus::SE3d GravityInitializer::addMeasure(const IMUData &imuData,
 
   Eigen::Quaterniond quat;
   quat.setFromTwoVectors(measure, -gravity);
-  std::cout << "measure: " << measure.transpose()
-            << ", gravity: " << gravity.transpose()
+  std::cout << "measure: " << measure.transpose() << ", gravity: " << gravity.transpose()
             << ", measures.size(): " << measures.size() << std::endl;
   Sophus::SE3d imuToWorld(quat, Eigen::Vector3d::Zero());
 
   return imuToWorld;
 }
 
-double dmvio::getGravityError(const Sophus::SE3d &imuToWorld,
-                              const Sophus::SE3d &imuToWorldGT) {
-  Eigen::Vector3d g =
-      (gtsam::Vector(3) << 0, 0, -9.8082)
-          .finished(); // Only the direction actually matters so it's ok
-                       // if this is not the actually used gravity.
+double dmvio::getGravityError(const Sophus::SE3d& imuToWorld, const Sophus::SE3d& imuToWorldGT) {
+  Eigen::Vector3d g = (gtsam::Vector(3) << 0, 0, -9.8082).finished();  // Only the direction actually matters so it's ok
+                                                                       // if this is not the actually used gravity.
   // g is in world coordinates, so check what g is in drone coordinates.
   Eigen::Vector3d gDrone = imuToWorld.inverse().rotationMatrix() * g;
   Eigen::Vector3d gDroneGT = imuToWorldGT.inverse().rotationMatrix() * g;
 
   // Compute angle between the two vectors.
-  double angle =
-      std::acos(gDrone.dot(gDroneGT) / (gDrone.norm() * gDroneGT.norm()));
+  double angle = std::acos(gDrone.dot(gDroneGT) / (gDrone.norm() * gDroneGT.norm()));
   double degrees = (angle * 180.0) / boost::math::constants::pi<double>();
 
   return degrees;

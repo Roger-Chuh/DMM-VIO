@@ -29,8 +29,7 @@ namespace dso {
 struct RawResidualJacobian {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   //  RawResidualJacobian() {}
-  RawResidualJacobian(const int &host_cid_, const int &target_cid_)
-      : host_cid(host_cid_), target_cid(target_cid_) {}
+  RawResidualJacobian(const int& host_cid_, const int& target_cid_) : host_cid(host_cid_), target_cid(target_cid_) {}
   void ResetValues() {
     resF.setZero();
     Jpdxi[0].setZero();
@@ -47,35 +46,35 @@ struct RawResidualJacobian {
     Jab2.setZero();
   }
   // ================== new structure: save independently =============.
-  VecNRf resF; // TODO 加权后的光度残差 //!< 每个patch的8个残差
+  VecNRf resF;  // TODO 加权后的光度残差 //!< 每个patch的8个残差
 
   // the two rows of d[x,y]/d[xi].
-  Vec6f Jpdxi[2]; // 2x6 //TODO uv对pose的雅可比[2x6] //!< 点对位姿
+  Vec6f Jpdxi[2];  // 2x6 //TODO uv对pose的雅可比[2x6] //!< 点对位姿
 
   // the two rows of d[x,y]/d[C].
-  VecCf Jpdc[2]; // 2x4 //TODO uv对intr的雅可比[2x4] //!< 点对相机参数
+  VecCf Jpdc[2];  // 2x4 //TODO uv对intr的雅可比[2x4] //!< 点对相机参数
 
   // the two rows of d[x,y]/d[idepth].
-  Vec2f Jpdd; // 2x1 //TODO uv对idp的雅可比[2x1] 	//!< 点对逆深度 //TODO
-              // fej, 其实逆深度每次都会重新线性化，等于没用fej
+  Vec2f Jpdd;  // 2x1 //TODO uv对idp的雅可比[2x1] 	//!< 点对逆深度 //TODO
+               // fej, 其实逆深度每次都会重新线性化，等于没用fej
 
   // the two columns of d[r]/d[x,y].
-  VecNRf JIdx[2]; // 9x2 //TODO 残差对uv的雅可比（梯度） //!<
-                  // patch光度误差对点(gradient), 8×2 //TODO gradient, not using
-                  // fej
+  VecNRf JIdx[2];  // 9x2 //TODO 残差对uv的雅可比（梯度） //!<
+                   // patch光度误差对点(gradient), 8×2 //TODO gradient, not using
+                   // fej
 
   // = the two columns of d[r] / d[ab]
-  VecNRf JabF[2]; // 9x2 //TODO 残差对ab的雅可比[1x2] //!<
-                  // patch光度误差对光度仿射， 8x2 //TODO affine correction, not
-                  // using fej
+  VecNRf JabF[2];  // 9x2 //TODO 残差对ab的雅可比[1x2] //!<
+                   // patch光度误差对光度仿射， 8x2 //TODO affine correction, not
+                   // using fej
 
   //!< 对应的小的hessian
   // = JIdx^T * JIdx (inner product). Only as a shorthand.
-  Mat22f JIdx2; // 2x2 //TODO 梯度x梯度部分的小hessian
+  Mat22f JIdx2;  // 2x2 //TODO 梯度x梯度部分的小hessian
   // = Jab^T * JIdx (inner product). Only as a shorthand.
-  Mat22f JabJIdx; // 2x2 //TODO 光度x梯度部分的小hessian
+  Mat22f JabJIdx;  // 2x2 //TODO 光度x梯度部分的小hessian
   // = Jab^T * Jab (inner product). Only as a shorthand.
-  Mat22f Jab2; // 2x2 //TODO 光度x光度部分的小hessian
+  Mat22f Jab2;  // 2x2 //TODO 光度x光度部分的小hessian
   int host_cid, target_cid;
 };
-} // namespace dso
+}  // namespace dso

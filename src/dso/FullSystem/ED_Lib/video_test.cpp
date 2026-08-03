@@ -9,7 +9,7 @@ namespace ED {
 using namespace cv;
 using namespace std;
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   cv::CommandLineParser parser(argc, argv,
                                "{scale|1|}"
                                "{counter|99999|}"
@@ -26,12 +26,10 @@ int main(int argc, char **argv) {
 
   VideoCapture capture(samples::findFileOrKeep(filename));
   if (capture.isOpened()) {
-    cout << "Capture is opened, " << capture.get(CAP_PROP_FRAME_COUNT)
-         << " frames" << endl;
-    cout << "Frame [width,height] : [" << capture.get(CAP_PROP_FRAME_WIDTH)
-         << "," << capture.get(CAP_PROP_FRAME_HEIGHT) << "]" << endl;
-    cout << "Scaled[width,height] : ["
-         << capture.get(CAP_PROP_FRAME_WIDTH) * scale << ","
+    cout << "Capture is opened, " << capture.get(CAP_PROP_FRAME_COUNT) << " frames" << endl;
+    cout << "Frame [width,height] : [" << capture.get(CAP_PROP_FRAME_WIDTH) << "," << capture.get(CAP_PROP_FRAME_HEIGHT)
+         << "]" << endl;
+    cout << "Scaled[width,height] : [" << capture.get(CAP_PROP_FRAME_WIDTH) * scale << ","
          << capture.get(CAP_PROP_FRAME_HEIGHT) * scale << "]" << endl;
     ;
 
@@ -47,8 +45,7 @@ int main(int argc, char **argv) {
       capture >> src;
       test_counter--;
 
-      if (src.empty() || test_counter < 0)
-        break;
+      if (src.empty() || test_counter < 0) break;
 
       resize(src, src, Size(), scale, scale);
       cvtColor(src, gray, COLOR_BGR2GRAY);
@@ -69,12 +66,11 @@ int main(int argc, char **argv) {
       if (show) {
         std::vector<LS> linesegments = testEDLines.getLines();
 
-        Mat lineImg0 = testEDLines.getLineImage(); // draws on an empty image
+        Mat lineImg0 = testEDLines.getLineImage();  // draws on an empty image
         Mat lineImg1 = Mat(lineImg0.rows, lineImg0.cols, CV_8UC1, Scalar(255));
 
         for (int i = 0; i < lines.size(); i++)
-          line(lineImg1, Point2d(lines[i][0], lines[i][1]),
-               Point2d(lines[i][2], lines[i][3]), Scalar(0), 1, LINE_AA);
+          line(lineImg1, Point2d(lines[i][0], lines[i][1]), Point2d(lines[i][2], lines[i][3]), Scalar(0), 1, LINE_AA);
 
         Mat diff;
         absdiff(lineImg0, lineImg1, diff);
@@ -86,18 +82,16 @@ int main(int argc, char **argv) {
       }
     }
 
-    cout << "OpenCV    processed " << counter << " frames in    "
-         << tm0.getTimeMilli() << " ms.";
+    cout << "OpenCV    processed " << counter << " frames in    " << tm0.getTimeMilli() << " ms.";
     cout << "\t\tfps : " << counter * 1000 / tm0.getTimeMilli() << endl;
 
-    cout << "EDCircles processed " << counter << " frames in    "
-         << tm1.getTimeMilli() << " ms.";
+    cout << "EDCircles processed " << counter << " frames in    " << tm1.getTimeMilli() << " ms.";
     cout << "\t\tfps : " << counter * 1000 / tm1.getTimeMilli() << endl;
   }
   return 0;
 }
-} // namespace ED
-} // namespace dso
+}  // namespace ED
+}  // namespace dso
 
 // 全局入口：链接器要求可执行文件具有全局 ::main，这里转发到 dso::ED::main。
-int main(int argc, char **argv) { return dso::ED::main(argc, argv); }
+int main(int argc, char** argv) { return dso::ED::main(argc, argv); }

@@ -32,15 +32,12 @@
 
 using namespace dmvio;
 using namespace gtsam;
-using symbol_shorthand::P, symbol_shorthand::S, symbol_shorthand::V,
-    symbol_shorthand::B;
+using symbol_shorthand::P, symbol_shorthand::S, symbol_shorthand::V, symbol_shorthand::B;
 
-dmvio::CoarseIMUInitOptimizer::CoarseIMUInitOptimizer(
-    std::shared_ptr<PoseTransformation> transformDSOToIMU,
-    const IMUCalibration &imuCalibration,
-    const CoarseIMUInitOptimizerSettings &settingsPassed)
-    : transformDSOToIMU(transformDSOToIMU), imuCalibration(imuCalibration),
-      settings(settingsPassed) {
+dmvio::CoarseIMUInitOptimizer::CoarseIMUInitOptimizer(std::shared_ptr<PoseTransformation> transformDSOToIMU,
+                                                      const IMUCalibration& imuCalibration,
+                                                      const CoarseIMUInitOptimizerSettings& settingsPassed)
+    : transformDSOToIMU(transformDSOToIMU), imuCalibration(imuCalibration), settings(settingsPassed) {
   gtsam::Vector6 posePriorVector;
   posePriorVector.segment(0, 3).setConstant(settings.priorRotSigma);
   posePriorVector.segment(3, 3).setConstant(settings.priorTransSigma);
@@ -63,9 +60,8 @@ void CoarseIMUInitOptimizer::handleFirstFrame(int frameId) {
   values.insert(biasKey, imuBias::ConstantBias(gtsam::Vector6::Zero()));
 }
 
-void dmvio::CoarseIMUInitOptimizer::addPose(
-    int frameId, const Sophus::SE3d &camToWorld,
-    const gtsam::PreintegratedImuMeasurements *imuData) {
+void dmvio::CoarseIMUInitOptimizer::addPose(int frameId, const Sophus::SE3d& camToWorld,
+                                            const gtsam::PreintegratedImuMeasurements* imuData) {
   // Note that we are optimizing worldToCam!
   gtsam::Pose3 framePose(camToWorld.inverse().matrix());
 
@@ -77,22 +73,17 @@ void dmvio::CoarseIMUInitOptimizer::addPose(
       prevBiasKey = B(prevFrameId);
       auto biasNoiseModel = computeBiasNoiseModel(imuCalibration, *imuData);
 
-      gtsam::NonlinearFactor::shared_ptr bias_factor(
-          new BetweenFactor<gtsam::imuBias::ConstantBias>(
-              prevBiasKey, B(frameId),
-              gtsam::imuBias::ConstantBias(gtsam::Vector3::Zero(),
-                                           gtsam::Vector3::Zero()),
-              biasNoiseModel));
+      gtsam::NonlinearFactor::shared_ptr bias_factor(new BetweenFactor<gtsam::imuBias::ConstantBias>(
+          prevBiasKey, B(frameId), gtsam::imuBias::ConstantBias(gtsam::Vector3::Zero(), gtsam::Vector3::Zero()),
+          biasNoiseModel));
       graph.add(bias_factor);
-      values.insert(B(frameId),
-                    values.at<imuBias::ConstantBias>(B(prevFrameId)));
+      values.insert(B(frameId), values.at<imuBias::ConstantBias>(B(prevFrameId)));
     } else {
       prevBiasKey = B(0);
     }
     // Add IMU factor
     gtsam::NonlinearFactor::shared_ptr imuFactor(
-        new gtsam::ImuFactor(P(prevFrameId), V(prevFrameId), P(frameId),
-                             V(frameId), prevBiasKey, *imuData));
+        new gtsam::ImuFactor(P(prevFrameId), V(prevFrameId), P(frameId), V(frameId), prevBiasKey, *imuData));
 
     // The IMUFactor needs to be transformed (from IMU frame to DSO frame).
     gtsam::Values fixedValues;
@@ -100,8 +91,8 @@ void dmvio::CoarseIMUInitOptimizer::addPose(
       fixedValues.insert(P(prevFrameId), prevFramePose);
       fixedValues.insert(P(frameId), framePose);
     }
-    auto transformedFactor = boost::make_shared<PoseTransformationFactor>(
-        imuFactor, *transformDSOToIMU, settings.conversionType, fixedValues);
+    auto transformedFactor = boost::make_shared<PoseTransformationFactor>(imuFactor, *transformDSOToIMU,
+                                                                          settings.conversionType, fixedValues);
 
     graph.add(transformedFactor);
 
@@ -111,8 +102,7 @@ void dmvio::CoarseIMUInitOptimizer::addPose(
   }
 
   if (!settings.fixPoses) {
-    graph.push_back(gtsam::PriorFactor<gtsam::Pose3>(P(frameId), framePose,
-                                                     posePriorModel));
+    graph.push_back(gtsam::PriorFactor<gtsam::Pose3>(P(frameId), framePose, posePriorModel));
     values.insert(P(frameId), framePose);
   }
 
@@ -135,7 +125,7 @@ void dmvio::CoarseIMUInitOptimizer::addPose(
       numFrames--;
     }
     removeKeysFromGraph(graph, keysToRemove, 5);
-    for (auto &&key : keysToRemove) {
+    for (auto&& key : keysToRemove) {
       values.erase(key);
     }
   }
@@ -145,29 +135,25 @@ void dmvio::CoarseIMUInitOptimizer::addPose(
   prevFramePose = framePose;
 }
 
-dmvio::CoarseIMUInitOptimizer::OptimizationResult
-dmvio::CoarseIMUInitOptimizer::optimize() {
+dmvio::CoarseIMUInitOptimizer::OptimizationResult dmvio::CoarseIMUInitOptimizer::optimize() {
   if (settings.updatePoses) {
     // Get the newest poses from DSO.
     boost::unique_lock<boost::mutex> lock(dso::FrameShell::shellPoseMutex);
-    for (auto &&factor : graph) {
-      PoseTransformationFactor *casted =
-          dynamic_cast<PoseTransformationFactor *>(factor.get());
+    for (auto&& factor : graph) {
+      PoseTransformationFactor* casted = dynamic_cast<PoseTransformationFactor*>(factor.get());
       if (casted) {
-        auto &&keys = casted->fixedValues.keys();
-        for (auto &&key : keys) {
+        auto&& keys = casted->fixedValues.keys();
+        for (auto&& key : keys) {
           gtsam::Symbol sym(key);
           if (sym.chr() == 'p') {
-            const auto *shell = activeShells.at(sym.index());
+            const auto* shell = activeShells.at(sym.index());
             // compute updated camToWorld
             Sophus::SE3d camToWorld = shell->camToWorld;
             if (shell->keyframeId == -1) {
-              camToWorld =
-                  shell->trackingRef->camToWorld * shell->camToTrackingRef;
+              camToWorld = shell->trackingRef->camToWorld * shell->camToTrackingRef;
             }
             assert(sym.index() == shell->id);
-            eraseAndInsert(casted->fixedValues, key,
-                           gtsam::Pose3(camToWorld.inverse().matrix()));
+            eraseAndInsert(casted->fixedValues, key, gtsam::Pose3(camToWorld.inverse().matrix()));
           }
         }
       }
@@ -183,44 +169,30 @@ dmvio::CoarseIMUInitOptimizer::optimize() {
   bool good = true;
   // If error is too high we assume that odometry failed and request a full
   // reset.
-  if ((settings.requestFullResetErrorThreshold > 0 &&
-       error > settings.requestFullResetErrorThreshold) ||
+  if ((settings.requestFullResetErrorThreshold > 0 && error > settings.requestFullResetErrorThreshold) ||
       (settings.requestFullResetNormalizedErrorThreshold > 0 &&
        normalizedError > settings.requestFullResetNormalizedErrorThreshold)) {
-    std::cout << "Large CoarseIMUInitializer error! Requesting full reset! "
-              << normalizedError << std::endl;
+    std::cout << "Large CoarseIMUInitializer error! Requesting full reset! " << normalizedError << std::endl;
     good = false;
     dso::setting_fullResetRequested = true;
   }
 
-  return OptimizationResult(optimizer.iterations(), error, normalizedError,
-                            good);
+  return OptimizationResult(optimizer.iterations(), error, normalizedError, good);
 }
 
-std::shared_ptr<PoseTransformation>
-dmvio::CoarseIMUInitOptimizer::getUpdatedTransform() {
-  return transformDSOToIMU;
-}
+std::shared_ptr<PoseTransformation> dmvio::CoarseIMUInitOptimizer::getUpdatedTransform() { return transformDSOToIMU; }
 
-gtsam::Key CoarseIMUInitOptimizer::getBiasKey() {
-  return settings.multipleBiases ? B(prevFrameId) : B(0);
-}
+gtsam::Key CoarseIMUInitOptimizer::getBiasKey() { return settings.multipleBiases ? B(prevFrameId) : B(0); }
 
 gtsam::imuBias::ConstantBias CoarseIMUInitOptimizer::getBias() {
   return values.at<gtsam::imuBias::ConstantBias>(getBiasKey());
 }
 
-gtsam::Marginals CoarseIMUInitOptimizer::getMarginals() {
-  return gtsam::Marginals(graph, optimizedValues);
-}
+gtsam::Marginals CoarseIMUInitOptimizer::getMarginals() { return gtsam::Marginals(graph, optimizedValues); }
 
-void CoarseIMUInitOptimizer::takeOverOptimizedValues() {
-  values = optimizedValues;
-}
+void CoarseIMUInitOptimizer::takeOverOptimizedValues() { values = optimizedValues; }
 
-void CoarseIMUInitOptimizer::addPose(
-    const dso::FrameShell &shell,
-    const gtsam::PreintegratedImuMeasurements *imuData) {
+void CoarseIMUInitOptimizer::addPose(const dso::FrameShell& shell, const gtsam::PreintegratedImuMeasurements* imuData) {
   boost::unique_lock<boost::mutex> lock(dso::FrameShell::shellPoseMutex);
   if (settings.updatePoses) {
     activeShells[shell.id] = &shell;
@@ -228,7 +200,6 @@ void CoarseIMUInitOptimizer::addPose(
   addPose(shell.id, shell.camToWorld, imuData);
 }
 
-CoarseIMUInitOptimizer::OptimizationResult::OptimizationResult(
-    int numIterations, double error, double normalizedError, bool good)
-    : numIterations(numIterations), error(error),
-      normalizedError(normalizedError), good(good) {}
+CoarseIMUInitOptimizer::OptimizationResult::OptimizationResult(int numIterations, double error, double normalizedError,
+                                                               bool good)
+    : numIterations(numIterations), error(error), normalizedError(normalizedError), good(good) {}

@@ -26,17 +26,19 @@
 #include "IMUInitializerStates.h"
 #include <memory>
 
-dmvio::IMUInitializerLogic::IMUInitializerLogic(
-    std::string resultsPrefix,
-    boost::shared_ptr<gtsam::PreintegrationParams> preintegrationParams,
-    const dmvio::IMUCalibration &imuCalibration,
-    dmvio::IMUInitSettings &settings,
-    DelayedMarginalizationGraphs *delayedMarginalization,
-    bool linearizeOperation, InitCallback callOnInit,
-    IMUInitStateChanger &stateChanger)
-    : imuCalibration(imuCalibration), settings(settings),
-      imuMeasurements(preintegrationParams), optScale(new bool(true)),
-      optGravity(new bool(true)), optT_cam_imu(new bool(false)),
+dmvio::IMUInitializerLogic::IMUInitializerLogic(std::string resultsPrefix,
+                                                boost::shared_ptr<gtsam::PreintegrationParams> preintegrationParams,
+                                                const dmvio::IMUCalibration& imuCalibration,
+                                                dmvio::IMUInitSettings& settings,
+                                                DelayedMarginalizationGraphs* delayedMarginalization,
+                                                bool linearizeOperation, InitCallback callOnInit,
+                                                IMUInitStateChanger& stateChanger)
+    : imuCalibration(imuCalibration),
+      settings(settings),
+      imuMeasurements(preintegrationParams),
+      optScale(new bool(true)),
+      optGravity(new bool(true)),
+      optT_cam_imu(new bool(false)),
       callOnInit(callOnInit),
       delayedMarginalizationGraphs(delayedMarginalization),
       stateChanger(stateChanger) {
@@ -49,40 +51,36 @@ dmvio::IMUInitializerLogic::IMUInitializerLogic(
     realtimeCoarseIMUInit = true;
   }
 
-  transformDSOToIMU.reset(
-      new TransformDSOToIMU(gtsam::Pose3(imuCalibration.T_cam_imu.matrix()),
-                            optScale, optGravity, optT_cam_imu, true, 0));
+  transformDSOToIMU.reset(new TransformDSOToIMU(gtsam::Pose3(imuCalibration.T_cam_imu.matrix()), optScale, optGravity,
+                                                optT_cam_imu, true, 0));
 
   transformDSOToIMUAfterPGBA.reset(new TransformDSOToIMU(*transformDSOToIMU));
 
   // Initialize CoarseIMUInitOptimizer:
-  coarseIMUOptimizer = std::make_unique<CoarseIMUInitOptimizer>(
-      transformDSOToIMU, imuCalibration, settings.coarseInitSettings);
+  coarseIMUOptimizer =
+      std::make_unique<CoarseIMUInitOptimizer>(transformDSOToIMU, imuCalibration, settings.coarseInitSettings);
 
   // Add priors for transform related variables to the imuOptimGraph:
-  auto factors = getPriorsAndAddValuesForTransform(
-      *transformDSOToIMU, settings.transformPriors, coarseIMUOptimizer->values);
-  for (auto &&factor : factors) {
+  auto factors =
+      getPriorsAndAddValuesForTransform(*transformDSOToIMU, settings.transformPriors, coarseIMUOptimizer->values);
+  for (auto&& factor : factors) {
     coarseIMUOptimizer->graph.add(factor);
   }
 
   assert(delayedMarginalization);
-  pgba = std::make_unique<PoseGraphBundleAdjustment>(
-      delayedMarginalization, imuCalibration, settings.pgbaSettings,
-      transformDSOToIMUAfterPGBA);
+  pgba = std::make_unique<PoseGraphBundleAdjustment>(delayedMarginalization, imuCalibration, settings.pgbaSettings,
+                                                     transformDSOToIMUAfterPGBA);
 }
 
-void dmvio::IMUInitializerLogic::addPose(const dso::FrameShell &shell,
-                                         bool willBecomeKeyframe,
-                                         const IMUData *imuData) {
+void dmvio::IMUInitializerLogic::addPose(const dso::FrameShell& shell, bool willBecomeKeyframe,
+                                         const IMUData* imuData) {
   bool imuDataAvailable = false;
   if (imuData) {
     imuDataAvailable = true;
     integrateIMUData(*imuData, imuMeasurements);
   }
 
-  if (settings.onlyKFs && !willBecomeKeyframe)
-    return;
+  if (settings.onlyKFs && !willBecomeKeyframe) return;
 
   dmvio::TimeMeasurement addPoseTimeMeas("IMUInitAddPose");
   if (imuDataAvailable) {
@@ -95,36 +93,30 @@ void dmvio::IMUInitializerLogic::addPose(const dso::FrameShell &shell,
   }
 }
 
-dmvio::IMUInitVariances
-dmvio::IMUInitializerLogic::performCoarseIMUInit(double timestamp) {
+dmvio::IMUInitVariances dmvio::IMUInitializerLogic::performCoarseIMUInit(double timestamp) {
   dmvio::TimeMeasurement optimTime("IMUInitOptimize");
-  CoarseIMUInitOptimizer::OptimizationResult result =
-      coarseIMUOptimizer->optimize();
+  CoarseIMUInitOptimizer::OptimizationResult result = coarseIMUOptimizer->optimize();
   double time = optimTime.end();
 
   IMUInitVariances variances;
   if (result.good) {
     gtsam::Marginals marginals = coarseIMUOptimizer->getMarginals();
-    variances = IMUInitVariances(marginals, gtsam::Symbol('s', 0),
-                                 coarseIMUOptimizer->getBiasKey());
+    variances = IMUInitVariances(marginals, gtsam::Symbol('s', 0), coarseIMUOptimizer->getBiasKey());
 
     std::cout << "CoarseIMUInit normalized error: " << result.normalizedError
-              << " variance: " << variances.scaleVariance
-              << " scale: " << transformDSOToIMU->getScale() << std::endl;
+              << " variance: " << variances.scaleVariance << " scale: " << transformDSOToIMU->getScale() << std::endl;
   }
 
   return variances;
 }
 
-dmvio::IMUInitVariances::IMUInitVariances(const gtsam::Marginals &marginals,
-                                          gtsam::Key scaleKey,
-                                          gtsam::Key biasKey) {
+dmvio::IMUInitVariances::IMUInitVariances(const gtsam::Marginals& marginals, gtsam::Key scaleKey, gtsam::Key biasKey) {
   indetermined = false;
   try {
     gtsam::Matrix scaleCovariance = marginals.marginalCovariance(scaleKey);
     scaleVariance = scaleCovariance(0, 0);
     biasCovariance = marginals.marginalCovariance(biasKey);
-  } catch (gtsam::IndeterminantLinearSystemException &exc) {
+  } catch (gtsam::IndeterminantLinearSystemException& exc) {
     indetermined = true;
   }
 }

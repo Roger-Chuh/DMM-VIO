@@ -39,7 +39,7 @@ namespace dso {
 namespace {
 
 // Remove leading zero coefficients.
-VecX RemoveLeadingZeros(const VecX &coeffs) {
+VecX RemoveLeadingZeros(const VecX& coeffs) {
   VecX::Index num_zeros = 0;
   for (; num_zeros < coeffs.size(); ++num_zeros) {
     if (coeffs(num_zeros) != 0) {
@@ -50,7 +50,7 @@ VecX RemoveLeadingZeros(const VecX &coeffs) {
 }
 
 // Remove trailing zero coefficients.
-VecX RemoveTrailingZeros(const VecX &coeffs) {
+VecX RemoveTrailingZeros(const VecX& coeffs) {
   VecX::Index num_zeros = 0;
   for (; num_zeros < coeffs.size(); ++num_zeros) {
     if (coeffs(coeffs.size() - 1 - num_zeros) != 0) {
@@ -60,9 +60,9 @@ VecX RemoveTrailingZeros(const VecX &coeffs) {
   return coeffs.head(coeffs.size() - num_zeros);
 }
 
-} // namespace
+}  // namespace
 
-bool FindLinearPolynomialRoots(const VecX &coeffs, VecX *real, VecX *imag) {
+bool FindLinearPolynomialRoots(const VecX& coeffs, VecX* real, VecX* imag) {
   // CHECK_EQ(coeffs.size(), 2);
   if (coeffs.size() != 2) {
     printf("size dont match\n");
@@ -86,7 +86,7 @@ bool FindLinearPolynomialRoots(const VecX &coeffs, VecX *real, VecX *imag) {
   return true;
 }
 
-bool FindQuadraticPolynomialRoots(const VecX &coeffs, VecX *real, VecX *imag) {
+bool FindQuadraticPolynomialRoots(const VecX& coeffs, VecX* real, VecX* imag) {
   // CHECK_EQ(coeffs.size(), 3);
   if (coeffs.size() != 3) {
     printf("size dont match\n");
@@ -145,8 +145,7 @@ bool FindQuadraticPolynomialRoots(const VecX &coeffs, VecX *real, VecX *imag) {
   return true;
 }
 
-bool FindPolynomialRootsDurandKerner(const VecX &coeffs_all, VecX *real,
-                                     VecX *imag) {
+bool FindPolynomialRootsDurandKerner(const VecX& coeffs_all, VecX* real, VecX* imag) {
   // CHECK_GE(coeffs_all.size(), 2);
   if (coeffs_all.size() < 2) {
     printf("CHEKCGE fail\n");
@@ -189,10 +188,8 @@ bool FindPolynomialRootsDurandKerner(const VecX &coeffs_all, VecX *real,
       }
       const std::complex<number_t> root_i_change = numerator / denominator;
       roots(i) = root_i - root_i_change;
-      max_root_change =
-          std::max(max_root_change, std::abs(root_i_change.real()));
-      max_root_change =
-          std::max(max_root_change, std::abs(root_i_change.imag()));
+      max_root_change = std::max(max_root_change, std::abs(root_i_change.real()));
+      max_root_change = std::max(max_root_change, std::abs(root_i_change.imag()));
     }
 
     // Break, if roots do not change anymore.
@@ -213,8 +210,7 @@ bool FindPolynomialRootsDurandKerner(const VecX &coeffs_all, VecX *real,
   return true;
 }
 
-bool FindPolynomialRootsCompanionMatrix(const VecX &coeffs_all, VecX *real,
-                                        VecX *imag) {
+bool FindPolynomialRootsCompanionMatrix(const VecX& coeffs_all, VecX* real, VecX* imag) {
   // CHECK_GE(coeffs_all.size(), 2);
   if (coeffs_all.size() < 2) {
     printf("CHEKCGE fail\n");
@@ -264,8 +260,7 @@ bool FindPolynomialRootsCompanionMatrix(const VecX &coeffs_all, VecX *real,
   }
 
   // If there are trailing zeros, we must add zero as a solution.
-  const int effective_degree =
-      coeffs.size() - 1 < degree ? coeffs.size() : coeffs.size() - 1;
+  const int effective_degree = coeffs.size() - 1 < degree ? coeffs.size() : coeffs.size() - 1;
 
   if (real != nullptr) {
     real->resize(effective_degree);
@@ -284,4 +279,4 @@ bool FindPolynomialRootsCompanionMatrix(const VecX &coeffs_all, VecX *real,
 
   return true;
 }
-} // namespace dso
+}  // namespace dso

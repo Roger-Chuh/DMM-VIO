@@ -54,19 +54,15 @@ class StateTransitionModel;
 // - The actual optimizations are performed by CoarseIMUInitOptimizer and
 // PoseGraphBundleAdjustment (PGBA)
 class IMUInitializer : public IMUInitStateChanger {
-public:
-  typedef std::function<void(const gtsam::Values &values,
-                             bool willReplaceGraph)>
-      InitCallback;
+ public:
+  typedef std::function<void(const gtsam::Values& values, bool willReplaceGraph)> InitCallback;
 
   // Note that a reference to the settings and imuCalibration, and also
   // delayedMarginalization is kept!
-  IMUInitializer(
-      std::string resultsPrefix,
-      boost::shared_ptr<gtsam::PreintegrationParams> preintegrationParams,
-      const IMUCalibration &imuCalibration, IMUInitSettings &settings,
-      DelayedMarginalizationGraphs *delayedMarginalization,
-      bool linearizeOperation, InitCallback callOnInit);
+  IMUInitializer(std::string resultsPrefix, boost::shared_ptr<gtsam::PreintegrationParams> preintegrationParams,
+                 const IMUCalibration& imuCalibration, IMUInitSettings& settings,
+                 DelayedMarginalizationGraphs* delayedMarginalization, bool linearizeOperation,
+                 InitCallback callOnInit);
 
   ~IMUInitializer();
 
@@ -74,11 +70,11 @@ public:
   // Called from coarse tracking thread.
   // --------------------------------------------------
   // Called when IMU data for a frame is available.
-  void addIMUData(const IMUData &data, int frameId);
+  void addIMUData(const IMUData& data, int frameId);
 
   // Called when coarse tracking has finished.
   // --> forwards to CoarseIMUInitOptimizer, can also filter out non-KFs.
-  void addPose(const dso::FrameShell &shell, bool willBecomeKeyframe);
+  void addPose(const dso::FrameShell& shell, bool willBecomeKeyframe);
 
   // --------------------------------------------------
   // Called from BA thread.
@@ -90,35 +86,31 @@ public:
 
   // Called after the main BA.
   // here the PGBA can be run.
-  void postBAInit(int keyframeId,
-                  gtsam::NonlinearFactor::shared_ptr activeHBFactor,
-                  const gtsam::Values &baValues, double timestamp,
-                  const gtsam::PreintegratedImuMeasurements &imuMeasurements);
+  void postBAInit(int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor, const gtsam::Values& baValues,
+                  double timestamp, const gtsam::PreintegratedImuMeasurements& imuMeasurements);
 
-  const gtsam::imuBias::ConstantBias &getLatestBias() const;
+  const gtsam::imuBias::ConstantBias& getLatestBias() const;
 
   // --------------------------------------------------
   // Methods overridden from IMUInitStateChanger. These allow states and
   // transitions to set the current state.
   // --------------------------------------------------
   // Can directly be called to change the state.
-  void lockAndSetState(std::unique_ptr<IMUInitializerState> &&newState) final;
+  void lockAndSetState(std::unique_ptr<IMUInitializerState>&& newState) final;
 
   // Aquire lock for calling setState.
   std::unique_lock<std::shared_timed_mutex> acquireSetStateLock() final;
 
   // Before calling setState a lock must be acquired with the previous method!
-  void setState(std::unique_ptr<IMUInitializerState> &&newState) final;
+  void setState(std::unique_ptr<IMUInitializerState>&& newState) final;
 
-private:
+ private:
   // Variables for the state machine.
-  std::unique_ptr<IMUInitializerLogic>
-      logic; // contains main initialization data and logic common for all
-             // states.
+  std::unique_ptr<IMUInitializerLogic> logic;  // contains main initialization data and logic common for all
+                                               // states.
   std::unique_ptr<IMUInitializerState> currentState;
-  std::unique_ptr<StateTransitionModel>
-      transitionModel; // contains the logic which states transition to which
-                       // new states.
+  std::unique_ptr<StateTransitionModel> transitionModel;  // contains the logic which states transition to which
+                                                          // new states.
 
   // requires a shared_lock for calls to the currentState, and a unique_lock to
   // change the state.
@@ -131,9 +123,8 @@ private:
 
 // Returns true if if gravity direction and scale have changed more than a
 // threshold (according to the settings).
-bool thresholdVariableChanges(dmvio::IMUThresholdSettings settings,
-                              const gtsam::Values &baValues,
-                              const gtsam::Values &fejValues);
+bool thresholdVariableChanges(dmvio::IMUThresholdSettings settings, const gtsam::Values& baValues,
+                              const gtsam::Values& fejValues);
 
-} // namespace dmvio
-#endif // DMVIO_IMUINITIALIZER_H
+}  // namespace dmvio
+#endif  // DMVIO_IMUINITIALIZER_H

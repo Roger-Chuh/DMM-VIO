@@ -44,26 +44,22 @@ namespace dmvio {
 // PoseTransformation are optimized. Owned (and methods called) by
 // IMUInitializer, doesn't know DSO.
 class CoarseIMUInitOptimizer {
-public:
+ public:
   // transformDSOToIMU is updated during optimization.
   // Note that a reference to the settings and calibration is kept!
   // Note: the owner of this class is responsible for adding initial values and
   // priors for the variables optimized by transformDSOToIMU (e.g s0, g0).
-  explicit CoarseIMUInitOptimizer(
-      std::shared_ptr<PoseTransformation> transformDSOToIMU,
-      const IMUCalibration &imuCalibration,
-      const CoarseIMUInitOptimizerSettings &settingsPassed);
+  explicit CoarseIMUInitOptimizer(std::shared_ptr<PoseTransformation> transformDSOToIMU,
+                                  const IMUCalibration& imuCalibration,
+                                  const CoarseIMUInitOptimizerSettings& settingsPassed);
 
   // Add frame to the optimizer.
-  void addPose(int frameId, const Sophus::SE3d &camToWorld,
-               const gtsam::PreintegratedImuMeasurements *imuData);
+  void addPose(int frameId, const Sophus::SE3d& camToWorld, const gtsam::PreintegratedImuMeasurements* imuData);
 
-  void addPose(const dso::FrameShell &shell,
-               const gtsam::PreintegratedImuMeasurements *imuData);
+  void addPose(const dso::FrameShell& shell, const gtsam::PreintegratedImuMeasurements* imuData);
 
   struct OptimizationResult {
-    OptimizationResult(int numIterations, double error, double normalizedError,
-                       bool good);
+    OptimizationResult(int numIterations, double error, double normalizedError, bool good);
 
     int numIterations;
     double error;
@@ -89,30 +85,29 @@ public:
   int numFrames = 0;
   int imuFactorsRemovedUntil = -1;
 
-private:
+ private:
   void handleFirstFrame(int frameId);
 
-  const CoarseIMUInitOptimizerSettings &settings;
-  const IMUCalibration &imuCalibration;
+  const CoarseIMUInitOptimizerSettings& settings;
+  const IMUCalibration& imuCalibration;
 
   std::shared_ptr<PoseTransformation> transformDSOToIMU;
 
   int prevFrameId = -1;
-  gtsam::Pose3 prevFramePose; // Needed for fixPoses.
+  gtsam::Pose3 prevFramePose;  // Needed for fixPoses.
 
-  gtsam::LevenbergMarquardtParams params =
-      gtsam::LevenbergMarquardtParams::CeresDefaults();
+  gtsam::LevenbergMarquardtParams params = gtsam::LevenbergMarquardtParams::CeresDefaults();
 
   // Only used if fixPoses == false;
   gtsam::SharedNoiseModel posePriorModel;
 
   // For implementing maxNumPoses:
-  std::deque<int> poseIds; // pose ids currently in the graph.
+  std::deque<int> poseIds;  // pose ids currently in the graph.
 
   // used to get updated poses from DSO before optimizing.
-  std::map<int, const dso::FrameShell *> activeShells;
+  std::map<int, const dso::FrameShell*> activeShells;
 };
 
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_COARSEIMUINITOPTIMIZER_H
+#endif  // DMVIO_COARSEIMUINITOPTIMIZER_H

@@ -11,8 +11,9 @@ namespace Sophus {
 using namespace std;
 using namespace Eigen;
 
-template <class LieGroup> class Tests {
-public:
+template <class LieGroup>
+class Tests {
+ public:
   typedef typename LieGroup::Scalar Scalar;
   typedef typename LieGroup::Transformation Transformation;
   typedef typename LieGroup::Tangent Tangent;
@@ -25,15 +26,11 @@ public:
 
   Tests() : SMALL_EPS(SophusConstants<Scalar>::epsilon()) {}
 
-  void setGroupElements(const vector<LieGroup> &group_vec) {
-    group_vec_ = group_vec;
-  }
+  void setGroupElements(const vector<LieGroup>& group_vec) { group_vec_ = group_vec; }
 
-  void setTangentVectors(const vector<Tangent> &tangent_vec) {
-    tangent_vec_ = tangent_vec;
-  }
+  void setTangentVectors(const vector<Tangent>& tangent_vec) { tangent_vec_ = tangent_vec; }
 
-  void setPoints(const vector<Point> &point_vec) { point_vec_ = point_vec; }
+  void setPoints(const vector<Point>& point_vec) { point_vec_ = point_vec; }
 
   bool adjointTest() {
     bool passed = true;
@@ -46,8 +43,7 @@ public:
         Transformation I;
         I.setIdentity();
         Tangent ad1 = Ad * x;
-        Tangent ad2 = LieGroup::vee(T * LieGroup::hat(x) *
-                                    group_vec_[i].inverse().matrix());
+        Tangent ad2 = LieGroup::vee(T * LieGroup::hat(x) * group_vec_[i].inverse().matrix());
         Scalar nrm = norm(ad1 - ad2);
 
         if (isnan(nrm) || nrm > 20. * SMALL_EPS) {
@@ -109,7 +105,7 @@ public:
 
     for (size_t i = 0; i < group_vec_.size(); ++i) {
       for (size_t j = 0; j < point_vec_.size(); ++j) {
-        const Point &p = point_vec_[j];
+        const Point& p = point_vec_[j];
         Transformation T = group_vec_[i].matrix();
         Point res1 = group_vec_[i] * p;
         Point res2 = map(T, p);
@@ -175,8 +171,7 @@ public:
   bool veeHatTest() {
     bool passed = true;
     for (size_t i = 0; i < tangent_vec_.size(); ++i) {
-      Tangent resDiff =
-          tangent_vec_[i] - LieGroup::vee(LieGroup::hat(tangent_vec_[i]));
+      Tangent resDiff = tangent_vec_[i] - LieGroup::vee(LieGroup::hat(tangent_vec_[i]));
       if (norm(resDiff) > SMALL_EPS) {
         cerr << "Hat-vee Test" << endl;
         cerr << "Test case: " << i << endl;
@@ -227,25 +222,20 @@ public:
     cerr << "passed." << endl << endl;
   }
 
-private:
-  Matrix<Scalar, N - 1, 1> map(const Matrix<Scalar, N, N> &T,
-                               const Matrix<Scalar, N - 1, 1> &p) {
-    return T.template topLeftCorner<N - 1, N - 1>() * p +
-           T.template topRightCorner<N - 1, 1>();
+ private:
+  Matrix<Scalar, N - 1, 1> map(const Matrix<Scalar, N, N>& T, const Matrix<Scalar, N - 1, 1>& p) {
+    return T.template topLeftCorner<N - 1, N - 1>() * p + T.template topRightCorner<N - 1, 1>();
   }
 
-  Matrix<Scalar, N, 1> map(const Matrix<Scalar, N, N> &T,
-                           const Matrix<Scalar, N, 1> &p) {
-    return T * p;
-  }
+  Matrix<Scalar, N, 1> map(const Matrix<Scalar, N, N>& T, const Matrix<Scalar, N, 1>& p) { return T * p; }
 
-  Scalar norm(const Scalar &v) { return std::abs(v); }
+  Scalar norm(const Scalar& v) { return std::abs(v); }
 
-  Scalar norm(const Matrix<Scalar, DoF, 1> &T) { return T.norm(); }
+  Scalar norm(const Matrix<Scalar, DoF, 1>& T) { return T.norm(); }
 
   std::vector<LieGroup> group_vec_;
   std::vector<Tangent> tangent_vec_;
   std::vector<Point> point_vec_;
 };
-} // namespace Sophus
-#endif // TESTS_HPP
+}  // namespace Sophus
+#endif  // TESTS_HPP

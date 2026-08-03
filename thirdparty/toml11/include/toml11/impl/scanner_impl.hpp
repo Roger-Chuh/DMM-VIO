@@ -7,14 +7,12 @@
 namespace toml {
 namespace detail {
 
-TOML11_INLINE scanner_storage::scanner_storage(const scanner_storage &other)
-    : scanner_(nullptr) {
+TOML11_INLINE scanner_storage::scanner_storage(const scanner_storage& other) : scanner_(nullptr) {
   if (other.is_ok()) {
     scanner_.reset(other.get().clone());
   }
 }
-TOML11_INLINE scanner_storage &
-scanner_storage::operator=(const scanner_storage &other) {
+TOML11_INLINE scanner_storage& scanner_storage::operator=(const scanner_storage& other) {
   if (this == std::addressof(other)) {
     return *this;
   }
@@ -24,17 +22,17 @@ scanner_storage::operator=(const scanner_storage &other) {
   return *this;
 }
 
-TOML11_INLINE region scanner_storage::scan(location &loc) const {
+TOML11_INLINE region scanner_storage::scan(location& loc) const {
   assert(this->is_ok());
   return this->scanner_->scan(loc);
 }
 
-TOML11_INLINE std::string scanner_storage::expected_chars(location &loc) const {
+TOML11_INLINE std::string scanner_storage::expected_chars(location& loc) const {
   assert(this->is_ok());
   return this->scanner_->expected_chars(loc);
 }
 
-TOML11_INLINE scanner_base &scanner_storage::get() const noexcept {
+TOML11_INLINE scanner_base& scanner_storage::get() const noexcept {
   assert(this->is_ok());
   return *scanner_;
 }
@@ -46,7 +44,7 @@ TOML11_INLINE std::string scanner_storage::name() const {
 
 // ----------------------------------------------------------------------------
 
-TOML11_INLINE region character::scan(location &loc) const {
+TOML11_INLINE region character::scan(location& loc) const {
   if (loc.eof()) {
     return region{};
   }
@@ -59,21 +57,15 @@ TOML11_INLINE region character::scan(location &loc) const {
   return region{};
 }
 
-TOML11_INLINE std::string character::expected_chars(location &) const {
-  return show_char(value_);
-}
+TOML11_INLINE std::string character::expected_chars(location&) const { return show_char(value_); }
 
-TOML11_INLINE scanner_base *character::clone() const {
-  return new character(*this);
-}
+TOML11_INLINE scanner_base* character::clone() const { return new character(*this); }
 
-TOML11_INLINE std::string character::name() const {
-  return "character{" + show_char(value_) + "}";
-}
+TOML11_INLINE std::string character::name() const { return "character{" + show_char(value_) + "}"; }
 
 // ----------------------------------------------------------------------------
 
-TOML11_INLINE region character_either::scan(location &loc) const {
+TOML11_INLINE region character_either::scan(location& loc) const {
   if (loc.eof()) {
     return region{};
   }
@@ -88,7 +80,7 @@ TOML11_INLINE region character_either::scan(location &loc) const {
   return region{};
 }
 
-TOML11_INLINE std::string character_either::expected_chars(location &) const {
+TOML11_INLINE std::string character_either::expected_chars(location&) const {
   assert(!chars_.empty());
 
   std::string expected;
@@ -110,13 +102,9 @@ TOML11_INLINE std::string character_either::expected_chars(location &) const {
   return expected;
 }
 
-TOML11_INLINE scanner_base *character_either::clone() const {
-  return new character_either(*this);
-}
+TOML11_INLINE scanner_base* character_either::clone() const { return new character_either(*this); }
 
-TOML11_INLINE void character_either::push_back(const char_type c) {
-  chars_.push_back(c);
-}
+TOML11_INLINE void character_either::push_back(const char_type c) { chars_.push_back(c); }
 
 TOML11_INLINE std::string character_either::name() const {
   std::string n("character_either{");
@@ -135,7 +123,7 @@ TOML11_INLINE std::string character_either::name() const {
 // ----------------------------------------------------------------------------
 // character_in_range
 
-TOML11_INLINE region character_in_range::scan(location &loc) const {
+TOML11_INLINE region character_in_range::scan(location& loc) const {
   if (loc.eof()) {
     return region{};
   }
@@ -149,7 +137,7 @@ TOML11_INLINE region character_in_range::scan(location &loc) const {
   return region{};
 }
 
-TOML11_INLINE std::string character_in_range::expected_chars(location &) const {
+TOML11_INLINE std::string character_in_range::expected_chars(location&) const {
   std::string expected("from `");
   expected += show_char(from_);
   expected += "` to `";
@@ -158,9 +146,7 @@ TOML11_INLINE std::string character_in_range::expected_chars(location &) const {
   return expected;
 }
 
-TOML11_INLINE scanner_base *character_in_range::clone() const {
-  return new character_in_range(*this);
-}
+TOML11_INLINE scanner_base* character_in_range::clone() const { return new character_in_range(*this); }
 
 TOML11_INLINE std::string character_in_range::name() const {
   return "character_in_range{" + show_char(from_) + "," + show_char(to_) + "}";
@@ -169,7 +155,7 @@ TOML11_INLINE std::string character_in_range::name() const {
 // ----------------------------------------------------------------------------
 // literal
 
-TOML11_INLINE region literal::scan(location &loc) const {
+TOML11_INLINE region literal::scan(location& loc) const {
   const auto first = loc;
   for (std::size_t i = 0; i < size_; ++i) {
     if (loc.eof() || char_type(value_[i]) != loc.current()) {
@@ -181,24 +167,18 @@ TOML11_INLINE region literal::scan(location &loc) const {
   return region(first, loc);
 }
 
-TOML11_INLINE std::string literal::expected_chars(location &) const {
-  return std::string(value_);
-}
+TOML11_INLINE std::string literal::expected_chars(location&) const { return std::string(value_); }
 
-TOML11_INLINE scanner_base *literal::clone() const {
-  return new literal(*this);
-}
+TOML11_INLINE scanner_base* literal::clone() const { return new literal(*this); }
 
-TOML11_INLINE std::string literal::name() const {
-  return std::string("literal{") + std::string(value_, size_) + "}";
-}
+TOML11_INLINE std::string literal::name() const { return std::string("literal{") + std::string(value_, size_) + "}"; }
 
 // ----------------------------------------------------------------------------
 // sequence
 
-TOML11_INLINE region sequence::scan(location &loc) const {
+TOML11_INLINE region sequence::scan(location& loc) const {
   const auto first = loc;
-  for (const auto &other : others_) {
+  for (const auto& other : others_) {
     const auto reg = other.scan(loc);
     if (!reg.is_ok()) {
       loc = first;
@@ -208,25 +188,23 @@ TOML11_INLINE region sequence::scan(location &loc) const {
   return region(first, loc);
 }
 
-TOML11_INLINE std::string sequence::expected_chars(location &loc) const {
+TOML11_INLINE std::string sequence::expected_chars(location& loc) const {
   const auto first = loc;
-  for (const auto &other : others_) {
+  for (const auto& other : others_) {
     const auto reg = other.scan(loc);
     if (!reg.is_ok()) {
       return other.expected_chars(loc);
     }
   }
   assert(false);
-  return ""; // XXX
+  return "";  // XXX
 }
 
-TOML11_INLINE scanner_base *sequence::clone() const {
-  return new sequence(*this);
-}
+TOML11_INLINE scanner_base* sequence::clone() const { return new sequence(*this); }
 
 TOML11_INLINE std::string sequence::name() const {
   std::string n("sequence{");
-  for (const auto &other : others_) {
+  for (const auto& other : others_) {
     n += other.name();
     n += ", ";
   }
@@ -241,8 +219,8 @@ TOML11_INLINE std::string sequence::name() const {
 // ----------------------------------------------------------------------------
 // either
 
-TOML11_INLINE region either::scan(location &loc) const {
-  for (const auto &other : others_) {
+TOML11_INLINE region either::scan(location& loc) const {
+  for (const auto& other : others_) {
     const auto reg = other.scan(loc);
     if (reg.is_ok()) {
       return reg;
@@ -251,7 +229,7 @@ TOML11_INLINE region either::scan(location &loc) const {
   return region{};
 }
 
-TOML11_INLINE std::string either::expected_chars(location &loc) const {
+TOML11_INLINE std::string either::expected_chars(location& loc) const {
   assert(!others_.empty());
 
   std::string expected = others_.at(0).expected_chars(loc);
@@ -270,11 +248,11 @@ TOML11_INLINE std::string either::expected_chars(location &loc) const {
   return expected;
 }
 
-TOML11_INLINE scanner_base *either::clone() const { return new either(*this); }
+TOML11_INLINE scanner_base* either::clone() const { return new either(*this); }
 
 TOML11_INLINE std::string either::name() const {
   std::string n("either{");
-  for (const auto &other : others_) {
+  for (const auto& other : others_) {
     n += other.name();
     n += ", ";
   }
@@ -289,7 +267,7 @@ TOML11_INLINE std::string either::name() const {
 // ----------------------------------------------------------------------------
 // repeat_exact
 
-TOML11_INLINE region repeat_exact::scan(location &loc) const {
+TOML11_INLINE region repeat_exact::scan(location& loc) const {
   const auto first = loc;
   for (std::size_t i = 0; i < length_; ++i) {
     const auto reg = other_.scan(loc);
@@ -301,7 +279,7 @@ TOML11_INLINE region repeat_exact::scan(location &loc) const {
   return region(first, loc);
 }
 
-TOML11_INLINE std::string repeat_exact::expected_chars(location &loc) const {
+TOML11_INLINE std::string repeat_exact::expected_chars(location& loc) const {
   for (std::size_t i = 0; i < length_; ++i) {
     const auto reg = other_.scan(loc);
     if (!reg.is_ok()) {
@@ -312,9 +290,7 @@ TOML11_INLINE std::string repeat_exact::expected_chars(location &loc) const {
   return "";
 }
 
-TOML11_INLINE scanner_base *repeat_exact::clone() const {
-  return new repeat_exact(*this);
-}
+TOML11_INLINE scanner_base* repeat_exact::clone() const { return new repeat_exact(*this); }
 
 TOML11_INLINE std::string repeat_exact::name() const {
   return "repeat_exact{" + std::to_string(length_) + ", " + other_.name() + "}";
@@ -323,7 +299,7 @@ TOML11_INLINE std::string repeat_exact::name() const {
 // ----------------------------------------------------------------------------
 // repeat_at_least
 
-TOML11_INLINE region repeat_at_least::scan(location &loc) const {
+TOML11_INLINE region repeat_at_least::scan(location& loc) const {
   const auto first = loc;
   for (std::size_t i = 0; i < length_; ++i) {
     const auto reg = other_.scan(loc);
@@ -343,7 +319,7 @@ TOML11_INLINE region repeat_at_least::scan(location &loc) const {
   return region(first, loc);
 }
 
-TOML11_INLINE std::string repeat_at_least::expected_chars(location &loc) const {
+TOML11_INLINE std::string repeat_at_least::expected_chars(location& loc) const {
   for (std::size_t i = 0; i < length_; ++i) {
     const auto reg = other_.scan(loc);
     if (!reg.is_ok()) {
@@ -354,19 +330,16 @@ TOML11_INLINE std::string repeat_at_least::expected_chars(location &loc) const {
   return "";
 }
 
-TOML11_INLINE scanner_base *repeat_at_least::clone() const {
-  return new repeat_at_least(*this);
-}
+TOML11_INLINE scanner_base* repeat_at_least::clone() const { return new repeat_at_least(*this); }
 
 TOML11_INLINE std::string repeat_at_least::name() const {
-  return "repeat_at_least{" + std::to_string(length_) + ", " + other_.name() +
-         "}";
+  return "repeat_at_least{" + std::to_string(length_) + ", " + other_.name() + "}";
 }
 
 // ----------------------------------------------------------------------------
 // maybe
 
-TOML11_INLINE region maybe::scan(location &loc) const {
+TOML11_INLINE region maybe::scan(location& loc) const {
   const auto first = loc;
   const auto reg = other_.scan(loc);
   if (!reg.is_ok()) {
@@ -375,14 +348,12 @@ TOML11_INLINE region maybe::scan(location &loc) const {
   return region(first, loc);
 }
 
-TOML11_INLINE std::string maybe::expected_chars(location &) const { return ""; }
+TOML11_INLINE std::string maybe::expected_chars(location&) const { return ""; }
 
-TOML11_INLINE scanner_base *maybe::clone() const { return new maybe(*this); }
+TOML11_INLINE scanner_base* maybe::clone() const { return new maybe(*this); }
 
-TOML11_INLINE std::string maybe::name() const {
-  return "maybe{" + other_.name() + "}";
-}
+TOML11_INLINE std::string maybe::name() const { return "maybe{" + other_.name() + "}"; }
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_SCANNER_IMPL_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_SCANNER_IMPL_HPP

@@ -30,23 +30,20 @@ namespace dmvio {
 // Averages accelerometer measurements to provide a simple initialization for
 // gravity direction.
 class GravityInitializer {
-public:
-  GravityInitializer(int numMeasurementsToUse,
-                     const IMUCalibration &imuCalibration);
+ public:
+  GravityInitializer(int numMeasurementsToUse, const IMUCalibration& imuCalibration);
 
   // returns an approximate imuToWorld transform (only rotation).
-  Sophus::SE3d addMeasure(const IMUData &imuData,
-                          const Sophus::SE3d &currToFirst);
+  Sophus::SE3d addMeasure(const IMUData& imuData, const Sophus::SE3d& currToFirst);
 
-private:
-  int maxNumMeasurements; // Num of last gravity measurements to average.
+ private:
+  int maxNumMeasurements;  // Num of last gravity measurements to average.
   std::deque<Eigen::Vector3d> measures;
   Eigen::Vector3d gravity;
 };
 
-double getGravityError(const Sophus::SE3d &imuToWorld,
-                       const Sophus::SE3d &imuToWorldGT);
+double getGravityError(const Sophus::SE3d& imuToWorld, const Sophus::SE3d& imuToWorldGT);
 
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_GRAVITYINITIALIZER_H
+#endif  // DMVIO_GRAVITYINITIALIZER_H

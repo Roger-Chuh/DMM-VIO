@@ -3,7 +3,8 @@
 
 namespace toml {
 
-template <typename T> struct into;
+template <typename T>
+struct into;
 // {
 //     static toml::value into_toml(const T& user_defined_type)
 //     {
@@ -11,5 +12,5 @@ template <typename T> struct into;
 //     }
 // };
 
-} // namespace toml
-#endif // TOML11_INTO_HPP
+}  // namespace toml
+#endif  // TOML11_INTO_HPP

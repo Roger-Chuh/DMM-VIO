@@ -26,11 +26,12 @@ namespace dso {
 ///    y     | TAG 1 |  | TAG 2 |
 ///   ^      0-------1  2-------3
 ///   |-->x
-GridCalibrationTargetAprilgrid::GridCalibrationTargetAprilgrid(
-    size_t tagRows, size_t tagCols, double tagSize, double tagSpacing,
-    const AprilgridOptions &options)
-    : GridCalibrationTargetBase(2 * tagRows, 2 * tagCols), // 4 points per tag
-      _tagSize(tagSize), _tagSpacing(tagSpacing), _options(options),
+GridCalibrationTargetAprilgrid::GridCalibrationTargetAprilgrid(size_t tagRows, size_t tagCols, double tagSize,
+                                                               double tagSpacing, const AprilgridOptions& options)
+    : GridCalibrationTargetBase(2 * tagRows, 2 * tagCols),  // 4 points per tag
+      _tagSize(tagSize),
+      _tagSpacing(tagSpacing),
+      _options(options),
       _tagCodes(AprilTags::tagCodes36h11) {
   // allocate memory for the grid points
   _points.resize(size(), 3);
@@ -43,8 +44,7 @@ GridCalibrationTargetAprilgrid::GridCalibrationTargetAprilgrid(
 }
 
 // protected ctor for serialization
-GridCalibrationTargetAprilgrid::GridCalibrationTargetAprilgrid()
-    : _tagCodes(AprilTags::tagCodes36h11) {}
+GridCalibrationTargetAprilgrid::GridCalibrationTargetAprilgrid() : _tagCodes(AprilTags::tagCodes36h11) {}
 
 /// \brief initialize the object
 void GridCalibrationTargetAprilgrid::initialize() {
@@ -55,8 +55,7 @@ void GridCalibrationTargetAprilgrid::initialize() {
 
   // create the tag detector
   printf("111 blackTagBorder: %d\n", _options.blackTagBorder);
-  _tagDetector = boost::make_shared<AprilTags::TagDetector>(
-      _tagCodes, _options.blackTagBorder);
+  _tagDetector = boost::make_shared<AprilTags::TagDetector>(_tagCodes, _options.blackTagBorder);
 }
 
 /// \brief initialize an april grid
@@ -77,10 +76,8 @@ void GridCalibrationTargetAprilgrid::createGridPoints() {
     for (unsigned c = 0; c < _cols; c++) {
       Eigen::Matrix<double, 1, 3> point;
 
-      point(0) =
-          (int)(c / 2) * (1 + _tagSpacing) * _tagSize + (c % 2) * _tagSize;
-      point(1) =
-          (int)(r / 2) * (1 + _tagSpacing) * _tagSize + (r % 2) * _tagSize;
+      point(0) = (int)(c / 2) * (1 + _tagSpacing) * _tagSize + (c % 2) * _tagSize;
+      point(1) = (int)(r / 2) * (1 + _tagSpacing) * _tagSize + (r % 2) * _tagSize;
       point(2) = 0.0;
 
       _points.row(r * _cols + c) = point;
@@ -90,14 +87,12 @@ void GridCalibrationTargetAprilgrid::createGridPoints() {
 
 /// \brief extract the calibration target points from an image and write to an
 /// observation
-bool GridCalibrationTargetAprilgrid::computeObservation(
-    const cv::Mat &image, Eigen::MatrixXd &outImagePoints,
-    std::vector<bool> &outCornerObserved) const {
+bool GridCalibrationTargetAprilgrid::computeObservation(const cv::Mat& image, Eigen::MatrixXd& outImagePoints,
+                                                        std::vector<bool>& outCornerObserved) const {
   bool success = true;
   // std::cout<<"call me "<<std::endl;
   // detect the tags
-  std::vector<AprilTags::TagDetection> detections =
-      _tagDetector->extractTags(image);
+  std::vector<AprilTags::TagDetection> detections = _tagDetector->extractTags(image);
 
   /* handle the case in which a tag is identified but not all tag
    * corners are in the image (all data bits in image but border
@@ -114,21 +109,17 @@ bool GridCalibrationTargetAprilgrid::computeObservation(
 
     for (int j = 0; j < 4; j++) {
       remove |= iter->p[j].first < _options.minBorderDistance;
-      remove |= iter->p[j].first >
-                (float)(image.cols) - _options.minBorderDistance; // width
+      remove |= iter->p[j].first > (float)(image.cols) - _options.minBorderDistance;  // width
       remove |= iter->p[j].second < _options.minBorderDistance;
-      remove |= iter->p[j].second >
-                (float)(image.rows) - _options.minBorderDistance; // height
+      remove |= iter->p[j].second > (float)(image.rows) - _options.minBorderDistance;  // height
     }
 
     // also remove tags that are flagged as bad
-    if (iter->good != 1)
-      remove |= true;
+    if (iter->good != 1) remove |= true;
 
     // also remove if the tag ID is out-of-range for this grid (faulty
     // detection)
-    if (iter->id >= (int)size() / 4)
-      remove |= true;
+    if (iter->id >= (int)size() / 4) remove |= true;
 
     // delete flagged tags
     if (remove) {
@@ -149,13 +140,11 @@ bool GridCalibrationTargetAprilgrid::computeObservation(
 
     // immediate exit if we dont need to show video for debugging...
     // if video is shown, exit after drawing video...
-    if (!_options.showExtractionVideo)
-      return success;
+    if (!_options.showExtractionVideo) return success;
   }
 
   // sort detections by tagId
-  std::sort(detections.begin(), detections.end(),
-            AprilTags::TagDetection::sortByIdCompare);
+  std::sort(detections.begin(), detections.end(), AprilTags::TagDetection::sortByIdCompare);
 
   // check for duplicate tagIds (--> if found: wild Apriltags in image not
   // belonging to calibration target) (only if we have more than 1 tag...)
@@ -182,14 +171,12 @@ bool GridCalibrationTargetAprilgrid::computeObservation(
           }
         }
 
-        cv::putText(imageCopy, "Duplicate Apriltags detected. Hide them.",
-                    cv::Point(50, 50), cv::FONT_HERSHEY_SIMPLEX, 0.8,
+        cv::putText(imageCopy, "Duplicate Apriltags detected. Hide them.", cv::Point(50, 50), cv::FONT_HERSHEY_SIMPLEX,
+                    0.8, CV_RGB(255, 0, 0), 2, 8, false);
+        cv::putText(imageCopy, "Press enter to exit...", cv::Point(50, 80), cv::FONT_HERSHEY_SIMPLEX, 0.8,
                     CV_RGB(255, 0, 0), 2, 8, false);
-        cv::putText(imageCopy, "Press enter to exit...", cv::Point(50, 80),
-                    cv::FONT_HERSHEY_SIMPLEX, 0.8, CV_RGB(255, 0, 0), 2, 8,
-                    false);
         cv::imshow("Duplicate Apriltags detected. Hide them",
-                   imageCopy); // OpenCV call
+                   imageCopy);  // OpenCV call
 
         // and exit
         std::cout << "\n[ERROR]: Found apriltag not belonging to calibration "
@@ -223,9 +210,8 @@ bool GridCalibrationTargetAprilgrid::computeObservation(
 
   // optional subpixel refinement on all tag corners (four corners each tag)
   if (_options.doSubpixRefinement && success)
-    cv::cornerSubPix(
-        image, tagCorners, cv::Size(2, 2), cv::Size(-1, -1),
-        cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
+    cv::cornerSubPix(image, tagCorners, cv::Size(2, 2), cv::Size(-1, -1),
+                     cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
 
   // printf("blackTagBorder: %d\n", _options.blackTagBorder);
   if (_options.showExtractionVideo) {
@@ -239,20 +225,16 @@ bool GridCalibrationTargetAprilgrid::computeObservation(
         // detections[i].p[j].second), 2, CV_RGB(255,0,0), 1);
 
         // subpixel refined corners
-        cv::circle(imageCopy1,
-                   cv::Point2f(tagCorners.at<float>(4 * i + j, 0),
-                               tagCorners.at<float>(4 * i + j, 1)),
-                   3, CV_RGB(0, 0, 255), 1);
+        cv::circle(imageCopy1, cv::Point2f(tagCorners.at<float>(4 * i + j, 0), tagCorners.at<float>(4 * i + j, 1)), 3,
+                   CV_RGB(0, 0, 255), 1);
 
         cv::putText(imageCopy1, to_string(j),
-                    cv::Point2f(tagCorners.at<float>(4 * i + j, 0),
-                                tagCorners.at<float>(4 * i + j, 1)),
-                    3, 0.8, CV_RGB(0, 0, 255), 3, 8, false);
+                    cv::Point2f(tagCorners.at<float>(4 * i + j, 0), tagCorners.at<float>(4 * i + j, 1)), 3, 0.8,
+                    CV_RGB(0, 0, 255), 3, 8, false);
 
         if (!success)
-          cv::putText(imageCopy1, "Detection failed! (frame not used)",
-                      cv::Point(50, 50), cv::FONT_HERSHEY_SIMPLEX, 0.8,
-                      CV_RGB(255, 0, 0), 3, 8, false);
+          cv::putText(imageCopy1, "Detection failed! (frame not used)", cv::Point(50, 50), cv::FONT_HERSHEY_SIMPLEX,
+                      0.8, CV_RGB(255, 0, 0), 3, 8, false);
       }
 
     // cv::imshow("Aprilgrid: Tag corners", imageCopy1);  // OpenCV call
@@ -267,8 +249,7 @@ bool GridCalibrationTargetAprilgrid::computeObservation(
       detections[i].draw(imageCopy2);
 
       if (!success)
-        cv::putText(imageCopy2, "Detection failed! (frame not used)",
-                    cv::Point(50, 50), cv::FONT_HERSHEY_SIMPLEX, 0.8,
+        cv::putText(imageCopy2, "Detection failed! (frame not used)", cv::Point(50, 50), cv::FONT_HERSHEY_SIMPLEX, 0.8,
                     CV_RGB(255, 0, 0), 3, 8, false);
     }
 
@@ -277,8 +258,7 @@ bool GridCalibrationTargetAprilgrid::computeObservation(
 
     // if success is false exit here (delayed exit if
     // _options.showExtractionVideo=true for debugging)
-    if (!success)
-      return success;
+    if (!success) return success;
   }
 
   // insert the observed points into the correct location of the grid point
@@ -300,10 +280,8 @@ bool GridCalibrationTargetAprilgrid::computeObservation(
     unsigned int tagId = detections[i].id;
 
     // calculate the grid idx for all four tag corners given the tagId and cols
-    unsigned int baseId =
-        (int)(tagId / (_cols / 2)) * _cols * 2 + (tagId % (_cols / 2)) * 2;
-    unsigned int pIdx[] = {baseId, baseId + 1, baseId + (unsigned int)_cols + 1,
-                           baseId + (unsigned int)_cols};
+    unsigned int baseId = (int)(tagId / (_cols / 2)) * _cols * 2 + (tagId % (_cols / 2)) * 2;
+    unsigned int pIdx[] = {baseId, baseId + 1, baseId + (unsigned int)_cols + 1, baseId + (unsigned int)_cols};
 
     // add four points per tag
     for (int j = 0; j < 4; j++) {
@@ -318,13 +296,11 @@ bool GridCalibrationTargetAprilgrid::computeObservation(
       // only add point if the displacement in the subpixel refinement is below
       // a given threshold
       double subpix_displacement_squarred =
-          (corner_x - cornerRaw_x) * (corner_x - cornerRaw_x) +
-          (corner_y - cornerRaw_y) * (corner_y - cornerRaw_y);
+          (corner_x - cornerRaw_x) * (corner_x - cornerRaw_x) + (corner_y - cornerRaw_y) * (corner_y - cornerRaw_y);
 
       // add all points, but only set active if the point has not moved to far
       // in the subpix refinement
-      outImagePoints.row(pIdx[j]) =
-          Eigen::Matrix<double, 1, 2>(corner_x, corner_y);
+      outImagePoints.row(pIdx[j]) = Eigen::Matrix<double, 1, 2>(corner_x, corner_y);
 
       if (subpix_displacement_squarred <= _options.maxSubpixDisplacement2) {
         outCornerObserved[pIdx[j]] = true;
@@ -341,4 +317,4 @@ bool GridCalibrationTargetAprilgrid::computeObservation(
   // succesful observation
   return success;
 }
-} // namespace dso
+}  // namespace dso

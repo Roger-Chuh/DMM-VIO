@@ -5,19 +5,15 @@ namespace ED {
 using namespace cv;
 using namespace std;
 
-EDColor::EDColor(Mat srcImage, int gradThresh, int anchor_thresh, double sigma,
-                 bool validateSegments) {
+EDColor::EDColor(Mat srcImage, int gradThresh, int anchor_thresh, double sigma, bool validateSegments) {
   inputImage = srcImage.clone();
 
   // check parameters for sanity
-  if (sigma < 1)
-    sigma = 1;
-  if (gradThresh < 1)
-    gradThresh = 1;
-  if (anchor_thresh < 0)
-    anchor_thresh = 0;
+  if (sigma < 1) sigma = 1;
+  if (gradThresh < 1) gradThresh = 1;
+  if (anchor_thresh < 0) anchor_thresh = 0;
 
-  if (validateSegments) { // setup for validation
+  if (validateSegments) {  // setup for validation
     anchor_thresh = 0;
     divForTestSegment = 2.25;
   }
@@ -60,8 +56,7 @@ EDColor::EDColor(Mat srcImage, int gradThresh, int anchor_thresh, double sigma,
   // Validate edge segments if the flag is set
   if (validateSegments) {
     // Get Edge Image using ED
-    ED edgeObj = ED(gradImg, dirImg, width, height, gradThresh, anchor_thresh,
-                    1, 10, false);
+    ED edgeObj = ED(gradImg, dirImg, width, height, gradThresh, anchor_thresh, 1, 10, false);
     segments = edgeObj.getSegments();
     edgeImage = edgeObj.getEdgeImage();
 
@@ -70,7 +65,7 @@ EDColor::EDColor(Mat srcImage, int gradThresh, int anchor_thresh, double sigma,
     smoothChannel(a_Img, smooth_a, sigma);
     smoothChannel(b_Img, smooth_b, sigma);
 
-    edgeImg = edgeImage.data; // validation steps uses pointer to edgeImage
+    edgeImg = edgeImage.data;  // validation steps uses pointer to edgeImage
 
     validateEdgeSegments();
 
@@ -113,17 +108,16 @@ int EDColor::getHeight() { return height; }
 
 void EDColor::MyRGB2LabFast() {
   // Inialize LUTs if necessary
-  if (!LUT_Initialized)
-    InitColorEDLib();
+  if (!LUT_Initialized) InitColorEDLib();
 
   // First RGB 2 XYZ
   double red, green, blue;
   double x, y, z;
 
   // Space for temp. allocation
-  double *L = new double[width * height];
-  double *a = new double[width * height];
-  double *b = new double[width * height];
+  double* L = new double[width * height];
+  double* a = new double[width * height];
+  double* b = new double[width * height];
 
   for (int i = 0; i < width * height; i++) {
     red = redImg[i] / 255.0;
@@ -148,9 +142,9 @@ void EDColor::MyRGB2LabFast() {
     double refY = 100.000;
     double refZ = 108.883;
 
-    x = x / refX; // ref_X =  95.047   Observer= 2°, Illuminant= D65
-    y = y / refY; // ref_Y = 100.000
-    z = z / refZ; // ref_Z = 108.883
+    x = x / refX;  // ref_X =  95.047   Observer= 2°, Illuminant= D65
+    y = y / refY;  // ref_Y = 100.000
+    z = z / refZ;  // ref_Z = 108.883
 
     x = LUT2[(int)(x * LUT_SIZE + 0.5)];
     y = LUT2[(int)(y * LUT_SIZE + 0.5)];
@@ -159,7 +153,7 @@ void EDColor::MyRGB2LabFast() {
     L[i] = (116.0 * y) - 16;
     a[i] = 500 * (x / y);
     b[i] = 200 * (y - z);
-  } // end-for
+  }  // end-for
 
   // Scale L to [0-255]
   double min = 1e10;
@@ -169,7 +163,7 @@ void EDColor::MyRGB2LabFast() {
       min = L[i];
     else if (L[i] > max)
       max = L[i];
-  } // end-for
+  }  // end-for
 
   double scale = 255.0 / (max - min);
   for (int i = 0; i < width * height; i++) {
@@ -184,7 +178,7 @@ void EDColor::MyRGB2LabFast() {
       min = a[i];
     else if (a[i] > max)
       max = a[i];
-  } // end-for
+  }  // end-for
 
   scale = 255.0 / (max - min);
   for (int i = 0; i < width * height; i++) {
@@ -199,7 +193,7 @@ void EDColor::MyRGB2LabFast() {
       min = b[i];
     else if (b[i] > max)
       max = b[i];
-  } // end-for
+  }  // end-for
 
   scale = 255.0 / (max - min);
   for (int i = 0; i < width * height; i++) {
@@ -221,79 +215,46 @@ void EDColor::ComputeGradientMapByDiZenzo() {
     for (int j = 1; j < width - 1; j++) {
 #if 1
       // Prewitt for channel1
-      int com1 =
-          smooth_L[(i + 1) * width + j + 1] - smooth_L[(i - 1) * width + j - 1];
-      int com2 =
-          smooth_L[(i - 1) * width + j + 1] - smooth_L[(i + 1) * width + j - 1];
+      int com1 = smooth_L[(i + 1) * width + j + 1] - smooth_L[(i - 1) * width + j - 1];
+      int com2 = smooth_L[(i - 1) * width + j + 1] - smooth_L[(i + 1) * width + j - 1];
 
-      int gxCh1 = com1 + com2 +
-                  (smooth_L[i * width + j + 1] - smooth_L[i * width + j - 1]);
-      int gyCh1 =
-          com1 - com2 +
-          (smooth_L[(i + 1) * width + j] - smooth_L[(i - 1) * width + j]);
+      int gxCh1 = com1 + com2 + (smooth_L[i * width + j + 1] - smooth_L[i * width + j - 1]);
+      int gyCh1 = com1 - com2 + (smooth_L[(i + 1) * width + j] - smooth_L[(i - 1) * width + j]);
 
       // Prewitt for channel2
-      com1 =
-          smooth_a[(i + 1) * width + j + 1] - smooth_a[(i - 1) * width + j - 1];
-      com2 =
-          smooth_a[(i - 1) * width + j + 1] - smooth_a[(i + 1) * width + j - 1];
+      com1 = smooth_a[(i + 1) * width + j + 1] - smooth_a[(i - 1) * width + j - 1];
+      com2 = smooth_a[(i - 1) * width + j + 1] - smooth_a[(i + 1) * width + j - 1];
 
-      int gxCh2 = com1 + com2 +
-                  (smooth_a[i * width + j + 1] - smooth_a[i * width + j - 1]);
-      int gyCh2 =
-          com1 - com2 +
-          (smooth_a[(i + 1) * width + j] - smooth_a[(i - 1) * width + j]);
+      int gxCh2 = com1 + com2 + (smooth_a[i * width + j + 1] - smooth_a[i * width + j - 1]);
+      int gyCh2 = com1 - com2 + (smooth_a[(i + 1) * width + j] - smooth_a[(i - 1) * width + j]);
 
       // Prewitt for channel3
-      com1 =
-          smooth_b[(i + 1) * width + j + 1] - smooth_b[(i - 1) * width + j - 1];
-      com2 =
-          smooth_b[(i - 1) * width + j + 1] - smooth_b[(i + 1) * width + j - 1];
+      com1 = smooth_b[(i + 1) * width + j + 1] - smooth_b[(i - 1) * width + j - 1];
+      com2 = smooth_b[(i - 1) * width + j + 1] - smooth_b[(i + 1) * width + j - 1];
 
-      int gxCh3 = com1 + com2 +
-                  (smooth_b[i * width + j + 1] - smooth_b[i * width + j - 1]);
-      int gyCh3 =
-          com1 - com2 +
-          (smooth_b[(i + 1) * width + j] - smooth_b[(i - 1) * width + j]);
+      int gxCh3 = com1 + com2 + (smooth_b[i * width + j + 1] - smooth_b[i * width + j - 1]);
+      int gyCh3 = com1 - com2 + (smooth_b[(i + 1) * width + j] - smooth_b[(i - 1) * width + j]);
 #else
       // Sobel for channel1
-      int com1 =
-          smooth_L[(i + 1) * width + j + 1] - smooth_L[(i - 1) * width + j - 1];
-      int com2 =
-          smooth_L[(i - 1) * width + j + 1] - smooth_L[(i + 1) * width + j - 1];
+      int com1 = smooth_L[(i + 1) * width + j + 1] - smooth_L[(i - 1) * width + j - 1];
+      int com2 = smooth_L[(i - 1) * width + j + 1] - smooth_L[(i + 1) * width + j - 1];
 
-      int gxCh1 =
-          com1 + com2 +
-          2 * (smooth_L[i * width + j + 1] - smooth_L[i * width + j - 1]);
-      int gyCh1 =
-          com1 - com2 +
-          2 * (smooth_L[(i + 1) * width + j] - smooth_L[(i - 1) * width + j]);
+      int gxCh1 = com1 + com2 + 2 * (smooth_L[i * width + j + 1] - smooth_L[i * width + j - 1]);
+      int gyCh1 = com1 - com2 + 2 * (smooth_L[(i + 1) * width + j] - smooth_L[(i - 1) * width + j]);
 
       // Sobel for channel2
-      com1 =
-          smooth_a[(i + 1) * width + j + 1] - smooth_a[(i - 1) * width + j - 1];
-      com2 =
-          smooth_a[(i - 1) * width + j + 1] - smooth_a[(i + 1) * width + j - 1];
+      com1 = smooth_a[(i + 1) * width + j + 1] - smooth_a[(i - 1) * width + j - 1];
+      com2 = smooth_a[(i - 1) * width + j + 1] - smooth_a[(i + 1) * width + j - 1];
 
-      int gxCh2 =
-          com1 + com2 +
-          2 * (smooth_a[i * width + j + 1] - smooth_a[i * width + j - 1]);
-      int gyCh2 =
-          com1 - com2 +
-          2 * (smooth_a[(i + 1) * width + j] - smooth_a[(i - 1) * width + j]);
+      int gxCh2 = com1 + com2 + 2 * (smooth_a[i * width + j + 1] - smooth_a[i * width + j - 1]);
+      int gyCh2 = com1 - com2 + 2 * (smooth_a[(i + 1) * width + j] - smooth_a[(i - 1) * width + j]);
 
       // Sobel for channel3
-      com1 =
-          smooth_b[(i + 1) * width + j + 1] - smooth_b[(i - 1) * width + j - 1];
-      com2 =
-          smooth_b[(i - 1) * width + j + 1] - smooth_b[(i + 1) * width + j - 1];
+      com1 = smooth_b[(i + 1) * width + j + 1] - smooth_b[(i - 1) * width + j - 1];
+      com2 = smooth_b[(i - 1) * width + j + 1] - smooth_b[(i + 1) * width + j - 1];
 
-      int gxCh3 =
-          com1 + com2 +
-          2 * (smooth_b[i * width + j + 1] - smooth_b[i * width + j - 1]);
-      int gyCh3 =
-          com1 - com2 +
-          2 * (smooth_b[(i + 1) * width + j] - smooth_b[(i - 1) * width + j]);
+      int gxCh3 = com1 + com2 + 2 * (smooth_b[i * width + j + 1] - smooth_b[i * width + j - 1]);
+      int gyCh3 = com1 - com2 + 2 * (smooth_b[(i + 1) * width + j] - smooth_b[(i - 1) * width + j]);
 #endif
       int gxx = gxCh1 * gxCh1 + gxCh2 * gxCh2 + gxCh3 * gxCh3;
       int gyy = gyCh1 * gyCh1 + gyCh2 * gyCh2 + gyCh3 * gyCh3;
@@ -301,23 +262,17 @@ void EDColor::ComputeGradientMapByDiZenzo() {
 
 #if 1
       // Di Zenzo's formulas from Gonzales & Woods - Page 337
-      double theta =
-          atan2(2.0 * gxy, (double)(gxx - gyy)) / 2; // Gradient Direction
-      int grad = (int)(sqrt(((gxx + gyy) + (gxx - gyy) * cos(2 * theta) +
-                             2 * gxy * sin(2 * theta)) /
-                            2.0) +
-                       0.5); // Gradient Magnitude
+      double theta = atan2(2.0 * gxy, (double)(gxx - gyy)) / 2;  // Gradient Direction
+      int grad = (int)(sqrt(((gxx + gyy) + (gxx - gyy) * cos(2 * theta) + 2 * gxy * sin(2 * theta)) / 2.0) +
+                       0.5);  // Gradient Magnitude
 #else
       // Koschan & Abidi - 2005 - Signal Processing Magazine
-      double theta =
-          atan2(2.0 * gxy, (double)(gxx - gyy)) / 2; // Gradient Direction
+      double theta = atan2(2.0 * gxy, (double)(gxx - gyy)) / 2;  // Gradient Direction
 
       double cosTheta = cos(theta);
       double sinTheta = sin(theta);
-      int grad =
-          (int)(sqrt(gxx * cosTheta * cosTheta + 2 * gxy * sinTheta * cosTheta +
-                     gyy * sinTheta * sinTheta) +
-                0.5); // Gradient Magnitude
+      int grad = (int)(sqrt(gxx * cosTheta * cosTheta + 2 * gxy * sinTheta * cosTheta + gyy * sinTheta * sinTheta) +
+                       0.5);  // Gradient Magnitude
 #endif
 
       // Gradient is perpendicular to the edge passing through the pixel
@@ -327,25 +282,23 @@ void EDColor::ComputeGradientMapByDiZenzo() {
         dirImg[i * width + j] = EDGE_HORIZONTAL;
 
       gradImg[i * width + j] = grad;
-      if (grad > max)
-        max = grad;
+      if (grad > max) max = grad;
     }
-  } // end outer for
+  }  // end outer for
 
   // Scale the gradient values to 0-255
   double scale = 255.0 / max;
-  for (int i = 0; i < width * height; i++)
-    gradImg[i] = (short)(gradImg[i] * scale);
+  for (int i = 0; i < width * height; i++) gradImg[i] = (short)(gradImg[i] * scale);
 }
 
-void EDColor::smoothChannel(uchar *src, uchar *smooth, double sigma) {
+void EDColor::smoothChannel(uchar* src, uchar* smooth, double sigma) {
   Mat srcImage = Mat(height, width, CV_8UC1, src);
   Mat smoothImage = Mat(height, width, CV_8UC1, smooth);
 
   if (sigma == 1.0)
     GaussianBlur(srcImage, smoothImage, Size(5, 5), 1);
   else if (sigma == 1.5)
-    GaussianBlur(srcImage, smoothImage, Size(7, 7), 1.5); // seems to be better?
+    GaussianBlur(srcImage, smoothImage, Size(7, 7), 1.5);  // seems to be better?
   else
     GaussianBlur(srcImage, smoothImage, Size(), sigma);
 }
@@ -359,57 +312,39 @@ void EDColor::validateEdgeSegments() {
   H = new double[maxGradValue];
   memset(H, 0, sizeof(double) * maxGradValue);
 
-  memset(edgeImg, 0, width * height); // clear edge image
+  memset(edgeImg, 0, width * height);  // clear edge image
 
   // Compute the gradient
   memset(gradImg, 0,
-         sizeof(short) * width * height); // reset gradient Image pixels to zero
+         sizeof(short) * width * height);  // reset gradient Image pixels to zero
 
-  int *grads = new int[maxGradValue];
+  int* grads = new int[maxGradValue];
   memset(grads, 0, sizeof(int) * maxGradValue);
 
   for (int i = 1; i < height - 1; i++) {
     for (int j = 1; j < width - 1; j++) {
       // Gradient for channel1
-      int com1 =
-          smooth_L[(i + 1) * width + j + 1] - smooth_L[(i - 1) * width + j - 1];
-      int com2 =
-          smooth_L[(i - 1) * width + j + 1] - smooth_L[(i + 1) * width + j - 1];
+      int com1 = smooth_L[(i + 1) * width + j + 1] - smooth_L[(i - 1) * width + j - 1];
+      int com2 = smooth_L[(i - 1) * width + j + 1] - smooth_L[(i + 1) * width + j - 1];
 
-      int gxCh1 =
-          abs(com1 + com2 +
-              (smooth_L[i * width + j + 1] - smooth_L[i * width + j - 1]));
-      int gyCh1 =
-          abs(com1 - com2 +
-              (smooth_L[(i + 1) * width + j] - smooth_L[(i - 1) * width + j]));
+      int gxCh1 = abs(com1 + com2 + (smooth_L[i * width + j + 1] - smooth_L[i * width + j - 1]));
+      int gyCh1 = abs(com1 - com2 + (smooth_L[(i + 1) * width + j] - smooth_L[(i - 1) * width + j]));
       int ch1Grad = gxCh1 + gyCh1;
 
       // Gradient for channel2
-      com1 =
-          smooth_a[(i + 1) * width + j + 1] - smooth_a[(i - 1) * width + j - 1];
-      com2 =
-          smooth_a[(i - 1) * width + j + 1] - smooth_a[(i + 1) * width + j - 1];
+      com1 = smooth_a[(i + 1) * width + j + 1] - smooth_a[(i - 1) * width + j - 1];
+      com2 = smooth_a[(i - 1) * width + j + 1] - smooth_a[(i + 1) * width + j - 1];
 
-      int gxCh2 =
-          abs(com1 + com2 +
-              (smooth_a[i * width + j + 1] - smooth_a[i * width + j - 1]));
-      int gyCh2 =
-          abs(com1 - com2 +
-              (smooth_a[(i + 1) * width + j] - smooth_a[(i - 1) * width + j]));
+      int gxCh2 = abs(com1 + com2 + (smooth_a[i * width + j + 1] - smooth_a[i * width + j - 1]));
+      int gyCh2 = abs(com1 - com2 + (smooth_a[(i + 1) * width + j] - smooth_a[(i - 1) * width + j]));
       int ch2Grad = gxCh2 + gyCh2;
 
       // Gradient for channel3
-      com1 =
-          smooth_b[(i + 1) * width + j + 1] - smooth_b[(i - 1) * width + j - 1];
-      com2 =
-          smooth_b[(i - 1) * width + j + 1] - smooth_b[(i + 1) * width + j - 1];
+      com1 = smooth_b[(i + 1) * width + j + 1] - smooth_b[(i - 1) * width + j - 1];
+      com2 = smooth_b[(i - 1) * width + j + 1] - smooth_b[(i + 1) * width + j - 1];
 
-      int gxCh3 =
-          abs(com1 + com2 +
-              (smooth_b[i * width + j + 1] - smooth_b[i * width + j - 1]));
-      int gyCh3 =
-          abs(com1 - com2 +
-              (smooth_b[(i + 1) * width + j] - smooth_b[(i - 1) * width + j]));
+      int gxCh3 = abs(com1 + com2 + (smooth_b[i * width + j + 1] - smooth_b[i * width + j - 1]));
+      int gyCh3 = abs(com1 - com2 + (smooth_b[(i + 1) * width + j] - smooth_b[(i - 1) * width + j]));
       int ch3Grad = gxCh3 + gyCh3;
 
       // Take average
@@ -417,8 +352,8 @@ void EDColor::validateEdgeSegments() {
 
       gradImg[i * width + j] = grad;
       grads[grad]++;
-    } // end-for
-  }   // end-for
+    }  // end-for
+  }    // end-for
 
   Mat gradImage = Mat(height, width, CV_16SC1, gradImg);
   imwrite("newGrad.pgm", gradImage);
@@ -427,23 +362,21 @@ void EDColor::validateEdgeSegments() {
   int size = (width - 2) * (height - 2);
   //  size -= grads[0];
 
-  for (int i = maxGradValue - 1; i > 0; i--)
-    grads[i - 1] += grads[i];
+  for (int i = maxGradValue - 1; i > 0; i--) grads[i - 1] += grads[i];
 
-  for (int i = 0; i < maxGradValue; i++)
-    H[i] = (double)grads[i] / ((double)size);
+  for (int i = 0; i < maxGradValue; i++) H[i] = (double)grads[i] / ((double)size);
 
   // Compute np: # of segment pieces
   np = 0;
   for (int i = 0; i < segments.size(); i++) {
     int len = (int)segments[i].size();
     np += (len * (len - 1)) / 2;
-  } // end-for
+  }  // end-for
 
   // Validate segments
   for (int i = 0; i < segments.size(); i++) {
     testSegment(i, 0, (int)segments[i].size() - 1);
-  } // end-for
+  }  // end-for
 
   // clear space
   delete[] H;
@@ -455,10 +388,8 @@ void EDColor::validateEdgeSegments() {
 // We take pixels at Nyquist distance, i.e., 2 (as suggested by DMM)
 //
 void EDColor::testSegment(int i, int index1, int index2) {
-
   int chainLen = index2 - index1 + 1;
-  if (chainLen < MIN_PATH_LEN)
-    return;
+  if (chainLen < MIN_PATH_LEN) return;
 
   // Test from index1 to index2. If OK, then we are done. Otherwise, split into
   // two and recursively test the left & right halves
@@ -473,7 +404,7 @@ void EDColor::testSegment(int i, int index1, int index2) {
       minGrad = gradImg[r * width + c];
       minGradIndex = k;
     }
-  } // end-for
+  }  // end-for
 
   // Compute nfa
   double nfa = NFA(H[minGrad], (int)(chainLen / divForTestSegment));
@@ -484,10 +415,10 @@ void EDColor::testSegment(int i, int index1, int index2) {
       int c = segments[i][k].x;
 
       edgeImg[r * width + c] = 255;
-    } // end-for
+    }  // end-for
 
     return;
-  } // end-if
+  }  // end-if
 
   // Split into two halves. We divide at the point where the gradient is the
   // minimum
@@ -500,7 +431,7 @@ void EDColor::testSegment(int i, int index1, int index2) {
       end--;
     else
       break;
-  } // end-while
+  }  // end-while
 
   int start = minGradIndex + 1;
   while (start < index2) {
@@ -511,7 +442,7 @@ void EDColor::testSegment(int i, int index1, int index2) {
       start++;
     else
       break;
-  } // end-while
+  }  // end-while
 
   testSegment(i, index1, end);
   testSegment(i, start, index2);
@@ -528,25 +459,22 @@ void EDColor::extractNewSegments() {
   for (int i = 0; i < segments.size(); i++) {
     int start = 0;
     while (start < segments[i].size()) {
-
       while (start < segments[i].size()) {
         int r = segments[i][start].y;
         int c = segments[i][start].x;
 
-        if (edgeImg[r * width + c])
-          break;
+        if (edgeImg[r * width + c]) break;
         start++;
-      } // end-while
+      }  // end-while
 
       int end = start + 1;
       while (end < segments[i].size()) {
         int r = segments[i][end].y;
         int c = segments[i][end].x;
 
-        if (edgeImg[r * width + c] == 0)
-          break;
+        if (edgeImg[r * width + c] == 0) break;
         end++;
-      } // end-while
+      }  // end-while
 
       int len = end - start;
       if (len >= 10) {
@@ -557,21 +485,20 @@ void EDColor::extractNewSegments() {
         vector<Point> subVec(&segments[i][start], &segments[i][end - 1]);
         validSegments[noSegments] = subVec;
         noSegments++;
-      } // end-else
+      }  // end-else
 
       start = end + 1;
-    } // end-while
-  }   // end-for
+    }  // end-while
+  }    // end-for
 
   // Update
   segments = validSegments;
-  segmentNo = noSegments; // = validSegments.size()
+  segmentNo = noSegments;  // = validSegments.size()
 }
 
 double EDColor::NFA(double prob, int len) {
   double nfa = np;
-  for (int i = 0; i < len && nfa > EPSILON; i++)
-    nfa *= prob;
+  for (int i = 0; i < len && nfa > EPSILON; i++) nfa *= prob;
 
   return nfa;
 }
@@ -586,18 +513,17 @@ double EDColor::NFA(double prob, int len) {
 //  xx
 // x  x --> xxxx
 //
-void EDColor::fixEdgeSegments(std::vector<std::vector<cv::Point>> map,
-                              int noPixels) {
+void EDColor::fixEdgeSegments(std::vector<std::vector<cv::Point>> map, int noPixels) {
   /// First fix one pixel problems: There are four cases
   for (int i = 0; i < map.size(); i++) {
-    int cp = (int)map[i].size() - 2; // Current pixel index
-    int n2 = 0;                      // next next pixel index
+    int cp = (int)map[i].size() - 2;  // Current pixel index
+    int n2 = 0;                       // next next pixel index
 
     while (n2 < map[i].size()) {
-      int n1 = cp + 1; // next pixel
+      int n1 = cp + 1;  // next pixel
 
-      cp = cp % map[i].size(); // Roll back to the beginning
-      n1 = n1 % map[i].size(); // Roll back to the beginning
+      cp = cp % map[i].size();  // Roll back to the beginning
+      n1 = n1 % map[i].size();  // Roll back to the beginning
 
       int r = map[i][cp].y;
       int c = map[i][cp].x;
@@ -612,7 +538,7 @@ void EDColor::fixEdgeSegments(std::vector<std::vector<cv::Point>> map,
       if (r2 == r - 2 && c2 == c) {
         if (c1 != c) {
           map[i][n1].x = c;
-        } // end-if
+        }  // end-if
 
         cp = n2;
         n2 += 2;
@@ -620,7 +546,7 @@ void EDColor::fixEdgeSegments(std::vector<std::vector<cv::Point>> map,
       } else if (r2 == r + 2 && c2 == c) {
         if (c1 != c) {
           map[i][n1].x = c;
-        } // end-if
+        }  // end-if
 
         cp = n2;
         n2 += 2;
@@ -628,7 +554,7 @@ void EDColor::fixEdgeSegments(std::vector<std::vector<cv::Point>> map,
       } else if (r2 == r && c2 == c - 2) {
         if (r1 != r) {
           map[i][n1].y = r;
-        } // end-if
+        }  // end-if
 
         cp = n2;
         n2 += 2;
@@ -636,7 +562,7 @@ void EDColor::fixEdgeSegments(std::vector<std::vector<cv::Point>> map,
       } else if (r2 == r && c2 == c + 2) {
         if (r1 != r) {
           map[i][n1].y = r;
-        } // end-if
+        }  // end-if
 
         cp = n2;
         n2 += 2;
@@ -644,14 +570,13 @@ void EDColor::fixEdgeSegments(std::vector<std::vector<cv::Point>> map,
       } else {
         cp++;
         n2++;
-      } // end-else
-    }   // end-while
-  }     // end-for
+      }  // end-else
+    }    // end-while
+  }      // end-for
 }
 
 void EDColor::InitColorEDLib() {
-  if (LUT_Initialized)
-    return;
+  if (LUT_Initialized) return;
 
   double inc = 1.0 / LUT_SIZE;
   for (int i = 0; i <= LUT_SIZE; i++) {
@@ -661,7 +586,7 @@ void EDColor::InitColorEDLib() {
       LUT1[i] = pow(((d + 0.055) / 1.055), 2.4);
     else
       LUT1[i] = d / 12.92;
-  } // end-for
+  }  // end-for
 
   inc = 1.0 / LUT_SIZE;
   for (int i = 0; i <= LUT_SIZE; i++) {
@@ -671,7 +596,7 @@ void EDColor::InitColorEDLib() {
       LUT2[i] = pow(d, 1.0 / 3.0);
     else
       LUT2[i] = (7.787 * d) + (16.0 / 116.0);
-  } // end-for
+  }  // end-for
 
   LUT_Initialized = true;
 }
@@ -679,5 +604,5 @@ void EDColor::InitColorEDLib() {
 bool EDColor::LUT_Initialized = false;
 double EDColor::LUT1[LUT_SIZE + 1] = {0};
 double EDColor::LUT2[LUT_SIZE + 1] = {0};
-} // namespace ED
-} // namespace dso
+}  // namespace ED
+}  // namespace dso

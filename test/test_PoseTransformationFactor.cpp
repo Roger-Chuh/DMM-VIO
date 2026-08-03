@@ -38,17 +38,17 @@ using namespace dmvio;
 using symbol_shorthand::P, symbol_shorthand::S;
 
 class SimpleGraphTest : public ::testing::Test {
-protected:
+ protected:
   gtsam::NonlinearFactorGraph graph;
   Values values;
   Values trueValues;
   BetweenFactor<Pose3>::shared_ptr between01;
   BetweenFactor<Pose3>::shared_ptr between12;
 
-  gtsam::SharedNoiseModel priorModel = noiseModel::Diagonal::Sigmas(
-      (Vector(6) << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1).finished());
-  gtsam::SharedNoiseModel betweenModel = noiseModel::Diagonal::Sigmas(
-      (Vector(6) << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1).finished());
+  gtsam::SharedNoiseModel priorModel =
+      noiseModel::Diagonal::Sigmas((Vector(6) << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1).finished());
+  gtsam::SharedNoiseModel betweenModel =
+      noiseModel::Diagonal::Sigmas((Vector(6) << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1).finished());
 
   void SetUp() override {
     // P0 at (0, 0, 0)
@@ -79,20 +79,14 @@ protected:
     values.insert(P(2), Pose3{});
 
     between01.reset(new BetweenFactor<Pose3>(
-        P(0), P(1),
-        gtsam::Pose3(gtsam::Rot3::identity(), gtsam::Point3(1.0, 0.0, 0.0)),
-        betweenModel));
+        P(0), P(1), gtsam::Pose3(gtsam::Rot3::identity(), gtsam::Point3(1.0, 0.0, 0.0)), betweenModel));
     between12.reset(new BetweenFactor<Pose3>(
-        P(1), P(2),
-        gtsam::Pose3(gtsam::Rot3::identity(), gtsam::Point3(1.0, 0.0, 0.0)),
-        betweenModel));
+        P(1), P(2), gtsam::Pose3(gtsam::Rot3::identity(), gtsam::Point3(1.0, 0.0, 0.0)), betweenModel));
   }
 };
 
-class SimpleGraphTestsWithParams
-    : public SimpleGraphTest,
-      public ::testing::WithParamInterface<
-          PoseTransformationFactor::ConversionType> {};
+class SimpleGraphTestsWithParams : public SimpleGraphTest,
+                                   public ::testing::WithParamInterface<PoseTransformationFactor::ConversionType> {};
 
 TEST_F(SimpleGraphTest, NoPoseTransformation) {
   graph.push_back(between01);
@@ -104,14 +98,12 @@ TEST_F(SimpleGraphTest, NoPoseTransformation) {
 
 TEST_P(SimpleGraphTestsWithParams, WithTransformDSOToIMUNew) {
   PoseTransformationFactor::ConversionType conversionType = GetParam();
-  std::shared_ptr<TransformDSOToIMU> transform(new TransformDSOToIMU(
-      gtsam::Pose3::identity(), std::make_shared<bool>(true),
-      std::make_shared<bool>(false), std::make_shared<bool>(false), true, 0));
+  std::shared_ptr<TransformDSOToIMU> transform(
+      new TransformDSOToIMU(gtsam::Pose3::identity(), std::make_shared<bool>(true), std::make_shared<bool>(false),
+                            std::make_shared<bool>(false), true, 0));
 
-  graph.push_back(boost::make_shared<PoseTransformationFactor>(
-      between01, *transform, conversionType));
-  graph.push_back(boost::make_shared<PoseTransformationFactor>(
-      between12, *transform, conversionType));
+  graph.push_back(boost::make_shared<PoseTransformationFactor>(between01, *transform, conversionType));
+  graph.push_back(boost::make_shared<PoseTransformationFactor>(between12, *transform, conversionType));
 
   values.insert(S(0), ScaleGTSAM(1.0));
   trueValues.insert(S(0), ScaleGTSAM(0.5));
@@ -128,7 +120,7 @@ TEST(ValuesTest, ValuesPointerChange) {
   gtsam::Vector3 vector = gtsam::Vector3::Identity();
   values.insert(S(2), vector);
 
-  const Values *pointerBefore = &values;
+  const Values* pointerBefore = &values;
   EXPECT_TRUE(pointerBefore == &values);
 
   VectorValues incVec;
@@ -138,7 +130,6 @@ TEST(ValuesTest, ValuesPointerChange) {
   values = values.retract(incVec);
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    PoseTransformationTests, SimpleGraphTestsWithParams,
-    ::testing::Values(PoseTransformationFactor::JACOBIAN_BAKED_IN,
-                      PoseTransformationFactor::JACOBIAN_FACTOR));
+INSTANTIATE_TEST_SUITE_P(PoseTransformationTests, SimpleGraphTestsWithParams,
+                         ::testing::Values(PoseTransformationFactor::JACOBIAN_BAKED_IN,
+                                           PoseTransformationFactor::JACOBIAN_FACTOR));

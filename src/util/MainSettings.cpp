@@ -32,8 +32,7 @@
 using namespace dmvio;
 using namespace dso;
 
-void MainSettings::parseArguments(int argc, char **argv,
-                                  SettingsUtil &settingsUtil) {
+void MainSettings::parseArguments(int argc, char** argv, SettingsUtil& settingsUtil) {
   for (int i = 1; i < argc; i++) {
     printf("i: %d\n", i);
     parseArgument(argv[i], settingsUtil);
@@ -41,7 +40,7 @@ void MainSettings::parseArguments(int argc, char **argv,
   }
 }
 
-void MainSettings::parseArgument(char *arg, SettingsUtil &settingsUtil) {
+void MainSettings::parseArgument(char* arg, SettingsUtil& settingsUtil) {
   int option;
   float foption;
   char buf[1000];
@@ -102,17 +101,21 @@ void MainSettings::parseArgument(char *arg, SettingsUtil &settingsUtil) {
     if (option == 1) {
       debugSaveImages = true;
       if (42 == system("rm -rf images_out"))
-        printf("system call returned 42 - what are the odds?. This is only "
-               "here to shut up the compiler.\n");
+        printf(
+            "system call returned 42 - what are the odds?. This is only "
+            "here to shut up the compiler.\n");
       if (42 == system("mkdir images_out"))
-        printf("system call returned 42 - what are the odds?. This is only "
-               "here to shut up the compiler.\n");
+        printf(
+            "system call returned 42 - what are the odds?. This is only "
+            "here to shut up the compiler.\n");
       if (42 == system("rm -rf images_out"))
-        printf("system call returned 42 - what are the odds?. This is only "
-               "here to shut up the compiler.\n");
+        printf(
+            "system call returned 42 - what are the odds?. This is only "
+            "here to shut up the compiler.\n");
       if (42 == system("mkdir images_out"))
-        printf("system call returned 42 - what are the odds?. This is only "
-               "here to shut up the compiler.\n");
+        printf(
+            "system call returned 42 - what are the odds?. This is only "
+            "here to shut up the compiler.\n");
       printf("SAVE IMAGES!\n");
     }
     return;
@@ -126,16 +129,14 @@ void MainSettings::parseArgument(char *arg, SettingsUtil &settingsUtil) {
     if (option == 1) {
       printf("PHOTOMETRIC MODE WITHOUT CALIBRATION!\n");
       setting_photometricCalibration = 0;
-      setting_affineOptModeA = 0; //-1: fix. >=0: optimize (with prior, if > 0).
-      setting_affineOptModeB = 0; //-1: fix. >=0: optimize (with prior, if > 0).
+      setting_affineOptModeA = 0;  //-1: fix. >=0: optimize (with prior, if > 0).
+      setting_affineOptModeB = 0;  //-1: fix. >=0: optimize (with prior, if > 0).
     }
     if (option == 2) {
       printf("PHOTOMETRIC MODE WITH PERFECT IMAGES!\n");
       setting_photometricCalibration = 0;
-      setting_affineOptModeA =
-          -1; //-1: fix. >=0: optimize (with prior, if > 0).
-      setting_affineOptModeB =
-          -1; //-1: fix. >=0: optimize (with prior, if > 0).
+      setting_affineOptModeA = -1;  //-1: fix. >=0: optimize (with prior, if > 0).
+      setting_affineOptModeB = -1;  //-1: fix. >=0: optimize (with prior, if > 0).
       setting_minGradHistAdd = 3;
     }
     if (option == 3) {
@@ -145,10 +146,11 @@ void MainSettings::parseArgument(char *arg, SettingsUtil &settingsUtil) {
       // vignette (and response), but still fully optimizes brightness changes,
       // hence it is appropriate for sensors without exposure time but with a
       // calibrated vignette.
-      printf("PHOTOMETRIC MODE WITH CALIBRATION, BUT NO OR INACCURATE "
-             "EXPOSURE!\n");
-      setting_affineOptModeA = 0; //-1: fix. >=0: optimize (with prior, if > 0).
-      setting_affineOptModeB = 0; //-1: fix. >=0: optimize (with prior, if > 0).
+      printf(
+          "PHOTOMETRIC MODE WITH CALIBRATION, BUT NO OR INACCURATE "
+          "EXPOSURE!\n");
+      setting_affineOptModeA = 0;  //-1: fix. >=0: optimize (with prior, if > 0).
+      setting_affineOptModeB = 0;  //-1: fix. >=0: optimize (with prior, if > 0).
     }
     return;
   }
@@ -171,7 +173,7 @@ void MainSettings::parseArgument(char *arg, SettingsUtil &settingsUtil) {
   assert(0);
 }
 
-void MainSettings::registerArgs(SettingsUtil &set) {
+void MainSettings::registerArgs(SettingsUtil& set) {
   set.registerArg("vignette", vignette);
   set.registerArg("gamma", gammaCalib);
   set.registerArg("calib", calib);
@@ -186,43 +188,38 @@ void MainSettings::registerArgs(SettingsUtil &set) {
   set.registerArg("setting_maxOptIterations", setting_maxOptIterations);
   set.registerArg("setting_minIdepth", setting_minIdepth);
   set.registerArg("setting_solverMode", setting_solverMode);
-  set.registerArg("setting_weightZeroPriorDSOInitY",
-                  setting_weightZeroPriorDSOInitY);
-  set.registerArg("setting_weightZeroPriorDSOInitX",
-                  setting_weightZeroPriorDSOInitX);
-  set.registerArg("setting_forceNoKFTranslationThresh",
-                  setting_forceNoKFTranslationThresh);
-  set.registerArg("setting_minFramesBetweenKeyframes",
-                  setting_minFramesBetweenKeyframes);
+  set.registerArg("setting_weightZeroPriorDSOInitY", setting_weightZeroPriorDSOInitY);
+  set.registerArg("setting_weightZeroPriorDSOInitX", setting_weightZeroPriorDSOInitX);
+  set.registerArg("setting_forceNoKFTranslationThresh", setting_forceNoKFTranslationThresh);
+  set.registerArg("setting_minFramesBetweenKeyframes", setting_minFramesBetweenKeyframes);
 }
 
 void dmvio::MainSettings::settingsDefault(int preset) {
   printf("\n=============== PRESET Settings: ===============\n");
   if (preset == 0 || preset == 1) {
-    printf("DEFAULT settings:\n"
-           "- %s real-time enforcing\n"
-           "- 2000 active points\n"
-           "- 5-7 active frames\n"
-           "- 1-6 LM iteration each KF\n"
-           "- original image resolution\n",
-           preset == 0 ? "no " : "1x");
+    printf(
+        "DEFAULT settings:\n"
+        "- %s real-time enforcing\n"
+        "- 2000 active points\n"
+        "- 5-7 active frames\n"
+        "- 1-6 LM iteration each KF\n"
+        "- original image resolution\n",
+        preset == 0 ? "no " : "1x");
 
     playbackSpeed = (preset == 0 ? 0 : 1.0);
     preload = preset == 1;
 #ifndef USE_EDGE_ALIGN
-    setting_desiredImmatureDensity =
-        5000; // * kCameraNumUsed; // 3000; // 1500;
-    setting_desiredPointDensity =
-        2000;              // * kCameraNumUsed;    // 2000;    // 1000;
-    setting_minFrames = 5; // 15;//5;
-    setting_maxFrames = 7; // 12;//7;
+    setting_desiredImmatureDensity = 5000;  // * kCameraNumUsed; // 3000; // 1500;
+    setting_desiredPointDensity = 2000;     // * kCameraNumUsed;    // 2000;    // 1000;
+    setting_minFrames = 5;                  // 15;//5;
+    setting_maxFrames = 7;                  // 12;//7;
 #else
-    setting_desiredImmatureDensity = 5000; // 10000;
-    setting_desiredPointDensity = 2000;    // 5000;
-    setting_minFrames = 5;                 // 15;//5;
-    setting_maxFrames = 7;                 // 12;//7;
+    setting_desiredImmatureDensity = 5000;  // 10000;
+    setting_desiredPointDensity = 2000;     // 5000;
+    setting_minFrames = 5;                  // 15;//5;
+    setting_maxFrames = 7;                  // 12;//7;
 #endif
-    setting_maxOptIterations = 3; // 5; // 6;
+    setting_maxOptIterations = 3;  // 5; // 6;
     setting_minOptIterations = 2;
 
     setting_logStuff = false;
@@ -232,20 +229,21 @@ void dmvio::MainSettings::settingsDefault(int preset) {
     // Note: These presets were not tested with DM-VIO yet, you will probably
     // need to adjust benchmarkSetting_width and benchmarkSetting_height at
     // least.
-    printf("FAST settings:\n"
-           "- %s real-time enforcing\n"
-           "- 800 active points\n"
-           "- 4-6 active frames\n"
-           "- 1-4 LM iteration each KF\n"
-           "- 424 x 320 image resolution\n",
-           preset == 0 ? "no " : "5x");
+    printf(
+        "FAST settings:\n"
+        "- %s real-time enforcing\n"
+        "- 800 active points\n"
+        "- 4-6 active frames\n"
+        "- 1-4 LM iteration each KF\n"
+        "- 424 x 320 image resolution\n",
+        preset == 0 ? "no " : "5x");
 
     playbackSpeed = (preset == 2 ? 0 : 5);
     preload = preset == 3;
     setting_desiredImmatureDensity = 600;
     setting_desiredPointDensity = 800;
-    setting_minFrames = 4;  // 15;//4;
-    setting_maxFrames = 12; // 6;//30;//6;
+    setting_minFrames = 4;   // 15;//4;
+    setting_maxFrames = 12;  // 6;//30;//6;
     setting_maxOptIterations = 4;
     setting_minOptIterations = 1;
 

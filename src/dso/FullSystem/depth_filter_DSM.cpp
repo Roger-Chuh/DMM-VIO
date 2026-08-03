@@ -15,22 +15,17 @@ const size_t target_point_pid = yvr::yvr_vio::kInvalid;
 
 namespace dso {
 
-DepthFilterDSM::DepthFilterDSM(MultiCamera *p_multi_camera,
-                               const EstimatorConfig *p_estimator_config)
-    : p_level_to_multi_camera_(p_multi_camera),
-      p_estimator_config_(p_estimator_config) {
+DepthFilterDSM::DepthFilterDSM(MultiCamera* p_multi_camera, const EstimatorConfig* p_estimator_config)
+    : p_level_to_multi_camera_(p_multi_camera), p_estimator_config_(p_estimator_config) {
   px_err_angle_vec_.resize(kCameraNumUsed);
   for (size_t i = 0; i < kCameraNumUsed; ++i) {
-    const number_t fx =
-        p_level_to_multi_camera_->cid_to_cam[0]->GetParamByIndex(0);
+    const number_t fx = p_level_to_multi_camera_->cid_to_cam[0]->GetParamByIndex(0);
     px_err_angle_vec_[i] = std::atan(px_noise_ / fx);
   }
 
-  p_epipolar_match_dsm_ = new EpipolarMatchDSM(
-      p_multi_camera, p_estimator_config_->z_threshold, 1.0);
-  p_multi_cam_epipolar_search_ = new MultiCameraEpipolarSearch(
-      p_multi_camera, p_estimator_config_->z_threshold, 1.0,
-      p_estimator_config);
+  p_epipolar_match_dsm_ = new EpipolarMatchDSM(p_multi_camera, p_estimator_config_->z_threshold, 1.0);
+  p_multi_cam_epipolar_search_ =
+      new MultiCameraEpipolarSearch(p_multi_camera, p_estimator_config_->z_threshold, 1.0, p_estimator_config);
 
   cell_size_ = p_estimator_config->detect_cell_size / 2;
   row_cell_num_ = 480 / cell_size_;
@@ -46,10 +41,9 @@ DepthFilterDSM::DepthFilterDSM(MultiCamera *p_multi_camera,
     col_cell_num_++;
   }
 
-  const size_t &cell_size_per_cam = row_cell_num_ * col_cell_num_;
+  const size_t& cell_size_per_cam = row_cell_num_ * col_cell_num_;
 
-  cid_to_new_frame_mask_mat_.resize(
-      kCameraNumUsed, std::vector<Seed *>(cell_size_per_cam, nullptr));
+  cid_to_new_frame_mask_mat_.resize(kCameraNumUsed, std::vector<Seed*>(cell_size_per_cam, nullptr));
 }
 
 DepthFilterDSM::~DepthFilterDSM() {
@@ -57,13 +51,12 @@ DepthFilterDSM::~DepthFilterDSM() {
   delete p_epipolar_match_dsm_;
 }
 
-void DepthFilterDSM::ProcessDepthFilter(
-    const size_t &cur_fid, const bool &is_first_frame,
-    const aligned_vector<aligned_vector<Vec2>> &edge_features,
-    const aligned_vector<aligned_vector<Vec2>> &corner_features,
-    InitDepthData *p_init_depth_data) {
+void DepthFilterDSM::ProcessDepthFilter(const size_t& cur_fid, const bool& is_first_frame,
+                                        const aligned_vector<aligned_vector<Vec2>>& edge_features,
+                                        const aligned_vector<aligned_vector<Vec2>>& corner_features,
+                                        InitDepthData* p_init_depth_data) {
   // InsertNewFrame(cur_fid, is_first_frame);
-  std::vector<Seed *> seed_vec;
+  std::vector<Seed*> seed_vec;
   std::array<std::shared_ptr<AlgsImage>, kCameraNumUsed> cid_to_img;
 
   GetSeeds(frame_vec_, seed_vec);
@@ -76,7 +69,7 @@ void DepthFilterDSM::ProcessDepthFilter(
 
   // reset mask data
   for (size_t cid = 0; cid < kCameraNumUsed; ++cid) {
-    for (Seed *&p_seed : cid_to_new_frame_mask_mat_[cid]) {
+    for (Seed*& p_seed : cid_to_new_frame_mask_mat_[cid]) {
       p_seed = nullptr;
     }
   }
@@ -89,17 +82,16 @@ void DepthFilterDSM::ProcessDepthFilter(
   UpdateSeedMultiCam(cid_to_img, seed_vec, false, is_first_frame);
 }
 
-void DepthFilterDSM::GetSeeds(std::vector<DF_Frame> &frames,
-                              std::vector<Seed *> &seeds_vec) {
+void DepthFilterDSM::GetSeeds(std::vector<DF_Frame>& frames, std::vector<Seed*>& seeds_vec) {
   seeds_vec.clear();
   for (size_t i = 0; i < frames.size(); ++i) {
     GetSeeds(frames[i], seeds_vec);
   }
 }
 
-void DepthFilterDSM::GetSeeds(DF_Frame &frame, std::vector<Seed *> &seeds_vec) {
+void DepthFilterDSM::GetSeeds(DF_Frame& frame, std::vector<Seed*>& seeds_vec) {
   for (size_t i = 0; i < frame.seed_vec.size(); ++i) {
-    Seed &seed = frame.seed_vec[i];
+    Seed& seed = frame.seed_vec[i];
     if (seed.state == Seed::kSeedInvalid || seed.state == Seed::kSeedConverge) {
       continue;
     }
@@ -107,9 +99,8 @@ void DepthFilterDSM::GetSeeds(DF_Frame &frame, std::vector<Seed *> &seeds_vec) {
   }
 }
 
-void DepthFilterDSM::UpdateSeedMultiCam(
-    std::array<std::shared_ptr<AlgsImage>, kCameraNumUsed> cid_to_img,
-    std::vector<Seed *> &seeds_vec, bool mask_cur_frame, bool is_first_frame) {
+void DepthFilterDSM::UpdateSeedMultiCam(std::array<std::shared_ptr<AlgsImage>, kCameraNumUsed> cid_to_img,
+                                        std::vector<Seed*>& seeds_vec, bool mask_cur_frame, bool is_first_frame) {
   aligned_vector<Vec3> cid_to_twc(kCameraNumUsed);
   for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
     cid_to_twc[target_cid] = Vec3::Zero();
@@ -121,9 +112,8 @@ void DepthFilterDSM::UpdateSeedMultiCam(
 #endif
 
   for (int i = 0; i < seeds_vec.size(); ++i) {
-    Seed *seed = seeds_vec[i];
-    if (seed->state == Seed::kSeedInvalid ||
-        seed->state == Seed::kSeedConverge) {
+    Seed* seed = seeds_vec[i];
+    if (seed->state == Seed::kSeedInvalid || seed->state == Seed::kSeedConverge) {
       printf("seed is invalid or converge in UpdateSeedMultiCam\n");
       continue;
     }
@@ -132,19 +122,14 @@ void DepthFilterDSM::UpdateSeedMultiCam(
     size_t cid = 0;
     Vec2 uv;
     bool is_corner;
-    bool success = point.pyramid_patch.SetFromImg(
-        cid_to_img[cid], uv, cid, is_corner, p_level_to_multi_camera_, 0);
+    bool success = point.pyramid_patch.SetFromImg(cid_to_img[cid], uv, cid, is_corner, p_level_to_multi_camera_, 0);
 
     number_t res_idp;
-    std::array<MultiCameraEpipolarSearch::MatchRes, kCameraNumUsed>
-        cid_to_output;
+    std::array<MultiCameraEpipolarSearch::MatchRes, kCameraNumUsed> cid_to_output;
     Point pt;
-    MultiCameraEpipolarSearch::State state =
-        p_multi_cam_epipolar_search_->FindEpipolarMatch(
-            pt, 1, cid_to_img, seed->pid, seed->rho, seed->sigma2, cur_fid_,
-            cid_to_output, res_idp,
-            is_first_frame ? -1 : p_estimator_config_->search_length_threshold,
-            true, p_estimator_config_->search_level);
+    MultiCameraEpipolarSearch::State state = p_multi_cam_epipolar_search_->FindEpipolarMatch(
+        pt, 1, cid_to_img, seed->pid, seed->rho, seed->sigma2, cur_fid_, cid_to_output, res_idp,
+        is_first_frame ? -1 : p_estimator_config_->search_length_threshold, true, p_estimator_config_->search_level);
 
     if (state == MultiCameraEpipolarSearch::kReject) {
       continue;
@@ -158,4 +143,4 @@ void DepthFilterDSM::UpdateSeedMultiCam(
   }
 }
 
-} // namespace dso
+}  // namespace dso

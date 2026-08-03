@@ -83,39 +83,36 @@ TOML11_INLINE ::toml::value literal_internal_impl(location loc) {
   auto data = parse_file(loc, ctx);
   if (data.is_ok()) {
     return data.unwrap();
-  } else // not a value && not a file. error.
+  } else  // not a value && not a file. error.
   {
     std::string msg;
-    for (const auto &err : data.unwrap_err()) {
+    for (const auto& err : data.unwrap_err()) {
       msg += format_error(err);
     }
     throw ::toml::syntax_error(std::move(msg), std::move(data.unwrap_err()));
   }
 }
 
-} // namespace detail
+}  // namespace detail
 
 inline namespace literals {
 inline namespace toml_literals {
 
-TOML11_INLINE ::toml::value operator"" _toml(const char *str, std::size_t len) {
+TOML11_INLINE ::toml::value operator"" _toml(const char* str, std::size_t len) {
   if (len == 0) {
     return ::toml::value{};
   }
 
   ::toml::detail::location::container_type c(len);
-  std::copy(
-      reinterpret_cast<const ::toml::detail::location::char_type *>(str),
-      reinterpret_cast<const ::toml::detail::location::char_type *>(str + len),
-      c.begin());
+  std::copy(reinterpret_cast<const ::toml::detail::location::char_type*>(str),
+            reinterpret_cast<const ::toml::detail::location::char_type*>(str + len), c.begin());
   if (!c.empty() && c.back()) {
-    c.push_back('\n'); // to make it easy to parse comment, we add newline
+    c.push_back('\n');  // to make it easy to parse comment, we add newline
   }
 
-  return literal_internal_impl(::toml::detail::location(
-      std::make_shared<const toml::detail::location::container_type>(
-          std::move(c)),
-      "TOML literal encoded in a C++ code"));
+  return literal_internal_impl(
+      ::toml::detail::location(std::make_shared<const toml::detail::location::container_type>(std::move(c)),
+                               "TOML literal encoded in a C++ code"));
 }
 
 #if defined(__cpp_char8_t)
@@ -127,29 +124,25 @@ TOML11_INLINE ::toml::value operator"" _toml(const char *str, std::size_t len) {
 #if defined(TOML11_HAS_CHAR8_T)
 // value of u8"" literal has been changed from char to char8_t and char8_t is
 // NOT compatible to char
-TOML11_INLINE ::toml::value operator"" _toml(const char8_t *str,
-                                             std::size_t len) {
+TOML11_INLINE ::toml::value operator"" _toml(const char8_t* str, std::size_t len) {
   if (len == 0) {
     return ::toml::value{};
   }
 
   ::toml::detail::location::container_type c(len);
-  std::copy(
-      reinterpret_cast<const ::toml::detail::location::char_type *>(str),
-      reinterpret_cast<const ::toml::detail::location::char_type *>(str + len),
-      c.begin());
+  std::copy(reinterpret_cast<const ::toml::detail::location::char_type*>(str),
+            reinterpret_cast<const ::toml::detail::location::char_type*>(str + len), c.begin());
   if (!c.empty() && c.back()) {
-    c.push_back('\n'); // to make it easy to parse comment, we add newline
+    c.push_back('\n');  // to make it easy to parse comment, we add newline
   }
 
-  return literal_internal_impl(::toml::detail::location(
-      std::make_shared<const toml::detail::location::container_type>(
-          std::move(c)),
-      "TOML literal encoded in a C++ code"));
+  return literal_internal_impl(
+      ::toml::detail::location(std::make_shared<const toml::detail::location::container_type>(std::move(c)),
+                               "TOML literal encoded in a C++ code"));
 }
 #endif
 
-} // namespace toml_literals
-} // namespace literals
-} // namespace toml
-#endif // TOML11_LITERAL_IMPL_HPP
+}  // namespace toml_literals
+}  // namespace literals
+}  // namespace toml
+#endif  // TOML11_LITERAL_IMPL_HPP

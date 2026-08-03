@@ -51,12 +51,7 @@ namespace dmvio {
 // direction as the PoseTransformation, e.g. to convert Jacobians from DSO style
 // to GTSAM style, one has to pass RIGHT_TO_LEFT. When working only with GTSAM
 // style increments one can simply pass RIGHT_TO_RIGHT.
-enum class DerivativeDirection {
-  LEFT_TO_LEFT,
-  LEFT_TO_RIGHT,
-  RIGHT_TO_LEFT,
-  RIGHT_TO_RIGHT
-};
+enum class DerivativeDirection { LEFT_TO_LEFT, LEFT_TO_RIGHT, RIGHT_TO_LEFT, RIGHT_TO_RIGHT };
 
 // Abstract base class for transformations from one coordinate system to
 // another. Main functionality is to transformm a pose to a different coordinate
@@ -78,16 +73,16 @@ enum class DerivativeDirection {
 // classes which optimize additional symbols need to always reimplement
 // getAllDerivatives themself.
 class PoseTransformation {
-public:
+ public:
   typedef dso::Mat44 PoseType;
 
   virtual ~PoseTransformation() = default;
 
   // Transform pose with the transformation.
-  virtual PoseType transformPose(const PoseType &pose) const = 0;
+  virtual PoseType transformPose(const PoseType& pose) const = 0;
 
   // Perform the inverse transformation.
-  virtual PoseType transformPoseInverse(const PoseType &pose) const = 0;
+  virtual PoseType transformPoseInverse(const PoseType& pose) const = 0;
 
   // Perform precomputation which might be necessary for the derivative
   // computation. Should be called once before calling getPoseDerivative for a
@@ -97,87 +92,70 @@ public:
   // Compute the derivative w.r.t the pose.
   // This can be used to transform Jacobians from the target coordinate system
   // to the source coordinate system.
-  virtual gtsam::Matrix66 getPoseDerivative(const PoseType &pose,
-                                            DerivativeDirection direction);
+  virtual gtsam::Matrix66 getPoseDerivative(const PoseType& pose, DerivativeDirection direction);
 
   // Compute the derivatives for all variables which are optimized, first the
   // pose and then all optimized symbols (e.g. scale, T_cam_imu, etc.).
-  virtual std::vector<gtsam::Matrix>
-  getAllDerivatives(const PoseType &pose, DerivativeDirection direction);
+  virtual std::vector<gtsam::Matrix> getAllDerivatives(const PoseType& pose, DerivativeDirection direction);
 
   // Returns the symbols of the additional variables (except the pose) which are
   // optimized.
   virtual std::vector<gtsam::Key> getAllOptimizedSymbols() const;
 
   // Updates all optimized symbols using the value in values (if available).
-  virtual void updateWithValues(const gtsam::Values &values) {}
+  virtual void updateWithValues(const gtsam::Values& values) {}
 
-  int getOptimizedDim(gtsam::Key key) const {
-    return keyDimMap.at(key);
-  } // get dimension of optimized symbol
+  int getOptimizedDim(gtsam::Key key) const { return keyDimMap.at(key); }  // get dimension of optimized symbol
 
   virtual std::unique_ptr<PoseTransformation> clone() const = 0;
 
-protected:
-  std::map<gtsam::Key, int>
-      keyDimMap; // only for optimized symbols, often times empty.
-                 //    virtual std::unique_ptr<PoseTransformation> clone() = 0;
+ protected:
+  std::map<gtsam::Key, int> keyDimMap;  // only for optimized symbols, often times empty.
+                                        //    virtual std::unique_ptr<PoseTransformation> clone() = 0;
 };
 
 // Identity transformation. Used get the Jacobians to transform from left sided
 // increment (DSO) to right sided increment (GTSAM), without changing the poses.
 class TransformIdentity : public PoseTransformation {
-public:
-  virtual PoseType transformPose(const PoseType &pose) const override {
-    return pose;
-  }
+ public:
+  virtual PoseType transformPose(const PoseType& pose) const override { return pose; }
 
-  virtual PoseType transformPoseInverse(const PoseType &pose) const override {
-    return pose;
-  }
+  virtual PoseType transformPoseInverse(const PoseType& pose) const override { return pose; }
 
   std::unique_ptr<PoseTransformation> clone() const override {
     return std::unique_ptr<PoseTransformation>(new TransformIdentity(*this));
   }
 
-  virtual gtsam::Matrix66
-  getPoseDerivative(const PoseType &pose,
-                    DerivativeDirection direction) override;
+  virtual gtsam::Matrix66 getPoseDerivative(const PoseType& pose, DerivativeDirection direction) override;
 };
 
 // Create the inverse of a PoseTransformation.
-template <typename T> class InversePoseTransform : public PoseTransformation {
-public:
-  explicit InversePoseTransform(T &originalTransform)
-      : transform(originalTransform) {}
+template <typename T>
+class InversePoseTransform : public PoseTransformation {
+ public:
+  explicit InversePoseTransform(T& originalTransform) : transform(originalTransform) {}
 
-  PoseType transformPose(const PoseType &pose) const override {
-    return transform.transformPoseInverse(pose);
-  }
+  PoseType transformPose(const PoseType& pose) const override { return transform.transformPoseInverse(pose); }
 
-  PoseType transformPoseInverse(const PoseType &pose) const override {
-    return transform.transformPose(pose);
-  }
+  PoseType transformPoseInverse(const PoseType& pose) const override { return transform.transformPose(pose); }
 
   std::unique_ptr<PoseTransformation> clone() const override {
-    return std::unique_ptr<PoseTransformation>(
-        new InversePoseTransform<T>(*this));
+    return std::unique_ptr<PoseTransformation>(new InversePoseTransform<T>(*this));
   }
 
-private:
-  T &transform;
+ private:
+  T& transform;
 };
 
 // Convert Hessian (and gradient vector b) from DSO Bundle Adjustment to GTSAM.
 // Also uses the poseTransformation (typically just identity) to transform the
 // poses. ordering and keyDimMap are used to identify which column / row of the
 // Hessian corresponds to which variable.
-std::pair<gtsam::Matrix, gtsam::Vector>
-convertHAndBFromDSO(const dso::MatXX &H, const dso::VecX &b,
-                    PoseTransformation &poseTransformation,
-                    double weightDSOToGTSAM, const gtsam::Ordering &ordering,
-                    const gtsam::Values &values,
-                    const std::map<gtsam::Key, size_t> &keyDimMap);
+std::pair<gtsam::Matrix, gtsam::Vector> convertHAndBFromDSO(const dso::MatXX& H, const dso::VecX& b,
+                                                            PoseTransformation& poseTransformation,
+                                                            double weightDSOToGTSAM, const gtsam::Ordering& ordering,
+                                                            const gtsam::Values& values,
+                                                            const std::map<gtsam::Key, size_t>& keyDimMap);
 
 // Convert H and b between 2 GTSAM factor graphs.
 // Note that the transformation has to be defined "the other way round" compared
@@ -185,78 +163,61 @@ convertHAndBFromDSO(const dso::MatXX &H, const dso::VecX &b,
 // DSO space you have to provide the TransformDSOToIMU. The reason is that the
 // relative Jacobians have to be defined this way.
 std::pair<gtsam::Matrix, gtsam::Vector> convertHAndBWithPoseTransformation(
-    const std::pair<gtsam::Matrix, gtsam::Vector> &input,
-    const gtsam::Ordering &ordering,
-    const std::map<gtsam::Key, size_t> &keyDimMap, const gtsam::Values &values,
-    PoseTransformation &poseTransformation,
+    const std::pair<gtsam::Matrix, gtsam::Vector>& input, const gtsam::Ordering& ordering,
+    const std::map<gtsam::Key, size_t>& keyDimMap, const gtsam::Values& values, PoseTransformation& poseTransformation,
     DerivativeDirection derivativeDirection);
 
 // Method to build the relative Jacobian used for converting H,b in
 // convertHAndBWithPoseTransformation and for the PoseTransformationFactor.
-gtsam::Matrix
-buildRelativeJacobian(int n, const gtsam::FastVector<gtsam::Key> &ordering,
-                      const std::vector<int> &dimensions,
-                      const gtsam::Values &values,
-                      PoseTransformation &poseTransformation,
-                      const DerivativeDirection &derivativeDirection,
-                      int numOpt, const std::vector<int> &optPositions);
+gtsam::Matrix buildRelativeJacobian(int n, const gtsam::FastVector<gtsam::Key>& ordering,
+                                    const std::vector<int>& dimensions, const gtsam::Values& values,
+                                    PoseTransformation& poseTransformation,
+                                    const DerivativeDirection& derivativeDirection, int numOpt,
+                                    const std::vector<int>& optPositions);
 
 // Converts the DSO coarse tracking Hessian to GTSAM, transforming it with the
 // PoseTransformation. The passed transformIMUToCoarse needs to provide
 // derivatives for frameToWorld and for referenceToWorld (see
 // TransformIMUToDSOForCoarse as an example).
-std::pair<gtsam::Matrix, gtsam::Vector>
-convertCoarseHToGTSAM(PoseTransformation &transformIMUToCoarse,
-                      const dso::Mat88 &HInput, const dso::Vec8 &bInput,
-                      const gtsam::Pose3 &currentPose);
+std::pair<gtsam::Matrix, gtsam::Vector> convertCoarseHToGTSAM(PoseTransformation& transformIMUToCoarse,
+                                                              const dso::Mat88& HInput, const dso::Vec8& bInput,
+                                                              const gtsam::Pose3& currentPose);
 
 // Helper function to convert Jacobians from DSO style to GTSAM: This switches
 // rotation and translation because Sophus (used by DSO) and GTSAM have
 // different conventions here.
-Eigen::MatrixXd convertJacobianToGTSAM(const Eigen::MatrixXd &jacobian);
+Eigen::MatrixXd convertJacobianToGTSAM(const Eigen::MatrixXd& jacobian);
 
 // Convert all poses in keysToInclude with the transformation.
-void convertAllPosesWithTransform(const gtsam::Values &values,
-                                  const PoseTransformation &transformation,
-                                  const gtsam::KeyVector &keysToInclude,
-                                  gtsam::Values &insertInto);
+void convertAllPosesWithTransform(const gtsam::Values& values, const PoseTransformation& transformation,
+                                  const gtsam::KeyVector& keysToInclude, gtsam::Values& insertInto);
 
-inline gtsam::Values
-convertAllPosesWithTransform(const gtsam::Values &values,
-                             const PoseTransformation &transformation,
-                             const gtsam::KeyVector &keysToInclude) {
+inline gtsam::Values convertAllPosesWithTransform(const gtsam::Values& values, const PoseTransformation& transformation,
+                                                  const gtsam::KeyVector& keysToInclude) {
   gtsam::Values returning;
-  convertAllPosesWithTransform(values, transformation, keysToInclude,
-                               returning);
+  convertAllPosesWithTransform(values, transformation, keysToInclude, returning);
   return returning;
 }
 
-inline gtsam::Values
-convertAllPosesWithTransform(gtsam::Values::shared_ptr values,
-                             const PoseTransformation &transformation) {
+inline gtsam::Values convertAllPosesWithTransform(gtsam::Values::shared_ptr values,
+                                                  const PoseTransformation& transformation) {
   return convertAllPosesWithTransform(*values, transformation, values->keys());
 }
 
 // Returns true if all symbols optimized by the poseTransformation are contained
 // inside values.
-inline bool
-allOptimizedSymbolsInside(const gtsam::Values &values,
-                          const PoseTransformation &poseTransformation) {
-  for (auto &&key : poseTransformation.getAllOptimizedSymbols()) {
-    if (!values.exists(key))
-      return false;
+inline bool allOptimizedSymbolsInside(const gtsam::Values& values, const PoseTransformation& poseTransformation) {
+  for (auto&& key : poseTransformation.getAllOptimizedSymbols()) {
+    if (!values.exists(key)) return false;
   }
   return true;
 }
 
 // Assert that a numeric Jacobian is similar to analytic Jacobian.
 template <typename T>
-inline void assertNumericJac(const gtsam::Matrix &numericJac,
-                             const T &analyticJac) {
+inline void assertNumericJac(const gtsam::Matrix& numericJac, const T& analyticJac) {
   if (!(analyticJac - numericJac).isZero(0.0001)) {
-    std::cout << "AnalyticJ:\n"
-              << analyticJac << "\nNumJ: \n"
-              << numericJac << std::endl;
+    std::cout << "AnalyticJ:\n" << analyticJac << "\nNumJ: \n" << numericJac << std::endl;
     std::cout << "Diff:\n" << (analyticJac - numericJac) << std::endl;
     assert(0);
   }
@@ -268,9 +229,7 @@ inline void assertNumericJac(const gtsam::Matrix &numericJac,
 // member of the PoseTransformation in some cases), so this method is typically
 // very far from thread-safe!
 template <typename T>
-gtsam::Matrix computeNumericJacobian(PoseTransformation &transformation,
-                                     const Sophus::SE3d &pose,
-                                     T *variableToChange,
+gtsam::Matrix computeNumericJacobian(PoseTransformation& transformation, const Sophus::SE3d& pose, T* variableToChange,
                                      DerivativeDirection direction) {
 #ifndef DEBUG
   std::cout << "Using Numeric Jacobian!" << std::endl;
@@ -295,8 +254,7 @@ gtsam::Matrix computeNumericJacobian(PoseTransformation &transformation,
       *variableToChange = T::exp(incVec) * *variableToChange;
     }
 
-    Sophus::SE3d transformedPoseNew(
-        transformation.transformPose(pose.matrix()));
+    Sophus::SE3d transformedPoseNew(transformation.transformPose(pose.matrix()));
     *variableToChange = variableBackup;
     Sophus::SE3d relPose;
     if (direction == dmvio::DerivativeDirection::LEFT_TO_LEFT ||
@@ -312,6 +270,6 @@ gtsam::Matrix computeNumericJacobian(PoseTransformation &transformation,
 
   return convertJacobianToGTSAM(fullDerivative);
 }
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_POSETRANSFORMATION_H
+#endif  // DMVIO_POSETRANSFORMATION_H

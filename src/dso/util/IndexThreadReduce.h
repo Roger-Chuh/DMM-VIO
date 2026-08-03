@@ -35,16 +35,16 @@
 namespace dso {
 using namespace boost::placeholders;
 
-template <typename Running> class IndexThreadReduce {
-public:
+template <typename Running>
+class IndexThreadReduce {
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   inline IndexThreadReduce() {
     nextIndex = 0;
     maxIndex = 0;
     stepSize = 1;
-    callPerIndex = boost::bind(&IndexThreadReduce::callPerIndexDefault, this,
-                               _1, _2, _3, _4);
+    callPerIndex = boost::bind(&IndexThreadReduce::callPerIndexDefault, this, _1, _2, _3, _4);
 
     running = true;
     for (int i = 0; i < NUM_THREADS; i++) {
@@ -61,15 +61,13 @@ public:
     todo_signal.notify_all();
     exMutex.unlock();
 
-    for (int i = 0; i < NUM_THREADS; i++)
-      workerThreads[i].join();
+    for (int i = 0; i < NUM_THREADS; i++) workerThreads[i].join();
 
     printf("destroyed ThreadReduce\n");
   }
 
-  inline void
-  reduce(boost::function<void(int, int, Running *, int)> callPerIndex,
-         int first, int end, int stepSize = 0) {
+  inline void reduce(boost::function<void(int, int, Running*, int)> callPerIndex, int first, int end,
+                     int stepSize = 0) {
     memset(&stats, 0, sizeof(Running));
 
     //		if(!multiThreading)
@@ -78,8 +76,7 @@ public:
     //			return;
     //		}
 
-    if (stepSize == 0)
-      stepSize = ((end - first) + NUM_THREADS - 1) / NUM_THREADS;
+    if (stepSize == 0) stepSize = ((end - first) + NUM_THREADS - 1) / NUM_THREADS;
 
     // printf("reduce called\n");
 
@@ -109,25 +106,22 @@ public:
 
       // check if actually all are finished.
       bool allDone = true;
-      for (int i = 0; i < NUM_THREADS; i++)
-        allDone = allDone && isDone[i];
+      for (int i = 0; i < NUM_THREADS; i++) allDone = allDone && isDone[i];
 
       // all are finished! exit.
-      if (allDone)
-        break;
+      if (allDone) break;
     }
 
     nextIndex = 0;
     maxIndex = 0;
-    this->callPerIndex = boost::bind(&IndexThreadReduce::callPerIndexDefault,
-                                     this, _1, _2, _3, _4);
+    this->callPerIndex = boost::bind(&IndexThreadReduce::callPerIndexDefault, this, _1, _2, _3, _4);
 
     // printf("reduce done (all threads finished)\n");
   }
 
   Running stats;
 
-private:
+ private:
   boost::thread workerThreads[NUM_THREADS];
   bool isDone[NUM_THREADS];
   bool gotOne[NUM_THREADS];
@@ -142,9 +136,9 @@ private:
 
   bool running;
 
-  boost::function<void(int, int, Running *, int)> callPerIndex;
+  boost::function<void(int, int, Running*, int)> callPerIndex;
 
-  void callPerIndexDefault(int i, int j, Running *k, int tid) {
+  void callPerIndexDefault(int i, int j, Running* k, int tid) {
     printf("ERROR: should never be called....\n");
     assert(false);
   }
@@ -197,4 +191,4 @@ private:
     }
   }
 };
-} // namespace dso
+}  // namespace dso

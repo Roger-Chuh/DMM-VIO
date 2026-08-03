@@ -67,10 +67,10 @@ namespace dso {
 //#define USE_INVERSE_COMPOSITIONAL
 #define USE_EDGE_ALIGN
 #ifndef USE_EDGE_ALIGN
-#define PYR_LEVELS 6 // 3
+#define PYR_LEVELS 6  // 3
 //#define USE_ZNCC
 #else
-#define PYR_LEVELS 3 // at least 3 levels
+#define PYR_LEVELS 3  // at least 3 levels
 //#define USE_CENTER_PIXEL_ONLY
 #endif
 
@@ -92,59 +92,50 @@ namespace dso {
 #include <cstdio>
 
 // Check scalar for NaN/Inf
-#define NAN_CHECK_SCALAR(val, name)                                            \
-  do {                                                                         \
-    if (!std::isfinite(val)) {                                                 \
-      printf("[NAN_DETECT] %s = %g (NOT finite!)\n", name, (double)(val));     \
-    }                                                                          \
+#define NAN_CHECK_SCALAR(val, name)                                        \
+  do {                                                                     \
+    if (!std::isfinite(val)) {                                             \
+      printf("[NAN_DETECT] %s = %g (NOT finite!)\n", name, (double)(val)); \
+    }                                                                      \
   } while (0)
 
 // Check Eigen vector/matrix for NaN/Inf (linear access)
-#define NAN_CHECK_EIGEN(mat, name)                                             \
-  do {                                                                         \
-    int _nf = 0;                                                               \
-    for (int _i = 0; _i < (mat).size(); _i++) {                                \
-      if (!std::isfinite((double)((mat)(_i))))                                 \
-        _nf++;                                                                 \
-    }                                                                          \
-    if (_nf > 0) {                                                             \
-      printf("[NAN_DETECT] %s: %d/%d non-finite, norm=%g\n", name, _nf,        \
-             (mat).size(), (double)(mat).norm());                              \
-    }                                                                          \
+#define NAN_CHECK_EIGEN(mat, name)                                                                           \
+  do {                                                                                                       \
+    int _nf = 0;                                                                                             \
+    for (int _i = 0; _i < (mat).size(); _i++) {                                                              \
+      if (!std::isfinite((double)((mat)(_i)))) _nf++;                                                        \
+    }                                                                                                        \
+    if (_nf > 0) {                                                                                           \
+      printf("[NAN_DETECT] %s: %d/%d non-finite, norm=%g\n", name, _nf, (mat).size(), (double)(mat).norm()); \
+    }                                                                                                        \
   } while (0)
 
 // Log condition number from min/max singular values
-#define NAN_LOG_COND(min_sv, max_sv, name)                                     \
-  do {                                                                         \
-    double _c =                                                                \
-        (min_sv > 0 && std::isfinite(min_sv) && std::isfinite(max_sv))         \
-            ? ((double)(max_sv) / (double)(min_sv))                            \
-            : ((std::isfinite(max_sv) && max_sv > 0) ? 1.0 / 0.0 : 0.0 / 0.0); \
-    printf("[COND_NUM] %s: min_sv=%g, max_sv=%g, cond=%g\n", name,             \
-           (double)(min_sv), (double)(max_sv), _c);                            \
+#define NAN_LOG_COND(min_sv, max_sv, name)                                                                  \
+  do {                                                                                                      \
+    double _c = (min_sv > 0 && std::isfinite(min_sv) && std::isfinite(max_sv))                              \
+                    ? ((double)(max_sv) / (double)(min_sv))                                                 \
+                    : ((std::isfinite(max_sv) && max_sv > 0) ? 1.0 / 0.0 : 0.0 / 0.0);                      \
+    printf("[COND_NUM] %s: min_sv=%g, max_sv=%g, cond=%g\n", name, (double)(min_sv), (double)(max_sv), _c); \
   } while (0)
 
 #define NAN_PRINT(fmt, ...) printf("[NAN_DBG] " fmt, ##__VA_ARGS__)
 
 // Compute condition number from eigenvalues (symmetric matrix only)
-#define NAN_CHECK_COND(mat, name)                                              \
-  do {                                                                         \
-    if ((mat).rows() > 0 && (mat).cols() > 0) {                                \
-      Eigen::SelfAdjointEigenSolver<MatXX> _eig(mat);                          \
-      if (_eig.info() == Eigen::Success) {                                     \
-        double _minEv = _eig.eigenvalues().minCoeff();                         \
-        double _maxEv = _eig.eigenvalues().maxCoeff();                         \
-        double _cond = (std::abs(_minEv) > 1e-12)                              \
-                           ? (_maxEv / _minEv)                                 \
-                           : std::numeric_limits<double>::infinity();          \
-        printf("[COND_NUM] %s: min_ev=%g, max_ev=%g, cond=%g\n", name, _minEv, \
-               _maxEv, _cond);                                                 \
-        int _nNeg = (_eig.eigenvalues().array() < 0).count();                  \
-        if (_nNeg > 0)                                                         \
-          printf("[COND_NUM] %s: WARNING %d negative eigenvalues!\n", name,    \
-                 _nNeg);                                                       \
-      }                                                                        \
-    }                                                                          \
+#define NAN_CHECK_COND(mat, name)                                                                                \
+  do {                                                                                                           \
+    if ((mat).rows() > 0 && (mat).cols() > 0) {                                                                  \
+      Eigen::SelfAdjointEigenSolver<MatXX> _eig(mat);                                                            \
+      if (_eig.info() == Eigen::Success) {                                                                       \
+        double _minEv = _eig.eigenvalues().minCoeff();                                                           \
+        double _maxEv = _eig.eigenvalues().maxCoeff();                                                           \
+        double _cond = (std::abs(_minEv) > 1e-12) ? (_maxEv / _minEv) : std::numeric_limits<double>::infinity(); \
+        printf("[COND_NUM] %s: min_ev=%g, max_ev=%g, cond=%g\n", name, _minEv, _maxEv, _cond);                   \
+        int _nNeg = (_eig.eigenvalues().array() < 0).count();                                                    \
+        if (_nNeg > 0) printf("[COND_NUM] %s: WARNING %d negative eigenvalues!\n", name, _nNeg);                 \
+      }                                                                                                          \
+    }                                                                                                            \
   } while (0)
 
 #else
@@ -202,8 +193,8 @@ extern float setting_minIdepthH_marg;
 
 extern float setting_maxIdepth;
 extern float setting_maxPixSearch;
-extern float setting_desiredImmatureDensity; // done
-extern float setting_desiredPointDensity;    // done
+extern float setting_desiredImmatureDensity;  // done
+extern float setting_desiredPointDensity;     // done
 extern float setting_minPointsRemaining;
 extern float setting_maxLogAffFacInWindow;
 extern int setting_minFrames;
@@ -338,15 +329,15 @@ extern float freeDebugParam5;
 
 void handleKey(char k);
 #ifndef USE_EDGE_ALIGN
-constexpr float pattern_scale = 2; // 1;
+constexpr float pattern_scale = 2;  // 1;
 constexpr float pattern_scale_extra_edge = 1.0f;
 #else
 constexpr float pattern_scale = 2.0f;
-constexpr float pattern_scale_extra_edge = 0.1; // 0.0f;
+constexpr float pattern_scale_extra_edge = 0.1;  // 0.0f;
 #endif
 constexpr int pattern_index = 8;
 
-constexpr float pattern_scale_seed_init = 2.0f; // don't change
+constexpr float pattern_scale_seed_init = 2.0f;  // don't change
 constexpr int pattern_index_seed = 9;
 
 #ifndef USE_EDGE_ALIGN
@@ -356,8 +347,7 @@ constexpr float pattern_scale_seed_point_opt = 1.f;
 #endif
 
 extern float staticPattern[12][40][2];
-constexpr int staticPatternNum[12] = {1,  5,  5, 9,         9, 13,
-                                      25, 21, 8, 24 /*25*/, 8, 8};
+constexpr int staticPatternNum[12] = {1, 5, 5, 9, 9, 13, 25, 21, 8, 24 /*25*/, 8, 8};
 constexpr int staticPatternPadding[12] = {
     1,
     1,
@@ -368,9 +358,8 @@ constexpr int staticPatternPadding[12] = {
     2,
     3,
     2 * (int)(pattern_scale + 1.f),
-    4 * (int)(pattern_scale_seed_init > pattern_scale_seed_point_opt
-                  ? pattern_scale_seed_init
-                  : pattern_scale_seed_point_opt + 1.f),
+    4 * (int)(pattern_scale_seed_init > pattern_scale_seed_point_opt ? pattern_scale_seed_init
+                                                                     : pattern_scale_seed_point_opt + 1.f),
     2 * (int)(pattern_scale + 1.f),
     2 * (int)(pattern_scale + 1.f)};
 
@@ -383,10 +372,9 @@ constexpr int staticPatternPadding[12] = {
 
 #define patternNumSeed staticPatternNum[pattern_index_seed]
 #define patternPSeed staticPattern[pattern_index_seed]
-#define patternPaddingSeed                                                     \
-  ((staticPatternPadding[pattern_index_seed] >                                 \
-    staticPatternPadding[pattern_index])                                       \
-       ? staticPatternPadding[pattern_index_seed]                              \
+#define patternPaddingSeed                                                          \
+  ((staticPatternPadding[pattern_index_seed] > staticPatternPadding[pattern_index]) \
+       ? staticPatternPadding[pattern_index_seed]                                   \
        : staticPatternPadding[pattern_index])
 
 //
@@ -403,4 +391,4 @@ constexpr bool adaptiveCannyThreshold = true;
 #else
 #define eachErrDim 1
 #endif
-} // namespace dso
+}  // namespace dso

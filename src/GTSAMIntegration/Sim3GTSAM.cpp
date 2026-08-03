@@ -35,36 +35,26 @@ Sophus::Sim3d ScaleGTSAM::sim() const {
   return ret;
 }
 
-void ScaleGTSAM::print(const std::string &str) const {
-  std::cout << str << " Scale: " << scale << std::endl;
-}
+void ScaleGTSAM::print(const std::string& str) const { std::cout << str << " Scale: " << scale << std::endl; }
 
 size_t ScaleGTSAM::dim() const { return 1; }
 
-bool ScaleGTSAM::equals(const ScaleGTSAM &other, double tol) const {
-  return fabs(scale - other.scale) < tol;
-}
+bool ScaleGTSAM::equals(const ScaleGTSAM& other, double tol) const { return fabs(scale - other.scale) < tol; }
 
 ScaleGTSAM ScaleGTSAM::identity() { return ScaleGTSAM(0); }
 
-ScaleGTSAM ScaleGTSAM::operator*(const ScaleGTSAM &T) const {
-  return ScaleGTSAM((sim() * T.sim()).scale());
-}
+ScaleGTSAM ScaleGTSAM::operator*(const ScaleGTSAM& T) const { return ScaleGTSAM((sim() * T.sim()).scale()); }
 
-ScaleGTSAM ScaleGTSAM::inverse() const {
-  return ScaleGTSAM(sim().inverse().scale());
-}
+ScaleGTSAM ScaleGTSAM::inverse() const { return ScaleGTSAM(sim().inverse().scale()); }
 
-gtsam::Vector1 ScaleGTSAM::Logmap(const ScaleGTSAM &s,
-                                  gtsam::OptionalJacobian<1, 1> Hm) {
+gtsam::Vector1 ScaleGTSAM::Logmap(const ScaleGTSAM& s, gtsam::OptionalJacobian<1, 1> Hm) {
   Sophus::Sim3d::Tangent tangent = Sophus::Sim3d::log(s.sim());
   gtsam::Vector1 ret;
   ret(0) = tangent(6);
   return ret;
 }
 
-ScaleGTSAM ScaleGTSAM::Expmap(const Vector1 &v,
-                              gtsam::OptionalJacobian<1, 1> Hm) {
+ScaleGTSAM ScaleGTSAM::Expmap(const Vector1& v, gtsam::OptionalJacobian<1, 1> Hm) {
   double scaleInc = v(0);
   // For larger values the exp would get too large.
   if (std::abs(scaleInc) > 10) {

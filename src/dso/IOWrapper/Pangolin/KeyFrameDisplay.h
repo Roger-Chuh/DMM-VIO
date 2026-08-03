@@ -45,7 +45,8 @@ class FrameShell;
 
 namespace IOWrap {
 
-template <int ppp> struct InputPointSparse {
+template <int ppp>
+struct InputPointSparse {
   float u;
   float v;
   float idpeth;
@@ -64,31 +65,29 @@ struct MyVertex {
 
 // stores a pointcloud associated to a Keyframe.
 class KeyFrameDisplay {
-
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-  KeyFrameDisplay(MultiCamera *p_multi_camera_);
+  KeyFrameDisplay(MultiCamera* p_multi_camera_);
 
   ~KeyFrameDisplay();
 
   // copies points from KF over to internal buffer,
   // keeping some additional information so we can render it differently.
-  void setFromKF(FrameHessian *fh, CalibHessian *HCalib);
+  void setFromKF(FrameHessian* fh, CalibHessian* HCalib);
 
   // copies points from KF over to internal buffer,
   // keeping some additional information so we can render it differently.
-  void setFromF(FrameShell *fs, CalibHessian *HCalib);
+  void setFromF(FrameShell* fs, CalibHessian* HCalib);
 
-  void setFromPose(const Sophus::SE3 &pose, CalibHessian *HCalib);
+  void setFromPose(const Sophus::SE3& pose, CalibHessian* HCalib);
 
   // copies & filters internal data to GL buffer for rendering. if nothing to
   // do: does nothing.
-  bool refreshPC(bool canRefresh, float scaledTH, float absTH, int mode,
-                 float minBS, int sparsity);
+  bool refreshPC(bool canRefresh, float scaledTH, float absTH, int mode, float minBS, int sparsity);
 
   // renders cam & pointcloud.
-  void drawCam(float lineWidth = 1, float *color = 0, float sizeFactor = 1);
+  void drawCam(float lineWidth = 1, float* color = 0, float sizeFactor = 1);
 
   void drawPC(float pointSize);
 
@@ -96,11 +95,9 @@ public:
   bool active;
   SE3 camToWorld;
 
-  inline bool operator<(const KeyFrameDisplay &other) const {
-    return (id < other.id);
-  }
+  inline bool operator<(const KeyFrameDisplay& other) const { return (id < other.id); }
 
-private:
+ private:
   float fx, fy, cx, cy;
   float fxi, fyi, cxi, cyi;
   int width, height;
@@ -113,15 +110,15 @@ private:
 
   int numSparsePoints;
   int numSparseBufferSize;
-  InputPointSparse<MAX_RES_PER_POINT> *originalInputSparse;
+  InputPointSparse<MAX_RES_PER_POINT>* originalInputSparse;
 
   bool bufferValid;
   int numGLBufferPoints;
   int numGLBufferGoodPoints;
   pangolin::GlBuffer vertexBuffer;
   pangolin::GlBuffer colorBuffer;
-  MultiCamera *p_multi_camera = nullptr;
+  MultiCamera* p_multi_camera = nullptr;
 };
 
-} // namespace IOWrap
-} // namespace dso
+}  // namespace IOWrap
+}  // namespace dso

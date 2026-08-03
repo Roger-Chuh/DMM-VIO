@@ -35,23 +35,22 @@ namespace dmvio {
 
 // Handles First-Estimates Jacobians (FEJ) for GTSAM.
 class FEJValues {
-public:
+ public:
   gtsam::Values fejValues;
 
   // Called when keys are become connected to marginalization factors. Their
   // values will be inserted into fejValues.
   template <typename T>
-  void insertConnectedKeys(const T &connectedKeys,
-                           const gtsam::Values &currentValues) {
+  void insertConnectedKeys(const T& connectedKeys, const gtsam::Values& currentValues) {
     // always insert current poses and affine brightness (no matter if
     // connected).
-    for (auto &&val : currentValues) {
+    for (auto&& val : currentValues) {
       auto chr = gtsam::Symbol(val.key).chr();
       if (chr == 'p' || chr == 'a') {
         eraseAndInsert(fejValues, val.key, val.value);
       }
     }
-    for (auto &&key : connectedKeys) {
+    for (auto&& key : connectedKeys) {
       if (!fejValues.exists(key)) {
         fejValues.insert(key, currentValues.at(key));
       }
@@ -59,8 +58,9 @@ public:
   }
 
   // Remove keys from FEJMap, as they have been marginalized / removed.
-  template <typename T> void keysRemoved(const T &keysRemoved) {
-    for (auto &&key : keysRemoved) {
+  template <typename T>
+  void keysRemoved(const T& keysRemoved) {
+    for (auto&& key : keysRemoved) {
       fejValues.erase(key);
     }
   }
@@ -68,10 +68,9 @@ public:
   // Returns values containing neededKeys, using fejValues where available,
   // otherwise current values.
   template <typename T>
-  gtsam::Values buildValues(const T &neededKeys,
-                            const gtsam::Values &currentValues) {
+  gtsam::Values buildValues(const T& neededKeys, const gtsam::Values& currentValues) {
     gtsam::Values ret;
-    for (auto &&key : neededKeys) {
+    for (auto&& key : neededKeys) {
       bool use = fejValues.exists(key);
       if (use) {
         ret.insert(key, fejValues.at(key));
@@ -86,15 +85,14 @@ public:
 // Interface for factors which can handle FEJ.
 // Implemented by PoseTransformationFactor and FEJNoiseModelFactor.
 class FactorHandlingFEJ {
-public:
+ public:
   virtual void setFEJValues(std::shared_ptr<FEJValues> fej) = 0;
 };
 
 // calls setFEJValues for all factors in graph which implement
 // FactorHandlingFEJ.
-void setFEJMapForGraph(gtsam::NonlinearFactorGraph &graph,
-                       const std::shared_ptr<FEJValues> &fejValues);
+void setFEJMapForGraph(gtsam::NonlinearFactorGraph& graph, const std::shared_ptr<FEJValues>& fejValues);
 
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_FEJVALUES_H
+#endif  // DMVIO_FEJVALUES_H

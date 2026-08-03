@@ -22,8 +22,8 @@ struct PreFrameVM {
   size_t target_cid;
   Vec3 dir;
   number_t zncc;
-  Vec3 dir_in_world; // for outlier check
-  Vec3 twc;          // for outlier check
+  Vec3 dir_in_world;  // for outlier check
+  Vec3 twc;           // for outlier check
 
   Mat3 vm_sigma;
 };
@@ -32,7 +32,7 @@ struct Seed {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   enum SeedState { kSeedInvalid, kSeedInited, kSeedUpdate, kSeedConverge };
   size_t pid;
-  Vec2 detect_uv; // host uv in level0
+  Vec2 detect_uv;  // host uv in level0
   SeedState state;
 
   number_t sigma2 = 1;
@@ -53,7 +53,6 @@ struct DF_Frame {
   size_t fid;
   std::vector<Seed> seed_vec;
 
-  static void InitSeedDepth(Seed &seed, const bool &has_init_depth,
-                            const number_t &init_depth);
+  static void InitSeedDepth(Seed& seed, const bool& has_init_depth, const number_t& init_depth);
 };
-} // namespace dso
+}  // namespace dso

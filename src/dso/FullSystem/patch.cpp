@@ -37,11 +37,10 @@ number_t Patch::z_threshold = 0;
 
 typename Patch::MatrixV Patch::J_ZNSSD_mean = Patch::MatrixV::Zero();
 
-void Patch::PatchInit(const number_t &z_thre) {
+void Patch::PatchInit(const number_t& z_thre) {
   VectorV vec_1;
   vec_1.setOnes();
-  J_ZNSSD_mean =
-      Mat_ZNSSD_I - (vec_1 / (number_t)PATCH_SIZE) * vec_1.transpose();
+  J_ZNSSD_mean = Mat_ZNSSD_I - (vec_1 / (number_t)PATCH_SIZE) * vec_1.transpose();
 
   z_threshold = z_thre;
 }
@@ -59,8 +58,7 @@ Vec3 &point_C) { Mat3 mat_point; mat_point.row(0) = point_A.transpose();
 //  *  c  d  e  f  *
 //  *  g  h  i  j  *
 //  *  *  k  l  *  *
-void GradValAtD(std::shared_ptr<AlgsImage> img, const Vec2 &px, number_t &res,
-                Vec2 *p_grad) {
+void GradValAtD(std::shared_ptr<AlgsImage> img, const Vec2& px, number_t& res, Vec2* p_grad) {
   // Note that we don't use ceil here, because we need to compute gradient from
   // these 4 pixels. Doing ceil would cause 0 and 1 to be the same pixel which
   // results in zero gradient
@@ -92,15 +90,13 @@ void GradValAtD(std::shared_ptr<AlgsImage> img, const Vec2 &px, number_t &res,
     ge = f - d;
     gh = i - g;
     gi = j - h;
-    (*p_grad)[0] =
-        0.5 * (gd * x1 * y1 + ge * x0 * y1 + gh * x1 * y0 + gi * x0 * y0);
+    (*p_grad)[0] = 0.5 * (gd * x1 * y1 + ge * x0 * y1 + gh * x1 * y0 + gi * x0 * y0);
 
     gd = h - a;
     ge = i - b;
     gh = k - d;
     gi = l - e;
-    (*p_grad)[1] =
-        0.5 * (gd * x1 * y1 + ge * x0 * y1 + gh * x1 * y0 + gi * x0 * y0);
+    (*p_grad)[1] = 0.5 * (gd * x1 * y1 + ge * x0 * y1 + gh * x1 * y0 + gi * x0 * y0);
   }
   res = d * x1 * y1 + e * x0 * y1 + h * x1 * y0 + i * x0 * y0;
 }
@@ -108,8 +104,7 @@ void GradValAtD(std::shared_ptr<AlgsImage> img, const Vec2 &px, number_t &res,
 //  *  a  b  c *
 //  *  d  e  f *
 //  *  g  h  i *
-void GradValAtDSobel(std::shared_ptr<AlgsImage> img, const Vec2i &px,
-                     number_t &res, Vec2 *p_grad) {
+void GradValAtDSobel(std::shared_ptr<AlgsImage> img, const Vec2i& px, number_t& res, Vec2* p_grad) {
   // Note that we don't use ceil here, because we need to compute gradient from
   // these 4 pixels. Doing ceil would cause 0 and 1 to be the same pixel which
   // results in zero gradient
@@ -138,9 +133,8 @@ void GradValAtDSobel(std::shared_ptr<AlgsImage> img, const Vec2i &px,
   res = e;
 }
 
-bool Patch::SetFromImg(std::shared_ptr<AlgsImage> img, const int &level,
-                       const Vec2 &px, bool &is_corner,
-                       CameraBase *p_simple_camera) {
+bool Patch::SetFromImg(std::shared_ptr<AlgsImage> img, const int& level, const Vec2& px, bool& is_corner,
+                       CameraBase* p_simple_camera) {
   int row = img->height;
   int col = img->width;
   Vec2 cur_px;
@@ -160,8 +154,8 @@ bool Patch::SetFromImg(std::shared_ptr<AlgsImage> img, const int &level,
     cur_px = px + pattern2_def.col(i);
 
     coordinate.col(i) = cur_px;
-    if (cur_px.x() < grad_border || cur_px.x() >= col - 1 - grad_border ||
-        cur_px.y() < grad_border || cur_px.y() >= row - 1 - grad_border) {
+    if (cur_px.x() < grad_border || cur_px.x() >= col - 1 - grad_border || cur_px.y() < grad_border ||
+        cur_px.y() >= row - 1 - grad_border) {
       return false;
     }
 
@@ -212,9 +206,8 @@ bool Patch::SetFromImg(std::shared_ptr<AlgsImage> img, const int &level,
   //  p_simple_camera->UnProject(px + Vec2(HALF_PATCH_SIZE_B, 0), xyz_du_ref);
   //  p_simple_camera->UnProject(px + Vec2(0, HALF_PATCH_SIZE_B), xyz_dv_ref);
 
-  MatrixV J_ZNSSD_J_I = (Mat_ZNSSD_I - (normalized_vals.matrix() *
-                                        normalized_vals.matrix().transpose())) /
-                        sigma * J_ZNSSD_mean;
+  MatrixV J_ZNSSD_J_I =
+      (Mat_ZNSSD_I - (normalized_vals.matrix() * normalized_vals.matrix().transpose())) / sigma * J_ZNSSD_mean;
 
   J_ZNSSD_J_uv = J_ZNSSD_J_I * grads.matrix().transpose();
   Mat2 H_uv = J_ZNSSD_J_uv.transpose() * J_ZNSSD_J_uv;
@@ -245,7 +238,7 @@ bool Patch::SetFromImg(std::shared_ptr<AlgsImage> img, const int &level,
   return true;
 }
 
-void Patch::SetHPose(const Mat36 &dp_dx0) {
+void Patch::SetHPose(const Mat36& dp_dx0) {
   H_x0 = dp_dx0.transpose() * H_dir * dp_dx0;
   J_x0 = J_dir * dp_dx0;
 }
@@ -259,12 +252,10 @@ inline number_t atan_scalar_approximation(number_t x) {
   number_t a11 = -0.01172120f;
 
   number_t x_sq = x * x;
-  return x *
-         (a1 +
-          x_sq * (a3 + x_sq * (a5 + x_sq * (a7 + x_sq * (a9 + x_sq * a11)))));
+  return x * (a1 + x_sq * (a3 + x_sq * (a5 + x_sq * (a7 + x_sq * (a9 + x_sq * a11)))));
 }
 
-inline number_t atan2_auto_1(const number_t &y, const number_t &x) {
+inline number_t atan2_auto_1(const number_t& y, const number_t& x) {
   // Ensure input is in [-1, +1]
   bool swap = fabs(x) < fabs(y);
   number_t atan_input = (swap ? x : y) / (swap ? y : x);
@@ -276,20 +267,20 @@ inline number_t atan2_auto_1(const number_t &y, const number_t &x) {
   res = swap ? (atan_input >= 0.0f ? M_PI_2 : -M_PI_2) - res : res;
   // Adjust quadrants
   if (x >= 0.0f && y >= 0.0f) {
-  } // 1st quadrant
+  }  // 1st quadrant
   else if (x < 0.0f && y >= 0.0f) {
     res = M_PI + res;
-  } // 2nd quadrant
+  }  // 2nd quadrant
   else if (x < 0.0f && y < 0.0f) {
     res = -M_PI + res;
-  } // 3rd quadrant
+  }  // 3rd quadrant
   else if (x >= 0.0f && y < 0.0f) {
-  } // 4th quadrant
+  }  // 4th quadrant
 
   return res;
 }
 
-inline number_t atan_auto_1(const number_t &y, const number_t &x) {
+inline number_t atan_auto_1(const number_t& y, const number_t& x) {
   // Ensure input >= 0
   bool swap = x < y;
   number_t atan_input = (swap ? x : y) / (swap ? y : x);
@@ -301,11 +292,9 @@ inline number_t atan_auto_1(const number_t &y, const number_t &x) {
   return res;
 }
 
-void Patch::ProjectPatchs(std::shared_ptr<CameraBase> simple_camera,
-                          const Patch::Matrix3P &target_dir, bool &has_outlier,
-                          const int &x_border_min, const int &x_border_max,
-                          const int &y_border_min, const int &y_border_max,
-                          Matrix2P &res) const {
+void Patch::ProjectPatchs(std::shared_ptr<CameraBase> simple_camera, const Patch::Matrix3P& target_dir,
+                          bool& has_outlier, const int& x_border_min, const int& x_border_max, const int& y_border_min,
+                          const int& y_border_max, Matrix2P& res) const {
   for (size_t i = 0; i < target_dir.cols(); ++i) {
     Vec3 normalized_dir = target_dir.col(i).normalized();
     if (normalized_dir.z() < z_threshold) {
@@ -316,8 +305,7 @@ void Patch::ProjectPatchs(std::shared_ptr<CameraBase> simple_camera,
     Eigen::Ref<Vec2> uv = Eigen::Ref<Vec2>(res.col(i));
     simple_camera->Project(target_dir.col(i), uv);
 
-    if (uv.x() < x_border_min || uv.x() >= x_border_max ||
-        uv.y() < y_border_min || uv.y() >= y_border_max) {
+    if (uv.x() < x_border_min || uv.x() >= x_border_max || uv.y() < y_border_min || uv.y() >= y_border_max) {
       has_outlier = true;
       return;
     }
@@ -325,17 +313,15 @@ void Patch::ProjectPatchs(std::shared_ptr<CameraBase> simple_camera,
   has_outlier = false;
 }
 
-void Patch::GetPatchValues(const Patch::Matrix2P &uvs,
-                           std::shared_ptr<AlgsImage> img, ArrayP &res,
-                           Patch::Matrix2P *p_patch_grad,
-                           Vec2 *p_center_pixel_grad) const {
+void Patch::GetPatchValues(const Patch::Matrix2P& uvs, std::shared_ptr<AlgsImage> img, ArrayP& res,
+                           Patch::Matrix2P* p_patch_grad, Vec2* p_center_pixel_grad) const {
   int x0i;
   int y0i;
   int y1i;
   number_t x0, y0, x1, y1;
 
   for (size_t i = 0; i < uvs.cols(); ++i) {
-    const Vec2 &px = uvs.col(i);
+    const Vec2& px = uvs.col(i);
     x0i = static_cast<int>(std::floor(px.x()));
     int x1i = x0i + 1;
     y0i = static_cast<int>(std::floor(px.y()));
@@ -367,7 +353,7 @@ void Patch::GetPatchValues(const Patch::Matrix2P &uvs,
       const int b = static_cast<int>((*img)(y0i - 1, x0i));
       const int c = static_cast<int>((*img)(y0i - 1, x0i + 1));
       const int d = static_cast<int>((*img)(y0i, x0i - 1));
-      const int &e = f10;
+      const int& e = f10;
       const int f = static_cast<int>((*img)(y0i + 1, x0i - 1));
       const int g = f01;
       const int h = f11;
@@ -380,17 +366,14 @@ void Patch::GetPatchValues(const Patch::Matrix2P &uvs,
   }
 }
 
-bool PyramidPatch::SetFromImg(const std::shared_ptr<AlgsImage> &img,
-                              const Vec2 &px, const size_t &cid,
-                              bool &is_corner, MultiCamera *p_simple_camera,
-                              const int &intr_level) {
+bool PyramidPatch::SetFromImg(const std::shared_ptr<AlgsImage>& img, const Vec2& px, const size_t& cid, bool& is_corner,
+                              MultiCamera* p_simple_camera, const int& intr_level) {
   Vec2 px_scaled;
   for (int level = 0; level < 1; ++level) {
     number_t scale = std::pow(2, -level);
     px_scaled = (scale * (px.array() + 0.5) - 0.5).matrix();
-    if (!patchs[level].SetFromImg(
-            img, level, px_scaled, is_corner,
-            p_simple_camera->level_cid_to_cam_pinhole.at(intr_level).at(cid))) {
+    if (!patchs[level].SetFromImg(img, level, px_scaled, is_corner,
+                                  p_simple_camera->level_cid_to_cam_pinhole.at(intr_level).at(cid))) {
       return false;
     }
 
@@ -405,11 +388,10 @@ bool PyramidPatch::SetFromImg(const std::shared_ptr<AlgsImage> &img,
   return true;
 }
 
-void PyramidPatch::SetH(const Mat4 &Tcw0, const number_t &idp) {
-  const Vec3 &n = patchs[0].dir0; // main dir, same in every level
+void PyramidPatch::SetH(const Mat4& Tcw0, const number_t& idp) {
+  const Vec3& n = patchs[0].dir0;  // main dir, same in every level
   dp_dx0.leftCols<3>() =
-      -LeftMultiSkew(n, Tcw0.block<3, 3>(0, 0)) +
-      idp * LeftMultiSkew(Tcw0.block<3, 1>(0, 3), Tcw0.block<3, 3>(0, 0));
+      -LeftMultiSkew(n, Tcw0.block<3, 3>(0, 0)) + idp * LeftMultiSkew(Tcw0.block<3, 1>(0, 3), Tcw0.block<3, 3>(0, 0));
   dp_dx0.rightCols<3>() = idp * Tcw0.block<3, 3>(0, 0);
 
   for (int level = 0; level < 1; ++level) {
@@ -417,4 +399,4 @@ void PyramidPatch::SetH(const Mat4 &Tcw0, const number_t &idp) {
   }
 }
 
-} // namespace dso
+}  // namespace dso

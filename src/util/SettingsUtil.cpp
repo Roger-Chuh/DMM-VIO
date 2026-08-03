@@ -22,17 +22,15 @@
 
 #include "SettingsUtil.h"
 
-dmvio::SettingsUtil::Parameter::Parameter(
-    void *pointer,
-    const std::function<void(void *, std::string)> &commandLineHandler,
-    const std::function<void(void *, const YAML::Node &)> &yamlHandler,
-    const std::function<void(void *, std::ostream &)> &printHandler)
-    : pointer(pointer), commandLineHandler(commandLineHandler),
-      yamlHandler(yamlHandler), printHandler(printHandler) {}
+dmvio::SettingsUtil::Parameter::Parameter(void* pointer,
+                                          const std::function<void(void*, std::string)>& commandLineHandler,
+                                          const std::function<void(void*, const YAML::Node&)>& yamlHandler,
+                                          const std::function<void(void*, std::ostream&)>& printHandler)
+    : pointer(pointer), commandLineHandler(commandLineHandler), yamlHandler(yamlHandler), printHandler(printHandler) {}
 
-void dmvio::SettingsUtil::tryReadFromYaml(const YAML::Node &node) {
+void dmvio::SettingsUtil::tryReadFromYaml(const YAML::Node& node) {
   // Loop through parameters and check if their name is in the node.
-  for (auto &pair : parameters) {
+  for (auto& pair : parameters) {
     // We give preference to commandline over yaml.
     if (!pair.second.loadedFromCommandLine) {
       std::string name = pair.first;
@@ -43,7 +41,7 @@ void dmvio::SettingsUtil::tryReadFromYaml(const YAML::Node &node) {
   }
 }
 
-bool dmvio::SettingsUtil::tryReadFromCommandLine(const std::string &arg) {
+bool dmvio::SettingsUtil::tryReadFromCommandLine(const std::string& arg) {
   // Extract name as part before the = sign and lookup in map
   auto pos = arg.find('=');
   if (pos == std::string::npos) {
@@ -62,8 +60,8 @@ bool dmvio::SettingsUtil::tryReadFromCommandLine(const std::string &arg) {
   return true;
 }
 
-void dmvio::SettingsUtil::printAllSettings(std::ostream &stream) {
-  for (auto &pair : parameters) {
+void dmvio::SettingsUtil::printAllSettings(std::ostream& stream) {
+  for (auto& pair : parameters) {
     stream << pair.first << ": ";
     pair.second.printHandler(pair.second.pointer, stream);
     stream << '\n';
@@ -71,8 +69,8 @@ void dmvio::SettingsUtil::printAllSettings(std::ostream &stream) {
 }
 
 void dmvio::SettingsUtil::createPangolinSettings() {
-  for (auto &&param : parameters) {
-    auto *set = param.second.pangolinSetting.get();
+  for (auto&& param : parameters) {
+    auto* set = param.second.pangolinSetting.get();
     if (set) {
       set->createVar();
     }
@@ -80,8 +78,8 @@ void dmvio::SettingsUtil::createPangolinSettings() {
 }
 
 void dmvio::SettingsUtil::updatePangolinSettings() {
-  for (auto &&param : parameters) {
-    auto *set = param.second.pangolinSetting.get();
+  for (auto&& param : parameters) {
+    auto* set = param.second.pangolinSetting.get();
     if (set) {
       set->updateVar();
     }

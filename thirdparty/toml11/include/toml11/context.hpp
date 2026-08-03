@@ -9,21 +9,20 @@
 namespace toml {
 namespace detail {
 
-template <typename TypeConfig> class context {
-public:
-  explicit context(const spec &toml_spec) : toml_spec_(toml_spec), errors_{} {}
+template <typename TypeConfig>
+class context {
+ public:
+  explicit context(const spec& toml_spec) : toml_spec_(toml_spec), errors_{} {}
 
   bool has_error() const noexcept { return !errors_.empty(); }
 
-  std::vector<error_info> const &errors() const noexcept { return errors_; }
+  std::vector<error_info> const& errors() const noexcept { return errors_; }
 
-  semantic_version &toml_version() noexcept { return toml_spec_.version; }
-  semantic_version const &toml_version() const noexcept {
-    return toml_spec_.version;
-  }
+  semantic_version& toml_version() noexcept { return toml_spec_.version; }
+  semantic_version const& toml_version() const noexcept { return toml_spec_.version; }
 
-  spec &toml_spec() noexcept { return toml_spec_; }
-  spec const &toml_spec() const noexcept { return toml_spec_; }
+  spec& toml_spec() noexcept { return toml_spec_; }
+  spec const& toml_spec() const noexcept { return toml_spec_; }
 
   void report_error(error_info err) { this->errors_.push_back(std::move(err)); }
 
@@ -34,13 +33,13 @@ public:
     return e;
   }
 
-private:
+ private:
   spec toml_spec_;
   std::vector<error_info> errors_;
 };
 
-} // namespace detail
-} // namespace toml
+}  // namespace detail
+}  // namespace toml
 
 #if defined(TOML11_COMPILE_SOURCES)
 namespace toml {
@@ -49,8 +48,8 @@ struct ordered_type_config;
 namespace detail {
 extern template class context<::toml::type_config>;
 extern template class context<::toml::ordered_type_config>;
-} // namespace detail
-} // namespace toml
-#endif // TOML11_COMPILE_SOURCES
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_COMPILE_SOURCES
 
-#endif // TOML11_CONTEXT_HPP
+#endif  // TOML11_CONTEXT_HPP

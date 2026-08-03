@@ -29,10 +29,9 @@
 
 namespace dso {
 
-void AccumulatedSCHessianSSE::addPoint(EFPoint *p, bool shiftPriorToZero,
-                                       int tid) {
+void AccumulatedSCHessianSSE::addPoint(EFPoint* p, bool shiftPriorToZero, int tid) {
   int ngoodres = 0;
-  for (EFResidual *r : p->residualsAll) {
+  for (EFResidual* r : p->residualsAll) {
     for (int cid = 0; cid < kCameraNumUsed; ++cid) {
       if (r->isActive(cid)) {
         ngoodres++;
@@ -51,16 +50,14 @@ void AccumulatedSCHessianSSE::addPoint(EFPoint *p, bool shiftPriorToZero,
   //* hessian + 边缘化得到hessian + 先验hessian
   // TODO 边缘化的先验和正常的先验的不同
   float H = p->Hdd_accAF + p->Hdd_accLF + p->priorF;
-  if (H < 1e-10)
-    H = 1e-10;
+  if (H < 1e-10) H = 1e-10;
 
   p->data->idepth_hessian = H;
 
   p->HdiF = 1.0 / H;
   //* 逆深度残差
   p->bdSumF = p->bd_accAF + p->bd_accLF;
-  if (shiftPriorToZero)
-    p->bdSumF += p->priorF * p->deltaF;
+  if (shiftPriorToZero) p->bdSumF += p->priorF * p->deltaF;
   // TODO* 逆深度和内参的交叉项
   VecCf Hcd = p->Hcd_accAF + p->Hcd_accLF;
   //* schur complement
@@ -124,21 +121,20 @@ void AccumulatedSCHessianSSE::addPoint(EFPoint *p, bool shiftPriorToZero,
 #else
 
   int nFrames2 = nframes[tid] * nframes[tid];
-  for (EFResidual *r1 : p->residualsAll) {
+  for (EFResidual* r1 : p->residualsAll) {
     for (int cid11 = 0; cid11 < kCameraNumUsed; ++cid11) {
       if (!r1->isActive(cid11)) {
         continue;
       }
       int r1ht = r1->hostIDX + r1->targetIDX * nframes[tid];
-      for (EFResidual *r2 : p->residualsAll) {
+      for (EFResidual* r2 : p->residualsAll) {
         for (int cid22 = 0; cid22 < kCameraNumUsed; ++cid22) {
           if (!r2->isActive(cid22)) {
             continue;
           }
           //! Hfd_1 * Hdd_inv * Hfd_2^T,  f = [xi, a b]位姿 光度
 
-          accD[tid][r1ht + r2->targetIDX * nFrames2].update(
-              r1->JpJdF[cid11], r2->JpJdF[cid22], p->HdiF);
+          accD[tid][r1ht + r2->targetIDX * nFrames2].update(r1->JpJdF[cid11], r2->JpJdF[cid22], p->HdiF);
         }
       }
       //!< Hfd * Hdd_inv * Hcd^T
@@ -151,16 +147,14 @@ void AccumulatedSCHessianSSE::addPoint(EFPoint *p, bool shiftPriorToZero,
 }
 
 //@ 从累加器里面得到 hessian矩阵Schur complement
-void AccumulatedSCHessianSSE::stitchDoubleInternal(
-    MatXX *H, VecX *b, EnergyFunctional const *const EF, int min, int max,
-    Vec10 *stats, int tid) {
+void AccumulatedSCHessianSSE::stitchDoubleInternal(MatXX* H, VecX* b, EnergyFunctional const* const EF, int min,
+                                                   int max, Vec10* stats, int tid) {
   int toAggregate = NUM_THREADS;
   if (tid == -1) {
     toAggregate = 1;
     tid = 0;
-  } // special case: if we dont do multithreading, dont aggregate.
-  if (min == max)
-    return;
+  }  // special case: if we dont do multithreading, dont aggregate.
+  if (min == max) return;
 
   int nf = nframes[0];
   int nframes2 = nf * nf;
@@ -198,19 +192,14 @@ void AccumulatedSCHessianSSE::stitchDoubleInternal(
 
       for (int tid2 = 0; tid2 < toAggregate; tid2++) {
         accD[tid2][ijkIdx].finish();
-        if (accD[tid2][ijkIdx].num == 0)
-          continue;
+        if (accD[tid2][ijkIdx].num == 0) continue;
         accDM += accD[tid2][ijkIdx].A1m.cast<double>();
       }
       //! Hff部分Schur
-      H[tid].block<8, 8>(iIdx, iIdx) +=
-          EF->adHost[ijIdx] * accDM * EF->adHost[ikIdx].transpose();
-      H[tid].block<8, 8>(jIdx, kIdx) +=
-          EF->adTarget[ijIdx] * accDM * EF->adTarget[ikIdx].transpose();
-      H[tid].block<8, 8>(jIdx, iIdx) +=
-          EF->adTarget[ijIdx] * accDM * EF->adHost[ikIdx].transpose();
-      H[tid].block<8, 8>(iIdx, kIdx) +=
-          EF->adHost[ijIdx] * accDM * EF->adTarget[ikIdx].transpose();
+      H[tid].block<8, 8>(iIdx, iIdx) += EF->adHost[ijIdx] * accDM * EF->adHost[ikIdx].transpose();
+      H[tid].block<8, 8>(jIdx, kIdx) += EF->adTarget[ijIdx] * accDM * EF->adTarget[ikIdx].transpose();
+      H[tid].block<8, 8>(jIdx, iIdx) += EF->adTarget[ijIdx] * accDM * EF->adHost[ikIdx].transpose();
+      H[tid].block<8, 8>(iIdx, kIdx) += EF->adHost[ijIdx] * accDM * EF->adTarget[ikIdx].transpose();
     }
   }
 
@@ -235,10 +224,7 @@ void AccumulatedSCHessianSSE::stitchDoubleInternal(
 }
 
 //@ 对单独某一线程进行计算Schur H b
-void AccumulatedSCHessianSSE::stitchDouble(MatXX &H, VecX &b,
-                                           EnergyFunctional const *const EF,
-                                           int tid) {
-
+void AccumulatedSCHessianSSE::stitchDouble(MatXX& H, VecX& b, EnergyFunctional const* const EF, int tid) {
   int nf = nframes[0];
   int nframes2 = nf * nf;
 
@@ -269,21 +255,16 @@ void AccumulatedSCHessianSSE::stitchDouble(MatXX &H, VecX &b,
         int ikIdx = i + nf * k;
 
         accD[tid][ijkIdx].finish();
-        if (accD[tid][ijkIdx].num == 0)
-          continue;
+        if (accD[tid][ijkIdx].num == 0) continue;
         Mat88 accDM = accD[tid][ijkIdx].A1m.cast<double>();
 
-        H.block<8, 8>(iIdx, iIdx) +=
-            EF->adHost[ijIdx] * accDM * EF->adHost[ikIdx].transpose();
+        H.block<8, 8>(iIdx, iIdx) += EF->adHost[ijIdx] * accDM * EF->adHost[ikIdx].transpose();
 
-        H.block<8, 8>(jIdx, kIdx) +=
-            EF->adTarget[ijIdx] * accDM * EF->adTarget[ikIdx].transpose();
+        H.block<8, 8>(jIdx, kIdx) += EF->adTarget[ijIdx] * accDM * EF->adTarget[ikIdx].transpose();
 
-        H.block<8, 8>(jIdx, iIdx) +=
-            EF->adTarget[ijIdx] * accDM * EF->adHost[ikIdx].transpose();
+        H.block<8, 8>(jIdx, iIdx) += EF->adTarget[ijIdx] * accDM * EF->adHost[ikIdx].transpose();
 
-        H.block<8, 8>(iIdx, kIdx) +=
-            EF->adHost[ijIdx] * accDM * EF->adTarget[ikIdx].transpose();
+        H.block<8, 8>(iIdx, kIdx) += EF->adHost[ijIdx] * accDM * EF->adTarget[ikIdx].transpose();
       }
     }
 
@@ -295,9 +276,8 @@ void AccumulatedSCHessianSSE::stitchDouble(MatXX &H, VecX &b,
   // ----- new: copy transposed parts for calibration only.
   for (int h = 0; h < nf; h++) {
     int hIdx = CPARS + h * 8;
-    H.block<CPARS, 8>(0, hIdx).noalias() =
-        H.block<8, CPARS>(hIdx, 0).transpose();
+    H.block<CPARS, 8>(0, hIdx).noalias() = H.block<8, CPARS>(hIdx, 0).transpose();
   }
 }
 
-} // namespace dso
+}  // namespace dso

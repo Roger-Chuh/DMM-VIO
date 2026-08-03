@@ -35,11 +35,10 @@ namespace dmvio {
 class IMUInitializerState;
 
 class IMUInitVariances {
-public:
+ public:
   IMUInitVariances() = default;
 
-  IMUInitVariances(const gtsam::Marginals &marginals, gtsam::Key scaleKey,
-                   gtsam::Key biasKey);
+  IMUInitVariances(const gtsam::Marginals& marginals, gtsam::Key scaleKey, gtsam::Key biasKey);
 
   bool indetermined = true;
   double scaleVariance;
@@ -51,23 +50,18 @@ class StateTransitionModel;
 // Helper class which encapsulates common logic and data for the states of the
 // IMUInitializer.
 class IMUInitializerLogic {
-public:
-  typedef std::function<void(const gtsam::Values &values, bool)> InitCallback;
+ public:
+  typedef std::function<void(const gtsam::Values& values, bool)> InitCallback;
 
-  IMUInitializerLogic(
-      std::string resultsPrefix,
-      boost::shared_ptr<gtsam::PreintegrationParams> preintegrationParams,
-      const dmvio::IMUCalibration &imuCalibration,
-      dmvio::IMUInitSettings &settings,
-      DelayedMarginalizationGraphs *delayedMarginalization,
-      bool linearizeOperation, InitCallback callOnInit,
-      IMUInitStateChanger &stateChanger);
+  IMUInitializerLogic(std::string resultsPrefix, boost::shared_ptr<gtsam::PreintegrationParams> preintegrationParams,
+                      const dmvio::IMUCalibration& imuCalibration, dmvio::IMUInitSettings& settings,
+                      DelayedMarginalizationGraphs* delayedMarginalization, bool linearizeOperation,
+                      InitCallback callOnInit, IMUInitStateChanger& stateChanger);
 
   // This is required to change the state from different threads.
-  IMUInitStateChanger &stateChanger;
+  IMUInitStateChanger& stateChanger;
 
-  DelayedMarginalizationGraphs
-      *delayedMarginalizationGraphs; // Used to replace the main graph on init.
+  DelayedMarginalizationGraphs* delayedMarginalizationGraphs;  // Used to replace the main graph on init.
 
   // if true the factory methods will create the CoarseIMUInitState (or the
   // PGBAState respectively) in realtime mode.
@@ -82,8 +76,8 @@ public:
   std::shared_ptr<bool> optGravity;
   std::shared_ptr<bool> optT_cam_imu;
 
-  const IMUCalibration &imuCalibration;
-  IMUInitSettings &settings;
+  const IMUCalibration& imuCalibration;
+  IMUInitSettings& settings;
 
   // This is the bias used for the preintegration in the main system.
   gtsam::imuBias::ConstantBias latestBias;
@@ -92,8 +86,7 @@ public:
   std::unique_ptr<CoarseIMUInitOptimizer> coarseIMUOptimizer;
   gtsam::PreintegratedImuMeasurements imuMeasurements;
 
-  void addPose(const dso::FrameShell &shell, bool willBecomeKeyframe,
-               const IMUData *imuData);
+  void addPose(const dso::FrameShell& shell, bool willBecomeKeyframe, const IMUData* imuData);
 
   IMUInitVariances performCoarseIMUInit(double timestamp);
 
@@ -101,6 +94,6 @@ public:
   std::unique_ptr<PoseGraphBundleAdjustment> pgba;
 };
 
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_IMUINITIALIZERLOGIC_H
+#endif  // DMVIO_IMUINITIALIZERLOGIC_H

@@ -22,13 +22,9 @@ namespace dso {
 // Solves the right nullspace from QR decomposition,
 // returning the size of the kernel
 template <typename Derived, typename Scalar>
-int solveNullspace(const Eigen::MatrixBase<Derived> &A,
-                   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> &k) {
-  Eigen::ColPivHouseholderQR<
-      Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic>>
-      qr(A.transpose());
-  Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic> Q =
-      qr.householderQ();
+int solveNullspace(const Eigen::MatrixBase<Derived>& A, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& k) {
+  Eigen::ColPivHouseholderQR<Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic>> qr(A.transpose());
+  Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic> Q = qr.householderQ();
 
   int n = qr.dimensionOfKernel();
   k.resize(Q.rows(), n);
@@ -37,12 +33,10 @@ int solveNullspace(const Eigen::MatrixBase<Derived> &A,
   return qr.dimensionOfKernel();
 }
 
-Vec3 orthogonal(const Vec3 &v) {
+Vec3 orthogonal(const Vec3& v) {
   int k = 0;
-  if (v[1] < v[k])
-    k = 1;
-  if (v[2] < v[k])
-    k = 2;
+  if (v[1] < v[k]) k = 1;
+  if (v[2] < v[k]) k = 2;
   Vec3 e = Vec3::Zero();
   e[k] = 1.;
   return v.cross(e).normalized();
@@ -152,4 +146,4 @@ Vec3 orthogonal(const Vec3 &v) {
 //
 //  return 0;
 //}
-} // namespace dso
+}  // namespace dso

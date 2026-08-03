@@ -71,8 +71,7 @@ TOML11_INLINE void location::set_location(const std::size_t loc) noexcept {
 
 TOML11_INLINE std::string location::get_line() const {
   assert(this->is_ok());
-  const auto iter = std::next(this->source_->cbegin(),
-                              static_cast<difference_type>(this->location_));
+  const auto iter = std::next(this->source_->cbegin(), static_cast<difference_type>(this->location_));
   const auto riter = cxx::make_reverse_iterator(iter);
 
   const auto prev = std::find(riter, this->source_->crend(), char_type('\n'));
@@ -82,14 +81,12 @@ TOML11_INLINE std::string location::get_line() const {
 }
 TOML11_INLINE std::size_t location::column_number() const noexcept {
   assert(this->is_ok());
-  const auto iter = std::next(this->source_->cbegin(),
-                              static_cast<difference_type>(this->location_));
+  const auto iter = std::next(this->source_->cbegin(), static_cast<difference_type>(this->location_));
   const auto riter = cxx::make_reverse_iterator(iter);
   const auto prev = std::find(riter, this->source_->crend(), char_type('\n'));
 
   assert(prev.base() <= iter);
-  return static_cast<std::size_t>(std::distance(prev.base(), iter) +
-                                  1); // 1-origin
+  return static_cast<std::size_t>(std::distance(prev.base(), iter) + 1);  // 1-origin
 }
 
 TOML11_INLINE void location::advance_line_number(const std::size_t n) {
@@ -97,22 +94,20 @@ TOML11_INLINE void location::advance_line_number(const std::size_t n) {
   assert(this->location_ + n <= this->source_->size());
 
   const auto iter = this->source_->cbegin();
-  this->line_number_ += static_cast<std::size_t>(std::count(
-      std::next(iter, static_cast<difference_type>(this->location_)),
-      std::next(iter, static_cast<difference_type>(this->location_ + n)),
-      char_type('\n')));
+  this->line_number_ += static_cast<std::size_t>(
+      std::count(std::next(iter, static_cast<difference_type>(this->location_)),
+                 std::next(iter, static_cast<difference_type>(this->location_ + n)), char_type('\n')));
 
   return;
 }
 TOML11_INLINE void location::retrace_line_number(const std::size_t n) {
   assert(this->is_ok());
-  assert(n <= this->location_); // loc - n >= 0
+  assert(n <= this->location_);  // loc - n >= 0
 
   const auto iter = this->source_->cbegin();
-  const auto dline_num = static_cast<std::size_t>(std::count(
-      std::next(iter, static_cast<difference_type>(this->location_ - n)),
-      std::next(iter, static_cast<difference_type>(this->location_)),
-      char_type('\n')));
+  const auto dline_num = static_cast<std::size_t>(
+      std::count(std::next(iter, static_cast<difference_type>(this->location_ - n)),
+                 std::next(iter, static_cast<difference_type>(this->location_)), char_type('\n')));
 
   if (this->line_number_ <= dline_num) {
     this->line_number_ = 1;
@@ -122,57 +117,43 @@ TOML11_INLINE void location::retrace_line_number(const std::size_t n) {
   return;
 }
 
-TOML11_INLINE bool operator==(const location &lhs,
-                              const location &rhs) noexcept {
+TOML11_INLINE bool operator==(const location& lhs, const location& rhs) noexcept {
   if (!lhs.is_ok() || !rhs.is_ok()) {
     return (!lhs.is_ok()) && (!rhs.is_ok());
   }
-  return lhs.source() == rhs.source() &&
-         lhs.source_name() == rhs.source_name() &&
+  return lhs.source() == rhs.source() && lhs.source_name() == rhs.source_name() &&
          lhs.get_location() == rhs.get_location();
 }
-TOML11_INLINE bool operator!=(const location &lhs, const location &rhs) {
-  return !(lhs == rhs);
-}
+TOML11_INLINE bool operator!=(const location& lhs, const location& rhs) { return !(lhs == rhs); }
 
-TOML11_INLINE location prev(const location &loc) {
+TOML11_INLINE location prev(const location& loc) {
   location p(loc);
   p.retrace(1);
   return p;
 }
-TOML11_INLINE location next(const location &loc) {
+TOML11_INLINE location next(const location& loc) {
   location p(loc);
   p.advance(1);
   return p;
 }
 
-TOML11_INLINE location
-make_temporary_location(const std::string &str) noexcept {
+TOML11_INLINE location make_temporary_location(const std::string& str) noexcept {
   location::container_type cont(str.size());
   std::transform(str.begin(), str.end(), cont.begin(),
-                 [](const std::string::value_type &c) {
-                   return cxx::bit_cast<location::char_type>(c);
-                 });
-  return location(
-      std::make_shared<const location::container_type>(std::move(cont)),
-      "internal temporary");
+                 [](const std::string::value_type& c) { return cxx::bit_cast<location::char_type>(c); });
+  return location(std::make_shared<const location::container_type>(std::move(cont)), "internal temporary");
 }
 
-TOML11_INLINE result<location, none_t> find(const location &first,
-                                            const location &last,
+TOML11_INLINE result<location, none_t> find(const location& first, const location& last,
                                             const location::char_type val) {
-  return find_if(first, last,
-                 [val](const location::char_type c) { return c == val; });
+  return find_if(first, last, [val](const location::char_type c) { return c == val; });
 }
-TOML11_INLINE result<location, none_t> rfind(const location &first,
-                                             const location &last,
+TOML11_INLINE result<location, none_t> rfind(const location& first, const location& last,
                                              const location::char_type val) {
-  return rfind_if(first, last,
-                  [val](const location::char_type c) { return c == val; });
+  return rfind_if(first, last, [val](const location::char_type c) { return c == val; });
 }
 
-TOML11_INLINE std::size_t count(const location &first, const location &last,
-                                const location::char_type &c) {
+TOML11_INLINE std::size_t count(const location& first, const location& last, const location::char_type& c) {
   if (first.source() != last.source()) {
     return 0;
   }
@@ -191,6 +172,6 @@ TOML11_INLINE std::size_t count(const location &first, const location &last,
   return num;
 }
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_LOCATION_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_LOCATION_HPP

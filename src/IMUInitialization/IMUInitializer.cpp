@@ -31,38 +31,32 @@
 #include "dso/util/FrameShell.h"
 #include "util/TimeMeasurement.h"
 
-dmvio::IMUInitializer::IMUInitializer(
-    std::string resultsPrefix,
-    boost::shared_ptr<gtsam::PreintegrationParams> preintegrationParams,
-    const IMUCalibration &imuCalibration, IMUInitSettings &settings,
-    DelayedMarginalizationGraphs *delayedMarginalization,
-    bool linearizeOperation, InitCallback callOnInit) {
-  logic = std::make_unique<IMUInitializerLogic>(
-      resultsPrefix, preintegrationParams, imuCalibration, settings,
-      delayedMarginalization, linearizeOperation, callOnInit, *this);
+dmvio::IMUInitializer::IMUInitializer(std::string resultsPrefix,
+                                      boost::shared_ptr<gtsam::PreintegrationParams> preintegrationParams,
+                                      const IMUCalibration& imuCalibration, IMUInitSettings& settings,
+                                      DelayedMarginalizationGraphs* delayedMarginalization, bool linearizeOperation,
+                                      InitCallback callOnInit) {
+  logic = std::make_unique<IMUInitializerLogic>(resultsPrefix, preintegrationParams, imuCalibration, settings,
+                                                delayedMarginalization, linearizeOperation, callOnInit, *this);
 
-  transitionModel = createTransitionModel(
-      InitTransitionMode(settings.transitionModel), *logic);
+  transitionModel = createTransitionModel(InitTransitionMode(settings.transitionModel), *logic);
   setState(transitionModel->getInitialState());
 }
 
 dmvio::IMUInitializer::~IMUInitializer() = default;
 
-void dmvio::IMUInitializer::addIMUData(const dmvio::IMUData &data,
-                                       int frameId) {
+void dmvio::IMUInitializer::addIMUData(const dmvio::IMUData& data, int frameId) {
   currentCoarseFrameId = frameId;
   currentCoarseIMUData = std::make_unique<IMUData>(data);
 }
 
-void dmvio::IMUInitializer::addPose(const dso::FrameShell &shell,
-                                    bool willBecomeKeyframe) {
+void dmvio::IMUInitializer::addPose(const dso::FrameShell& shell, bool willBecomeKeyframe) {
   assert(shell.id == currentCoarseFrameId || !currentCoarseIMUData);
   std::unique_ptr<IMUInitializerState> newState;
   {
     // Forward to current state...
     std::shared_lock<std::shared_timed_mutex> lock(mutex);
-    newState = currentState->addPose(shell, willBecomeKeyframe,
-                                     currentCoarseIMUData.get());
+    newState = currentState->addPose(shell, willBecomeKeyframe, currentCoarseIMUData.get());
   }
   // ... and change state if necessary.
   // For changing the state we need a unique_lock.
@@ -79,36 +73,28 @@ bool dmvio::IMUInitializer::initializeIfReady() {
   return ret.second;
 }
 
-void dmvio::IMUInitializer::postBAInit(
-    int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor,
-    const gtsam::Values &baValues, double timestamp,
-    const gtsam::PreintegratedImuMeasurements &imuMeasurements) {
+void dmvio::IMUInitializer::postBAInit(int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor,
+                                       const gtsam::Values& baValues, double timestamp,
+                                       const gtsam::PreintegratedImuMeasurements& imuMeasurements) {
   std::unique_ptr<IMUInitializerState> newState;
   {
     std::shared_lock<std::shared_timed_mutex> lock(mutex);
-    newState = currentState->postBAInit(keyframeId, activeHBFactor, baValues,
-                                        timestamp, imuMeasurements);
+    newState = currentState->postBAInit(keyframeId, activeHBFactor, baValues, timestamp, imuMeasurements);
   }
   lockAndSetState(std::move(newState));
 }
 
-const gtsam::imuBias::ConstantBias &
-dmvio::IMUInitializer::getLatestBias() const {
-  return logic->latestBias;
-}
+const gtsam::imuBias::ConstantBias& dmvio::IMUInitializer::getLatestBias() const { return logic->latestBias; }
 
-void dmvio::IMUInitializer::setState(
-    std::unique_ptr<IMUInitializerState> &&newState) {
+void dmvio::IMUInitializer::setState(std::unique_ptr<IMUInitializerState>&& newState) {
   if (newState) {
     // Change state, the caller is responsible for making sure we have a lock.
     currentState = std::move(newState);
-    std::cout << "Switching to initializer state: " << *currentState
-              << std::endl;
+    std::cout << "Switching to initializer state: " << *currentState << std::endl;
   }
 }
 
-void dmvio::IMUInitializer::lockAndSetState(
-    std::unique_ptr<IMUInitializerState> &&newState) {
+void dmvio::IMUInitializer::lockAndSetState(std::unique_ptr<IMUInitializerState>&& newState) {
   if (newState) {
     // For changing the state we need a unique_lock.
     std::unique_lock<std::shared_timed_mutex> lock(mutex);
@@ -116,14 +102,12 @@ void dmvio::IMUInitializer::lockAndSetState(
   }
 }
 
-std::unique_lock<std::shared_timed_mutex>
-dmvio::IMUInitializer::acquireSetStateLock() {
+std::unique_lock<std::shared_timed_mutex> dmvio::IMUInitializer::acquireSetStateLock() {
   return std::unique_lock<std::shared_timed_mutex>(mutex);
 }
 
-bool dmvio::thresholdVariableChanges(IMUThresholdSettings settings,
-                                     const gtsam::Values &baValues,
-                                     const gtsam::Values &fejValues) {
+bool dmvio::thresholdVariableChanges(IMUThresholdSettings settings, const gtsam::Values& baValues,
+                                     const gtsam::Values& fejValues) {
   gtsam::Key scaleKey = gtsam::Symbol('s', 0);
   gtsam::Key gravKey = gtsam::Symbol('g', 0);
 
@@ -134,17 +118,14 @@ bool dmvio::thresholdVariableChanges(IMUThresholdSettings settings,
     if (scaleDiff < 1.0) {
       scaleDiff = 1.0 / scaleDiff;
     }
-    if (scaleDiff > settings.threshScale)
-      return true;
+    if (scaleDiff > settings.threshScale) return true;
   }
 
   if (fejValues.exists(gravKey)) {
     Sophus::SO3d R_dsoW_metricW(baValues.at<gtsam::Rot3>(gravKey).matrix());
     Sophus::SO3d fejR_dsoW_metricW(fejValues.at<gtsam::Rot3>(gravKey).matrix());
-    double gravDiff =
-        (R_dsoW_metricW.inverse() * fejR_dsoW_metricW).log().norm();
-    if (gravDiff > settings.threshGravdir)
-      return true;
+    double gravDiff = (R_dsoW_metricW.inverse() * fejR_dsoW_metricW).log().norm();
+    if (gravDiff > settings.threshGravdir) return true;
   }
 
   return false;

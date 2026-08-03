@@ -35,35 +35,33 @@ enum PixelSelectorStatus { PIXSEL_VOID = 0, PIXSEL_1, PIXSEL_2, PIXSEL_3 };
 class FrameHessian;
 
 class PixelSelector {
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-  int makeMaps(const FrameHessian *const fh, float *map_out, float density,
-               int recursionsLeft = 1, bool plot = false, float thFactor = 1,
-               int cid = 0);
+  int makeMaps(const FrameHessian* const fh, float* map_out, float density, int recursionsLeft = 1, bool plot = false,
+               float thFactor = 1, int cid = 0);
 
   PixelSelector(int w, int h);
 
   ~PixelSelector();
 
-  int currentPotential[kCameraNumUsed]; //!< 当前选择像素点的潜力, 就是网格大小,
-                                        //!< 越大选点越少
+  int currentPotential[kCameraNumUsed];  //!< 当前选择像素点的潜力, 就是网格大小,
+                                         //!< 越大选点越少
 
   bool allowFast;
 
-  void makeHists(const FrameHessian *const fh);
+  void makeHists(const FrameHessian* const fh);
 
-private:
-  Eigen::Vector3i select(const FrameHessian *const fh, float *map_out, int pot,
-                         float thFactor = 1, int cid = 0);
+ private:
+  Eigen::Vector3i select(const FrameHessian* const fh, float* map_out, int pot, float thFactor = 1, int cid = 0);
 
-  unsigned char *randomPattern;
+  unsigned char* randomPattern;
 
-  int *gradHist; //!< 根号梯度平方和分布直方图, 0是所有像素个数
-  float *ths;    //!< 平滑之前的阈值
-  float *thsSmoothed; //!< 平滑后的阈值
+  int* gradHist;       //!< 根号梯度平方和分布直方图, 0是所有像素个数
+  float* ths;          //!< 平滑之前的阈值
+  float* thsSmoothed;  //!< 平滑后的阈值
   int thsStep;
-  const FrameHessian *gradHistFrame;
+  const FrameHessian* gradHistFrame;
 
   // block width, and block height.
   int bW, bH;
@@ -71,4 +69,4 @@ private:
   int nbW, nbH;
 };
 
-} // namespace dso
+}  // namespace dso

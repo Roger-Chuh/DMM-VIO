@@ -49,15 +49,15 @@
 
 #ifndef TOML11_CXX14_VALUE
 #define TOML11_CXX14_VALUE 201402L
-#endif // TOML11_CXX14_VALUE
+#endif  // TOML11_CXX14_VALUE
 
 #ifndef TOML11_CXX17_VALUE
 #define TOML11_CXX17_VALUE 201703L
-#endif // TOML11_CXX17_VALUE
+#endif  // TOML11_CXX17_VALUE
 
 #ifndef TOML11_CXX20_VALUE
 #define TOML11_CXX20_VALUE 202002L
-#endif // TOML11_CXX20_VALUE
+#endif  // TOML11_CXX20_VALUE
 
 #if defined(__cpp_char8_t)
 #if __cpp_char8_t >= 201811L
@@ -93,7 +93,7 @@
 
 namespace toml {
 
-inline const char *license_notice() noexcept {
+inline const char* license_notice() noexcept {
   return R"(The MIT License (MIT)
 
 Copyright (c) 2017-now Toru Niina
@@ -117,5 +117,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.)";
 }
 
-} // namespace toml
-#endif // TOML11_VERSION_HPP
+}  // namespace toml
+#endif  // TOML11_VERSION_HPP

@@ -25,18 +25,14 @@
 
 using namespace dmvio;
 
-void IMUInitSettings::registerArgs(dmvio::SettingsUtil &set,
-                                   std::string prefix) {
+void IMUInitSettings::registerArgs(dmvio::SettingsUtil& set, std::string prefix) {
   set.registerArg(prefix + "transitionModel", transitionModel);
   set.registerArg(prefix + "onlyKFs", onlyKFs);
-  set.registerArg(prefix + "coarseScaleUncertaintyThresh",
-                  coarseScaleUncertaintyThresh);
+  set.registerArg(prefix + "coarseScaleUncertaintyThresh", coarseScaleUncertaintyThresh);
   set.registerArg(prefix + "initDSOParams", initDSOParams);
   set.registerArg(prefix + "scalePriorAfterInit", scalePriorAfterInit);
-  set.registerArg(prefix + "disableVIOUntilFirstInit",
-                  disableVIOUntilFirstInit);
-  set.registerArg(prefix + "multithreadedInitDespiteNonRT",
-                  multithreadedInitDespiteNonRT);
+  set.registerArg(prefix + "disableVIOUntilFirstInit", disableVIOUntilFirstInit);
+  set.registerArg(prefix + "multithreadedInitDespiteNonRT", multithreadedInitDespiteNonRT);
 
   transformPriors.registerArgs(set, prefix);
   coarseInitSettings.registerArgs(set, prefix);
@@ -48,8 +44,7 @@ void IMUInitSettings::registerArgs(dmvio::SettingsUtil &set,
   secondThresholdSettings.registerArgs(set, prefix + "second");
 }
 
-void CoarseIMUInitOptimizerSettings::registerArgs(dmvio::SettingsUtil &set,
-                                                  std::string prefix) {
+void CoarseIMUInitOptimizerSettings::registerArgs(dmvio::SettingsUtil& set, std::string prefix) {
   set.registerArg(prefix + "maxNumPoses", maxNumPoses);
   set.registerArg(prefix + "fixPoses", fixPoses);
   set.registerArg(prefix + "multipleBiases", multipleBiases);
@@ -63,29 +58,24 @@ void CoarseIMUInitOptimizerSettings::registerArgs(dmvio::SettingsUtil &set,
 
   set.registerArg(prefix + "updatePoses", updatePoses);
 
-  set.registerArg(prefix + "requestFullResetErrorThreshold",
-                  requestFullResetErrorThreshold);
-  set.registerArg(prefix + "requestFullResetNormalizedErrorThreshold",
-                  requestFullResetNormalizedErrorThreshold);
+  set.registerArg(prefix + "requestFullResetErrorThreshold", requestFullResetErrorThreshold);
+  set.registerArg(prefix + "requestFullResetNormalizedErrorThreshold", requestFullResetNormalizedErrorThreshold);
 }
 
-void PGBASettings::registerArgs(dmvio::SettingsUtil &set, std::string prefix) {
+void PGBASettings::registerArgs(dmvio::SettingsUtil& set, std::string prefix) {
   set.registerArg(prefix + "delay", delay);
   set.registerArg(prefix + "scaleUncertaintyThresh", scaleUncertaintyThresh);
-  set.registerArg(prefix + "reinitScaleUncertaintyThresh",
-                  reinitScaleUncertaintyThresh);
+  set.registerArg(prefix + "reinitScaleUncertaintyThresh", reinitScaleUncertaintyThresh);
   set.registerArg(prefix + "skipFirstKFs", skipFirstKFs);
   set.registerArg(prefix + "conversionType", conversionType);
 
   set.registerArg(prefix + "prepareGraphAddFactors", prepareGraphAddFactors);
-  set.registerArg(prefix + "prepareGraphAddDelValues",
-                  prepareGraphAddDelValues);
+  set.registerArg(prefix + "prepareGraphAddDelValues", prepareGraphAddDelValues);
 
   transformPriors.registerArgs(set, prefix);
 }
 
-void IMUThresholdSettings::registerArgs(dmvio::SettingsUtil &set,
-                                        std::string prefix) {
+void IMUThresholdSettings::registerArgs(dmvio::SettingsUtil& set, std::string prefix) {
   set.registerArg(prefix + "threshScale", threshScale);
   set.registerArg(prefix + "threshGravdir", threshGravdir);
 }

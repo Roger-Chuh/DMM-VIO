@@ -41,16 +41,15 @@ void IMUCalibration::initDefault() {
   // Init T_cam_imu
   Eigen::Matrix3d m;
   Eigen::Vector3d p;
-  m << 0.0148655429818, -0.999880929698, 0.00414029679422, 0.999557249008,
-      0.0149672133247, 0.025715529948, -0.0257744366974, 0.00375618835797,
-      0.999660727178;
+  m << 0.0148655429818, -0.999880929698, 0.00414029679422, 0.999557249008, 0.0149672133247, 0.025715529948,
+      -0.0257744366974, 0.00375618835797, 0.999660727178;
   p << -0.0216401454975, -0.064676986768, 0.00981073058949;
 
   Sophus::SE3d imu_cam(m, p);
   T_cam_imu = imu_cam.inverse();
 }
 
-void IMUCalibration::registerArgs(dmvio::SettingsUtil &set) {
+void IMUCalibration::registerArgs(dmvio::SettingsUtil& set) {
   set.registerArg("accelerometer_random_walk", sigma_between_b_a);
   set.registerArg("gyroscope_random_walk", sigma_between_b_g);
   set.registerArg("accelerometer_noise_density", accel_sigma);
@@ -63,11 +62,9 @@ void IMUCalibration::loadFromFile(std::string settingsFilename) {
     return;
   }
 
-  std::cout << "Loading IMU parameter file at: " << settingsFilename
-            << std::endl;
+  std::cout << "Loading IMU parameter file at: " << settingsFilename << std::endl;
   YAML::Node config = YAML::LoadFile(settingsFilename)["cam0"];
-  std::vector<std::vector<double>> theVector =
-      config["T_cam_imu"].as<std::vector<std::vector<double>>>();
+  std::vector<std::vector<double>> theVector = config["T_cam_imu"].as<std::vector<std::vector<double>>>();
   Eigen::Matrix4d matrix;
   for (int x = 0; x < 4; ++x) {
     for (int y = 0; y < 4; ++y) {
@@ -77,8 +74,7 @@ void IMUCalibration::loadFromFile(std::string settingsFilename) {
   std::cout << "Used T_cam_imu: " << std::endl << matrix << std::endl;
   T_cam_imu = Sophus::SE3d(matrix);
 
-  if (config["accelerometer_random_walk"] || config["gyroscope_random_walk"] ||
-      config["accelerometer_noise_density"] ||
+  if (config["accelerometer_random_walk"] || config["gyroscope_random_walk"] || config["accelerometer_noise_density"] ||
       config["gyroscope_noise_density"]) {
     std::cout << "WARNING IMPORTANT: Passing IMU noise values via the IMU "
                  "camchain.yaml file is not supported any"
@@ -87,11 +83,10 @@ void IMUCalibration::loadFromFile(std::string settingsFilename) {
               << std::endl;
   }
 
-  std::cout << "Used noise values: " << sigma_between_b_a << " "
-            << sigma_between_b_g << " " << accel_sigma << " " << gyro_sigma
-            << std::endl;
+  std::cout << "Used noise values: " << sigma_between_b_a << " " << sigma_between_b_g << " " << accel_sigma << " "
+            << gyro_sigma << std::endl;
 }
-void IMUCalibration::loadFromFile2(const dso::IMUState &imu_state) {
+void IMUCalibration::loadFromFile2(const dso::IMUState& imu_state) {
   Eigen::Matrix4d Tbc0 = imu_state.Tbc0;
 
   T_cam_imu = Sophus::SE3d(Tbc0).inverse();
@@ -112,7 +107,7 @@ void IMUCalibration::loadFromFile2(const dso::IMUState &imu_state) {
   accel_sigma = 6.5e-4 * 10;
   sigma_between_b_g = 4.0e-5 * 10;
   sigma_between_b_a = 7.3e-4 * 10;
-  integration_sigma = 0.01; // 0.2; // 0.1;
+  integration_sigma = 0.01;  // 0.2; // 0.1;
 
   //  accel_sigma = 0.524; // 0.524;
   //  gyro_sigma = 0.01280;
@@ -126,9 +121,8 @@ void IMUCalibration::loadFromFile2(const dso::IMUState &imu_state) {
   //  gyro_sigma = 0.1;
   //  integration_sigma = 0.316227;s
 
-  std::cout << "yvr, Used noise values: " << sigma_between_b_a << " "
-            << sigma_between_b_g << " " << accel_sigma << " " << gyro_sigma
-            << ", integration_sigma: " << integration_sigma << std::endl;
+  std::cout << "yvr, Used noise values: " << sigma_between_b_a << " " << sigma_between_b_g << " " << accel_sigma << " "
+            << gyro_sigma << ", integration_sigma: " << integration_sigma << std::endl;
 }
 
 void IMUCalibration::saveToFile(std::string filename) {
@@ -147,10 +141,9 @@ void IMUCalibration::saveToFile(std::string filename) {
   stream << node;
 }
 
-IMUCalibration::IMUCalibration(const Sophus::SE3d &tCamImu)
-    : T_cam_imu(tCamImu) {}
+IMUCalibration::IMUCalibration(const Sophus::SE3d& tCamImu) : T_cam_imu(tCamImu) {}
 
-void IMUSettings::registerArgs(dmvio::SettingsUtil &set) {
+void IMUSettings::registerArgs(dmvio::SettingsUtil& set) {
   set.registerArg("resultsPrefix", resultsPrefix);
 
   set.registerArg("maxTimeBetweenInitFrames", maxTimeBetweenInitFrames);
@@ -162,8 +155,7 @@ void IMUSettings::registerArgs(dmvio::SettingsUtil &set) {
   set.registerArg("maxFrameEnergyThreshold", maxFrameEnergyThreshold);
 
   set.registerArg("dynamicWeightRMSEThresh", dynamicWeightRMSEThresh);
-  set.registerArg("updateDynamicWeightDuringOptimization",
-                  updateDynamicWeightDuringOptimization);
+  set.registerArg("updateDynamicWeightDuringOptimization", updateDynamicWeightDuringOptimization);
 
   set.registerArg("setting_scaleFixTH", setting_scaleFixTH);
   set.registerArg("generalScaleIntervalSize", generalScaleIntervalSize);
@@ -183,10 +175,8 @@ void IMUSettings::registerArgs(dmvio::SettingsUtil &set) {
 
   set.registerArg("useScaleDiagonalHack", useScaleDiagonalHack);
 
-  set.registerArg("fixKeyframeDuringCoarseTracking",
-                  fixKeyframeDuringCoarseTracking);
-  set.registerArg("addVisualToCoarseGraphIfTrackingBad",
-                  addVisualToCoarseGraphIfTrackingBad);
+  set.registerArg("fixKeyframeDuringCoarseTracking", fixKeyframeDuringCoarseTracking);
+  set.registerArg("addVisualToCoarseGraphIfTrackingBad", addVisualToCoarseGraphIfTrackingBad);
 
   set.registerArg("baToCoarseRotVariance", baToCoarseRotVariance);
   set.registerArg("baToCoarsePoseVariance", baToCoarsePoseVariance);
@@ -195,11 +185,9 @@ void IMUSettings::registerArgs(dmvio::SettingsUtil &set) {
   set.registerArg("baToCoarseGyrBiasVariance", baToCoarseGyrBiasVariance);
 
   set.registerArg("setting_transferCovToCoarse", setting_transferCovToCoarse);
-  set.registerArg("transferCovToCoarseMultiplier",
-                  transferCovToCoarseMultiplier);
+  set.registerArg("transferCovToCoarseMultiplier", transferCovToCoarseMultiplier);
 
-  set.registerArg("setting_visualOnlyAfterScaleFixing",
-                  setting_visualOnlyAfterScaleFixing);
+  set.registerArg("setting_visualOnlyAfterScaleFixing", setting_visualOnlyAfterScaleFixing);
 
   initSettings.registerArgs(set);
 }

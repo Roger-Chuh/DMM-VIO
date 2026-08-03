@@ -36,35 +36,32 @@ namespace dmvio {
 // Contains either accelerometer or gyroscope data recorded at a particular
 // timestamp.
 class PartialIMUData {
-public:
+ public:
   // data contains x,y,z data of the sensor.
-  PartialIMUData(const std::vector<float> &data, double timestamp);
+  PartialIMUData(const std::vector<float>& data, double timestamp);
 
-  bool operator<(const PartialIMUData &other) const;
+  bool operator<(const PartialIMUData& other) const;
 
-public:
+ public:
   std::vector<float> data;
   double timestamp;
 };
 
 // Interpolate between two data points.
-std::vector<float> interpolateData(const PartialIMUData &data1,
-                                   const PartialIMUData &data2,
-                                   double timestamp);
+std::vector<float> interpolateData(const PartialIMUData& data1, const PartialIMUData& data2, double timestamp);
 
 enum class IMUInterpolationResult {
-  FOUND,               // IMU data interpolated and returned.
-  TIMESTAMP_TOO_EARLY, // The passed timestamp is before all timestamps in
-                       // array. It will need to be skipped.
-  NOT_AVAILABLE_YET    // The passed timestamp is after all timestamps in array.
-                       // IMU data for it will arrive later.
+  FOUND,                // IMU data interpolated and returned.
+  TIMESTAMP_TOO_EARLY,  // The passed timestamp is before all timestamps in
+                        // array. It will need to be skipped.
+  NOT_AVAILABLE_YET     // The passed timestamp is after all timestamps in array.
+                        // IMU data for it will arrive later.
 };
 
 // Compute interpolated IMU measurement from a *sorted* array of measurements.
 // Finds the nearest two data points and calls interpolateData on them.
-std::pair<std::vector<float>, IMUInterpolationResult>
-interpolateDataFromArray(const std::vector<PartialIMUData> &array,
-                         double timestamp);
+std::pair<std::vector<float>, IMUInterpolationResult> interpolateDataFromArray(const std::vector<PartialIMUData>& array,
+                                                                               double timestamp);
 
 // Supports live interpolating IMU data to fit the image data (meaning there
 // should be an interpolated IMU measurement for each image timestamp). It is
@@ -74,10 +71,10 @@ interpolateDataFromArray(const std::vector<PartialIMUData> &array,
 // data). It can also handle cases where the IMU data arrives only after the
 // corresponding image.
 class IMUInterpolator {
-public:
+ public:
   // A reference to frameContainer is kept. This is where IMU data and images
   // are sent.
-  IMUInterpolator(FrameContainer &frameContainer, DatasetSaver *datasetSaver);
+  IMUInterpolator(FrameContainer& frameContainer, DatasetSaver* datasetSaver);
 
   // Shall be called everytime accelerometer data arrives.
   void addAccData(std::vector<float> data, double timestamp);
@@ -89,17 +86,15 @@ public:
   // as soon as the IMU data for it has arrived.
   void addImage(std::unique_ptr<dso::ImageAndExposure> image, double timestamp);
 
-private:
-  FrameContainer &frameContainer;
-  DatasetSaver *saver = nullptr; // also save IMU data to file.
+ private:
+  FrameContainer& frameContainer;
+  DatasetSaver* saver = nullptr;  // also save IMU data to file.
 
   // Protects all methods.
   std::mutex mutex;
 
-  std::vector<PartialIMUData>
-      accData; // Contains all acceleration data (plus timestamp)
-  std::vector<PartialIMUData>
-      gyrData; // Contains all gyroscope data (plus timestamp)
+  std::vector<PartialIMUData> accData;  // Contains all acceleration data (plus timestamp)
+  std::vector<PartialIMUData> gyrData;  // Contains all gyroscope data (plus timestamp)
 
   // Contains all (individual) interpolated IMU measurements (Acc + Gyr +
   // Timestamp) This class works by first storing IMU data in accData and
@@ -134,6 +129,6 @@ private:
   // interpolation.
   static constexpr int maxIMUQueueSize = 25;
 };
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_IMUINTERPOLATOR_H
+#endif  // DMVIO_IMUINTERPOLATOR_H

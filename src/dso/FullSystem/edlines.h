@@ -37,14 +37,13 @@ typedef struct {
 @brief£º
 
 */
-int EdgeDrawingLineDetector(unsigned char *src, int w, int h, float scaleX,
-                            float scaleY, boundingbox_t bbox,
-                            std::vector<line_float_t> &lines);
+int EdgeDrawingLineDetector(unsigned char* src, int w, int h, float scaleX, float scaleY, boundingbox_t bbox,
+                            std::vector<line_float_t>& lines);
 
 //
 //#ifdef __cplusplus
 //}
 //#endif
-} // namespace edlines
-} // namespace dso
+}  // namespace edlines
+}  // namespace dso
 #endif

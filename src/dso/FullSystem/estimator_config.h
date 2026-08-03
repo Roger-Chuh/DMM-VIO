@@ -19,7 +19,7 @@ struct EstimatorConfig {
 
   // max sw size
   const int max_sw_num_init = 15;
-  const int continuous_sw_num = 5; // >= 2
+  const int continuous_sw_num = 5;  // >= 2
   const int vkf_sw_num = 2;
   const int max_sw_num = continuous_sw_num + vkf_sw_num;
 
@@ -41,7 +41,7 @@ struct EstimatorConfig {
   //  const number_t znssd_grad_check_pixel_radius = 2.0;
   //  const number_t znssd_grad_check_threshold = 0.9;  // zncc score
 
-  const uint8_t detect_cell_size = 25; // 16;
+  const uint8_t detect_cell_size = 25;  // 16;
 
   const uint8_t edgelet_detect_level = 1;
   const int desired_edgelet_per_cam = 75;
@@ -53,11 +53,9 @@ struct EstimatorConfig {
   const int desired_corner_per_cam_vio = 75;
   int desired_corner_per_cam = desired_corner_per_cam_vio;
 
-  const number_t outlier_threshold_in_align = 1.5; // pixel
-  const number_t outlier_threshold_in_align_dir =
-      outlier_threshold_in_align / 235;
-  const number_t outlier_threshold2_in_align_dir =
-      outlier_threshold_in_align_dir * outlier_threshold_in_align_dir;
+  const number_t outlier_threshold_in_align = 1.5;  // pixel
+  const number_t outlier_threshold_in_align_dir = outlier_threshold_in_align / 235;
+  const number_t outlier_threshold2_in_align_dir = outlier_threshold_in_align_dir * outlier_threshold_in_align_dir;
 
   // DSM detector
   const int num_blocks = 50;
@@ -68,7 +66,7 @@ struct EstimatorConfig {
   const number_t motion_model_alpha = 0.5;
 
   // Threshold for motion blur
-  const number_t vkf_blur_pixel_threshold = 6.0; // pixel
+  const number_t vkf_blur_pixel_threshold = 6.0;  // pixel
 
   // Epipolar search length threshold
   const int search_level = 0;
@@ -79,4 +77,4 @@ struct EstimatorConfig {
   const int init_depth_col_block_num = 4;
   const int init_depth_row_block_num = 3;
 };
-} // namespace dso
+}  // namespace dso

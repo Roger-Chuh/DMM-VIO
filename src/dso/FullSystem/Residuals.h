@@ -49,10 +49,10 @@ struct FullJacRowT {
 };
 
 class PointFrameResidual {
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  EFResidual *efResidual;
+  EFResidual* efResidual;
 
   int host_cid;
 
@@ -60,37 +60,33 @@ public:
 
   static int instanceCounter;
 
-  std::array<ResState, kCameraNumUsed> state_state; //!< 上一次的残差状态
-  std::array<double, kCameraNumUsed> state_energy;  //!< 上一次的能量值
-  std::array<ResState, kCameraNumUsed> state_NewState; //!< 新的一次计算的状态
-  std::array<double, kCameraNumUsed>
-      state_NewEnergy; //!< 新的能量, 如果大于阈值则把等于阈值
-  std::array<double, kCameraNumUsed>
-      state_NewEnergyWithOutlier; //!< 可能具有外点的能量, 可能大于阈值
-  std::array<double, kCameraNumUsed> state_zncc_angle;            //!<
-  std::array<double, kCameraNumUsed> state_hw;                    //!<
-  std::array<Vec2f, kCameraNumUsed> state_residual_residual_gray; //!<
+  std::array<ResState, kCameraNumUsed> state_state;     //!< 上一次的残差状态
+  std::array<double, kCameraNumUsed> state_energy;      //!< 上一次的能量值
+  std::array<ResState, kCameraNumUsed> state_NewState;  //!< 新的一次计算的状态
+  std::array<double, kCameraNumUsed> state_NewEnergy;   //!< 新的能量, 如果大于阈值则把等于阈值
+  std::array<double, kCameraNumUsed> state_NewEnergyWithOutlier;   //!< 可能具有外点的能量, 可能大于阈值
+  std::array<double, kCameraNumUsed> state_zncc_angle;             //!<
+  std::array<double, kCameraNumUsed> state_hw;                     //!<
+  std::array<Vec2f, kCameraNumUsed> state_residual_residual_gray;  //!<
   void setState(ResState s, int cid) {
     //      for (int cid = 0; cid < kCameraNumUsed; ++cid) {
     state_state[cid] = s;
     //      }
   }
 
-  PointHessian *point;                    //!< 点
-  FrameHessian *host;                     //!< 主帧
-  FrameHessian *target;                   //!< 目标帧
-  RawResidualJacobian *J[kCameraNumUsed]; //!< 残差对变量的各种雅克比
+  PointHessian* point;                     //!< 点
+  FrameHessian* host;                      //!< 主帧
+  FrameHessian* target;                    //!< 目标帧
+  RawResidualJacobian* J[kCameraNumUsed];  //!< 残差对变量的各种雅克比
 
   std::array<bool, kCameraNumUsed> isNew;
 
   //    Eigen::Vector2f projectedTo[MAX_RES_PER_POINT * kCameraNumUsed]; //!<
   //    各个patch的投影坐标 std::array<Vec3f, kCameraNumUsed> centerProjectedTo;
   //    //!< patch的中心点投影 [像素x, 像素y, 新帧逆深度]
-  std::array<Eigen::Vector2f, kCameraNumUsed>
-      projectedTo[MAX_RES_PER_POINT]; //!< 各个patch的投影坐标
-  std::array<Vec3f, kCameraNumUsed>
-      centerProjectedTo; //!< patch的中心点投影 [像素x, 像素y, 新帧逆深度]
-                         //!< 用来初始化新点的逆深度
+  std::array<Eigen::Vector2f, kCameraNumUsed> projectedTo[MAX_RES_PER_POINT];  //!< 各个patch的投影坐标
+  std::array<Vec3f, kCameraNumUsed> centerProjectedTo;  //!< patch的中心点投影 [像素x, 像素y, 新帧逆深度]
+                                                        //!< 用来初始化新点的逆深度
 
   ~PointFrameResidual();
 
@@ -103,8 +99,7 @@ public:
                      FrameHessian *target_, const int &host_cid_/*,
                      const int &target_cid_*/);
 
-  Vec6f linearize(CalibHessian *HCalib, int target_cid_now,
-                  double *p_other_residual = nullptr);
+  Vec6f linearize(CalibHessian* HCalib, int target_cid_now, double* p_other_residual = nullptr);
 
   void resetOOB(int cid) {
     //    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
@@ -120,7 +115,6 @@ public:
 
   void debugPlot(int cid);
 
-  void printRows(std::vector<VecX> &v, VecX &r, int nFrames, int nPoints, int M,
-                 int res);
+  void printRows(std::vector<VecX>& v, VecX& r, int nFrames, int nPoints, int M, int res);
 };
-} // namespace dso
+}  // namespace dso

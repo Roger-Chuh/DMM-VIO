@@ -38,10 +38,10 @@ namespace dso {
 class CameraBase;
 // CAMERA MODEL TO USE
 
-#define SSEE(val, idx) (*(((float *)&val) + idx))
+#define SSEE(val, idx) (*(((float*)&val) + idx))
 
-#define MAX_RES_PER_POINT patternNum          // 8
-#define MAX_RES_PER_POINT_SEED patternNumSeed // 8
+#define MAX_RES_PER_POINT patternNum           // 8
+#define MAX_RES_PER_POINT_SEED patternNumSeed  // 8
 #define NUM_THREADS 6
 
 #define todouble(x) (x).cast<double>()
@@ -50,8 +50,8 @@ typedef Sophus::SE3d SE3;
 typedef Sophus::Sim3d Sim3;
 typedef Sophus::SO3d SO3;
 
-#define CPARS 4     // * kCameraNumUsed
-#define STATE_DIM 8 // * kCameraNumUsed
+#define CPARS 4      // * kCameraNumUsed
+#define STATE_DIM 8  // * kCameraNumUsed
 
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> MatXX;
 typedef Eigen::Matrix<double, CPARS, CPARS> MatCC;
@@ -83,8 +83,7 @@ typedef Eigen::Matrix<double, 4, 2> Mat42;
 typedef Eigen::Matrix<double, 2 /* * kCameraNumUsed*/, 2> MatStateAffine2;
 typedef Eigen::Matrix<double, 3, 3> Mat33;
 typedef Eigen::Matrix<double, 2, 2> Mat22;
-typedef Eigen::Matrix<double, 2 * kCameraNumUsed, 2 * kCameraNumUsed>
-    MatStateAffine;
+typedef Eigen::Matrix<double, 2 * kCameraNumUsed, 2 * kCameraNumUsed> MatStateAffine;
 typedef Eigen::Matrix<double, 8, CPARS> Mat8C;
 typedef Eigen::Matrix<double, STATE_DIM, CPARS> MatStateC;
 typedef Eigen::Matrix<double, CPARS, 8> MatC8;
@@ -117,8 +116,7 @@ typedef Eigen::Matrix<float, 4, 4> Mat44f;
 typedef Eigen::Matrix<float, 3, 3> Mat33f;
 typedef Eigen::Matrix<float, 10, 3> Mat103f;
 typedef Eigen::Matrix<float, 2, 2> Mat22f;
-typedef Eigen::Matrix<float, 2 * kCameraNumUsed, 2 * kCameraNumUsed>
-    MatStateAffinef;
+typedef Eigen::Matrix<float, 2 * kCameraNumUsed, 2 * kCameraNumUsed> MatStateAffinef;
 typedef Eigen::Matrix<float, 3, 1> Vec3f;
 typedef Eigen::Matrix<float, 2, 1> Vec2f;
 typedef Eigen::Matrix<float, 5, 1> Vec5f;
@@ -140,8 +138,7 @@ typedef Eigen::Matrix<double, 4, 8> Mat48;
 typedef Eigen::Matrix<double, 4, 4> Mat44;
 
 typedef Eigen::Matrix<float, MAX_RES_PER_POINT * eachErrDim, 1> VecNRf;
-typedef Eigen::Matrix<float, MAX_RES_PER_POINT_SEED /* * kCameraNumUsed*/, 1>
-    VecBigf;
+typedef Eigen::Matrix<float, MAX_RES_PER_POINT_SEED /* * kCameraNumUsed*/, 1> VecBigf;
 typedef Eigen::Matrix<float, 12, 1> Vec12f;
 typedef Eigen::Matrix<float, 2, 6> Mat26f;
 typedef Eigen::Matrix<float, 1, 8> Mat18f;
@@ -171,10 +168,8 @@ typedef Eigen::Matrix<float, 1, 2> Mat12f;
 typedef Eigen::Matrix<float, Eigen::Dynamic, 1> VecXf;
 typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> MatXXf;
 
-typedef Eigen::Matrix<double, STATE_DIM + CPARS + 1, STATE_DIM + CPARS + 1>
-    MatPCPC;
-typedef Eigen::Matrix<float, STATE_DIM + CPARS + 1, STATE_DIM + CPARS + 1>
-    MatPCPCf;
+typedef Eigen::Matrix<double, STATE_DIM + CPARS + 1, STATE_DIM + CPARS + 1> MatPCPC;
+typedef Eigen::Matrix<float, STATE_DIM + CPARS + 1, STATE_DIM + CPARS + 1> MatPCPCf;
 typedef Eigen::Matrix<double, STATE_DIM + CPARS + 1, 1> VecPC;
 typedef Eigen::Matrix<float, STATE_DIM + CPARS + 1, 1> VecPCf;
 
@@ -191,19 +186,17 @@ struct AffLight {
 
   // Affine Parameters:
   double a,
-      b; // I_frame = exp(a)*I_global + b. // I_global = exp(-a)*(I_frame - b).
+      b;  // I_frame = exp(a)*I_global + b. // I_global = exp(-a)*(I_frame - b).
 
-  static Vec2 fromToVecExposure(float exposureF, float exposureT, AffLight g2F,
-                                AffLight g2T) {
+  static Vec2 fromToVecExposure(float exposureF, float exposureT, AffLight g2F, AffLight g2T) {
     if (exposureF == 0 || exposureT == 0) {
       exposureT = exposureF = 1;
       // printf("got exposure value of 0! please choose the correct model.\n");
       // assert(setting_brightnessTransferFunc < 2);
     }
 
-    double a = exp(g2T.a - g2F.a) * exposureT /
-               exposureF;         // TODO a21 = (t2 * exp(a2)) / (t1 * exp(a1))
-    double b = g2T.b - a * g2F.b; // TODO b21 = b2 - exp(a21) * b1
+    double a = exp(g2T.a - g2F.a) * exposureT / exposureF;  // TODO a21 = (t2 * exp(a2)) / (t1 * exp(a1))
+    double b = g2T.b - a * g2F.b;                           // TODO b21 = b2 - exp(a21) * b1
     return Vec2(a, b);
   }
 
@@ -213,24 +206,21 @@ struct AffLight {
 struct MultiCamera {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   int cam_num = kCameraNumUsed;
-  std::vector<int> cids = {0, 1, 2, 3}; // size must be equal to cam_num
-  std::array<CameraBase *, kCameraNumUsed> cid_to_cam;
-  std::array<std::array<CameraBase *, kCameraNumUsed>, PYR_LEVELS>
-      level_cid_to_cam_pinhole;
-  std::array<Mat4, kCameraNumUsed> cid_to_T01;        // Camera Extrinsic
-  std::array<SE3, kCameraNumUsed> cid_to_T01_SE3;     // Camera Extrinsic
-  std::array<SE3, kCameraNumUsed> cid_to_Tbc_SE3;     // Camera Extrinsic
-  std::array<SE3, kCameraNumUsed> cid_to_T01_SE3_inv; // Camera Extrinsic
-  std::array<Mat6, kCameraNumUsed>
-      cid_to_T01_inv_Adj; // T01.inverse().Adj() [t R]
+  std::vector<int> cids = {0, 1, 2, 3};  // size must be equal to cam_num
+  std::array<CameraBase*, kCameraNumUsed> cid_to_cam;
+  std::array<std::array<CameraBase*, kCameraNumUsed>, PYR_LEVELS> level_cid_to_cam_pinhole;
+  std::array<Mat4, kCameraNumUsed> cid_to_T01;          // Camera Extrinsic
+  std::array<SE3, kCameraNumUsed> cid_to_T01_SE3;       // Camera Extrinsic
+  std::array<SE3, kCameraNumUsed> cid_to_Tbc_SE3;       // Camera Extrinsic
+  std::array<SE3, kCameraNumUsed> cid_to_T01_SE3_inv;   // Camera Extrinsic
+  std::array<Mat6, kCameraNumUsed> cid_to_T01_inv_Adj;  // T01.inverse().Adj() [t R]
 
   SE3 Tbc0;
 
   std::array<std::array<Mat3, kCameraNumUsed>, PYR_LEVELS> level_cid_to_K_temp;
-  std::array<std::array<Mat3, kCameraNumUsed>, PYR_LEVELS>
-      level_cid_to_Kinv_temp;
+  std::array<std::array<Mat3, kCameraNumUsed>, PYR_LEVELS> level_cid_to_Kinv_temp;
   std::array<AffLight, kCameraNumUsed> cid_to_affine_light;
   Mat3 K;
   AffLight affine_light;
 };
-} // namespace dso
+}  // namespace dso

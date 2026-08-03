@@ -1,8 +1,7 @@
 #include "depth_filter_DSM_def.h"
 
 namespace dso {
-void DF_Frame::InitSeedDepth(Seed &seed, const bool &has_init_depth,
-                             const number_t &init_depth) {
+void DF_Frame::InitSeedDepth(Seed& seed, const bool& has_init_depth, const number_t& init_depth) {
   if (has_init_depth) {
     seed.rho = 1.0 / init_depth;
     if (init_depth > 0.5) {
@@ -24,4 +23,4 @@ void DF_Frame::InitSeedDepth(Seed &seed, const bool &has_init_depth,
   //  %f\n", seed.rho, seed.z_range, seed.sigma2,
   //         1.0 / rho_max, 1.0 / rho_min);
 }
-} // namespace dso
+}  // namespace dso

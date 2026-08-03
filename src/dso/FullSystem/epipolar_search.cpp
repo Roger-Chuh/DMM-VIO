@@ -8,9 +8,8 @@
 #include <opencv2/opencv.hpp>
 
 namespace dso {
-EpipolarSearch::EpipolarSearch(MultiCamera *cameras, const int &img_width,
-                               const int &img_height,
-                               const EstimatorConfig *p_estimator_config) {
+EpipolarSearch::EpipolarSearch(MultiCamera* cameras, const int& img_width, const int& img_height,
+                               const EstimatorConfig* p_estimator_config) {
   level_cid_to_camera_ = cameras;
   img_width_ = img_width;
   img_height_ = img_height;
@@ -71,15 +70,12 @@ target_patch_uv.row(1).maxCoeff() < img_height_ - 1; Patch::ArrayV_B target_val;
 }
 */
 
-int EpipolarSearch::TriangulateWithoutCheckTheta(number_t &idp, const Mat4 &T01,
-                                                 const Vec3 &v0,
-                                                 const Vec3 &v1) {
+int EpipolarSearch::TriangulateWithoutCheckTheta(number_t& idp, const Mat4& T01, const Vec3& v0, const Vec3& v1) {
   Mat63 A = Mat63::Zero();
   Vec6 b = Vec6::Zero();
   A.block<3, 3>(0, 0) = Skew(v0);
   A.block<3, 3>(3, 0) = Skew(v1) * T01.block<3, 3>(0, 0).transpose();
-  b.segment<3>(3) =
-      Skew(v1) * T01.block<3, 3>(0, 0).transpose() * T01.block<3, 1>(0, 3);
+  b.segment<3>(3) = Skew(v1) * T01.block<3, 3>(0, 0).transpose() * T01.block<3, 1>(0, 3);
   Vec3 s = A.transpose() * b;
   Mat3 AA = A.transpose() * A;
   Vec3 xyz = AA.ldlt().solve(s);
@@ -92,8 +88,7 @@ int EpipolarSearch::TriangulateWithoutCheckTheta(number_t &idp, const Mat4 &T01,
   return 1;
 }
 
-std::vector<size_t> EpipolarSearch::FindLocalMaxima(
-    const std::vector<SearchRes> &search_result_vec) {
+std::vector<size_t> EpipolarSearch::FindLocalMaxima(const std::vector<SearchRes>& search_result_vec) {
   std::vector<size_t> maxima_index_vec;
   if (search_result_vec[0].zncc > search_result_vec[1].zncc) {
     maxima_index_vec.emplace_back(0);
@@ -107,12 +102,11 @@ std::vector<size_t> EpipolarSearch::FindLocalMaxima(
   }
 
   size_t last_index = search_result_vec.size() - 1;
-  if (search_result_vec[last_index].zncc >
-      search_result_vec[last_index - 1].zncc) {
+  if (search_result_vec[last_index].zncc > search_result_vec[last_index - 1].zncc) {
     maxima_index_vec.emplace_back(last_index);
   }
 
   return maxima_index_vec;
 }
 
-} // namespace dso
+}  // namespace dso

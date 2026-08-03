@@ -31,21 +31,22 @@ using dso::Vec8;
 using gtsam::Matrix, gtsam::Vector;
 using gtsam::Symbol;
 
-TransformDSOToIMU::TransformDSOToIMU(const gtsam::Pose3 &T_cam_imu,
-                                     std::shared_ptr<bool> optScale,
-                                     std::shared_ptr<bool> optGravity,
-                                     std::shared_ptr<bool> optT_cam_imu,
-                                     bool fixZ, int symbolInd)
-    : T_cam_imu(T_cam_imu.matrix()), optScale(optScale), optGravity(optGravity),
-      optT_cam_imu(optT_cam_imu), symbolInd(symbolInd), fixZ(fixZ) {
+TransformDSOToIMU::TransformDSOToIMU(const gtsam::Pose3& T_cam_imu, std::shared_ptr<bool> optScale,
+                                     std::shared_ptr<bool> optGravity, std::shared_ptr<bool> optT_cam_imu, bool fixZ,
+                                     int symbolInd)
+    : T_cam_imu(T_cam_imu.matrix()),
+      optScale(optScale),
+      optGravity(optGravity),
+      optT_cam_imu(optT_cam_imu),
+      symbolInd(symbolInd),
+      fixZ(fixZ) {
   fillKeyDimMap();
 }
 
-TransformDSOToIMU::TransformDSOToIMU(const TransformDSOToIMU &other,
-                                     std::shared_ptr<bool> optScalePassed,
+TransformDSOToIMU::TransformDSOToIMU(const TransformDSOToIMU& other, std::shared_ptr<bool> optScalePassed,
                                      std::shared_ptr<bool> optGravityPassed,
                                      std::shared_ptr<bool> optT_cam_imuPassed)
-    : TransformDSOToIMU(other) // first call default copy constructor
+    : TransformDSOToIMU(other)  // first call default copy constructor
 {
   optScale = optScalePassed;
   optGravity = optGravityPassed;
@@ -53,15 +54,12 @@ TransformDSOToIMU::TransformDSOToIMU(const TransformDSOToIMU &other,
 }
 
 // pose is T_cam_dsoW in DSO scale.
-PoseTransformation::PoseType TransformDSOToIMU::transformPose(
-    const PoseTransformation::PoseType &pose) const {
-  Sophus::Sim3d scaledT_w_cam = T_S_DSO * Sophus::Sim3d(pose).inverse() *
-                                T_S_DSO.inverse(); // in metric scale.
+PoseTransformation::PoseType TransformDSOToIMU::transformPose(const PoseTransformation::PoseType& pose) const {
+  Sophus::Sim3d scaledT_w_cam = T_S_DSO * Sophus::Sim3d(pose).inverse() * T_S_DSO.inverse();  // in metric scale.
   assert(std::abs(scaledT_w_cam.scale() - 1.0) < 0.0001);
   Sophus::SE3d T_metricW_imu;
-  T_metricW_imu =
-      Sophus::SE3d(R_dsoW_metricW.inverse(), Sophus::Vector3d::Zero()) *
-      Sophus::SE3d(scaledT_w_cam.matrix()) * T_cam_imu;
+  T_metricW_imu = Sophus::SE3d(R_dsoW_metricW.inverse(), Sophus::Vector3d::Zero()) *
+                  Sophus::SE3d(scaledT_w_cam.matrix()) * T_cam_imu;
   PoseType returning = T_metricW_imu.matrix();
 
 #ifdef DEBUG
@@ -73,41 +71,35 @@ PoseTransformation::PoseType TransformDSOToIMU::transformPose(
 }
 
 // pose is T_metricW_imu in metric scale.
-PoseTransformation::PoseType TransformDSOToIMU::transformPoseInverse(
-    const PoseTransformation::PoseType &pose) const {
+PoseTransformation::PoseType TransformDSOToIMU::transformPoseInverse(const PoseTransformation::PoseType& pose) const {
   // dso world to cam in metric scale:
   Sophus::SE3d T_cam_dsoW_metric = Sophus::SE3d();
   // TODO T_cam_metricW = T_cam_imu * T_I_metricW * R_metricW_dsoW
   T_cam_dsoW_metric =
-      T_cam_imu * Sophus::SE3d(pose).inverse() *
-      Sophus::SE3d(R_dsoW_metricW.inverse(), Sophus::Vector3d::Zero());
+      T_cam_imu * Sophus::SE3d(pose).inverse() * Sophus::SE3d(R_dsoW_metricW.inverse(), Sophus::Vector3d::Zero());
   // in DSO scale:
   // TODO S_dso_metric * T_cam_metricW * S_metric_dso
   // TODO 这里其实只差一个scale了，旋转已经对齐，平移只差比例，
   // paper里说，这里的sim3的旋转是单位阵，平移是0，但scale应该不为1
-  Sophus::Sim3d T_cam_dsoW =
-      T_S_DSO.inverse() * Sophus::Sim3d(T_cam_dsoW_metric.matrix()) * T_S_DSO;
+  Sophus::Sim3d T_cam_dsoW = T_S_DSO.inverse() * Sophus::Sim3d(T_cam_dsoW_metric.matrix()) * T_S_DSO;
   if (!(std::abs(T_cam_dsoW.scale() - 1.0) < 0.0001)) {
     std::cout << T_cam_dsoW.matrix() << std::endl;
   }
-  assert(
-      std::abs(T_cam_dsoW.scale() - 1.0) < 0.0001 ||
-      std::isnan(T_cam_dsoW.scale())); // Scale should be close to 1 (unless it
+  assert(std::abs(T_cam_dsoW.scale() - 1.0) < 0.0001 ||
+         std::isnan(T_cam_dsoW.scale()));  // Scale should be close to 1 (unless it
   // is Nan which can happen sometimes).
   return T_cam_dsoW.matrix();
 }
 
 void TransformDSOToIMU::precomputeForDerivatives() {
-  if (precomputedValid)
-    return;
+  if (precomputedValid) return;
   precomputedValid = true;
   precomputed = Sophus::Sim3d(T_cam_imu.inverse().matrix()) * T_S_DSO;
   precomputedAdj = precomputed.Adj();
 }
 
-gtsam::Matrix66
-TransformDSOToIMU::getPoseDerivative(const PoseTransformation::PoseType &pose,
-                                     DerivativeDirection direction) {
+gtsam::Matrix66 TransformDSOToIMU::getPoseDerivative(const PoseTransformation::PoseType& pose,
+                                                     DerivativeDirection direction) {
   if (direction == DerivativeDirection::RIGHT_TO_RIGHT) {
     // Analytic derivatives
     assert(precomputedValid);
@@ -124,9 +116,8 @@ TransformDSOToIMU::getPoseDerivative(const PoseTransformation::PoseType &pose,
   return PoseTransformation::getPoseDerivative(pose, direction);
 }
 
-std::vector<gtsam::Matrix>
-TransformDSOToIMU::getAllDerivatives(const PoseTransformation::PoseType &pose,
-                                     DerivativeDirection direction) {
+std::vector<gtsam::Matrix> TransformDSOToIMU::getAllDerivatives(const PoseTransformation::PoseType& pose,
+                                                                DerivativeDirection direction) {
   std::vector<gtsam::Matrix> analyticDerivs;
   bool analyticDerivsFilled = false;
   if (direction == DerivativeDirection::RIGHT_TO_RIGHT) {
@@ -158,10 +149,8 @@ TransformDSOToIMU::getAllDerivatives(const PoseTransformation::PoseType &pose,
       gtsam::Matrix66 gravityJac;
       // J = -(T_cam_imu.inverse() * T_S_DSO * pose * T_S_DSO.inverse() *
       // R_dsoW_metricW).Adj();
-      gravityJac = convertJacobianToGTSAM(
-          -(innerAdjoint *
-            Sophus::SE3d(R_dsoW_metricW, Sophus::Vector3d::Zero()))
-               .Adj());
+      gravityJac =
+          convertJacobianToGTSAM(-(innerAdjoint * Sophus::SE3d(R_dsoW_metricW, Sophus::Vector3d::Zero())).Adj());
       if (fixZ) {
         // Set the yaw derivative to zero here.
         gravityJac.block<6, 1>(0, 2).setZero();
@@ -191,8 +180,7 @@ TransformDSOToIMU::getAllDerivatives(const PoseTransformation::PoseType &pose,
   std::vector<gtsam::Matrix> returning;
   returning.push_back(PoseTransformation::getPoseDerivative(pose, direction));
   if (*optScale) {
-    gtsam::Matrix numJac =
-        computeNumericJacobian(*this, Sophus::SE3d(pose), &T_S_DSO, direction);
+    gtsam::Matrix numJac = computeNumericJacobian(*this, Sophus::SE3d(pose), &T_S_DSO, direction);
     // Set translational and rotational part to zero, because we only want to
     // optimize scale!
     numJac.topLeftCorner<6, 6>().setZero();
@@ -200,8 +188,7 @@ TransformDSOToIMU::getAllDerivatives(const PoseTransformation::PoseType &pose,
   }
   if (*optGravity) {
     gtsam::Matrix numJac = gtsam::Matrix();
-    numJac = computeNumericJacobian(*this, Sophus::SE3d(pose), &R_dsoW_metricW,
-                                    direction);
+    numJac = computeNumericJacobian(*this, Sophus::SE3d(pose), &R_dsoW_metricW, direction);
     if (fixZ) {
       // Set the yaw derivative to zero here. But I'm not sure which one it is
       // yet!
@@ -210,8 +197,7 @@ TransformDSOToIMU::getAllDerivatives(const PoseTransformation::PoseType &pose,
     returning.push_back(numJac);
   }
   if (*optT_cam_imu) {
-    gtsam::Matrix numJac = computeNumericJacobian(*this, Sophus::SE3d(pose),
-                                                  &T_cam_imu, direction);
+    gtsam::Matrix numJac = computeNumericJacobian(*this, Sophus::SE3d(pose), &T_cam_imu, direction);
     returning.push_back(numJac);
   }
 
@@ -240,7 +226,7 @@ std::vector<gtsam::Key> TransformDSOToIMU::getAllOptimizedSymbols() const {
   return returning;
 }
 
-void TransformDSOToIMU::updateWithValues(const gtsam::Values &values) {
+void TransformDSOToIMU::updateWithValues(const gtsam::Values& values) {
   if (*optScale) {
     double scaleBefore = T_S_DSO.scale();
     T_S_DSO = values.at<ScaleGTSAM>(Symbol('s', symbolInd)).sim();
@@ -259,8 +245,7 @@ void TransformDSOToIMU::updateWithValues(const gtsam::Values &values) {
   }
   if (*optT_cam_imu) {
     gtsam::Pose3 newExtr = values.at<gtsam::Pose3>(Symbol('i', symbolInd));
-    if (!newExtr.equals(gtsam::Pose3(T_cam_imu.matrix())))
-      precomputedValid = false;
+    if (!newExtr.equals(gtsam::Pose3(T_cam_imu.matrix()))) precomputedValid = false;
     T_cam_imu = Sophus::SE3d(newExtr.matrix());
   }
 }
@@ -276,26 +261,21 @@ std::unique_ptr<PoseTransformation> TransformDSOToIMU::clone() const {
   return std::unique_ptr<PoseTransformation>(new TransformDSOToIMU(*this));
 }
 
-void TransformDSOToIMU::resetGravityDirection() {
-  R_dsoW_metricW = Sophus::SO3d{};
-}
+void TransformDSOToIMU::resetGravityDirection() { R_dsoW_metricW = Sophus::SO3d{}; }
 
 template <typename T>
-TransformIMUToDSOForCoarse<T>::TransformIMUToDSOForCoarse(
-    std::shared_ptr<T> transformDSOToIMU, int keyframeId)
+TransformIMUToDSOForCoarse<T>::TransformIMUToDSOForCoarse(std::shared_ptr<T> transformDSOToIMU, int keyframeId)
     : transformToIMU(transformDSOToIMU), keyframeId(keyframeId) {
   keyDimMap[Symbol('p', keyframeId)] = 6;
 }
 
 template <typename T>
-dmvio::PoseTransformation::PoseType
-TransformIMUToDSOForCoarse<T>::transformPose(const PoseType &pose) const {
+dmvio::PoseTransformation::PoseType TransformIMUToDSOForCoarse<T>::transformPose(const PoseType& pose) const {
   // First convert from IMU to camera frame.
   // pose is imuToWorld, and we also have reference to world (both IMU metric
   // frame).
   PoseType T_f_w = transformToIMU->transformPoseInverse(pose);
-  PoseType T_r_w =
-      transformToIMU->transformPoseInverse(referenceToWorld.matrix());
+  PoseType T_r_w = transformToIMU->transformPoseInverse(referenceToWorld.matrix());
 
   // We want to output T_f_r (reference to frame).
   PoseType T_f_r = T_f_w * T_r_w.inverse();
@@ -311,12 +291,10 @@ TransformIMUToDSOForCoarse<T>::transformPose(const PoseType &pose) const {
 }
 
 template <typename T>
-dmvio::PoseTransformation::PoseType
-TransformIMUToDSOForCoarse<T>::transformPoseInverse(
-    const PoseType &poseT_f_r) const {
+dmvio::PoseTransformation::PoseType TransformIMUToDSOForCoarse<T>::transformPoseInverse(
+    const PoseType& poseT_f_r) const {
   // First get worldToReference
-  PoseType T_r_w =
-      transformToIMU->transformPoseInverse(referenceToWorld.matrix());
+  PoseType T_r_w = transformToIMU->transformPoseInverse(referenceToWorld.matrix());
   // We got T_f_r as input ->
   PoseType T_f_w = poseT_f_r * T_r_w;
 
@@ -326,25 +304,20 @@ TransformIMUToDSOForCoarse<T>::transformPoseInverse(
 // Helper functions for the derivatives, so that we can specialize them to
 // compute analytic derivatives for each class type.
 template <typename T>
-gtsam::Matrix66 dmvio::getCoarsePoseDerivative(
-    const PoseTransformation::PoseType &pose,
-    const DerivativeDirection &direction, T &transform,
-    TransformIMUToDSOForCoarse<T> &transformForCoarse) {
+gtsam::Matrix66 dmvio::getCoarsePoseDerivative(const PoseTransformation::PoseType& pose,
+                                               const DerivativeDirection& direction, T& transform,
+                                               TransformIMUToDSOForCoarse<T>& transformForCoarse) {
   // Default is numeric Jacobian.
-  return transformForCoarse.PoseTransformation::getPoseDerivative(pose,
-                                                                  direction);
+  return transformForCoarse.PoseTransformation::getPoseDerivative(pose, direction);
 }
 
 // Analytic derivatives for TransformIMUToDSOForCoarse<TransformDSOToIMUNew>
 template <>
-gtsam::Matrix66 dmvio::getCoarsePoseDerivative(
-    const PoseTransformation::PoseType &pose,
-    const DerivativeDirection &direction, TransformDSOToIMU &transform,
-    TransformIMUToDSOForCoarse<TransformDSOToIMU> &transformForCoarse) {
+gtsam::Matrix66 dmvio::getCoarsePoseDerivative(const PoseTransformation::PoseType& pose,
+                                               const DerivativeDirection& direction, TransformDSOToIMU& transform,
+                                               TransformIMUToDSOForCoarse<TransformDSOToIMU>& transformForCoarse) {
   gtsam::Matrix poseJac =
-      convertJacobianToGTSAM(-(transform.T_S_DSO.inverse() *
-                               Sophus::Sim3d(transform.T_cam_imu.matrix()))
-                                  .Adj())
+      convertJacobianToGTSAM(-(transform.T_S_DSO.inverse() * Sophus::Sim3d(transform.T_cam_imu.matrix())).Adj())
           .topLeftCorner(6, 6);
   // TODO
   // TODO
@@ -353,30 +326,27 @@ gtsam::Matrix66 dmvio::getCoarsePoseDerivative(
 }
 
 template <typename T>
-gtsam::Matrix dmvio::getCoarseReferenceDerivative(
-    const PoseTransformation::PoseType &pose, DerivativeDirection direction,
-    T &transform, TransformIMUToDSOForCoarse<T> &transformForCoarse) {
+gtsam::Matrix dmvio::getCoarseReferenceDerivative(const PoseTransformation::PoseType& pose,
+                                                  DerivativeDirection direction, T& transform,
+                                                  TransformIMUToDSOForCoarse<T>& transformForCoarse) {
   // Default to numeric Jacobian.
   gtsam::Matrix numJac =
-      computeNumericJacobian(transformForCoarse, Sophus::SE3d(pose),
-                             &transformForCoarse.referenceToWorld, direction);
+      computeNumericJacobian(transformForCoarse, Sophus::SE3d(pose), &transformForCoarse.referenceToWorld, direction);
   return numJac;
 }
 
 // Analytic derivatives for TransformIMUToDSOForCoarse<TransformDSOToIMUNew>
 template <>
-gtsam::Matrix dmvio::getCoarseReferenceDerivative(
-    const PoseTransformation::PoseType &pose, DerivativeDirection direction,
-    TransformDSOToIMU &transform,
-    TransformIMUToDSOForCoarse<TransformDSOToIMU> &transformForCoarse) {
+gtsam::Matrix dmvio::getCoarseReferenceDerivative(const PoseTransformation::PoseType& pose,
+                                                  DerivativeDirection direction, TransformDSOToIMU& transform,
+                                                  TransformIMUToDSOForCoarse<TransformDSOToIMU>& transformForCoarse) {
   // compute derivative w.r.t reference to world.
   Sophus::Sim3d T_w_f_imu(pose);
   Sophus::Sim3d T_w_r_imu(transformForCoarse.referenceToWorld.matrix());
   gtsam::Matrix referenceJac =
-      convertJacobianToGTSAM((transform.T_S_DSO.inverse() *
-                              Sophus::Sim3d(transform.T_cam_imu.matrix()) *
-                              T_w_f_imu.inverse() * T_w_r_imu)
-                                 .Adj())
+      convertJacobianToGTSAM(
+          (transform.T_S_DSO.inverse() * Sophus::Sim3d(transform.T_cam_imu.matrix()) * T_w_f_imu.inverse() * T_w_r_imu)
+              .Adj())
           .topLeftCorner(6, 6);
   // TODO
   // TODO
@@ -384,9 +354,7 @@ gtsam::Matrix dmvio::getCoarseReferenceDerivative(
   return referenceJac;
 }
 
-const Sophus::SE3d &TransformDSOToIMU::getT_cam_imu() const {
-  return T_cam_imu;
-}
+const Sophus::SE3d& TransformDSOToIMU::getT_cam_imu() const { return T_cam_imu; }
 
 void TransformDSOToIMU::setSymbolInd(int symbolInd) {
   TransformDSOToIMU::symbolInd = symbolInd;
@@ -402,19 +370,14 @@ void TransformDSOToIMU::fillKeyDimMap() {
   keyDimMap[Symbol('i', symbolInd)] = 6;
 }
 
-const Sophus::SO3d &TransformDSOToIMU::getR_dsoW_metricW() const {
-  return R_dsoW_metricW;
-}
+const Sophus::SO3d& TransformDSOToIMU::getR_dsoW_metricW() const { return R_dsoW_metricW; }
 
 template <typename T>
-gtsam::Matrix66 TransformIMUToDSOForCoarse<T>::getPoseDerivative(
-    const PoseType &pose, DerivativeDirection direction) {
+gtsam::Matrix66 TransformIMUToDSOForCoarse<T>::getPoseDerivative(const PoseType& pose, DerivativeDirection direction) {
   if (direction == DerivativeDirection::RIGHT_TO_LEFT) {
-    gtsam::Matrix poseJac =
-        getCoarsePoseDerivative(pose, direction, *transformToIMU, *this);
+    gtsam::Matrix poseJac = getCoarsePoseDerivative(pose, direction, *transformToIMU, *this);
 #ifdef DEBUG
-    assertNumericJac(PoseTransformation::getPoseDerivative(pose, direction),
-                     poseJac);
+    assertNumericJac(PoseTransformation::getPoseDerivative(pose, direction), poseJac);
 #endif
     return poseJac;
   }
@@ -423,8 +386,8 @@ gtsam::Matrix66 TransformIMUToDSOForCoarse<T>::getPoseDerivative(
 
 // Computes the derivative w.r.t T_w_f and also T_w_r.
 template <typename T>
-std::vector<gtsam::Matrix> TransformIMUToDSOForCoarse<T>::getAllDerivatives(
-    const PoseType &pose, DerivativeDirection direction) {
+std::vector<gtsam::Matrix> TransformIMUToDSOForCoarse<T>::getAllDerivatives(const PoseType& pose,
+                                                                            DerivativeDirection direction) {
   std::vector<gtsam::Matrix> returning;
   returning.push_back(getPoseDerivative(pose, direction));
 
@@ -432,25 +395,21 @@ std::vector<gtsam::Matrix> TransformIMUToDSOForCoarse<T>::getAllDerivatives(
     // compute derivative w.r.t reference to world.
     Sophus::Sim3d T_w_f_imu(pose);
     Sophus::Sim3d T_w_r_imu(referenceToWorld.matrix());
-    gtsam::Matrix referenceJac =
-        getCoarseReferenceDerivative(pose, direction, *transformToIMU, *this);
+    gtsam::Matrix referenceJac = getCoarseReferenceDerivative(pose, direction, *transformToIMU, *this);
 #ifdef DEBUG
-    gtsam::Matrix numJac = computeNumericJacobian(*this, Sophus::SE3d(pose),
-                                                  &referenceToWorld, direction);
+    gtsam::Matrix numJac = computeNumericJacobian(*this, Sophus::SE3d(pose), &referenceToWorld, direction);
     assertNumericJac(numJac, referenceJac);
 #endif
     returning.push_back(referenceJac);
   } else {
-    gtsam::Matrix numJac = computeNumericJacobian(*this, Sophus::SE3d(pose),
-                                                  &referenceToWorld, direction);
+    gtsam::Matrix numJac = computeNumericJacobian(*this, Sophus::SE3d(pose), &referenceToWorld, direction);
     returning.push_back(numJac);
   }
   return returning;
 }
 
 template <typename T>
-std::vector<gtsam::Key>
-TransformIMUToDSOForCoarse<T>::getAllOptimizedSymbols() const {
+std::vector<gtsam::Key> TransformIMUToDSOForCoarse<T>::getAllOptimizedSymbols() const {
   std::vector<gtsam::Key> returning;
   // We also optimize the reference pose.
   returning.push_back(gtsam::Symbol('p', keyframeId));
@@ -458,17 +417,13 @@ TransformIMUToDSOForCoarse<T>::getAllOptimizedSymbols() const {
 }
 
 template <typename T>
-void TransformIMUToDSOForCoarse<T>::updateWithValues(
-    const gtsam::Values &values) {
-  referenceToWorld =
-      Sophus::SE3d(values.at<gtsam::Pose3>(Symbol('p', keyframeId)).matrix());
+void TransformIMUToDSOForCoarse<T>::updateWithValues(const gtsam::Values& values) {
+  referenceToWorld = Sophus::SE3d(values.at<gtsam::Pose3>(Symbol('p', keyframeId)).matrix());
 }
 
 template <typename T>
-std::unique_ptr<PoseTransformation>
-TransformIMUToDSOForCoarse<T>::clone() const {
-  return std::unique_ptr<PoseTransformation>(
-      new TransformIMUToDSOForCoarse<T>(*this));
+std::unique_ptr<PoseTransformation> TransformIMUToDSOForCoarse<T>::clone() const {
+  return std::unique_ptr<PoseTransformation>(new TransformIMUToDSOForCoarse<T>(*this));
 }
 
 namespace dmvio {

@@ -31,14 +31,14 @@ namespace dmvio {
 
 // Settings for frame skipping.
 class FrameSkippingSettings {
-public:
-  void registerArgs(dmvio::SettingsUtil &set);
+ public:
+  void registerArgs(dmvio::SettingsUtil& set);
 
   // Maximum frames to skip ...
-  int maxSkipFramesVisualInit = 0;     // ... during visual initializer phase.
-  int maxSkipFramesVisualOnlyMode = 1; // ... during visual only mode.
-  int maxSkipFramesVisualInertial = 2; // ... during visual-inertial mode.
-  int maxSkipFramesFullReset = -1;     // ... when a full reset happens.
+  int maxSkipFramesVisualInit = 0;      // ... during visual initializer phase.
+  int maxSkipFramesVisualOnlyMode = 1;  // ... during visual only mode.
+  int maxSkipFramesVisualInertial = 2;  // ... during visual-inertial mode.
+  int maxSkipFramesFullReset = -1;      // ... when a full reset happens.
   // -1 means that all frames until the newest one are skipped (resembling a
   // value of infinity).
 
@@ -53,7 +53,7 @@ public:
 // Contains the logic to decide how many frames to skip (depending on the
 // current state of the system).
 class FrameSkippingStrategy : public dso::IOWrap::Output3DWrapper {
-public:
+ public:
   FrameSkippingStrategy(FrameSkippingSettings settings);
 
   // Get current maxSkipFrames according to strategy.
@@ -65,7 +65,7 @@ public:
 
   void reset() override;
 
-private:
+ private:
   FrameSkippingSettings settings;
 
   std::mutex mutex;
@@ -76,6 +76,6 @@ private:
   int visualOnlyDelay = 0;
 };
 
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_FRAMESKIPPINGSTRATEGY_H
+#endif  // DMVIO_FRAMESKIPPINGSTRATEGY_H

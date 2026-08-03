@@ -10,20 +10,17 @@
 namespace dso::DotDetect {
 
 struct lessCompare {
-  bool operator()(const Eigen::Vector2i &lhs,
-                  const Eigen::Vector2i &rhs) const {
+  bool operator()(const Eigen::Vector2i& lhs, const Eigen::Vector2i& rhs) const {
     return (lhs[0] < rhs[0]) || (lhs[0] == rhs[0] && lhs[1] < rhs[1]);
   }
 };
 
 struct Dist {
-  Vertex *v = nullptr;
+  Vertex* v = nullptr;
   double dist = -1;
 };
 
-inline bool operator<(const Dist &lhs, const Dist &rhs) {
-  return lhs.dist < rhs.dist;
-}
+inline bool operator<(const Dist& lhs, const Dist& rhs) { return lhs.dist < rhs.dist; }
 
 struct compareMat01 {
   bool operator()(int a) const { return a >= 0; }
@@ -33,5 +30,5 @@ struct compareMatZero {
   bool operator()(int a) const { return a == 0; }
 };
 
-} // namespace dso::DotDetect
-#endif // YVR_CALIB_BASICSTRUCT_H
+}  // namespace dso::DotDetect
+#endif  // YVR_CALIB_BASICSTRUCT_H

@@ -11,22 +11,22 @@ class CameraBase;
 struct CalibBoardPoint {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   std::vector<int> line_index_vec;
-  Vec3 p_w; // point xyz in corresponding calibration board
+  Vec3 p_w;  // point xyz in corresponding calibration board
   int calib_board_id = -1;
 };
 
 struct CalibBoardLine {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   std::vector<int> point_index_vec;
-  int line_type = -1; // 0: row line, 1: col line, 2: co-dir slash(0.5,0.5), 3:
-                      // oppo-dir slash(-0.5,0.5)
+  int line_type = -1;  // 0: row line, 1: col line, 2: co-dir slash(0.5,0.5), 3:
+                       // oppo-dir slash(-0.5,0.5)
   int calib_board_id = -1;
 };
 
 struct PointVM {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   Vec2 uv = Vec2::Ones();
-  Vec3 xyz = Vec3::Ones(); // by Unproj
+  Vec3 xyz = Vec3::Ones();  // by Unproj
   bool valid_point = true;
   bool is_valid_projection = true;
   bool is_updated = false;
@@ -34,8 +34,8 @@ struct PointVM {
   int iter_count = 0;
   bool is_outlier = false;
   number_t max_err = -1;
-  Vec3 line_normal = Vec3::Ones(); // for trifocal line factor
-  Vec6 start_end = Vec6::Ones();   // for trifocal line factor
+  Vec3 line_normal = Vec3::Ones();  // for trifocal line factor
+  Vec6 start_end = Vec6::Ones();    // for trifocal line factor
   bool is_3dof = false;
   bool is_5dof = true;
 };
@@ -55,49 +55,43 @@ struct CalibFrame {
   number_t timestamp;
   int64_t timestamp_ns;
   bool visual_valid = true;
-  aligned_map<int, aligned_map<int, PointVM>>
-      cid_pid_to_point_vm; // cam_id-> (id,point)
+  aligned_map<int, aligned_map<int, PointVM>> cid_pid_to_point_vm;  // cam_id-> (id,point)
   aligned_map<int, aligned_map<int, LineVM>> cid_line_id_to_line_vm;
   aligned_map<int, number_t> cid_to_gain;
   aligned_map<int, number_t> cid_to_exposure_time;
 
-  Mat4 Tc0_calibboard0;                   // camera rig to calib_board rig
-  aligned_vector<Mat4> v_Tcm_calibboardj; // boardj to cameram
-  aligned_vector<Mat4> v_Tcm_calibboard0; // boardj to cameram
+  Mat4 Tc0_calibboard0;                    // camera rig to calib_board rig
+  aligned_vector<Mat4> v_Tcm_calibboardj;  // boardj to cameram
+  aligned_vector<Mat4> v_Tcm_calibboard0;  // boardj to cameram
   std::set<int> visible_cids = {};
   int is_used = 0;
   bool is_gray_frame = true;
   // todo: imu data
 
   // for debug and show
-  aligned_map<int, std::string> cid_to_img_file_path; // full path
+  aligned_map<int, std::string> cid_to_img_file_path;  // full path
 };
 
 struct CalibBoards {
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  void GenerateAprilTagCalibBoards(
-      const int &board_num, const int &tag_row, const number_t &tag_size,
-      const number_t &tag_gap,
-      const aligned_vector<Mat4> &calib_board_id_to_T01);
+  void GenerateAprilTagCalibBoards(const int& board_num, const int& tag_row, const number_t& tag_size,
+                                   const number_t& tag_gap, const aligned_vector<Mat4>& calib_board_id_to_T01);
 
-  void
-  GenerateDotCalibBoards(const int board_num, const int &dot_per_row,
-                         const number_t &dot_distance,
-                         const aligned_vector<Mat4> &calib_board_id_to_T01);
+  void GenerateDotCalibBoards(const int board_num, const int& dot_per_row, const number_t& dot_distance,
+                              const aligned_vector<Mat4>& calib_board_id_to_T01);
 
-  void
-  GenerateLineVMBYPointVM(aligned_vector<CalibFrame> *p_input_frame_data_vec);
+  void GenerateLineVMBYPointVM(aligned_vector<CalibFrame>* p_input_frame_data_vec);
 
   int calib_board_num;
   aligned_vector<CalibBoardPoint> pid_to_CalibBoardPoint;
   aligned_vector<CalibBoardLine> line_id_to_CalibBoardLine;
 
-  aligned_vector<Mat4> id_to_T01; // Calib Board Extrinsic
+  aligned_vector<Mat4> id_to_T01;  // Calib Board Extrinsic
   aligned_vector<Vec3> line_type_to_dir_vec;
 
-  std::vector<int> id_to_T01_opt; // calib board id to Extrinsic is opt
+  std::vector<int> id_to_T01_opt;  // calib board id to Extrinsic is opt
 };
 
 // struct MultiCamera {
@@ -152,8 +146,7 @@ struct ImuDataSingle {
   Vec3 acc;
   Vec3 gyro;
   ImuDataSingle(){};
-  ImuDataSingle(const Vec3 &acc_, const Vec3 &gyro_,
-                const int64_t &timestamp_ns_)
+  ImuDataSingle(const Vec3& acc_, const Vec3& gyro_, const int64_t& timestamp_ns_)
       : acc(acc_), gyro(gyro_), timestamp_ns(timestamp_ns_){};
 };
 
@@ -241,17 +234,11 @@ struct VI_Config {
   std::map<int, int> rgb_fid_to_closest_gray_fid;
   std::map<
       int /*rgb_fid*/,
-      std::pair<
-          int, /*gray_fid*/ std::map<
-              int /*pid*/,
-              std::vector<int /*cids that obverved this pid at this fid*/>>>>
+      std::pair<int, /*gray_fid*/ std::map<int /*pid*/, std::vector<int /*cids that obverved this pid at this fid*/>>>>
       fid_to_pid_to_cid;
   std::map<
       int /*rgb_fid*/,
-      std::pair<
-          int, /*gray_fid*/ std::map<
-              int /*pid*/,
-              std::vector<int /*cids that obverved this pid at this fid*/>>>>
+      std::pair<int, /*gray_fid*/ std::map<int /*pid*/, std::vector<int /*cids that obverved this pid at this fid*/>>>>
       fid_to_pid_to_cid_full;
   bool use_trifocal_tensor_factor = false;
   int gray_fid_offset = 5;
@@ -263,18 +250,18 @@ struct VI_Config {
 };
 struct SelfCalib_Config {};
 struct ThreadsGyroStruct {
-  std::vector<GyroData *> sub_factors;
+  std::vector<GyroData*> sub_factors;
   Eigen::MatrixXd A;
   Eigen::VectorXd b;
-  std::unordered_map<long, int> parameter_block_size; // global size
-  std::unordered_map<long, int> parameter_block_idx;  // local size
+  std::unordered_map<long, int> parameter_block_size;  // global size
+  std::unordered_map<long, int> parameter_block_idx;   // local size
 };
 struct ThreadsAccelStruct {
-  std::vector<AccelData *> sub_factors;
+  std::vector<AccelData*> sub_factors;
   Eigen::MatrixXd A;
   Eigen::VectorXd b;
-  std::unordered_map<long, int> parameter_block_size; // global size
-  std::unordered_map<long, int> parameter_block_idx;  // local size
+  std::unordered_map<long, int> parameter_block_size;  // global size
+  std::unordered_map<long, int> parameter_block_idx;   // local size
 };
 struct AprilgridCornersData {
   int64_t timestamp_ns;
@@ -287,8 +274,8 @@ struct AprilgridCornersData {
   std::vector<cv::Point3f> tagpoints;
   cv::Mat image;
   std::string image_path;
-  std::vector<std::vector<int>> row_ids; // TODO 属于同一行的所有grid id
-  std::vector<std::vector<int>> col_ids; // TODO 属于同一列的所有grid id
+  std::vector<std::vector<int>> row_ids;  // TODO 属于同一行的所有grid id
+  std::vector<std::vector<int>> col_ids;  // TODO 属于同一列的所有grid id
   std::map<int, cv::Point2f> grid_id_to_uv;
 };
 struct ImageImuData {
@@ -304,4 +291,4 @@ struct ImageImuData {
 struct HandEyeInfo {
   Mat4 Twc = Mat4::Identity();
 };
-} // namespace dso
+}  // namespace dso

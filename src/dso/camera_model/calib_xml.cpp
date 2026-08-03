@@ -35,8 +35,7 @@ struct CameraInfo {
   Mat4 T01;
 };
 
-void LoadXML(const std::string &file_path, MultiCamera &multi_camera,
-             IMUState &imu_state) {
+void LoadXML(const std::string& file_path, MultiCamera& multi_camera, IMUState& imu_state) {
   std::unordered_map<int, CameraInfo> cid_to_camera;
   Vec3 ombc, tbc, aBias, wBias, ka, kg, na, ng, ombg;
   Mat3 Rbc;
@@ -44,10 +43,9 @@ void LoadXML(const std::string &file_path, MultiCamera &multi_camera,
 
   tinyxml2::XMLDocument caliXML;
   if (caliXML.LoadFile(file_path.c_str()) == 0) {
-    auto firstEle =
-        caliXML.GetDocument()->RootElement()->FirstChildElement("Camera");
-    const char *stream = "";
-    const char *model = "";
+    auto firstEle = caliXML.GetDocument()->RootElement()->FirstChildElement("Camera");
+    const char* stream = "";
+    const char* model = "";
     int width, height;
     number_t fx, fy, cx, cy, tcc[3], rcc[9];
     CameraInfo t_camera;
@@ -56,7 +54,7 @@ void LoadXML(const std::string &file_path, MultiCamera &multi_camera,
     while (firstEle != nullptr) {
       int id;
       firstEle->QueryAttribute("id", &id);
-      const auto &curCalib = firstEle->FirstChildElement("Calibration");
+      const auto& curCalib = firstEle->FirstChildElement("Calibration");
 
       curCalib->QueryAttribute("size", &stream);
       dataStream.clear();
@@ -96,7 +94,7 @@ void LoadXML(const std::string &file_path, MultiCamera &multi_camera,
       // k6, p1, p2, s1, s2, s3, s4 kb8 parameters: fx, fy, cx, cy, k1, k2, k3,
       // k4
 
-      const auto &curExPose = firstEle->FirstChildElement("Rig");
+      const auto& curExPose = firstEle->FirstChildElement("Rig");
       curExPose->QueryAttribute("translation", &stream);
       dataStream.clear();
       dataStream.str(stream);
@@ -105,11 +103,9 @@ void LoadXML(const std::string &file_path, MultiCamera &multi_camera,
       curExPose->QueryAttribute("rowMajorRotationMat", &stream);
       dataStream.clear();
       dataStream.str(stream);
-      dataStream >> rcc[0] >> rcc[1] >> rcc[2] >> rcc[3] >> rcc[4] >> rcc[5] >>
-          rcc[6] >> rcc[7] >> rcc[8];
+      dataStream >> rcc[0] >> rcc[1] >> rcc[2] >> rcc[3] >> rcc[4] >> rcc[5] >> rcc[6] >> rcc[7] >> rcc[8];
       Mat3 R10;
-      R10 << rcc[0], rcc[1], rcc[2], rcc[3], rcc[4], rcc[5], rcc[6], rcc[7],
-          rcc[8];
+      R10 << rcc[0], rcc[1], rcc[2], rcc[3], rcc[4], rcc[5], rcc[6], rcc[7], rcc[8];
       Vec3 t10(tcc[0], tcc[1], tcc[2]);
       t_camera.T01.setIdentity();
       t_camera.T01.block<3, 3>(0, 0) = R10.transpose();
@@ -118,8 +114,7 @@ void LoadXML(const std::string &file_path, MultiCamera &multi_camera,
       firstEle = firstEle->NextSiblingElement("Camera");
     }
 
-    const auto &imuInfo =
-        caliXML.GetDocument()->RootElement()->FirstChildElement("SFConfig");
+    const auto& imuInfo = caliXML.GetDocument()->RootElement()->FirstChildElement("SFConfig");
 
     imuInfo->FirstChildElement("Stateinit")->QueryAttribute("ombc", &stream);
     dataStream.clear();
@@ -168,8 +163,7 @@ void LoadXML(const std::string &file_path, MultiCamera &multi_camera,
     dataStream.str(stream);
     dataStream >> ombg[0] >> ombg[1] >> ombg[2];
 
-    imuInfo->FirstChildElement("Stateinit")
-        ->QueryAttribute("accelDelta", &stream);
+    imuInfo->FirstChildElement("Stateinit")->QueryAttribute("accelDelta", &stream);
     dataStream.clear();
     dataStream.str(stream);
     dataStream >> accelDelta;
@@ -185,16 +179,14 @@ void LoadXML(const std::string &file_path, MultiCamera &multi_camera,
 
   multi_camera.cam_num = cid_to_camera.size();
   std::cout << "cam_num in xml: " << multi_camera.cam_num << std::endl;
-  for (const auto &cid_cam : cid_to_camera) {
+  for (const auto& cid_cam : cid_to_camera) {
     int cid = cid_cam.first;
-    const CameraInfo &camera = cid_cam.second;
-    CameraBase *p_cam;
+    const CameraInfo& camera = cid_cam.second;
+    CameraBase* p_cam;
     if (camera.camera_type == "KB8" || camera.camera_type == "KANNALA_BRANDT") {
-      p_cam =
-          new KB8Camera(cid, camera.width, camera.height, camera.parameters_);
+      p_cam = new KB8Camera(cid, camera.width, camera.height, camera.parameters_);
     } else if (camera.camera_type == "KB16") {
-      p_cam =
-          new KB16Camera(cid, camera.width, camera.height, camera.parameters_);
+      p_cam = new KB16Camera(cid, camera.width, camera.height, camera.parameters_);
     } else if (camera.camera_type == "KB20") {
       p_cam = new KB20Camera(cid, camera.width, camera.height, false, true);
       VecX intr;
@@ -202,19 +194,14 @@ void LoadXML(const std::string &file_path, MultiCamera &multi_camera,
       intr.setZero();
       intr = Eigen::Map<const VecX>(camera.parameters_, p_cam->kParamLength);
       p_cam->SetIntrinsic(intr);
-    } else if (camera.camera_type == "UcmRTP" ||
-               camera.camera_type == "UCMRTP") {
-      p_cam = new UCMRTPCamera(cid, camera.width, camera.height,
-                               camera.parameters_, 0, false);
+    } else if (camera.camera_type == "UcmRTP" || camera.camera_type == "UCMRTP") {
+      p_cam = new UCMRTPCamera(cid, camera.width, camera.height, camera.parameters_, 0, false);
     } else if (camera.camera_type == "Pinhole") {
-      p_cam = new PinholeCamera(cid, camera.width, camera.height,
-                                camera.parameters_);
+      p_cam = new PinholeCamera(cid, camera.width, camera.height, camera.parameters_);
     } else if (camera.camera_type == "RT") {
-      p_cam = new RadtanCamera(cid, camera.width, camera.height,
-                               camera.parameters_);
+      p_cam = new RadtanCamera(cid, camera.width, camera.height, camera.parameters_);
     } else if (camera.camera_type == "DS") {
-      p_cam = new DoubleSphereCamera(cid, camera.width, camera.height,
-                                     camera.parameters_);
+      p_cam = new DoubleSphereCamera(cid, camera.width, camera.height, camera.parameters_);
     } else {
       printf("unknown camera model, abort %s\n", camera.camera_type.c_str());
       std::abort();
@@ -245,22 +232,21 @@ void LoadXML(const std::string &file_path, MultiCamera &multi_camera,
   imu_state.time_delay = delta;
 }
 
-void SaveXML(const std::string &file_path, const MultiCamera &multi_camera,
-             const IMUState &imu_state, const std::string &device_sn) {
+void SaveXML(const std::string& file_path, const MultiCamera& multi_camera, const IMUState& imu_state,
+             const std::string& device_sn) {
   auto now = std::chrono::system_clock::now();
   std::time_t now_c = std::chrono::system_clock::to_time_t(now);
-  std::tm *now_tm = std::localtime(&now_c);
+  std::tm* now_tm = std::localtime(&now_c);
   std::ostringstream cur_time;
   cur_time << std::put_time(now_tm, "%Y-%m-%d.%H:%M:%S");
 
   XMLDocument doc;
 
   // 创建并添加 XML 声明,兼容旧的代码
-  XMLDeclaration *decl =
-      doc.NewDeclaration("xml version=\"1.0\" encoding=\"utf-8\"");
+  XMLDeclaration* decl = doc.NewDeclaration("xml version=\"1.0\" encoding=\"utf-8\"");
   doc.InsertFirstChild(decl);
 
-  XMLElement *DeviceConfiguration = doc.NewElement("DeviceConfiguration");
+  XMLElement* DeviceConfiguration = doc.NewElement("DeviceConfiguration");
   doc.InsertEndChild(DeviceConfiguration);
   DeviceConfiguration->SetAttribute("deviceSN", device_sn.c_str());
   DeviceConfiguration->SetAttribute("calibration_time", cur_time.str().c_str());
@@ -277,11 +263,11 @@ void SaveXML(const std::string &file_path, const MultiCamera &multi_camera,
   std::string delta_str = to_string_with_row_data(imu_state.time_delay);
   for (int cid : multi_camera.cids) {
     // save camera info
-    XMLElement *Camera = doc.NewElement("Camera");
+    XMLElement* Camera = doc.NewElement("Camera");
     DeviceConfiguration->InsertEndChild(Camera);
-    const auto &p_cam = multi_camera.cid_to_cam.at(cid);
-    const Mat4 &T01 = multi_camera.cid_to_T01.at(cid);
-    const number_t *parameters_ptr = p_cam->parameters_ptr();
+    const auto& p_cam = multi_camera.cid_to_cam.at(cid);
+    const Mat4& T01 = multi_camera.cid_to_T01.at(cid);
+    const number_t* parameters_ptr = p_cam->parameters_ptr();
     std::string cam_name, name, id;
     if (cid == 0 || cid == 3) {
       cam_name = "TrackingMaster";
@@ -311,30 +297,25 @@ void SaveXML(const std::string &file_path, const MultiCamera &multi_camera,
     Camera->SetAttribute("id", id.c_str());
 
     // save camera intrinsic
-    XMLElement *Calibration = doc.NewElement("Calibration");
+    XMLElement* Calibration = doc.NewElement("Calibration");
     Camera->InsertEndChild(Calibration);
 
-    std::string size =
-        std::to_string(p_cam->width()) + " " + std::to_string(p_cam->height());
-    std::string focal_length = to_string_with_row_data(parameters_ptr[0]) +
-                               " " + to_string_with_row_data(parameters_ptr[1]);
-    std::string principal_point = to_string_with_row_data(parameters_ptr[2]) +
-                                  " " +
-                                  to_string_with_row_data(parameters_ptr[3]);
+    std::string size = std::to_string(p_cam->width()) + " " + std::to_string(p_cam->height());
+    std::string focal_length =
+        to_string_with_row_data(parameters_ptr[0]) + " " + to_string_with_row_data(parameters_ptr[1]);
+    std::string principal_point =
+        to_string_with_row_data(parameters_ptr[2]) + " " + to_string_with_row_data(parameters_ptr[3]);
     std::string model, radial_distortion;
     model = dso::CameraBase::ModelAsString(p_cam->camera_model());
 
-    if (reinterpret_cast<UCMRTPCamera *>(p_cam)->use_exp_ &&
-        model ==
-            dso::CameraBase::ModelAsString(CameraBase::CameraModel::kUcmRTP)) {
-      reinterpret_cast<UCMRTPCamera *>(p_cam)->SetExpAlpha();
+    if (reinterpret_cast<UCMRTPCamera*>(p_cam)->use_exp_ &&
+        model == dso::CameraBase::ModelAsString(CameraBase::CameraModel::kUcmRTP)) {
+      reinterpret_cast<UCMRTPCamera*>(p_cam)->SetExpAlpha();
     }
 
-    if (model ==
-        dso::CameraBase::ModelAsString(CameraBase::CameraModel::kUcmRTP)) {
+    if (model == dso::CameraBase::ModelAsString(CameraBase::CameraModel::kUcmRTP)) {
       model = "UCMRTP";
-    } else if (model ==
-               dso::CameraBase::ModelAsString(CameraBase::CameraModel::kKB8)) {
+    } else if (model == dso::CameraBase::ModelAsString(CameraBase::CameraModel::kKB8)) {
       model = "KANNALA_BRANDT";
     }
 
@@ -358,7 +339,7 @@ void SaveXML(const std::string &file_path, const MultiCamera &multi_camera,
     Calibration->SetAttribute("undistortion_limit", "1.577340");
 
     // save camera extrinsic
-    XMLElement *Rig = doc.NewElement("Rig");
+    XMLElement* Rig = doc.NewElement("Rig");
     Camera->InsertEndChild(Rig);
     std::string translation, rowMajorRotationMat;
     Mat4 T10 = InversePose(T01);
@@ -380,22 +361,21 @@ void SaveXML(const std::string &file_path, const MultiCamera &multi_camera,
     Rig->SetAttribute("rowMajorRotationMat", rowMajorRotationMat.c_str());
 
     // save TimeAlignment
-    XMLElement *TimeAlignment = doc.NewElement("TimeAlignment");
+    XMLElement* TimeAlignment = doc.NewElement("TimeAlignment");
     Camera->InsertEndChild(TimeAlignment);
     if (cid == 7 || cid == 6) {
       // TODO temp use magic value
       delta_str = "100.011423";
     }
     TimeAlignment->SetAttribute("delta", delta_str.c_str());
-  } // loop for tracking camera
+  }  // loop for tracking camera
 
   // save imu_state
-  XMLElement *SFConfig = doc.NewElement("SFConfig");
+  XMLElement* SFConfig = doc.NewElement("SFConfig");
   DeviceConfiguration->InsertEndChild(SFConfig);
-  XMLElement *Stateinit = doc.NewElement("Stateinit");
+  XMLElement* Stateinit = doc.NewElement("Stateinit");
   SFConfig->InsertEndChild(Stateinit);
-  std::string ombc_str, tbc_str, aBias_str, wBias_str, ka_str, kg_str, na_str,
-      ng_str, ombg_str, accelDelta_str;
+  std::string ombc_str, tbc_str, aBias_str, wBias_str, ka_str, kg_str, na_str, ng_str, ombg_str, accelDelta_str;
   LinearAlgebraLib::AngleAxis<number_t> aa(imu_state.Tbc0.block<3, 3>(0, 0));
   Vec3 ombc = aa.angle() * aa.axis();
   Vec3 tbc(imu_state.Tbc0.block<3, 1>(0, 3));
@@ -436,8 +416,7 @@ void SaveXML(const std::string &file_path, const MultiCamera &multi_camera,
   doc.SaveFile(file_path.c_str());
 }
 
-void SaveIPD(const std::string &file_path, const MultiCamera &multi_camera,
-             const IMUState &imu_state) {
+void SaveIPD(const std::string& file_path, const MultiCamera& multi_camera, const IMUState& imu_state) {
   // 创建一个unordered_map来存储转换矩阵
   //  std::unordered_map<int, Eigen::Matrix4d> T_b_ci;
   //  Eigen::Matrix4d T_b_c0 = imu_state.Tbc0;
@@ -470,20 +449,18 @@ void SaveIPD(const std::string &file_path, const MultiCamera &multi_camera,
   //  }
 }
 
-void SaveBoardExtrinsic(const std::string &file_path,
-                        const CalibBoards &calib_boards) {
+void SaveBoardExtrinsic(const std::string& file_path, const CalibBoards& calib_boards) {
   std::ofstream file(file_path);
   if (!file.is_open()) {
     YLOG_ERROR("Failed to open file for writing:%s", file_path.c_str());
     return;
   }
 
-  for (const auto &mat : calib_boards.id_to_T01) {
+  for (const auto& mat : calib_boards.id_to_T01) {
     for (int i = 0; i < 4; ++i) {
       for (int j = 0; j < 4; ++j) {
         file << mat(i, j);
-        if (j < 3)
-          file << " ";
+        if (j < 3) file << " ";
       }
       file << "\n";
     }
@@ -492,8 +469,7 @@ void SaveBoardExtrinsic(const std::string &file_path,
 
   file.close();
 }
-void LoadBoardExtrinsic(const std::string &file_path,
-                        CalibBoards &calib_boards) {
+void LoadBoardExtrinsic(const std::string& file_path, CalibBoards& calib_boards) {
   std::ifstream file(file_path);
   if (!file.is_open()) {
     std::cerr << "Failed to open file for reading: " << file_path << std::endl;
@@ -508,11 +484,11 @@ void LoadBoardExtrinsic(const std::string &file_path,
         file >> mat(i, j);
       }
     }
-    if (file) { // To avoid pushing back an incomplete matrix at the end
+    if (file) {  // To avoid pushing back an incomplete matrix at the end
       calib_boards.id_to_T01.push_back(mat);
     }
   }
 
   file.close();
 }
-} // namespace dso
+}  // namespace dso

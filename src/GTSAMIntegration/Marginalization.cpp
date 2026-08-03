@@ -28,38 +28,30 @@
 #include <gtsam/linear/GaussianFactorGraph.h>
 #include <gtsam/nonlinear/LinearContainerFactor.h>
 
-gtsam::NonlinearFactorGraph::shared_ptr
-dmvio::marginalizeOut(const gtsam::NonlinearFactorGraph &graph,
-                      const gtsam::Values &values,
-                      const gtsam::FastVector<gtsam::Key> &keysToMarginalize,
-                      std::function<void(const gtsam::FastSet<gtsam::Key> &)>
-                          connectedKeyCallback) {
+gtsam::NonlinearFactorGraph::shared_ptr dmvio::marginalizeOut(
+    const gtsam::NonlinearFactorGraph& graph, const gtsam::Values& values,
+    const gtsam::FastVector<gtsam::Key>& keysToMarginalize,
+    std::function<void(const gtsam::FastSet<gtsam::Key>&)> connectedKeyCallback) {
   if (keysToMarginalize.empty()) {
-    std::cout << "WARNING: Calling marginalizeOut with empty keysToMarginalize."
-              << std::endl;
-    return boost::shared_ptr<gtsam::NonlinearFactorGraph>(
-        new gtsam::NonlinearFactorGraph(graph));
+    std::cout << "WARNING: Calling marginalizeOut with empty keysToMarginalize." << std::endl;
+    return boost::shared_ptr<gtsam::NonlinearFactorGraph>(new gtsam::NonlinearFactorGraph(graph));
   }
 
-  boost::shared_ptr<gtsam::NonlinearFactorGraph> newGraph(
-      new gtsam::NonlinearFactorGraph);
+  boost::shared_ptr<gtsam::NonlinearFactorGraph> newGraph(new gtsam::NonlinearFactorGraph);
 
   gtsam::NonlinearFactorGraph marginalizedOutGraph;
 
   gtsam::FastSet<gtsam::Key> setOfKeysToMarginalize(keysToMarginalize);
   gtsam::FastSet<gtsam::Key> connectedKeys;
 
-  extractKeysToMarginalize(graph, *newGraph, marginalizedOutGraph,
-                           setOfKeysToMarginalize, connectedKeys);
+  extractKeysToMarginalize(graph, *newGraph, marginalizedOutGraph, setOfKeysToMarginalize, connectedKeys);
 
   if (connectedKeyCallback) {
     connectedKeyCallback(connectedKeys);
   }
 
-  gtsam::GaussianFactorGraph::shared_ptr linearizedFactorsToMarginalize =
-      marginalizedOutGraph.linearize(values);
-  std::map<gtsam::Key, size_t> keyDimMap =
-      linearizedFactorsToMarginalize->getKeyDimMap();
+  gtsam::GaussianFactorGraph::shared_ptr linearizedFactorsToMarginalize = marginalizedOutGraph.linearize(values);
+  std::map<gtsam::Key, size_t> keyDimMap = linearizedFactorsToMarginalize->getKeyDimMap();
 
   int mSize = 0;
   int aSize = 0;
@@ -68,42 +60,36 @@ dmvio::marginalizeOut(const gtsam::NonlinearFactorGraph &graph,
 
   gtsam::Ordering connectedOrdering;
   gtsam::FastVector<size_t> connectedDims;
-  for (const gtsam::Key &k : setOfKeysToMarginalize) {
+  for (const gtsam::Key& k : setOfKeysToMarginalize) {
     ordering.push_back(k);
     mSize += keyDimMap[k];
   }
-  for (const gtsam::Key &k : connectedKeys) {
+  for (const gtsam::Key& k : connectedKeys) {
     ordering.push_back(k);
     connectedOrdering.push_back(k);
     connectedDims.push_back(keyDimMap[k]);
     aSize += keyDimMap[k];
   }
 
-  gtsam::Matrix hessian =
-      linearizedFactorsToMarginalize->augmentedHessian(ordering);
+  gtsam::Matrix hessian = linearizedFactorsToMarginalize->augmentedHessian(ordering);
 
-  gtsam::Matrix HAfterSchurComplement =
-      computeSchurComplement(hessian, mSize, aSize);
+  gtsam::Matrix HAfterSchurComplement = computeSchurComplement(hessian, mSize, aSize);
 
   gtsam::SymmetricBlockMatrix sm(connectedDims, true);
   sm.setFullMatrix(HAfterSchurComplement);
 
-  gtsam::LinearContainerFactor::shared_ptr lcf(new gtsam::LinearContainerFactor(
-      gtsam::HessianFactor(connectedOrdering, sm), values));
+  gtsam::LinearContainerFactor::shared_ptr lcf(
+      new gtsam::LinearContainerFactor(gtsam::HessianFactor(connectedOrdering, sm), values));
   newGraph->add(lcf);
 
   return newGraph;
 }
 
-gtsam::NonlinearFactorGraph::shared_ptr
-dmvio::marginalizeOut(const gtsam::NonlinearFactorGraph &graph,
-                      gtsam::Values &values,
-                      const gtsam::FastVector<gtsam::Key> &keysToMarginalize,
-                      std::function<void(const gtsam::FastSet<gtsam::Key> &)>
-                          connectedKeyCallback,
-                      bool deleteFromValues) {
-  auto ret =
-      marginalizeOut(graph, values, keysToMarginalize, connectedKeyCallback);
+gtsam::NonlinearFactorGraph::shared_ptr dmvio::marginalizeOut(
+    const gtsam::NonlinearFactorGraph& graph, gtsam::Values& values,
+    const gtsam::FastVector<gtsam::Key>& keysToMarginalize,
+    std::function<void(const gtsam::FastSet<gtsam::Key>&)> connectedKeyCallback, bool deleteFromValues) {
+  auto ret = marginalizeOut(graph, values, keysToMarginalize, connectedKeyCallback);
   if (deleteFromValues) {
     for (size_t i = 0; i < keysToMarginalize.size(); i++) {
       values.erase(keysToMarginalize[i]);
@@ -112,12 +98,10 @@ dmvio::marginalizeOut(const gtsam::NonlinearFactorGraph &graph,
   return ret;
 }
 
-void dmvio::extractKeysToMarginalize(
-    const gtsam::NonlinearFactorGraph &graph,
-    gtsam::NonlinearFactorGraph &newGraph,
-    gtsam::NonlinearFactorGraph &marginalizedOutGraph,
-    gtsam::FastSet<gtsam::Key> &setOfKeysToMarginalize,
-    gtsam::FastSet<gtsam::Key> &connectedKeys) {
+void dmvio::extractKeysToMarginalize(const gtsam::NonlinearFactorGraph& graph, gtsam::NonlinearFactorGraph& newGraph,
+                                     gtsam::NonlinearFactorGraph& marginalizedOutGraph,
+                                     gtsam::FastSet<gtsam::Key>& setOfKeysToMarginalize,
+                                     gtsam::FastSet<gtsam::Key>& connectedKeys) {
   for (size_t i = 0; i < graph.size(); i++) {
     gtsam::NonlinearFactor::shared_ptr factor = graph.at(i);
 
@@ -125,16 +109,12 @@ void dmvio::extractKeysToMarginalize(
 
     gtsam::FastSet<gtsam::Key> intersection;
 
-    std::set_intersection(setOfKeysToMarginalize.begin(),
-                          setOfKeysToMarginalize.end(),
-                          set_of_factor_keys.begin(), set_of_factor_keys.end(),
-                          std::inserter(intersection, intersection.begin()));
+    std::set_intersection(setOfKeysToMarginalize.begin(), setOfKeysToMarginalize.end(), set_of_factor_keys.begin(),
+                          set_of_factor_keys.end(), std::inserter(intersection, intersection.begin()));
 
     if (!intersection.empty()) {
-      std::set_difference(set_of_factor_keys.begin(), set_of_factor_keys.end(),
-                          setOfKeysToMarginalize.begin(),
-                          setOfKeysToMarginalize.end(),
-                          std::inserter(connectedKeys, connectedKeys.begin()));
+      std::set_difference(set_of_factor_keys.begin(), set_of_factor_keys.end(), setOfKeysToMarginalize.begin(),
+                          setOfKeysToMarginalize.end(), std::inserter(connectedKeys, connectedKeys.begin()));
 
       marginalizedOutGraph.add(factor);
     } else {
@@ -143,19 +123,14 @@ void dmvio::extractKeysToMarginalize(
   }
 }
 
-gtsam::Matrix
-dmvio::computeSchurComplement(const gtsam::Matrix &augmentedHessian, int mSize,
-                              int aSize) {
+gtsam::Matrix dmvio::computeSchurComplement(const gtsam::Matrix& augmentedHessian, int mSize, int aSize) {
   auto pair = dmvio::pairFromAugmentedHessian(augmentedHessian);
 
   // Preconditioning like in DSO code.
-  gtsam::Vector SVec = (pair.first.diagonal().cwiseAbs() +
-                        gtsam::Vector::Constant(pair.first.cols(), 10))
-                           .cwiseSqrt();
+  gtsam::Vector SVec = (pair.first.diagonal().cwiseAbs() + gtsam::Vector::Constant(pair.first.cols(), 10)).cwiseSqrt();
   gtsam::Vector SVecI = SVec.cwiseInverse();
 
-  gtsam::Matrix hessianScaled =
-      SVecI.asDiagonal() * pair.first * SVecI.asDiagonal();
+  gtsam::Matrix hessianScaled = SVecI.asDiagonal() * pair.first * SVecI.asDiagonal();
   gtsam::Vector bScaled = SVecI.asDiagonal() * pair.second;
 
   gtsam::Matrix Hmm = hessianScaled.block(0, 0, mSize, mSize);
@@ -173,8 +148,7 @@ dmvio::computeSchurComplement(const gtsam::Matrix &augmentedHessian, int mSize,
 
   // Unscale
   gtsam::Vector SVecUpdated = SVec.segment(mSize, aSize);
-  gtsam::Matrix HNewUnscaled =
-      SVecUpdated.asDiagonal() * HaaNew * SVecUpdated.asDiagonal();
+  gtsam::Matrix HNewUnscaled = SVecUpdated.asDiagonal() * HaaNew * SVecUpdated.asDiagonal();
   gtsam::Matrix bNewUnscaled = SVecUpdated.asDiagonal() * baNew;
 
   // Make Hessian symmetric for numeric reasons.

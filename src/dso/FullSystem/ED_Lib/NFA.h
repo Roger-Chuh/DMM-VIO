@@ -27,11 +27,11 @@ namespace ED {
 
 // Lookup table (LUT) for NFA computation
 class NFALUT {
-public:
+ public:
   NFALUT(int size, double _prob, double _logNT);
   ~NFALUT();
 
-  int *LUT; // look up table
+  int* LUT;  // look up table
   int LUTSize;
 
   double prob;
@@ -40,13 +40,13 @@ public:
   bool checkValidationByNFA(int n, int k);
   static double myAtan2(double yy, double xx);
 
-private:
+ private:
   double nfa(int n, int k);
   static double log_gamma_lanczos(double x);
   static double log_gamma_windschitl(double x);
   static double log_gamma(double x);
   static int double_equal(double a, double b);
 };
-} // namespace ED
-} // namespace dso
+}  // namespace ED
+}  // namespace dso
 #endif

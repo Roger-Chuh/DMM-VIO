@@ -68,23 +68,22 @@
 #include "dso/camera_model/calib_xml.h"
 #include "dso/config/config.h"
 #include "dso/frontend/CameraDetection.h"
-#include <Eigen/Dense> // Eigen库的头文件
+#include <Eigen/Dense>  // Eigen库的头文件
 #include <iostream>
 #include <opencv2/core/eigen.hpp>
-#include <opencv2/core/eigen.hpp> // OpenCV与Eigen的桥接头文件
+#include <opencv2/core/eigen.hpp>  // OpenCV与Eigen的桥接头文件
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/opencv.hpp> // OpenCV的核心头文件，或者只包含<opencv2/core.hpp>
+#include <opencv2/opencv.hpp>  // OpenCV的核心头文件，或者只包含<opencv2/core.hpp>
 #include <thread>
 std::string gtFile = "";
 std::string source = "";
 std::string imuFile = "";
 
 bool is_reverse = false;
-int start = 1; // 365;//1; // 0;
+int start = 1;  // 365;//1; // 0;
 int ending = 100000;
-int maxPreloadImages =
-    0; // If set we only preload if there are less images to be loade.
+int maxPreloadImages = 0;  // If set we only preload if there are less images to be loade.
 bool useSampleOutput = false;
 MultiCamera multi_camera_calibed;
 aligned_vector<CalibFrame> frameInfo_bak;
@@ -95,18 +94,15 @@ dmvio::IMUCalibration imuCalibration;
 dmvio::IMUSettings imuSettings;
 std::array<std::pair<cv::Mat, cv::Mat>, kCameraNumUsed> cid_to_undist_map;
 Mat3 K, Kinv;
-void GenUndistortionMap(MultiCamera &multi_camera, const int &width,
-                        const int &height, const int &cam_num) {
+void GenUndistortionMap(MultiCamera& multi_camera, const int& width, const int& height, const int& cam_num) {
   cv::Size image_size = cv::Size(width, height);
 #ifndef USE_EDGE_ALIGN
   number_t fov_rad = 120.0 * kOur_PI / 180.0;
 #else
   number_t fov_rad = 120.0 * kOur_PI / 180.0;
 #endif
-  number_t focal =
-      static_cast<number_t>(width) / (2.0 * std::tan(fov_rad / 2.0));
-  K << focal, 0, 0.5 * static_cast<number_t>(width), 0, focal,
-      0.5 * static_cast<number_t>(height), 0, 0, 1;
+  number_t focal = static_cast<number_t>(width) / (2.0 * std::tan(fov_rad / 2.0));
+  K << focal, 0, 0.5 * static_cast<number_t>(width), 0, focal, 0.5 * static_cast<number_t>(height), 0, 0, 1;
   Kinv = K.inverse();
   Vec2 proj;
   for (size_t cid = 0; cid < cam_num; ++cid) {
@@ -114,21 +110,16 @@ void GenUndistortionMap(MultiCamera &multi_camera, const int &width,
     cid_to_undist_map[cid].second.create(image_size, CV_32FC1);
     for (size_t col = 0; col < width; ++col) {
       for (size_t row = 0; row < height; ++row) {
-        Vec3 uv =
-            Vec3(static_cast<number_t>(col), static_cast<number_t>(row), 1);
+        Vec3 uv = Vec3(static_cast<number_t>(col), static_cast<number_t>(row), 1);
         Vec3 bearing = Kinv * uv;
         multi_camera.cid_to_cam.at(cid)->Project(bearing, proj);
-        cid_to_undist_map[cid].first.at<float>(row, col) =
-            static_cast<float>(proj.x());
-        cid_to_undist_map[cid].second.at<float>(row, col) =
-            static_cast<float>(proj.y());
+        cid_to_undist_map[cid].first.at<float>(row, col) = static_cast<float>(proj.x());
+        cid_to_undist_map[cid].second.at<float>(row, col) = static_cast<float>(proj.y());
       }
     }
   }
 }
-void VigCorrection(
-    cv::Mat &image,
-    const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> &vig_mat) {
+void VigCorrection(cv::Mat& image, const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>& vig_mat) {
   uint8_t raw_val;
   float viged_val;
   cv::Mat img_cv_after_vig = cv::Mat(image.rows, image.cols, CV_8UC1);
@@ -155,10 +146,9 @@ void VigCorrection(
 
   image = img_cv_after_vig.clone();
 }
-static ImuDataSingle interpolate_data(
-    const ImuDataSingle &imu_1, /// imu at begining of interpolation interval
-    const ImuDataSingle &imu_2, /// imu at end of interpolation interval
-    int64_t timestamp)          /// Timestamp being interpolated to
+static ImuDataSingle interpolate_data(const ImuDataSingle& imu_1,  /// imu at begining of interpolation interval
+                                      const ImuDataSingle& imu_2,  /// imu at end of interpolation interval
+                                      int64_t timestamp)           /// Timestamp being interpolated to
 {
   /// time-distant lambda
   double lambda = static_cast<double>(timestamp - imu_1.timestamp_ns) /
@@ -170,11 +160,10 @@ static ImuDataSingle interpolate_data(
   data.gyro = (1 - lambda) * imu_1.gyro + lambda * imu_2.gyro;
   return data;
 }
-std::vector<ImuDataSingle>
-select_IMU_readings(const CalibIO::ImuJsonData
-                        &imu_data, /// IMU data we will select measurements from
-                    int64_t time0, /// Start timestamp
-                    int64_t time1) { /// End timestamp
+std::vector<ImuDataSingle> select_IMU_readings(
+    const CalibIO::ImuJsonData& imu_data,  /// IMU data we will select measurements from
+    int64_t time0,                         /// Start timestamp
+    int64_t time1) {                       /// End timestamp
   /// Vector IMU Readings
   std::vector<ImuDataSingle> prop_data;
   /// Ensure we have some measurements
@@ -195,14 +184,11 @@ select_IMU_readings(const CalibIO::ImuJsonData
     /// The cond below is t_{m_i} < t_{s} < t_{m_{i+1}}
     /// Here we determine the imu measurement corresponding to the start of the
     /// integration time stamp i.e. time0
-    if (imu_data.acc_data[i].timestamp_ns < time0 &&
-        time0 < imu_data.acc_data[i + 1].timestamp_ns) {
+    if (imu_data.acc_data[i].timestamp_ns < time0 && time0 < imu_data.acc_data[i + 1].timestamp_ns) {
       // printf("!!!!! interpolate front\n");
       ImuDataSingle data = interpolate_data(
-          ImuDataSingle(imu_data.acc_data[i].data, imu_data.gyro_data[i].data,
-                        imu_data.acc_data[i].timestamp_ns),
-          ImuDataSingle(imu_data.acc_data[i + 1].data,
-                        imu_data.gyro_data[i + 1].data,
+          ImuDataSingle(imu_data.acc_data[i].data, imu_data.gyro_data[i].data, imu_data.acc_data[i].timestamp_ns),
+          ImuDataSingle(imu_data.acc_data[i + 1].data, imu_data.gyro_data[i + 1].data,
                         imu_data.acc_data[i + 1].timestamp_ns),
           time0);
       prop_data.push_back(data);
@@ -218,11 +204,9 @@ select_IMU_readings(const CalibIO::ImuJsonData
     /// If our IMU measurement is in between our propagation period
     /// Then we should just append the whole measurement time to our propagation
     /// vector
-    if (time0 <= imu_data.acc_data[i].timestamp_ns &&
-        imu_data.acc_data[i + 1].timestamp_ns <= time1) {
-      prop_data.push_back(ImuDataSingle(imu_data.acc_data[i].data,
-                                        imu_data.gyro_data[i].data,
-                                        imu_data.acc_data[i].timestamp_ns));
+    if (time0 <= imu_data.acc_data[i].timestamp_ns && imu_data.acc_data[i + 1].timestamp_ns <= time1) {
+      prop_data.push_back(
+          ImuDataSingle(imu_data.acc_data[i].data, imu_data.gyro_data[i].data, imu_data.acc_data[i].timestamp_ns));
       continue;
     }
 
@@ -234,24 +218,19 @@ select_IMU_readings(const CalibIO::ImuJsonData
       if (imu_data.acc_data[i].timestamp_ns > time1) {
         // break;
         ImuDataSingle data = interpolate_data(
-            ImuDataSingle(imu_data.acc_data[i - 1].data,
-                          imu_data.gyro_data[i - 1].data,
+            ImuDataSingle(imu_data.acc_data[i - 1].data, imu_data.gyro_data[i - 1].data,
                           imu_data.acc_data[i - 1].timestamp_ns),
-            ImuDataSingle(imu_data.acc_data[i].data, imu_data.gyro_data[i].data,
-                          imu_data.acc_data[i].timestamp_ns),
+            ImuDataSingle(imu_data.acc_data[i].data, imu_data.gyro_data[i].data, imu_data.acc_data[i].timestamp_ns),
             time1);
         prop_data.push_back(data);
       } else {
-        prop_data.push_back(ImuDataSingle(imu_data.acc_data[i].data,
-                                          imu_data.gyro_data[i].data,
-                                          imu_data.acc_data[i].timestamp_ns));
+        prop_data.push_back(
+            ImuDataSingle(imu_data.acc_data[i].data, imu_data.gyro_data[i].data, imu_data.acc_data[i].timestamp_ns));
       }
       if (prop_data.at(prop_data.size() - 1).timestamp_ns != time1) {
         ImuDataSingle data = interpolate_data(
-            ImuDataSingle(imu_data.acc_data[i].data, imu_data.gyro_data[i].data,
-                          imu_data.acc_data[i].timestamp_ns),
-            ImuDataSingle(imu_data.acc_data[i + 1].data,
-                          imu_data.gyro_data[i + 1].data,
+            ImuDataSingle(imu_data.acc_data[i].data, imu_data.gyro_data[i].data, imu_data.acc_data[i].timestamp_ns),
+            ImuDataSingle(imu_data.acc_data[i + 1].data, imu_data.gyro_data[i + 1].data,
                           imu_data.acc_data[i + 1].timestamp_ns),
             time1);
         prop_data.push_back(data);
@@ -267,20 +246,21 @@ select_IMU_readings(const CalibIO::ImuJsonData
 
   /// Check that we have at least one measurement to propagate with
   if (prop_data.empty()) {
-    printf("Propagator::select_imu_readings(): No IMU measurement to propgate "
-           "with (%d of 2) \n",
-           (int)prop_data.size());
+    printf(
+        "Propagator::select_imu_readings(): No IMU measurement to propgate "
+        "with (%d of 2) \n",
+        (int)prop_data.size());
     return prop_data;
   }
 
   /// Loop through and ensure we do not have an zero dt values
   /// This would cause the noise covariance to be Infinity
   for (size_t i = 0; i < prop_data.size() - 1; i++) {
-    if (std::abs(prop_data.at(i + 1).timestamp_ns -
-                 prop_data.at(i).timestamp_ns) < 10) {
-      printf("Propagator::select_imu_readings(): Zero DT between IMU reading "
-             "%d and %d, removing it!\n",
-             (int)i, (int)(i + 1));
+    if (std::abs(prop_data.at(i + 1).timestamp_ns - prop_data.at(i).timestamp_ns) < 10) {
+      printf(
+          "Propagator::select_imu_readings(): Zero DT between IMU reading "
+          "%d and %d, removing it!\n",
+          (int)i, (int)(i + 1));
       prop_data.erase(prop_data.begin() + i);
       i--;
     }
@@ -288,16 +268,16 @@ select_IMU_readings(const CalibIO::ImuJsonData
 
   /// Check that we have at least one measurement to propagate with
   if (prop_data.size() < 2) {
-    printf("Propagator::select_imu_readings(): No IMU measurements to "
-           "propagate with (%d of 2).\n",
-           (int)prop_data.size());
+    printf(
+        "Propagator::select_imu_readings(): No IMU measurements to "
+        "propagate with (%d of 2).\n",
+        (int)prop_data.size());
     return prop_data;
   }
 
   return prop_data;
 }
-void CorrectImuReadings(dso::CalibIO::ImuJsonData &imu_data,
-                        const IMUState &imu_state) {
+void CorrectImuReadings(dso::CalibIO::ImuJsonData& imu_data, const IMUState& imu_state) {
   Eigen::Matrix3d inv_acc_scale;
   Eigen::Matrix3d inv_gyro_scale;
 
@@ -321,8 +301,8 @@ void CorrectImuReadings(dso::CalibIO::ImuJsonData &imu_data,
   inv_acc_scale = inv_acc_scale + Eigen::Matrix3d::Identity();
   inv_gyro_scale = inv_gyro_scale + Eigen::Matrix3d::Identity();
 
-  Mat3 acc_scale = inv_acc_scale.inverse();   // - Eigen::Matrix3d::Identity();
-  Mat3 gyro_scale = inv_gyro_scale.inverse(); // - Eigen::Matrix3d::Identity();
+  Mat3 acc_scale = inv_acc_scale.inverse();    // - Eigen::Matrix3d::Identity();
+  Mat3 gyro_scale = inv_gyro_scale.inverse();  // - Eigen::Matrix3d::Identity();
   Mat3 gyro_rotation = ExpSO3(imu_state.ombg);
 
   std::cout << "acc_scale:\n" << acc_scale << std::endl;
@@ -332,38 +312,30 @@ void CorrectImuReadings(dso::CalibIO::ImuJsonData &imu_data,
 
   for (int id = 0; id < imu_data.acc_data.size(); ++id) {
     (imu_data.acc_data)[id].timestamp -= (imu_state.time_delay - 100);
-    (imu_data.acc_data)[id].timestamp_ns =
-        static_cast<uint64_t>(imu_data.acc_data[id].timestamp * 1e9);
+    (imu_data.acc_data)[id].timestamp_ns = static_cast<uint64_t>(imu_data.acc_data[id].timestamp * 1e9);
 
     (imu_data.gyro_data)[id].timestamp = (imu_data.acc_data)[id].timestamp;
-    (imu_data.gyro_data)[id].timestamp_ns =
-        (imu_data.acc_data)[id].timestamp_ns;
+    (imu_data.gyro_data)[id].timestamp_ns = (imu_data.acc_data)[id].timestamp_ns;
 
-    (imu_data.acc_data)[id].data =
-        acc_scale * ((imu_data.acc_data)[id].data - imu_state.acc_bias);
-    (imu_data.gyro_data)[id].data =
-        gyro_rotation * gyro_scale *
-        ((imu_data.gyro_data)[id].data - imu_state.w_bias);
+    (imu_data.acc_data)[id].data = acc_scale * ((imu_data.acc_data)[id].data - imu_state.acc_bias);
+    (imu_data.gyro_data)[id].data = gyro_rotation * gyro_scale * ((imu_data.gyro_data)[id].data - imu_state.w_bias);
   }
 }
-std::map<int64_t, ImuDataSingle>
-StackImuReadings(const CalibIO::ImuJsonData &imu_data,
-                 aligned_vector<CalibFrame> &frameInfo) {
+std::map<int64_t, ImuDataSingle> StackImuReadings(const CalibIO::ImuJsonData& imu_data,
+                                                  aligned_vector<CalibFrame>& frameInfo) {
   // std::vector<ImuDataSingle> imu_stack;
   std::map<int64, ImuDataSingle> imu_stack;
-  frameInfo[0].timestamp_ns =
-      static_cast<int64_t>(frameInfo[0].timestamp * 1e9);
+  frameInfo[0].timestamp_ns = static_cast<int64_t>(frameInfo[0].timestamp * 1e9);
   for (int cid = 0; cid < kCameraNumUsed; ++cid) {
     frameInfo[0].cid_to_exposure_time[cid] *= 1000.0;
   }
   for (int i = 0; i < frameInfo.size() - 1; ++i) {
-    frameInfo[i + 1].timestamp_ns =
-        static_cast<int64_t>(frameInfo[i + 1].timestamp * 1e9);
+    frameInfo[i + 1].timestamp_ns = static_cast<int64_t>(frameInfo[i + 1].timestamp * 1e9);
     for (int cid = 0; cid < kCameraNumUsed; ++cid) {
       frameInfo[i + 1].cid_to_exposure_time[cid] *= 1000.0;
     }
-    std::vector<ImuDataSingle> imus = select_IMU_readings(
-        imu_data, frameInfo[i].timestamp_ns, frameInfo[i + 1].timestamp_ns);
+    std::vector<ImuDataSingle> imus =
+        select_IMU_readings(imu_data, frameInfo[i].timestamp_ns, frameInfo[i + 1].timestamp_ns);
     // printf("i: %d\n", i);
     for (int id = 0; id < imus.size(); ++id) {
       if (imu_stack.find(imus[id].timestamp_ns) == imu_stack.end()) {
@@ -382,7 +354,7 @@ StackImuReadings(const CalibIO::ImuJsonData &imu_data,
 
   for (int i = 0; i < frameInfo.size(); ++i) {
     int hit = 0;
-    for (const std::pair<const int64_t, ImuDataSingle> &pair : imu_stack) {
+    for (const std::pair<const int64_t, ImuDataSingle>& pair : imu_stack) {
       if (frameInfo[i].timestamp_ns == pair.second.timestamp_ns) {
         hit++;
       }
@@ -404,11 +376,10 @@ void exitThread() {
   sigIntHandler.sa_flags = 0;
   sigaction(SIGINT, &sigIntHandler, NULL);
 
-  while (true)
-    pause();
+  while (true) pause();
 }
 
-void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
+void run(ImageFolderReader* reader, IOWrap::PangolinDSOViewer* viewer) {
   //    MultiCamera multi_camera = multi_camera_calibed;
   //    multi_camera.cam_num = kCameraNumUsed;
   //    for (int cid = 0; cid < kCameraNumUsed; ++cid) {
@@ -421,10 +392,10 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
   //                multi_camera.cid_to_T01_SE3_inv[cid].Adj();
   //    }
 
-  if (setting_photometricCalibration > 0 &&
-      reader->getPhotometricGamma() == 0 && false) {
-    printf("ERROR: dont't have photometric calibation. Need to use commandline "
-           "options mode=1 or mode=2 ");
+  if (setting_photometricCalibration > 0 && reader->getPhotometricGamma() == 0 && false) {
+    printf(
+        "ERROR: dont't have photometric calibation. Need to use commandline "
+        "options mode=1 or mode=2 ");
     exit(1);
   }
 
@@ -432,12 +403,11 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
   int lend = ending;
   int linc = 1;
   if (is_reverse) {
-    assert(!setting_useIMU); // Reverse is not supported with IMU data at the
+    assert(!setting_useIMU);  // Reverse is not supported with IMU data at the
     // moment!
     printf("REVERSE!!!!");
     lstart = ending - 1;
-    if (lstart >= frameInfo_bak.size())
-      lstart = frameInfo_bak.size() - 1;
+    if (lstart >= frameInfo_bak.size()) lstart = frameInfo_bak.size() - 1;
     lend = start;
     linc = -1;
   }
@@ -446,13 +416,11 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
 
   if (linearizeOperation && setting_minFramesBetweenKeyframes < 0) {
     setting_minFramesBetweenKeyframes = -setting_minFramesBetweenKeyframes;
-    std::cout << "Using setting_minFramesBetweenKeyframes="
-              << setting_minFramesBetweenKeyframes
+    std::cout << "Using setting_minFramesBetweenKeyframes=" << setting_minFramesBetweenKeyframes
               << " because of non-realtime mode." << std::endl;
   }
 
-  FullSystem *fullSystem = new FullSystem(linearizeOperation, imuCalibration,
-                                          imuSettings, &multi_camera_calibed);
+  FullSystem* fullSystem = new FullSystem(linearizeOperation, imuCalibration, imuSettings, &multi_camera_calibed);
   fullSystem->setGammaFunction(reader->getPhotometricGamma());
 
   if (viewer != 0) {
@@ -467,9 +435,7 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
 
   std::vector<int> idsToPlay;
   std::vector<double> timesToPlayAt;
-  for (int i = lstart;
-       i >= 0 && i < frameInfo_bak.size() && linc * i < linc * lend;
-       i += linc) {
+  for (int i = lstart; i >= 0 && i < frameInfo_bak.size() && linc * i < linc * lend; i += linc) {
     // printf("iiii: %d, lstart: %d, lend: %d, linc: %d\n",i, lstart, lend,
     // linc);
     idsToPlay.push_back(i);
@@ -479,9 +445,7 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
     } else {
       double tsThis = reader->getTimestamp(idsToPlay[idsToPlay.size() - 1]);
       double tsPrev = reader->getTimestamp(idsToPlay[idsToPlay.size() - 2]);
-      timesToPlayAt.push_back(timesToPlayAt.back() +
-                              fabs(tsThis - tsPrev) /
-                                  mainSettings.playbackSpeed);
+      timesToPlayAt.push_back(timesToPlayAt.back() + fabs(tsThis - tsPrev) / mainSettings.playbackSpeed);
     }
   }
 
@@ -492,7 +456,7 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
     }
   }
 
-  std::vector<ImageAndExposure *> preloadedImages;
+  std::vector<ImageAndExposure*> preloadedImages;
   if (mainSettings.preload) {
     printf("LOADING ALL IMAGES!\n");
     for (int ii = 0; ii < (int)idsToPlay.size(); ii++) {
@@ -506,12 +470,12 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
   clock_t started = clock();
   double sInitializerOffset = 0;
 
-  bool gtDataThere = false; // reader->loadGTData(gtFile);
+  bool gtDataThere = false;  // reader->loadGTData(gtFile);
 
   bool imuDataSkipped = false;
   dmvio::IMUData skippedIMUData;
   for (int ii = 0; ii < (int)idsToPlay.size(); ii++) {
-    if (!fullSystem->initialized) // if not initialized: reset start time.
+    if (!fullSystem->initialized)  // if not initialized: reset start time.
     {
       gettimeofday(&tv_start, NULL);
       started = clock();
@@ -520,7 +484,7 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
 
     int i = idsToPlay[ii];
 
-    ImageAndExposure *img;
+    ImageAndExposure* img;
     if (mainSettings.preload)
       img = preloadedImages[ii];
     else
@@ -530,16 +494,13 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
     if (mainSettings.playbackSpeed != 0) {
       struct timeval tv_now;
       gettimeofday(&tv_now, NULL);
-      double sSinceStart =
-          sInitializerOffset +
-          ((tv_now.tv_sec - tv_start.tv_sec) +
-           (tv_now.tv_usec - tv_start.tv_usec) / (1000.0f * 1000.0f));
+      double sSinceStart = sInitializerOffset + ((tv_now.tv_sec - tv_start.tv_sec) +
+                                                 (tv_now.tv_usec - tv_start.tv_usec) / (1000.0f * 1000.0f));
 
       if (sSinceStart < timesToPlayAt[ii])
         usleep((int)((timesToPlayAt[ii] - sSinceStart) * 1000 * 1000));
       else if (sSinceStart > timesToPlayAt[ii] + 0.5 + 0.1 * (ii % 2)) {
-        printf("SKIPFRAME %d (play at %f, now it is %f)!\n", ii,
-               timesToPlayAt[ii], sSinceStart);
+        printf("SKIPFRAME %d (play at %f, now it is %f)!\n", ii, timesToPlayAt[ii], sSinceStart);
         skipFrame = true;
       }
     }
@@ -563,21 +524,18 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
     printf("skipFrame: %d\n", skipFrame);
     if (!skipFrame) {
       if (imuDataSkipped && imuData) {
-        imuData->insert(imuData->begin(), skippedIMUData.begin(),
-                        skippedIMUData.end());
+        imuData->insert(imuData->begin(), skippedIMUData.begin(), skippedIMUData.end());
         skippedIMUData.clear();
         imuDataSkipped = false;
       }
       // TODO entrance
-      fullSystem->addActiveFrame(img, i, imuData.get(),
-                                 (gtDataThere && found) ? &data : 0);
+      fullSystem->addActiveFrame(img, i, imuData.get(), (gtDataThere && found) ? &data : 0);
       if (gtDataThere && found && !disableAllDisplay) {
         viewer->addGTCamPose(data.pose);
       }
     } else if (imuData) {
       imuDataSkipped = true;
-      skippedIMUData.insert(skippedIMUData.end(), imuData->begin(),
-                            imuData->end());
+      skippedIMUData.insert(skippedIMUData.end(), imuData->begin(), imuData->end());
     }
 
     delete img;
@@ -585,14 +543,11 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
     if (fullSystem->initFailed || setting_fullResetRequested) {
       if (ii < 250 || setting_fullResetRequested) {
         printf("RESETTING!\n");
-        std::vector<IOWrap::Output3DWrapper *> wraps =
-            fullSystem->outputWrapper;
+        std::vector<IOWrap::Output3DWrapper*> wraps = fullSystem->outputWrapper;
         delete fullSystem;
-        for (IOWrap::Output3DWrapper *ow : wraps)
-          ow->reset();
+        for (IOWrap::Output3DWrapper* ow : wraps) ow->reset();
 
-        fullSystem = new FullSystem(linearizeOperation, imuCalibration,
-                                    imuSettings, &multi_camera_calibed);
+        fullSystem = new FullSystem(linearizeOperation, imuCalibration, imuSettings, &multi_camera_calibed);
         fullSystem->setGammaFunction(reader->getPhotometricGamma());
         fullSystem->outputWrapper = wraps;
 
@@ -618,48 +573,39 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
   //    fullSystem->printResult(imuSettings.resultsPrefix + "result.txt", false,
   //    false, true); fullSystem->printResult(imuSettings.resultsPrefix +
   //    "resultKFs.txt", true, false, false);
-  fullSystem->printResult(imuSettings.resultsPrefix + "resultScaled.txt", false,
-                          true, true);
+  fullSystem->printResult(imuSettings.resultsPrefix + "resultScaled.txt", false, true, true);
 
-  dmvio::TimeMeasurement::saveResults(imuSettings.resultsPrefix +
-                                      "timings.txt");
+  dmvio::TimeMeasurement::saveResults(imuSettings.resultsPrefix + "timings.txt");
 
   int numFramesProcessed = abs(idsToPlay[0] - idsToPlay.back());
-  double numSecondsProcessed = fabs(reader->getTimestamp(idsToPlay[0]) -
-                                    reader->getTimestamp(idsToPlay.back()));
-  double MilliSecondsTakenSingle =
-      1000.0f * (ended - started) / (float)(CLOCKS_PER_SEC);
-  double MilliSecondsTakenMT =
-      sInitializerOffset + ((tv_end.tv_sec - tv_start.tv_sec) * 1000.0f +
-                            (tv_end.tv_usec - tv_start.tv_usec) / 1000.0f);
-  printf("\n======================"
-         "\n%d Frames (%.1f fps)"
-         "\n%.2fms per frame (single core); "
-         "\n%.2fms per frame (multi core); "
-         "\n%.3fx (single core); "
-         "\n%.3fx (multi core); "
-         "\n======================\n\n",
-         numFramesProcessed, numFramesProcessed / numSecondsProcessed,
-         MilliSecondsTakenSingle / numFramesProcessed,
-         MilliSecondsTakenMT / (float)numFramesProcessed,
-         1000 / (MilliSecondsTakenSingle / numSecondsProcessed),
-         1000 / (MilliSecondsTakenMT / numSecondsProcessed));
+  double numSecondsProcessed = fabs(reader->getTimestamp(idsToPlay[0]) - reader->getTimestamp(idsToPlay.back()));
+  double MilliSecondsTakenSingle = 1000.0f * (ended - started) / (float)(CLOCKS_PER_SEC);
+  double MilliSecondsTakenMT = sInitializerOffset + ((tv_end.tv_sec - tv_start.tv_sec) * 1000.0f +
+                                                     (tv_end.tv_usec - tv_start.tv_usec) / 1000.0f);
+  printf(
+      "\n======================"
+      "\n%d Frames (%.1f fps)"
+      "\n%.2fms per frame (single core); "
+      "\n%.2fms per frame (multi core); "
+      "\n%.3fx (single core); "
+      "\n%.3fx (multi core); "
+      "\n======================\n\n",
+      numFramesProcessed, numFramesProcessed / numSecondsProcessed, MilliSecondsTakenSingle / numFramesProcessed,
+      MilliSecondsTakenMT / (float)numFramesProcessed, 1000 / (MilliSecondsTakenSingle / numSecondsProcessed),
+      1000 / (MilliSecondsTakenMT / numSecondsProcessed));
   fullSystem->printFrameLifetimes();
   if (setting_logStuff) {
     std::ofstream tmlog;
     tmlog.open("logs/time.txt", std::ios::trunc | std::ios::out);
-    tmlog << 1000.0f * (ended - started) /
-                 (float)(CLOCKS_PER_SEC * frameInfo_bak.size())
-          << " "
-          << ((tv_end.tv_sec - tv_start.tv_sec) * 1000.0f +
-              (tv_end.tv_usec - tv_start.tv_usec) / 1000.0f) /
+    tmlog << 1000.0f * (ended - started) / (float)(CLOCKS_PER_SEC * frameInfo_bak.size()) << " "
+          << ((tv_end.tv_sec - tv_start.tv_sec) * 1000.0f + (tv_end.tv_usec - tv_start.tv_usec) / 1000.0f) /
                  (float)frameInfo_bak.size()
           << "\n";
     tmlog.flush();
     tmlog.close();
   }
 
-  for (IOWrap::Output3DWrapper *ow : fullSystem->outputWrapper) {
+  for (IOWrap::Output3DWrapper* ow : fullSystem->outputWrapper) {
     ow->join();
   }
 
@@ -671,8 +617,7 @@ void run(ImageFolderReader *reader, IOWrap::PangolinDSOViewer *viewer) {
 
   printf("EXIT NOW!\n");
 }
-static cv::Mat NonMaxSuppression(const cv::Mat &grad_mag, const cv::Mat &grad_x,
-                                 const cv::Mat &grad_y) {
+static cv::Mat NonMaxSuppression(const cv::Mat& grad_mag, const cv::Mat& grad_x, const cv::Mat& grad_y) {
   cv::Mat nms = cv::Mat::zeros(grad_mag.size(), CV_32F);
 
   for (int y = 1; y < grad_mag.rows - 1; y++) {
@@ -687,62 +632,52 @@ static cv::Mat NonMaxSuppression(const cv::Mat &grad_mag, const cv::Mat &grad_x,
       float sin_a = std::sin(angle);
 
       // 沿梯度方向插值采样
-      float mag_pos = grad_mag.at<float>(y + (int)std::round(sin_a),
-                                         x + (int)std::round(cos_a));
-      float mag_neg = grad_mag.at<float>(y - (int)std::round(sin_a),
-                                         x - (int)std::round(cos_a));
+      float mag_pos = grad_mag.at<float>(y + (int)std::round(sin_a), x + (int)std::round(cos_a));
+      float mag_neg = grad_mag.at<float>(y - (int)std::round(sin_a), x - (int)std::round(cos_a));
 
       // 只保留局部极大值
-      if (mag >= mag_pos && mag >= mag_neg)
-        nms.at<float>(y, x) = mag;
+      if (mag >= mag_pos && mag >= mag_neg) nms.at<float>(y, x) = mag;
     }
   }
   return nms;
 }
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   // Clean images directory before starting
 #ifdef SAVE_IMAGES
-  std::system("rm -rf \"/media/roger/Elements_SE/CI/dm_vio_results\" && mkdir "
-              "-p \"/media/roger/Elements_SE/CI/dm_vio_results\"");
+  std::system(
+      "rm -rf \"/media/roger/Elements_SE/CI/dm_vio_results\" && mkdir "
+      "-p \"/media/roger/Elements_SE/CI/dm_vio_results\"");
 #endif
-  std::string config_path =
-      "/home/roger/work/dm-vio/dm-vio/src/dso/config/calibconfig_stage0.toml";
+  std::string config_path = "/home/roger/work/dm-vio/dm-vio/src/dso/config/calibconfig_stage0.toml";
   CalibIO::ConfigData configParams(config_path);
   IMUState imu_state_temp, imu_state;
   MultiCamera multi_camera, multi_camera_vi;
-  LoadXML(configParams.dataSet + "/results/device_calibration_gray_vi_5.xml",
-          multi_camera, imu_state_temp);
+  LoadXML(configParams.dataSet + "/results/device_calibration_gray_vi_5.xml", multi_camera, imu_state_temp);
   multi_camera.cids = {0, 1, 2, 3};
   multi_camera.cam_num = kCameraNumUsed;
-  for (const int &cid : multi_camera.cids) {
+  for (const int& cid : multi_camera.cids) {
     if (cid < kCameraNumUsed) {
       multi_camera.cid_to_cam.at(cid)->PrintIntri();
     }
   }
   multi_camera_calibed = multi_camera;
 
-  multi_camera_calibed.Tbc0.setRotationMatrix(
-      imu_state_temp.Tbc0.topLeftCorner<3, 3>());
-  multi_camera_calibed.Tbc0.translation() =
-      imu_state_temp.Tbc0.topRightCorner<3, 1>();
+  multi_camera_calibed.Tbc0.setRotationMatrix(imu_state_temp.Tbc0.topLeftCorner<3, 3>());
+  multi_camera_calibed.Tbc0.translation() = imu_state_temp.Tbc0.topRightCorner<3, 1>();
   for (int cid = 0; cid < kCameraNumUsed; ++cid) {
     // multi_camera.cid_to_T01[cid].setIdentity();
     multi_camera_calibed.cid_to_T01_SE3[cid].setRotationMatrix(
         multi_camera_calibed.cid_to_T01[cid].topLeftCorner<3, 3>());
     multi_camera_calibed.cid_to_T01_SE3[cid].translation() =
         multi_camera_calibed.cid_to_T01[cid].topRightCorner<3, 1>();
-    multi_camera_calibed.cid_to_T01_SE3_inv[cid] =
-        multi_camera_calibed.cid_to_T01_SE3[cid].inverse();
-    multi_camera_calibed.cid_to_T01_inv_Adj[cid] =
-        multi_camera_calibed.cid_to_T01_SE3_inv[cid].Adj();
+    multi_camera_calibed.cid_to_T01_SE3_inv[cid] = multi_camera_calibed.cid_to_T01_SE3[cid].inverse();
+    multi_camera_calibed.cid_to_T01_inv_Adj[cid] = multi_camera_calibed.cid_to_T01_SE3_inv[cid].Adj();
   }
   for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-    multi_camera_calibed.cid_to_Tbc_SE3[cid] =
-        multi_camera_calibed.Tbc0 * multi_camera_calibed.cid_to_T01_SE3[cid];
+    multi_camera_calibed.cid_to_Tbc_SE3[cid] = multi_camera_calibed.Tbc0 * multi_camera_calibed.cid_to_T01_SE3[cid];
   }
   aligned_vector<CalibFrame> frameInfo, frameInfo_rgb;
-  aligned_vector<std::unordered_map<
-      int /*cid*/, std::unordered_map<int /*bid*/, aligned_vector<PointVM>>>>
+  aligned_vector<std::unordered_map<int /*cid*/, std::unordered_map<int /*bid*/, aligned_vector<PointVM>>>>
       frameInfoImageDataArranged;
   CamCalib::CameraDetection detect(configParams);
   CalibIO::ImuJsonData imuData;
@@ -766,8 +701,7 @@ int main(int argc, char **argv) {
   GenUndistortionMap(multi_camera_calibed, image_w, image_h, kCameraNumUsed);
 
   dso::ImagesBuffer::Initial(40, image_w, image_h);
-  std::array<std::array<std::vector<number_t>, kCameraNumUsed>, PYR_LEVELS>
-      level_cid_to_param;
+  std::array<std::array<std::vector<number_t>, kCameraNumUsed>, PYR_LEVELS> level_cid_to_param;
   for (int level = 0; level < PYR_LEVELS; ++level) {
     int ww = image_w >> level;
     int hh = image_h >> level;
@@ -793,7 +727,7 @@ int main(int argc, char **argv) {
 
   std::string path_to_vig_img =
       "/home/roger/work/smartgit/dot001/yvrcalibration_dot/"
-      "vignette_0.png"; // "../../vignette_0.png";
+      "vignette_0.png";  // "../../vignette_0.png";
   cv::Mat vignette_img = cv::imread(path_to_vig_img, -1);
   Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> vig_mat;
   vig_mat.resize(480, 640);
@@ -807,16 +741,16 @@ int main(int argc, char **argv) {
     }
   }
 
-  std::map<int64_t, ImuDataSingle> imu_stack =
-      StackImuReadings(imuData, frameInfo_bak);
+  std::map<int64_t, ImuDataSingle> imu_stack = StackImuReadings(imuData, frameInfo_bak);
 
   // std::exit(2);
 
   std::array<cv::Mat, 4> show_clahe_vec;
   std::array<cv::Mat, 4> show_mat_vec;
   std::array<cv::Mat, 4> show_edge_vec;
-  std::system("rm -rf \"/home/roger/work/dm-vio/images\" && mkdir -p "
-              "\"/home/roger/work/dm-vio/images\"");
+  std::system(
+      "rm -rf \"/home/roger/work/dm-vio/images\" && mkdir -p "
+      "\"/home/roger/work/dm-vio/images\"");
 #if 0
   for (size_t i = lstart; i < frameInfo_bak.size() /*&& key != 27*/; i++) {
     //    cerr <<
@@ -1054,16 +988,15 @@ int main(int argc, char **argv) {
   boost::thread exThread = boost::thread(exitThread);
 
   use16Bit = false;
-  ImageFolderReader *reader =
-      new ImageFolderReader(source, mainSettings.calib, mainSettings.gammaCalib,
-                            mainSettings.vignette, use16Bit, true, image_w,
-                            image_h, &cid_to_undist_map, &vig_mat);
+  ImageFolderReader* reader =
+      new ImageFolderReader(source, mainSettings.calib, mainSettings.gammaCalib, mainSettings.vignette, use16Bit, true,
+                            image_w, image_h, &cid_to_undist_map, &vig_mat);
   reader->loadIMUData2(imu_stack, frameInfo_bak);
   reader->setGlobalCalibration2(K.cast<float>(), image_w, image_h);
   // std::exit(2);
   if (!disableAllDisplay) {
-    IOWrap::PangolinDSOViewer *viewer = new IOWrap::PangolinDSOViewer(
-        wG[0], hG[0], false, settingsUtil, nullptr, &multi_camera_calibed);
+    IOWrap::PangolinDSOViewer* viewer =
+        new IOWrap::PangolinDSOViewer(wG[0], hG[0], false, settingsUtil, nullptr, &multi_camera_calibed);
 
     boost::thread runThread = boost::thread(boost::bind(run, reader, viewer));
 

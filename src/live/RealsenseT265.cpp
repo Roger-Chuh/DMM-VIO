@@ -84,13 +84,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace dmvio;
 using std::vector;
 
-static cv::Mat frame_to_mat(const rs2::frame &f);
+static cv::Mat frame_to_mat(const rs2::frame& f);
 
-dmvio::RealsenseT265::RealsenseT265(FrameContainer &frameContainer,
-                                    std::string cameraCalibSavePath,
-                                    DatasetSaver *datasetSaver)
-    : imuInt(frameContainer, datasetSaver),
-      cameraCalibSavePath(cameraCalibSavePath), saver(datasetSaver) {
+dmvio::RealsenseT265::RealsenseT265(FrameContainer& frameContainer, std::string cameraCalibSavePath,
+                                    DatasetSaver* datasetSaver)
+    : imuInt(frameContainer, datasetSaver), cameraCalibSavePath(cameraCalibSavePath), saver(datasetSaver) {
   rs2::log_to_console(RS2_LOG_SEVERITY_ERROR);
   pipe = rs2::pipeline(context);
 
@@ -107,11 +105,10 @@ dmvio::RealsenseT265::RealsenseT265(FrameContainer &frameContainer,
     hub.wait_for_device();
   }
 
-  for (auto &s : context.query_devices()[0].query_sensors()) {
-    std::cout << "Sensor " << s.get_info(RS2_CAMERA_INFO_NAME)
-              << ". Supported options:" << std::endl;
+  for (auto& s : context.query_devices()[0].query_sensors()) {
+    std::cout << "Sensor " << s.get_info(RS2_CAMERA_INFO_NAME) << ". Supported options:" << std::endl;
 
-    for (const auto &o : s.get_supported_options()) {
+    for (const auto& o : s.get_supported_options()) {
       std::cout << "\t" << rs2_option_to_string(o) << std::endl;
     }
   }
@@ -119,14 +116,12 @@ dmvio::RealsenseT265::RealsenseT265(FrameContainer &frameContainer,
   auto device = context.query_devices()[0];
   device.hardware_reset();
 
-  std::cout << "Device " << device.get_info(RS2_CAMERA_INFO_NAME)
-            << " connected" << std::endl;
+  std::cout << "Device " << device.get_info(RS2_CAMERA_INFO_NAME) << " connected" << std::endl;
 }
 
 void dmvio::RealsenseT265::start() {
-  auto callback = [&](const rs2::frame &frame) {
-    if (!calibrationRead)
-      return;
+  auto callback = [&](const rs2::frame& frame) {
+    if (!calibrationRead) return;
     if (auto fp = frame.as<rs2::motion_frame>()) {
       auto motion = frame.as<rs2::motion_frame>();
 
@@ -140,15 +135,13 @@ void dmvio::RealsenseT265::start() {
 
         // Multiply by factory calibration scale and subtract bias.
         for (int i = 0; i < 3; ++i) {
-          data[i] =
-              data[i] * gyroIntrinsics.data[i][i] - gyroIntrinsics.data[i][3];
+          data[i] = data[i] * gyroIntrinsics.data[i][i] - gyroIntrinsics.data[i][3];
         }
 
         // timestamp is in milliseconds, but shall be in seconds
         imuInt.addGyrData(data, motion.get_timestamp() / 1000.0);
 
-      } else if (motion &&
-                 motion.get_profile().stream_type() == RS2_STREAM_ACCEL &&
+      } else if (motion && motion.get_profile().stream_type() == RS2_STREAM_ACCEL &&
                  motion.get_profile().format() == RS2_FORMAT_MOTION_XYZ32F) {
         auto motionData = motion.get_motion_data();
         vector<float> data(3);
@@ -158,14 +151,13 @@ void dmvio::RealsenseT265::start() {
 
         // Multiply by factory calibration scale and subtract bias.
         for (int i = 0; i < 3; ++i) {
-          data[i] =
-              data[i] * accelIntrinsics.data[i][i] - accelIntrinsics.data[i][3];
+          data[i] = data[i] * accelIntrinsics.data[i][i] - accelIntrinsics.data[i][3];
         }
 
         imuInt.addAccData(data, motion.get_timestamp() / 1000.0);
       }
     } else if (auto fs = frame.as<rs2::frameset>()) {
-      auto f = fs[useCam]; // We only use left camera
+      auto f = fs[useCam];  // We only use left camera
       if (!f.as<rs2::video_frame>()) {
         std::cout << "Weird Frame, skipping" << std::endl;
         return;
@@ -180,8 +172,7 @@ void dmvio::RealsenseT265::start() {
         assert(mat.type() == CV_8U);
 
         // Multiply exposure by 1000, as we want milliseconds.
-        double exposure =
-            vf.get_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE) * 1e-3;
+        double exposure = vf.get_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE) * 1e-3;
 
         if (saver) {
           saver->addImage(mat.clone(), timestamp / 1000.0, exposure);
@@ -194,8 +185,7 @@ void dmvio::RealsenseT265::start() {
         double finalTimestamp = timestamp / 1000.0;
         // gets float exposure and double timestamp
         std::unique_ptr<dso::ImageAndExposure> finalImage(
-            undistorter->undistort<unsigned char>(
-                img.get(), static_cast<float>(exposure), finalTimestamp));
+            undistorter->undistort<unsigned char>(img.get(), static_cast<float>(exposure), finalTimestamp));
         img.reset();
 
         // Add image to the IMU interpolator, which will forward it to the
@@ -212,8 +202,7 @@ void dmvio::RealsenseT265::start() {
 }
 
 void dmvio::RealsenseT265::readCalibration() {
-  if (calibrationRead)
-    return;
+  if (calibrationRead) return;
   auto accel_stream = profile.get_stream(RS2_STREAM_ACCEL);
   auto gyro_stream = profile.get_stream(RS2_STREAM_GYRO);
   auto cam0_stream = profile.get_stream(RS2_STREAM_FISHEYE, 1);
@@ -235,19 +224,15 @@ void dmvio::RealsenseT265::readCalibration() {
     std::cout << "Gyro Matrix\n" << gyroMatrix << std::endl;
 
     Eigen::Vector3d gyro_noise_std =
-        Eigen::Vector3d(gyroIntrinsics.noise_variances[0],
-                        gyroIntrinsics.noise_variances[1],
+        Eigen::Vector3d(gyroIntrinsics.noise_variances[0], gyroIntrinsics.noise_variances[1],
                         gyroIntrinsics.noise_variances[2])
             .cwiseSqrt();
 
-    Eigen::Vector3d gyro_bias_std =
-        Eigen::Vector3d(gyroIntrinsics.bias_variances[0],
-                        gyroIntrinsics.bias_variances[1],
-                        gyroIntrinsics.bias_variances[2])
-            .cwiseSqrt();
+    Eigen::Vector3d gyro_bias_std = Eigen::Vector3d(gyroIntrinsics.bias_variances[0], gyroIntrinsics.bias_variances[1],
+                                                    gyroIntrinsics.bias_variances[2])
+                                        .cwiseSqrt();
 
-    std::cout << "Gyro noise var: " << gyro_noise_std
-              << " bias var: " << gyro_bias_std << std::endl;
+    std::cout << "Gyro noise var: " << gyro_noise_std << " bias var: " << gyro_bias_std << std::endl;
   } else {
     std::abort();
   }
@@ -263,25 +248,22 @@ void dmvio::RealsenseT265::readCalibration() {
     }
 
     Eigen::Vector3d accel_noise_std =
-        Eigen::Vector3d(accelIntrinsics.noise_variances[0],
-                        accelIntrinsics.noise_variances[1],
+        Eigen::Vector3d(accelIntrinsics.noise_variances[0], accelIntrinsics.noise_variances[1],
                         accelIntrinsics.noise_variances[2])
             .cwiseSqrt();
 
     Eigen::Vector3d accel_bias_std =
-        Eigen::Vector3d(accelIntrinsics.bias_variances[0],
-                        accelIntrinsics.bias_variances[1],
+        Eigen::Vector3d(accelIntrinsics.bias_variances[0], accelIntrinsics.bias_variances[1],
                         accelIntrinsics.bias_variances[2])
             .cwiseSqrt();
 
-    std::cout << "Accel noise var: " << accel_noise_std
-              << " bias var: " << accel_bias_std << std::endl;
+    std::cout << "Accel noise var: " << accel_noise_std << " bias var: " << accel_bias_std << std::endl;
   } else {
     std::abort();
   }
 
   // get camera ex-/intrinsics
-  for (const auto &cam_stream : {useCam == 0 ? cam0_stream : cam1_stream}) {
+  for (const auto& cam_stream : {useCam == 0 ? cam0_stream : cam1_stream}) {
     if (auto cam = cam_stream.as<rs2::video_stream_profile>()) {
       // extrinsics
       rs2_extrinsics ex = cam.get_extrinsics_to(gyro_stream);
@@ -293,8 +275,7 @@ void dmvio::RealsenseT265::readCalibration() {
       std::cout << "T_imu_cam: " << T_imu_cam.matrix() << std::endl;
       std::cout << "T_cam_imu: " << T_imu_cam.inverse().matrix() << std::endl;
 
-      imuCalibration =
-          std::make_unique<dmvio::IMUCalibration>(T_imu_cam.inverse());
+      imuCalibration = std::make_unique<dmvio::IMUCalibration>(T_imu_cam.inverse());
 
       // intrinsics
       rs2_intrinsics intrinsics = cam.get_intrinsics();
@@ -305,11 +286,9 @@ void dmvio::RealsenseT265::readCalibration() {
       // Write camera calibration to file.
       std::ofstream calibStream(cameraCalibSavePath);
 
-      calibStream << "KannalaBrandt " << intrinsics.fx << " " << intrinsics.fy
-                  << " " << intrinsics.ppx << " " << intrinsics.ppy << " "
-                  << intrinsics.coeffs[0] << " " << intrinsics.coeffs[1] << " "
-                  << intrinsics.coeffs[2] << " " << intrinsics.coeffs[3]
-                  << "\n";
+      calibStream << "KannalaBrandt " << intrinsics.fx << " " << intrinsics.fy << " " << intrinsics.ppx << " "
+                  << intrinsics.ppy << " " << intrinsics.coeffs[0] << " " << intrinsics.coeffs[1] << " "
+                  << intrinsics.coeffs[2] << " " << intrinsics.coeffs[3] << "\n";
       calibStream << cam.width() << " " << cam.height() << "\n";
       // We rectify to a focal length of 0.2 instead of using the full size as
       // otherwise too much of the rectified image will be focus on a small
@@ -326,16 +305,14 @@ void dmvio::RealsenseT265::readCalibration() {
   calibrationRead = true;
 }
 
-void RealsenseT265::setUndistorter(dso::Undistort *undistort) {
-  this->undistorter = undistort;
-}
+void RealsenseT265::setUndistorter(dso::Undistort* undistort) { this->undistorter = undistort; }
 
 // This Method was copied from
 // https://github.com/IntelRealSense/librealsense/blob/master/wrappers/opencv/cv-helpers.hpp
 // License: Apache 2.0. See http://www.apache.org/licenses/LICENSE-2.0 or below.
 // Copyright(c) 2017 Intel Corporation. All Rights Reserved.
 // Convert rs2::frame to cv::Mat
-static cv::Mat frame_to_mat(const rs2::frame &f) {
+static cv::Mat frame_to_mat(const rs2::frame& f) {
   using namespace cv;
   using namespace rs2;
 
@@ -344,18 +321,18 @@ static cv::Mat frame_to_mat(const rs2::frame &f) {
   const int h = vf.get_height();
 
   if (f.get_profile().format() == RS2_FORMAT_BGR8) {
-    return Mat(Size(w, h), CV_8UC3, (void *)f.get_data(), Mat::AUTO_STEP);
+    return Mat(Size(w, h), CV_8UC3, (void*)f.get_data(), Mat::AUTO_STEP);
   } else if (f.get_profile().format() == RS2_FORMAT_RGB8) {
-    auto r_rgb = Mat(Size(w, h), CV_8UC3, (void *)f.get_data(), Mat::AUTO_STEP);
+    auto r_rgb = Mat(Size(w, h), CV_8UC3, (void*)f.get_data(), Mat::AUTO_STEP);
     Mat r_bgr;
     cvtColor(r_rgb, r_bgr, COLOR_RGB2BGR);
     return r_bgr;
   } else if (f.get_profile().format() == RS2_FORMAT_Z16) {
-    return Mat(Size(w, h), CV_16UC1, (void *)f.get_data(), Mat::AUTO_STEP);
+    return Mat(Size(w, h), CV_16UC1, (void*)f.get_data(), Mat::AUTO_STEP);
   } else if (f.get_profile().format() == RS2_FORMAT_Y8) {
-    return Mat(Size(w, h), CV_8UC1, (void *)f.get_data(), Mat::AUTO_STEP);
+    return Mat(Size(w, h), CV_8UC1, (void*)f.get_data(), Mat::AUTO_STEP);
   } else if (f.get_profile().format() == RS2_FORMAT_DISPARITY32) {
-    return Mat(Size(w, h), CV_32FC1, (void *)f.get_data(), Mat::AUTO_STEP);
+    return Mat(Size(w, h), CV_32FC1, (void*)f.get_data(), Mat::AUTO_STEP);
   }
 
   throw std::runtime_error("Frame format is not supported yet!");

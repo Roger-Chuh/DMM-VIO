@@ -68,42 +68,34 @@ namespace dmvio {
 // gtsam::NonlinearFactor. For using it can be wrapped around any type of
 // NoiseModelFactor (e.g. IMUFactor, BetweenFactor, etc.) and arguments of the
 // constructor will be forwarded.
-template <typename T, typename = typename std::enable_if<std::is_base_of<
-                          gtsam::NoiseModelFactor, T>::value>::type>
+template <typename T, typename = typename std::enable_if<std::is_base_of<gtsam::NoiseModelFactor, T>::value>::type>
 class FEJNoiseModelFactor : public T, public FactorHandlingFEJ {
-public:
+ public:
   template <typename... Args>
-  explicit FEJNoiseModelFactor(Args &&... args)
-      : T(std::forward<Args>(args)...) {}
+  explicit FEJNoiseModelFactor(Args&&... args) : T(std::forward<Args>(args)...) {}
 
-  void setFEJValues(std::shared_ptr<FEJValues> fejValues) override {
-    fej = std::move(fejValues);
-  }
+  void setFEJValues(std::shared_ptr<FEJValues> fejValues) override { fej = std::move(fejValues); }
 
   // Modified version of NoiseModelFactor::linearize of the project GTSAM. For
   // license, see above.
-  boost::shared_ptr<gtsam::GaussianFactor>
-  linearize(const gtsam::Values &x) const override {
+  boost::shared_ptr<gtsam::GaussianFactor> linearize(const gtsam::Values& x) const override {
     // TODO: update linearize if I update GTSAM.
     // Only linearize if the factor is active
-    if (!T::active(x))
-      return boost::shared_ptr<gtsam::JacobianFactor>();
+    if (!T::active(x)) return boost::shared_ptr<gtsam::JacobianFactor>();
 
     // Call evaluate error to get Jacobians and RHS vector b
     std::vector<gtsam::Matrix> A(T::size());
     gtsam::Vector b;
     if (fej) {
       gtsam::Values fejVals = fej->buildValues(T::keys(), x);
-      -T::unwhitenedError(
-          fejVals, A); // compute derivatives with first estimates values.
-      b = -T::unwhitenedError(x); // Compute residual with current values.
+      -T::unwhitenedError(fejVals, A);  // compute derivatives with first estimates values.
+      b = -T::unwhitenedError(x);       // Compute residual with current values.
     } else {
       b = -T::unwhitenedError(x, A);
     }
 
     // Whiten the corresponding system now
-    if (T::noiseModel_)
-      T::noiseModel_->WhitenSystem(A, b);
+    if (T::noiseModel_) T::noiseModel_->WhitenSystem(A, b);
 
     // Fill in terms, needed to create JacobianFactor below
     std::vector<std::pair<gtsam::Key, gtsam::Matrix>> terms(T::size());
@@ -115,17 +107,15 @@ public:
     // TODO pass unwhitened + noise model to Gaussian factor
     using gtsam::noiseModel::Constrained;
     if (T::noiseModel_ && T::noiseModel_->isConstrained())
-      return gtsam::GaussianFactor::shared_ptr(new gtsam::JacobianFactor(
-          terms, b,
-          boost::static_pointer_cast<Constrained>(T::noiseModel_)->unit()));
-    else
       return gtsam::GaussianFactor::shared_ptr(
-          new gtsam::JacobianFactor(terms, b));
+          new gtsam::JacobianFactor(terms, b, boost::static_pointer_cast<Constrained>(T::noiseModel_)->unit()));
+    else
+      return gtsam::GaussianFactor::shared_ptr(new gtsam::JacobianFactor(terms, b));
   }
 
-protected:
+ protected:
   std::shared_ptr<FEJValues> fej;
 };
 
-} // namespace dmvio
-#endif // DMVIO_FEJNOISEMODELFACTOR_H
+}  // namespace dmvio
+#endif  // DMVIO_FEJNOISEMODELFACTOR_H

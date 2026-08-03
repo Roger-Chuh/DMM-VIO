@@ -5,19 +5,16 @@
 #include "pinhole_camera.h"
 using namespace dso;
 
-bool PinholeCamera::Project(
-    const Vec3 &p_3d, Vec2 &p_img,
-    LinearAlgebraLib::Matrix<number_t, 2, 3> *d_img_d_p3d,
-    LinearAlgebraLib::Matrix<number_t, 2, LinearAlgebraLib::Dynamic>
-        *d_img_d_param) const {
-  const number_t &fx = parameters_[0];
-  const number_t &fy = parameters_[1];
-  const number_t &cx = parameters_[2];
-  const number_t &cy = parameters_[3];
+bool PinholeCamera::Project(const Vec3& p_3d, Vec2& p_img, LinearAlgebraLib::Matrix<number_t, 2, 3>* d_img_d_p3d,
+                            LinearAlgebraLib::Matrix<number_t, 2, LinearAlgebraLib::Dynamic>* d_img_d_param) const {
+  const number_t& fx = parameters_[0];
+  const number_t& fy = parameters_[1];
+  const number_t& cx = parameters_[2];
+  const number_t& cy = parameters_[3];
 
-  const number_t &x = p_3d[0];
-  const number_t &y = p_3d[1];
-  const number_t &z = p_3d[2];
+  const number_t& x = p_3d[0];
+  const number_t& y = p_3d[1];
+  const number_t& z = p_3d[2];
 
   p_img[0] = fx * x / z + cx;
   p_img[1] = fy * y / z + cy;
@@ -44,15 +41,12 @@ bool PinholeCamera::Project(
   return true;
 }
 
-bool PinholeCamera::UnProject(
-    const Vec2 &p_img, Vec3 &p_3d,
-    LinearAlgebraLib::Matrix<number_t, 3, 2> *d_p3d_d_img,
-    LinearAlgebraLib::Matrix<number_t, 3, LinearAlgebraLib::Dynamic>
-        *d_p3d_d_param) const {
-  const number_t &fx = parameters_[0];
-  const number_t &fy = parameters_[1];
-  const number_t &cx = parameters_[2];
-  const number_t &cy = parameters_[3];
+bool PinholeCamera::UnProject(const Vec2& p_img, Vec3& p_3d, LinearAlgebraLib::Matrix<number_t, 3, 2>* d_p3d_d_img,
+                              LinearAlgebraLib::Matrix<number_t, 3, LinearAlgebraLib::Dynamic>* d_p3d_d_param) const {
+  const number_t& fx = parameters_[0];
+  const number_t& fy = parameters_[1];
+  const number_t& cx = parameters_[2];
+  const number_t& cy = parameters_[3];
 
   const number_t mx = (p_img[0] - cx) / fx;
   const number_t my = (p_img[1] - cy) / fy;
@@ -67,8 +61,7 @@ bool PinholeCamera::UnProject(
   p_3d[2] = norm_inv;
 
   if (d_p3d_d_img || d_p3d_d_param) {
-    const number_t d_norm_inv_d_r2 =
-        number_t(-0.5) * norm_inv * norm_inv * norm_inv;
+    const number_t d_norm_inv_d_r2 = number_t(-0.5) * norm_inv * norm_inv * norm_inv;
 
     Vec3 c0, c1;
     c0(0) = (norm_inv + 2 * mx * mx * d_norm_inv_d_r2) / fx;

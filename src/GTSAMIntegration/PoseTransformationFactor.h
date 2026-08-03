@@ -40,9 +40,8 @@ namespace dmvio {
 // been called for the graph before optimization. Note that the child factor
 // must not optimize any of the additional symbols optimized by the
 // PoseTransformation. Assumes that all (but only) poses use the symbol 'p'
-class PoseTransformationFactor : public gtsam::NonlinearFactor,
-                                 public FactorHandlingFEJ {
-public:
+class PoseTransformationFactor : public gtsam::NonlinearFactor, public FactorHandlingFEJ {
+ public:
   // Defines how the factor is converted (use JACOBIAN_FACTOR for
   // JacobianFactor, and JACOBIAN_BAKED_IN for other factor types) It might make
   // a small difference for performance but is not too relevant.
@@ -54,50 +53,46 @@ public:
   // the linear system is converted (mainly relevant for performance). All
   // symbols in fixedValues will be fixed for the child factor during
   // optimization.
-  PoseTransformationFactor(const gtsam::NonlinearFactor::shared_ptr &factor,
-                           const PoseTransformation &poseTransformation,
-                           ConversionType conversionType,
-                           const gtsam::Values &fixedValues = gtsam::Values{});
+  PoseTransformationFactor(const gtsam::NonlinearFactor::shared_ptr& factor,
+                           const PoseTransformation& poseTransformation, ConversionType conversionType,
+                           const gtsam::Values& fixedValues = gtsam::Values{});
 
-  PoseTransformationFactor(const PoseTransformationFactor &o);
+  PoseTransformationFactor(const PoseTransformationFactor& o);
 
   virtual ~PoseTransformationFactor();
 
   // --------------------
   // Methods overriden from NonlinearFactor
-  double error(const gtsam::Values &c) const override;
+  double error(const gtsam::Values& c) const override;
 
   /** get the dimension of the factor (number of rows on linearization) */
   size_t dim() const override;
 
   /** linearize to a GaussianFactor */
-  boost::shared_ptr<gtsam::GaussianFactor>
-  linearize(const gtsam::Values &c) const override;
+  boost::shared_ptr<gtsam::GaussianFactor> linearize(const gtsam::Values& c) const override;
 
   virtual gtsam::NonlinearFactor::shared_ptr clone() const {
     return boost::static_pointer_cast<gtsam::NonlinearFactor>(
-        gtsam::NonlinearFactor::shared_ptr(
-            new PoseTransformationFactor(*this)));
+        gtsam::NonlinearFactor::shared_ptr(new PoseTransformationFactor(*this)));
   }
 
   void setFEJValues(std::shared_ptr<FEJValues> fej) override;
 
   gtsam::Values fixedValues;
 
-private:
+ private:
   // convert the values using the PoseTransformation
   // The resulting values will only contain values for the symbols optimized by
   // the child factor, or the TransformationFactor.
-  gtsam::Values convertValues(const gtsam::Values &c) const;
+  gtsam::Values convertValues(const gtsam::Values& c) const;
 
-  gtsam::NonlinearFactor::shared_ptr factor; // child factor.
+  gtsam::NonlinearFactor::shared_ptr factor;  // child factor.
 
   mutable std::unique_ptr<PoseTransformation> poseTransformation;
 
   ConversionType conversionType;
 
-  int additionalDim =
-      0; // dimension of symbols optimized by the poseTransformation.
+  int additionalDim = 0;  // dimension of symbols optimized by the poseTransformation.
 
   gtsam::FastVector<gtsam::Key> fixedKeys;
   std::set<gtsam::Key> fixedKeySet;
@@ -106,19 +101,14 @@ private:
   std::shared_ptr<FEJValues> childFej;
 };
 
-std::ostream &
-operator<<(std::ostream &os,
-           dmvio::PoseTransformationFactor::ConversionType &conversion);
+std::ostream& operator<<(std::ostream& os, dmvio::PoseTransformationFactor::ConversionType& conversion);
 
-std::istream &
-operator>>(std::istream &is,
-           dmvio::PoseTransformationFactor::ConversionType &conversion);
-} // namespace dmvio
+std::istream& operator>>(std::istream& is, dmvio::PoseTransformationFactor::ConversionType& conversion);
+}  // namespace dmvio
 
 namespace dmvio {
 template <>
-void defaultYAMLHandler<dmvio::PoseTransformationFactor::ConversionType>(
-    void *pointer, const YAML::Node &node);
+void defaultYAMLHandler<dmvio::PoseTransformationFactor::ConversionType>(void* pointer, const YAML::Node& node);
 }
 
-#endif // DMVIO_POSETRANSFORMATIONFACTOR_H
+#endif  // DMVIO_POSETRANSFORMATIONFACTOR_H

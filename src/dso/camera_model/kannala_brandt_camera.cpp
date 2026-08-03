@@ -7,34 +7,27 @@
 
 using namespace dso;
 
-inline number_t FastArcTan(const number_t &x) {
-  return M_PI_4 * x - x * (fabs(x) - 1) * (0.2447 + 0.0663 * fabs(x));
-}
-inline number_t FastRealArcTan(const number_t &x) {
-  if (x <= 0)
-    return -1;
-  if (x < 1)
-    return FastArcTan(x);
+inline number_t FastArcTan(const number_t& x) { return M_PI_4 * x - x * (fabs(x) - 1) * (0.2447 + 0.0663 * fabs(x)); }
+inline number_t FastRealArcTan(const number_t& x) {
+  if (x <= 0) return -1;
+  if (x < 1) return FastArcTan(x);
   return M_PI_4 * 2 - FastArcTan(1 / x);
 }
 
-bool KB8Camera::Project(
-    const Vec3 &p_3d, Vec2 &p_img,
-    LinearAlgebraLib::Matrix<number_t, 2, 3> *d_img_d_p3d,
-    LinearAlgebraLib::Matrix<number_t, 2, LinearAlgebraLib::Dynamic>
-        *d_img_d_param) const {
-  const number_t &fx = parameters_[0];
-  const number_t &fy = parameters_[1];
-  const number_t &cx = parameters_[2];
-  const number_t &cy = parameters_[3];
-  const number_t &k1 = parameters_[4];
-  const number_t &k2 = parameters_[5];
-  const number_t &k3 = parameters_[6];
-  const number_t &k4 = parameters_[7];
+bool KB8Camera::Project(const Vec3& p_3d, Vec2& p_img, LinearAlgebraLib::Matrix<number_t, 2, 3>* d_img_d_p3d,
+                        LinearAlgebraLib::Matrix<number_t, 2, LinearAlgebraLib::Dynamic>* d_img_d_param) const {
+  const number_t& fx = parameters_[0];
+  const number_t& fy = parameters_[1];
+  const number_t& cx = parameters_[2];
+  const number_t& cy = parameters_[3];
+  const number_t& k1 = parameters_[4];
+  const number_t& k2 = parameters_[5];
+  const number_t& k3 = parameters_[6];
+  const number_t& k4 = parameters_[7];
 
-  const number_t &x = p_3d[0];
-  const number_t &y = p_3d[1];
-  const number_t &z = p_3d[2];
+  const number_t& x = p_3d[0];
+  const number_t& y = p_3d[1];
+  const number_t& z = p_3d[2];
 
   const number_t r2 = x * x + y * y;
   const number_t r = std::sqrt(r2);
@@ -81,22 +74,12 @@ bool KB8Camera::Project(
       d_r_theta_d_theta *= theta2;
       d_r_theta_d_theta += number_t(1);
 
-      (*d_img_d_p3d)(0, 0) =
-          fx *
-          (r_theta * r + x * r * d_r_theta_d_theta * d_theta_d_x -
-           x * x * r_theta / r) /
-          r2;
-      (*d_img_d_p3d)(1, 0) =
-          fy * y * (d_r_theta_d_theta * d_theta_d_x * r - x * r_theta / r) / r2;
+      (*d_img_d_p3d)(0, 0) = fx * (r_theta * r + x * r * d_r_theta_d_theta * d_theta_d_x - x * x * r_theta / r) / r2;
+      (*d_img_d_p3d)(1, 0) = fy * y * (d_r_theta_d_theta * d_theta_d_x * r - x * r_theta / r) / r2;
 
-      (*d_img_d_p3d)(0, 1) =
-          fx * x * (d_r_theta_d_theta * d_theta_d_y * r - y * r_theta / r) / r2;
+      (*d_img_d_p3d)(0, 1) = fx * x * (d_r_theta_d_theta * d_theta_d_y * r - y * r_theta / r) / r2;
 
-      (*d_img_d_p3d)(1, 1) =
-          fy *
-          (r_theta * r + y * r * d_r_theta_d_theta * d_theta_d_y -
-           y * y * r_theta / r) /
-          r2;
+      (*d_img_d_p3d)(1, 1) = fy * (r_theta * r + y * r * d_r_theta_d_theta * d_theta_d_y - y * y * r_theta / r) / r2;
 
       (*d_img_d_p3d)(0, 2) = fx * x * d_r_theta_d_theta * d_theta_d_z / r;
       (*d_img_d_p3d)(1, 2) = fy * y * d_r_theta_d_theta * d_theta_d_z / r;
@@ -145,23 +128,21 @@ bool KB8Camera::Project(
   return true;
 }
 
-bool KB8Camera::Project(
-    const Vec3 &p_3d, LinearAlgebraLib::Ref<Vec2> &p_img,
-    LinearAlgebraLib::Matrix<number_t, 2, 3> *d_img_d_p3d,
-    LinearAlgebraLib::Matrix<number_t, 2, LinearAlgebraLib::Dynamic>
-        *d_img_d_param) const {
-  const number_t &fx = parameters_[0];
-  const number_t &fy = parameters_[1];
-  const number_t &cx = parameters_[2];
-  const number_t &cy = parameters_[3];
-  const number_t &k1 = parameters_[4];
-  const number_t &k2 = parameters_[5];
-  const number_t &k3 = parameters_[6];
-  const number_t &k4 = parameters_[7];
+bool KB8Camera::Project(const Vec3& p_3d, LinearAlgebraLib::Ref<Vec2>& p_img,
+                        LinearAlgebraLib::Matrix<number_t, 2, 3>* d_img_d_p3d,
+                        LinearAlgebraLib::Matrix<number_t, 2, LinearAlgebraLib::Dynamic>* d_img_d_param) const {
+  const number_t& fx = parameters_[0];
+  const number_t& fy = parameters_[1];
+  const number_t& cx = parameters_[2];
+  const number_t& cy = parameters_[3];
+  const number_t& k1 = parameters_[4];
+  const number_t& k2 = parameters_[5];
+  const number_t& k3 = parameters_[6];
+  const number_t& k4 = parameters_[7];
 
-  const number_t &x = p_3d[0];
-  const number_t &y = p_3d[1];
-  const number_t &z = p_3d[2];
+  const number_t& x = p_3d[0];
+  const number_t& y = p_3d[1];
+  const number_t& z = p_3d[2];
 
   const number_t r2 = x * x + y * y;
   const number_t r = std::sqrt(r2);
@@ -207,22 +188,12 @@ bool KB8Camera::Project(
       d_r_theta_d_theta *= theta2;
       d_r_theta_d_theta += number_t(1);
 
-      (*d_img_d_p3d)(0, 0) =
-          fx *
-          (r_theta * r + x * r * d_r_theta_d_theta * d_theta_d_x -
-           x * x * r_theta / r) /
-          r2;
-      (*d_img_d_p3d)(1, 0) =
-          fy * y * (d_r_theta_d_theta * d_theta_d_x * r - x * r_theta / r) / r2;
+      (*d_img_d_p3d)(0, 0) = fx * (r_theta * r + x * r * d_r_theta_d_theta * d_theta_d_x - x * x * r_theta / r) / r2;
+      (*d_img_d_p3d)(1, 0) = fy * y * (d_r_theta_d_theta * d_theta_d_x * r - x * r_theta / r) / r2;
 
-      (*d_img_d_p3d)(0, 1) =
-          fx * x * (d_r_theta_d_theta * d_theta_d_y * r - y * r_theta / r) / r2;
+      (*d_img_d_p3d)(0, 1) = fx * x * (d_r_theta_d_theta * d_theta_d_y * r - y * r_theta / r) / r2;
 
-      (*d_img_d_p3d)(1, 1) =
-          fy *
-          (r_theta * r + y * r * d_r_theta_d_theta * d_theta_d_y -
-           y * y * r_theta / r) /
-          r2;
+      (*d_img_d_p3d)(1, 1) = fy * (r_theta * r + y * r * d_r_theta_d_theta * d_theta_d_y - y * y * r_theta / r) / r2;
 
       (*d_img_d_p3d)(0, 2) = fx * x * d_r_theta_d_theta * d_theta_d_z / r;
       (*d_img_d_p3d)(1, 2) = fy * y * d_r_theta_d_theta * d_theta_d_z / r;
@@ -271,15 +242,12 @@ bool KB8Camera::Project(
   return true;
 }
 
-bool KB8Camera::UnProject(
-    const Vec2 &p_img, Vec3 &p_3d,
-    LinearAlgebraLib::Matrix<number_t, 3, 2> *d_p3d_d_img,
-    LinearAlgebraLib::Matrix<number_t, 3, LinearAlgebraLib::Dynamic>
-        *d_p3d_d_param) const {
-  const number_t &fx = parameters_[0];
-  const number_t &fy = parameters_[1];
-  const number_t &cx = parameters_[2];
-  const number_t &cy = parameters_[3];
+bool KB8Camera::UnProject(const Vec2& p_img, Vec3& p_3d, LinearAlgebraLib::Matrix<number_t, 3, 2>* d_p3d_d_img,
+                          LinearAlgebraLib::Matrix<number_t, 3, LinearAlgebraLib::Dynamic>* d_p3d_d_param) const {
+  const number_t& fx = parameters_[0];
+  const number_t& fy = parameters_[1];
+  const number_t& cx = parameters_[2];
+  const number_t& cy = parameters_[3];
 
   const number_t mx = (p_img[0] - cx) / fx;
   const number_t my = (p_img[1] - cy) / fy;
@@ -319,8 +287,7 @@ bool KB8Camera::UnProject(
 
       theta2 = theta * theta;
 
-      d_scaling_d_thetad =
-          (thetad * cos_theta / d_func_d_theta - sin_theta) / (thetad * thetad);
+      d_scaling_d_thetad = (thetad * cos_theta / d_func_d_theta - sin_theta) / (thetad * thetad);
 
       d_cos_d_thetad = sin_theta / d_func_d_theta;
 
@@ -329,13 +296,11 @@ bool KB8Camera::UnProject(
       d_cos_d_k1 = d_cos_d_thetad * theta * theta2;
     }
 
-    const number_t d_res0_d_mx =
-        scaling + mx * d_scaling_d_thetad * d_thetad_d_mx;
+    const number_t d_res0_d_mx = scaling + mx * d_scaling_d_thetad * d_thetad_d_mx;
     const number_t d_res0_d_my = mx * d_scaling_d_thetad * d_thetad_d_my;
 
     const number_t d_res1_d_mx = my * d_scaling_d_thetad * d_thetad_d_mx;
-    const number_t d_res1_d_my =
-        scaling + my * d_scaling_d_thetad * d_thetad_d_my;
+    const number_t d_res1_d_my = scaling + my * d_scaling_d_thetad * d_thetad_d_my;
 
     const number_t d_res2_d_mx = -d_cos_d_thetad * d_thetad_d_mx;
     const number_t d_res2_d_my = -d_cos_d_thetad * d_thetad_d_my;
@@ -378,12 +343,11 @@ bool KB8Camera::UnProject(
   return true;
 }
 
-number_t KB8Camera::SolveTheta(const number_t &r_theta,
-                               number_t &d_func_d_theta) const {
-  const number_t &k1 = parameters_[4];
-  const number_t &k2 = parameters_[5];
-  const number_t &k3 = parameters_[6];
-  const number_t &k4 = parameters_[7];
+number_t KB8Camera::SolveTheta(const number_t& r_theta, number_t& d_func_d_theta) const {
+  const number_t& k1 = parameters_[4];
+  const number_t& k2 = parameters_[5];
+  const number_t& k3 = parameters_[6];
+  const number_t& k4 = parameters_[7];
 
   number_t theta = r_theta;
   for (int i = 3; i > 0; --i) {

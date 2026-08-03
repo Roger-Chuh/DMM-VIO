@@ -27,8 +27,7 @@ RAPIDJSON_DIAG_PUSH
 RAPIDJSON_DIAG_OFF(padded)
 #elif defined(_MSC_VER)
 RAPIDJSON_DIAG_PUSH
-RAPIDJSON_DIAG_OFF(
-    4351) // new behavior: elements of array 'array' will be default initialized
+RAPIDJSON_DIAG_OFF(4351)  // new behavior: elements of array 'array' will be default initialized
 #endif
 
 RAPIDJSON_NAMESPACE_BEGIN
@@ -49,17 +48,24 @@ RAPIDJSON_NAMESPACE_BEGIN
     \tparam StreamType Class derived from \c std::basic_istream.
 */
 
-template <typename StreamType> class BasicIStreamWrapper {
-public:
+template <typename StreamType>
+class BasicIStreamWrapper {
+ public:
   typedef typename StreamType::char_type Ch;
 
   //! Constructor.
   /*!
       \param stream stream opened for read.
   */
-  BasicIStreamWrapper(StreamType &stream)
-      : stream_(stream), buffer_(peekBuffer_), bufferSize_(4), bufferLast_(0),
-        current_(buffer_), readCount_(0), count_(0), eof_(false) {
+  BasicIStreamWrapper(StreamType& stream)
+      : stream_(stream),
+        buffer_(peekBuffer_),
+        bufferSize_(4),
+        bufferLast_(0),
+        current_(buffer_),
+        readCount_(0),
+        count_(0),
+        eof_(false) {
     Read();
   }
 
@@ -69,9 +75,14 @@ public:
       \param buffer user-supplied buffer.
       \param bufferSize size of buffer in bytes. Must >=4 bytes.
   */
-  BasicIStreamWrapper(StreamType &stream, char *buffer, size_t bufferSize)
-      : stream_(stream), buffer_(buffer), bufferSize_(bufferSize),
-        bufferLast_(0), current_(buffer_), readCount_(0), count_(0),
+  BasicIStreamWrapper(StreamType& stream, char* buffer, size_t bufferSize)
+      : stream_(stream),
+        buffer_(buffer),
+        bufferSize_(bufferSize),
+        bufferLast_(0),
+        current_(buffer_),
+        readCount_(0),
+        count_(0),
         eof_(false) {
     RAPIDJSON_ASSERT(bufferSize >= 4);
     Read();
@@ -83,31 +94,27 @@ public:
     Read();
     return c;
   }
-  size_t Tell() const {
-    return count_ + static_cast<size_t>(current_ - buffer_);
-  }
+  size_t Tell() const { return count_ + static_cast<size_t>(current_ - buffer_); }
 
   // Not implemented
   void Put(Ch) { RAPIDJSON_ASSERT(false); }
   void Flush() { RAPIDJSON_ASSERT(false); }
-  Ch *PutBegin() {
+  Ch* PutBegin() {
     RAPIDJSON_ASSERT(false);
     return 0;
   }
-  size_t PutEnd(Ch *) {
+  size_t PutEnd(Ch*) {
     RAPIDJSON_ASSERT(false);
     return 0;
   }
 
   // For encoding detection only.
-  const Ch *Peek4() const {
-    return (current_ + 4 - !eof_ <= bufferLast_) ? current_ : 0;
-  }
+  const Ch* Peek4() const { return (current_ + 4 - !eof_ <= bufferLast_) ? current_ : 0; }
 
-private:
+ private:
   BasicIStreamWrapper();
-  BasicIStreamWrapper(const BasicIStreamWrapper &);
-  BasicIStreamWrapper &operator=(const BasicIStreamWrapper &);
+  BasicIStreamWrapper(const BasicIStreamWrapper&);
+  BasicIStreamWrapper& operator=(const BasicIStreamWrapper&);
 
   void Read() {
     if (current_ < bufferLast_)
@@ -126,13 +133,13 @@ private:
     }
   }
 
-  StreamType &stream_;
+  StreamType& stream_;
   Ch peekBuffer_[4], *buffer_;
   size_t bufferSize_;
-  Ch *bufferLast_;
-  Ch *current_;
+  Ch* bufferLast_;
+  Ch* current_;
   size_t readCount_;
-  size_t count_; //!< Number of characters read
+  size_t count_;  //!< Number of characters read
   bool eof_;
 };
 
@@ -145,4 +152,4 @@ RAPIDJSON_DIAG_POP
 
 RAPIDJSON_NAMESPACE_END
 
-#endif // RAPIDJSON_ISTREAMWRAPPER_H_
+#endif  // RAPIDJSON_ISTREAMWRAPPER_H_

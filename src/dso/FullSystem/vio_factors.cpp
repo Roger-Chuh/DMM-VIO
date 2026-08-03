@@ -4,15 +4,14 @@
 //#include <vector>
 
 namespace dso {
-DirectFactorRes DirectVisualFactor::Evaluate(
-    const Mat4 &T10, const number_t &idp,
-    const std::shared_ptr<AlgsImage> &target_image, const Patch &patch,
-    CameraBase *camera_ptr, const int &border, Patch::ArrayV &r_vec,
-    number_t &ws2, number_t &r2, Vec2 *p_uv, Vec3 *p_target_dir,
-    number_t *p_cos_theta, Vec3 *p_dp_didp, number_t *p_zncc,
-    const number_t &pass_threshold) {
-  const size_t &img_cols = target_image->width;
-  const size_t &img_rows = target_image->height;
+DirectFactorRes DirectVisualFactor::Evaluate(const Mat4& T10, const number_t& idp,
+                                             const std::shared_ptr<AlgsImage>& target_image, const Patch& patch,
+                                             CameraBase* camera_ptr, const int& border, Patch::ArrayV& r_vec,
+                                             number_t& ws2, number_t& r2, Vec2* p_uv, Vec3* p_target_dir,
+                                             number_t* p_cos_theta, Vec3* p_dp_didp, number_t* p_zncc,
+                                             const number_t& pass_threshold) {
+  const size_t& img_cols = target_image->width;
+  const size_t& img_rows = target_image->height;
 
   dir_reject_ = false;
 
@@ -30,9 +29,9 @@ DirectFactorRes DirectVisualFactor::Evaluate(
 
   depth_in_target_camera_ = depth_scale / idp;
 
-  const Vec3 &host_dir = patch.dir0;
-  const Vec3 &target_dir = P;
-  const Vec3 &host_dir_in_target = T10.block<3, 3>(0, 0) * host_dir;
+  const Vec3& host_dir = patch.dir0;
+  const Vec3& target_dir = P;
+  const Vec3& host_dir_in_target = T10.block<3, 3>(0, 0) * host_dir;
   number_t cos_theta = nt.dot(host_dir_in_target);
   if (cos_theta <= cos_max_dist_angle_) {
     disparity_reject = true;
@@ -56,8 +55,7 @@ DirectFactorRes DirectVisualFactor::Evaluate(
   Mat23 Jproj_target;
   camera_ptr->Project(P, uv0, &Jproj_target);
 
-  Mat2 duv_target_duv_host =
-      Jproj_target * T10.block<3, 3>(0, 0) * patch.J_unproj;
+  Mat2 duv_target_duv_host = Jproj_target * T10.block<3, 3>(0, 0) * patch.J_unproj;
 
   Patch::Matrix2P target_uvs = duv_target_duv_host * pattern2_def;
   target_uvs = target_uvs.colwise() + uv0;
@@ -68,8 +66,7 @@ DirectFactorRes DirectVisualFactor::Evaluate(
 
   number_t zncc;
 
-  DirectFactorRes res = Evaluate_UV(target_uvs, border, target_image, patch,
-                                    pass_threshold, r_vec, zncc);
+  DirectFactorRes res = Evaluate_UV(target_uvs, border, target_image, patch, pass_threshold, r_vec, zncc);
 
   if (res == kOOB || res == kWithoutSigma) {
     return res;
@@ -88,13 +85,11 @@ DirectFactorRes DirectVisualFactor::Evaluate(
     return res;
   }
   {
-    Vec3 t10_in_host =
-        T10.block<3, 3>(0, 0).transpose() * T10.block<3, 1>(0, 3);
+    Vec3 t10_in_host = T10.block<3, 3>(0, 0).transpose() * T10.block<3, 1>(0, 3);
     Vec3 epipolar_plane_dir_test = Skew(patch.dir0) * t10_in_host;
     epipolar_plane_dir_test.normalize();
 
-    epipolar_grad_cos_theta_ =
-        std::abs(patch.grad_plane_dir.dot(epipolar_plane_dir_test));
+    epipolar_grad_cos_theta_ = std::abs(patch.grad_plane_dir.dot(epipolar_plane_dir_test));
   }
 
   //    number_t epipolar_grad_cos_theta_ = epipolar_dir.dot(grad_cur);
@@ -107,19 +102,18 @@ DirectFactorRes DirectVisualFactor::Evaluate(
   return kInlier;
 }
 
-DirectFactorRes DirectVisualFactor::Evaluate_UV(
-    const Patch::Matrix2P &target_uvs, const int &border,
-    const std::shared_ptr<AlgsImage> &target_image, const Patch &patch,
-    const number_t &inlier_threshold, Patch::ArrayV &r_vec, number_t &zncc) {
-  const size_t &img_cols = target_image->width;
-  const size_t &img_rows = target_image->height;
+DirectFactorRes DirectVisualFactor::Evaluate_UV(const Patch::Matrix2P& target_uvs, const int& border,
+                                                const std::shared_ptr<AlgsImage>& target_image, const Patch& patch,
+                                                const number_t& inlier_threshold, Patch::ArrayV& r_vec,
+                                                number_t& zncc) {
+  const size_t& img_cols = target_image->width;
+  const size_t& img_rows = target_image->height;
 
   Patch::ArrayP x_coords = target_uvs.row(0);
   Patch::ArrayP y_coords = target_uvs.row(1);
 
-  has_OOB_ = !(
-      (x_coords >= border).all() && (x_coords < img_cols - border - 1).all() &&
-      (y_coords >= border).all() && (y_coords < img_rows - border - 1).all());
+  has_OOB_ = !((x_coords >= border).all() && (x_coords < img_cols - border - 1).all() && (y_coords >= border).all() &&
+               (y_coords < img_rows - border - 1).all());
 
   if (has_OOB_) {
     return kOOB;
@@ -131,8 +125,7 @@ DirectFactorRes DirectVisualFactor::Evaluate_UV(
   r_vec = r_vec - mean1;
   number_t sigma1 = std::sqrt(r_vec.square().sum());
 
-  if (sigma1 * sigma1 < patch.sigma2_threshold_vec[0] ||
-      sigma1 * sigma1 > patch.sigma2_threshold_vec[1]) {
+  if (sigma1 * sigma1 < patch.sigma2_threshold_vec[0] || sigma1 * sigma1 > patch.sigma2_threshold_vec[1]) {
     return kWithoutSigma;
   }
 
@@ -149,4 +142,4 @@ DirectFactorRes DirectVisualFactor::Evaluate_UV(
     return kInlier;
   }
 }
-} // namespace dso
+}  // namespace dso

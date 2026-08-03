@@ -4,9 +4,8 @@
 
 namespace dso {
 
-template <typename TVec3,
-          typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
-inline Matrix3<typename TVec3::Scalar> Skew(const TVec3 &v) {
+template <typename TVec3, typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
+inline Matrix3<typename TVec3::Scalar> Skew(const TVec3& v) {
   using T = typename TVec3::Scalar;
   Matrix3<T> mat = Matrix3<T>::Zero();
   mat(0, 1) = -v(2);
@@ -18,9 +17,8 @@ inline Matrix3<typename TVec3::Scalar> Skew(const TVec3 &v) {
   return mat;
 }
 
-template <typename TVec3,
-          typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
-inline Matrix3<typename TVec3::Scalar> ExpSO3(const TVec3 &omega) {
+template <typename TVec3, typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
+inline Matrix3<typename TVec3::Scalar> ExpSO3(const TVec3& omega) {
   using std::abs;
   using std::cos;
   using std::sin;
@@ -31,12 +29,10 @@ inline Matrix3<typename TVec3::Scalar> ExpSO3(const TVec3 &omega) {
   T real_factor;
   T theta;
   // todo: test when theta_sq is extremely small
-  if (theta_sq <
-      std::numeric_limits<T>::epsilon() * std::numeric_limits<T>::epsilon()) {
+  if (theta_sq < std::numeric_limits<T>::epsilon() * std::numeric_limits<T>::epsilon()) {
     theta = T(0);
     T theta_po4 = theta_sq * theta_sq;
-    imag_factor =
-        T(0.5) - T(1.0 / 48.0) * theta_sq + T(1.0 / 3840.0) * theta_po4;
+    imag_factor = T(0.5) - T(1.0 / 48.0) * theta_sq + T(1.0 / 3840.0) * theta_po4;
     real_factor = T(1) - T(1.0 / 8.0) * theta_sq + T(1.0 / 384.0) * theta_po4;
   } else {
     theta = sqrt(theta_sq);
@@ -45,27 +41,24 @@ inline Matrix3<typename TVec3::Scalar> ExpSO3(const TVec3 &omega) {
     imag_factor = sin_half_theta / (theta);
     real_factor = cos(half_theta);
   }
-  Eigen::Quaternion<T> q(real_factor, imag_factor * omega.x(),
-                         imag_factor * omega.y(), imag_factor * omega.z());
+  Eigen::Quaternion<T> q(real_factor, imag_factor * omega.x(), imag_factor * omega.y(), imag_factor * omega.z());
   return q.toRotationMatrix();
 }
 
-template <typename TVec3,
-          typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
-inline Matrix4<typename TVec3::Scalar> ExpSE3(const TVec3 &w, const TVec3 &v) {
+template <typename TVec3, typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
+inline Matrix4<typename TVec3::Scalar> ExpSE3(const TVec3& w, const TVec3& v) {
   using std::cos;
   using std::sin;
   using T = typename TVec3::Scalar;
   using TMat3 = Matrix3<T>;
   using TMat4 = Matrix4<T>;
 
-  const TVec3 &omega = w;
+  const TVec3& omega = w;
   T theta_sq = omega.squaredNorm();
 
   T theta;
 
-  if (theta_sq <
-      std::numeric_limits<T>::epsilon() * std::numeric_limits<T>::epsilon())
+  if (theta_sq < std::numeric_limits<T>::epsilon() * std::numeric_limits<T>::epsilon())
     theta = T(0);
   else
     theta = std::sqrt(theta_sq);
@@ -93,9 +86,8 @@ inline Matrix4<typename TVec3::Scalar> ExpSE3(const TVec3 &w, const TVec3 &v) {
   return result;
 }
 
-template <typename TMat3,
-          typename = std::enable_if_t<IsFixedSizeMatrix<TMat3, 3, 3>::value>>
-inline Vector3<typename TMat3::Scalar> Log(const TMat3 &R) {
+template <typename TMat3, typename = std::enable_if_t<IsFixedSizeMatrix<TMat3, 3, 3>::value>>
+inline Vector3<typename TMat3::Scalar> Log(const TMat3& R) {
   using T = typename TMat3::Scalar;
   using TVec3 = Vector3<T>;
 
@@ -121,7 +113,7 @@ inline Vector3<typename TMat3::Scalar> Log(const TMat3 &R) {
       omega = (kOur_PI / sqrt(2.0 + 2.0 * R11)) * TVec3(1.0 + R11, R21, R31);
   } else {
     T magnitude;
-    const T tr_3 = tr - static_cast<T>(3.0); // always negative
+    const T tr_3 = tr - static_cast<T>(3.0);  // always negative
     if (tr_3 < -1e-7) {
       T theta = acos((tr - 1.0) / 2.0);
       magnitude = theta / (2.0 * sin(theta));
@@ -135,9 +127,8 @@ inline Vector3<typename TMat3::Scalar> Log(const TMat3 &R) {
   return omega;
 }
 
-template <typename TMat4,
-          typename = std::enable_if_t<IsFixedSizeMatrix<TMat4, 4, 4>::value>>
-inline Vector6<typename TMat4::Scalar> Log(const TMat4 &P) {
+template <typename TMat4, typename = std::enable_if_t<IsFixedSizeMatrix<TMat4, 4, 4>::value>>
+inline Vector6<typename TMat4::Scalar> Log(const TMat4& P) {
   using T = typename TMat4::Scalar;
   using TVec3 = Vector3<T>;
   using TVec6 = Vector6<T>;
@@ -150,22 +141,19 @@ inline Vector6<typename TMat4::Scalar> Log(const TMat4 &P) {
   drdp.template head<3>() = omega;
   TMat3 Omega = Skew(omega);
   if (theta < std::numeric_limits<T>::epsilon()) {
-    TMat3 V_inv =
-        TMat3::Identity() - T(0.5) * Omega + T(1. / 12.) * (Omega * Omega);
+    TMat3 V_inv = TMat3::Identity() - T(0.5) * Omega + T(1. / 12.) * (Omega * Omega);
     drdp.template tail<3>() = V_inv * P.template block<3, 1>(0, 3);
   } else {
     T half_theta = T(0.5) * theta;
     TMat3 V_inv = (TMat3::Identity() - T(0.5) * Omega +
-                   (T(1) - theta * cos(half_theta) / (T(2) * sin(half_theta))) /
-                       (theta * theta) * (Omega * Omega));
+                   (T(1) - theta * cos(half_theta) / (T(2) * sin(half_theta))) / (theta * theta) * (Omega * Omega));
     drdp.template tail<3>() = V_inv * P.template block<3, 1>(0, 3);
   }
   return drdp;
 }
 
-template <typename TVec3,
-          typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
-inline Matrix3<typename TVec3::Scalar> Jr(const TVec3 &phi) {
+template <typename TVec3, typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
+inline Matrix3<typename TVec3::Scalar> Jr(const TVec3& phi) {
   using T = typename TVec3::Scalar;
   using TMat3 = Matrix3<T>;
 
@@ -192,9 +180,8 @@ inline Matrix3<typename TVec3::Scalar> Jr(const TVec3 &phi) {
   return J;
 }
 
-template <typename TVec3,
-          typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
-inline Matrix3<typename TVec3::Scalar> JrInv(const TVec3 &phi) {
+template <typename TVec3, typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
+inline Matrix3<typename TVec3::Scalar> JrInv(const TVec3& phi) {
   using T = typename TVec3::Scalar;
   using TMat3 = Matrix3<T>;
 
@@ -211,13 +198,11 @@ inline Matrix3<typename TVec3::Scalar> JrInv(const TVec3 &phi) {
   if (phi_norm2 > EPSILON) {
     T phi_norm = std::sqrt(phi_norm2);
 
-    assert(phi_norm <= kOur_PI + EPSILON &&
-           "We require that the angle is in range [0, pi].");
+    assert(phi_norm <= kOur_PI + EPSILON && "We require that the angle is in range [0, pi].");
 
     if (phi_norm < kOur_PI - EPSILONSQRT) {
       // regular case for range (0,pi)
-      J += phi_hat2 * (1 / phi_norm2 - (1 + std::cos(phi_norm)) /
-                                           (2 * phi_norm * std::sin(phi_norm)));
+      J += phi_hat2 * (1 / phi_norm2 - (1 + std::cos(phi_norm)) / (2 * phi_norm * std::sin(phi_norm)));
     } else {
       // 0th-order Taylor expansion around pi
       J += phi_hat2 / (kOur_PI * kOur_PI);
@@ -229,21 +214,18 @@ inline Matrix3<typename TVec3::Scalar> JrInv(const TVec3 &phi) {
   return J;
 }
 
-template <typename TVec3,
-          typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
-inline Matrix3<typename TVec3::Scalar> Jl(const TVec3 &phi) {
+template <typename TVec3, typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
+inline Matrix3<typename TVec3::Scalar> Jl(const TVec3& phi) {
   return Jr(-phi);
 }
 
-template <typename TVec3,
-          typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
-inline Matrix3<typename TVec3::Scalar> JlInv(const TVec3 &phi) {
+template <typename TVec3, typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
+inline Matrix3<typename TVec3::Scalar> JlInv(const TVec3& phi) {
   return JrInv(-phi);
 }
 
-template <typename TMat3,
-          typename = std::enable_if_t<IsFixedSizeMatrix<TMat3, 3, 3>::value>>
-inline void EnforceRot(TMat3 &R) {
+template <typename TMat3, typename = std::enable_if_t<IsFixedSizeMatrix<TMat3, 3, 3>::value>>
+inline void EnforceRot(TMat3& R) {
   using T = typename TMat3::Scalar;
   using TVec3 = Vector3<T>;
   TVec3 v0 = R.template block<3, 1>(0, 0);
@@ -256,13 +238,11 @@ inline void EnforceRot(TMat3 &R) {
   R.template block<3, 1>(0, 2) = v0.template cross(v1);
 }
 
-template <typename TMat4,
-          typename = std::enable_if_t<IsFixedSizeMatrix<TMat4, 4, 4>::value>>
-inline TMat4 InversePose(const TMat4 &T01) {
+template <typename TMat4, typename = std::enable_if_t<IsFixedSizeMatrix<TMat4, 4, 4>::value>>
+inline TMat4 InversePose(const TMat4& T01) {
   TMat4 res = TMat4::Identity();
   res.template block<3, 3>(0, 0) = T01.template block<3, 3>(0, 0).transpose();
-  res.template block<3, 1>(0, 3) =
-      -res.template block<3, 3>(0, 0) * T01.template block<3, 1>(0, 3);
+  res.template block<3, 1>(0, 3) = -res.template block<3, 3>(0, 0) * T01.template block<3, 1>(0, 3);
   return res;
 }
 
@@ -272,8 +252,7 @@ inline TMat4 InversePose(const TMat4 &T01) {
 
 // Skew(n) * R
 template <typename TVec3>
-inline Matrix3<typename TVec3::Scalar>
-LeftMultiSkew(const TVec3 &n, const Matrix3<typename TVec3::Scalar> &R) {
+inline Matrix3<typename TVec3::Scalar> LeftMultiSkew(const TVec3& n, const Matrix3<typename TVec3::Scalar>& R) {
   Matrix3<typename TVec3::Scalar> res;
   for (int i = 0; i < 3; ++i) {
     res.col(i) = n.template cross(R.col(i));
@@ -283,7 +262,7 @@ LeftMultiSkew(const TVec3 &n, const Matrix3<typename TVec3::Scalar> &R) {
 
 // R * Skew(n)
 template <typename TVec3, typename TMat3>
-inline TMat3 RightMultiSkew(const TMat3 &R, const TVec3 &n) {
+inline TMat3 RightMultiSkew(const TMat3& R, const TVec3& n) {
   TMat3 res;
   res(0, 0) = R(0, 1) * n(2) - R(0, 2) * n(1);
   res(0, 1) = R(0, 2) * n(0) - R(0, 0) * n(2);
@@ -298,15 +277,11 @@ inline TMat3 RightMultiSkew(const TMat3 &R, const TVec3 &n) {
 }
 
 template <typename TVec3>
-inline Matrx3x2<typename TVec3::Scalar>
-ProduceOtherOthogonalBasis(const TVec3 &n) {
+inline Matrx3x2<typename TVec3::Scalar> ProduceOtherOthogonalBasis(const TVec3& n) {
   TVec3 N = n;
-  if (N[0] < 0)
-    N[0] = -N[0];
-  if (N[1] < 0)
-    N[1] = -N[1];
-  if (N[2] < 0)
-    N[2] = -N[2];
+  if (N[0] < 0) N[0] = -N[0];
+  if (N[1] < 0) N[1] = -N[1];
+  if (N[2] < 0) N[2] = -N[2];
 
   int minIdx = 0;
   if (N[0] <= N[1]) {
@@ -323,15 +298,15 @@ ProduceOtherOthogonalBasis(const TVec3 &n) {
 
   Matrx3x2<typename TVec3::Scalar> A(Matrx3x2<typename TVec3::Scalar>::Zero());
   switch (minIdx) {
-  case 0:
-    A.template block<3, 1>(0, 0) = TVec3(0, -n[2], n[1]);
-    break;
-  case 1:
-    A.template block<3, 1>(0, 0) = TVec3(n[2], 0, -n[0]);
-    break;
-  case 2:
-    A.template block<3, 1>(0, 0) = TVec3(n[1], -n[0], 0);
-    break;
+    case 0:
+      A.template block<3, 1>(0, 0) = TVec3(0, -n[2], n[1]);
+      break;
+    case 1:
+      A.template block<3, 1>(0, 0) = TVec3(n[2], 0, -n[0]);
+      break;
+    case 2:
+      A.template block<3, 1>(0, 0) = TVec3(n[1], -n[0], 0);
+      break;
   }
   A.template block<3, 1>(0, 1) = n.template cross(A.template block<3, 1>(0, 0));
 
@@ -342,43 +317,30 @@ ProduceOtherOthogonalBasis(const TVec3 &n) {
 }
 
 template <typename TVec3, typename TMat3>
-inline void Mat3RightMultiplySkewM3V3(const TMat3 &left_mat3,
-                                      const TVec3 &right_skew, TMat3 &result) {
-  result(0, 0) =
-      left_mat3(0, 1) * right_skew(2) - left_mat3(0, 2) * right_skew(1);
-  result(0, 1) =
-      left_mat3(0, 2) * right_skew(0) - left_mat3(0, 0) * right_skew(2);
-  result(0, 2) =
-      left_mat3(0, 0) * right_skew(1) - left_mat3(0, 1) * right_skew(0);
-  result(1, 0) =
-      left_mat3(1, 1) * right_skew(2) - left_mat3(1, 2) * right_skew(1);
-  result(1, 1) =
-      left_mat3(1, 2) * right_skew(0) - left_mat3(1, 0) * right_skew(2);
-  result(1, 2) =
-      left_mat3(1, 0) * right_skew(1) - left_mat3(1, 1) * right_skew(0);
-  result(2, 0) =
-      left_mat3(2, 1) * right_skew(2) - left_mat3(2, 2) * right_skew(1);
-  result(2, 1) =
-      left_mat3(2, 2) * right_skew(0) - left_mat3(2, 0) * right_skew(2);
-  result(2, 2) =
-      left_mat3(2, 0) * right_skew(1) - left_mat3(2, 1) * right_skew(0);
+inline void Mat3RightMultiplySkewM3V3(const TMat3& left_mat3, const TVec3& right_skew, TMat3& result) {
+  result(0, 0) = left_mat3(0, 1) * right_skew(2) - left_mat3(0, 2) * right_skew(1);
+  result(0, 1) = left_mat3(0, 2) * right_skew(0) - left_mat3(0, 0) * right_skew(2);
+  result(0, 2) = left_mat3(0, 0) * right_skew(1) - left_mat3(0, 1) * right_skew(0);
+  result(1, 0) = left_mat3(1, 1) * right_skew(2) - left_mat3(1, 2) * right_skew(1);
+  result(1, 1) = left_mat3(1, 2) * right_skew(0) - left_mat3(1, 0) * right_skew(2);
+  result(1, 2) = left_mat3(1, 0) * right_skew(1) - left_mat3(1, 1) * right_skew(0);
+  result(2, 0) = left_mat3(2, 1) * right_skew(2) - left_mat3(2, 2) * right_skew(1);
+  result(2, 1) = left_mat3(2, 2) * right_skew(0) - left_mat3(2, 0) * right_skew(2);
+  result(2, 2) = left_mat3(2, 0) * right_skew(1) - left_mat3(2, 1) * right_skew(0);
 }
 
 template <typename TMat4, typename TVec3>
-inline void DiffInSE3(const TMat4 &T1, const TMat4 &T2, TVec3 &dr, TVec3 &dp) {
+inline void DiffInSE3(const TMat4& T1, const TMat4& T2, TVec3& dr, TVec3& dp) {
   using T = typename TVec3::Scalar;
   using TMat3 = Matrix3<T>;
-  TMat3 R =
-      T1.template block<3, 3>(0, 0) * T2.template block<3, 3>(0, 0).transpose();
+  TMat3 R = T1.template block<3, 3>(0, 0) * T2.template block<3, 3>(0, 0).transpose();
   TVec3 t = T1.template block<3, 1>(0, 3) - R * T2.template block<3, 1>(0, 3);
   dr = Log(R);
   dp = JrInv(-dr) * t;
 }
 
-template <typename TVec3,
-          typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
-inline Matrix3<typename TVec3::Scalar> GetRotationFromV1ToV2(const TVec3 &v1,
-                                                             const TVec3 &v2) {
+template <typename TVec3, typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
+inline Matrix3<typename TVec3::Scalar> GetRotationFromV1ToV2(const TVec3& v1, const TVec3& v2) {
   using T = typename Matrix3<typename TVec3::Scalar>::Scalar;
   TVec3 a = v1.normalized();
   TVec3 b = v2.normalized();
@@ -398,11 +360,9 @@ inline Matrix3<typename TVec3::Scalar> GetRotationFromV1ToV2(const TVec3 &v1,
   return ExpSO3(theta * n);
 }
 
-template <typename TVec3,
-          typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
-inline int TriangulateWithCheckTheta(typename TVec3::Scalar &idp,
-                                     const Matrix4<typename TVec3::Scalar> &T01,
-                                     const TVec3 &v0, const TVec3 &v1) {
+template <typename TVec3, typename = std::enable_if_t<IsFixedSizeVector<TVec3, 3>::value>>
+inline int TriangulateWithCheckTheta(typename TVec3::Scalar& idp, const Matrix4<typename TVec3::Scalar>& T01,
+                                     const TVec3& v0, const TVec3& v1) {
   using T = typename TVec3::Scalar;
   using TMatrix6x3 = Matrix6x3<T>;
   using TVec6 = Vector6<T>;
@@ -411,11 +371,8 @@ inline int TriangulateWithCheckTheta(typename TVec3::Scalar &idp,
   TMatrix6x3 A = TMatrix6x3::Zero();
   TVec6 b = TVec6::Zero();
   A.template block<3, 3>(0, 0) = Skew(v0);
-  A.template block<3, 3>(3, 0) =
-      Skew(v1) * T01.template block<3, 3>(0, 0).transpose();
-  b.template segment<3>(3) = Skew(v1) *
-                             T01.template block<3, 3>(0, 0).transpose() *
-                             T01.template block<3, 1>(0, 3);
+  A.template block<3, 3>(3, 0) = Skew(v1) * T01.template block<3, 3>(0, 0).transpose();
+  b.template segment<3>(3) = Skew(v1) * T01.template block<3, 3>(0, 0).transpose() * T01.template block<3, 1>(0, 3);
   TVec3 s = A.transpose() * b;
   TMat3 AA = A.transpose() * A;
   TVec3 xyz = AA.ldlt().solve(s);
@@ -434,7 +391,7 @@ inline int TriangulateWithCheckTheta(typename TVec3::Scalar &idp,
   return 0;
 }
 
-inline Mat6 Adj(const Mat4 &T) {
+inline Mat6 Adj(const Mat4& T) {
   Mat3 R = T.topLeftCorner<3, 3>();
   Mat6 res;
   res.block(0, 0, 3, 3) = R;
@@ -444,22 +401,20 @@ inline Mat6 Adj(const Mat4 &T) {
   return res;
 }
 
-inline Mat6 JrInvSE3Decoupled(const Vec6 &res) {
+inline Mat6 JrInvSE3Decoupled(const Vec6& res) {
   Mat6 J = Mat6::Zero();
-  const Vec3 &r = res.head(3);
+  const Vec3& r = res.head(3);
   J.block(0, 0, 3, 3) = JrInv(r);
   J.block(3, 3, 3, 3) = ExpSO3(r);
   return J;
 }
 
-inline int Triangulate(number_t &idp, const Mat4 &T01, const Vec3 &v0,
-                       const Vec3 &v1) {
+inline int Triangulate(number_t& idp, const Mat4& T01, const Vec3& v0, const Vec3& v1) {
   Mat63 A = Mat63::Zero();
   Vec6 b = Vec6::Zero();
   A.block<3, 3>(0, 0) = Skew(v0);
   A.block<3, 3>(3, 0) = Skew(v1) * T01.block<3, 3>(0, 0).transpose();
-  b.segment<3>(3) =
-      Skew(v1) * T01.block<3, 3>(0, 0).transpose() * T01.block<3, 1>(0, 3);
+  b.segment<3>(3) = Skew(v1) * T01.block<3, 3>(0, 0).transpose() * T01.block<3, 1>(0, 3);
   Vec3 s = A.transpose() * b;
   Mat3 AA = A.transpose() * A;
   Vec3 xyz = AA.ldlt().solve(s);
@@ -472,11 +427,8 @@ inline int Triangulate(number_t &idp, const Mat4 &T01, const Vec3 &v0,
   return 1;
 }
 
-inline number_t
-MultiViewTriangulation(const std::vector<Mat4> &poses,
-                       const std::vector<Vec3> &points,
-                       std::vector<std::pair<number_t, int>> &err_vec,
-                       VecX &errs, Vec3 &point_3d) {
+inline number_t MultiViewTriangulation(const std::vector<Mat4>& poses, const std::vector<Vec3>& points,
+                                       std::vector<std::pair<number_t, int>>& err_vec, VecX& errs, Vec3& point_3d) {
   // TODO:Rewrite this for 3d point
   Eigen::MatrixXd design_matrix(poses.size() * 2, 4);
   assert(poses.size() > 0 && poses.size() == points.size() &&
@@ -486,12 +438,10 @@ MultiViewTriangulation(const std::vector<Mat4> &poses,
     double p0y = points[i][1];
     double p0z = points[i][2];
     design_matrix.row(i * 2) = p0x * poses[i].row(2) - p0z * poses[i].row(0);
-    design_matrix.row(i * 2 + 1) =
-        p0y * poses[i].row(2) - p0z * poses[i].row(1);
+    design_matrix.row(i * 2 + 1) = p0y * poses[i].row(2) - p0z * poses[i].row(1);
   }
   Vec4 triangulated_point;
-  triangulated_point =
-      design_matrix.jacobiSvd(Eigen::ComputeFullV).matrixV().rightCols<1>();
+  triangulated_point = design_matrix.jacobiSvd(Eigen::ComputeFullV).matrixV().rightCols<1>();
   point_3d(0) = triangulated_point(0) / triangulated_point(3);
   point_3d(1) = triangulated_point(1) / triangulated_point(3);
   point_3d(2) = triangulated_point(2) / triangulated_point(3);
@@ -506,9 +456,7 @@ MultiViewTriangulation(const std::vector<Mat4> &poses,
   //    std::cout <<"err each: " << errs.transpose() << std::endl;
   number_t err_sum = 0;
   for (size_t i = 0; i < poses.size(); i++) {
-    Vec3 rep = (poses[i].topLeftCorner<3, 3>() * point_3d +
-                poses[i].topRightCorner<3, 1>())
-                   .normalized();
+    Vec3 rep = (poses[i].topLeftCorner<3, 3>() * point_3d + poses[i].topRightCorner<3, 1>()).normalized();
     err_vec[i].first = 235.0 * (rep - points[i]).norm();
     err_sum += err_vec[i].first;
     //      Vec3 rep2 = rep / rep(2);
@@ -525,4 +473,4 @@ MultiViewTriangulation(const std::vector<Mat4> &poses,
   return err_sum / static_cast<number_t>(poses.size());
 }
 
-} // namespace dso
+}  // namespace dso

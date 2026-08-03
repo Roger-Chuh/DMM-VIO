@@ -37,8 +37,7 @@ struct Conic {
 };
 
 template <typename TdI>
-Mat3 FindEllipse(const int w, const int /*h*/, const TdI *dI,
-                 const std::set<int> &pixels, double & /*residual*/) {
+Mat3 FindEllipse(const int w, const int /*h*/, const TdI* dI, const std::set<int>& pixels, double& /*residual*/) {
   // Precise ellipse estimation without contour point extraction
   // Jean-Nicolas Ouellet, Patrick Hebert
 
@@ -50,19 +49,17 @@ Mat3 FindEllipse(const int w, const int /*h*/, const TdI *dI,
   Vec5 b = Vec5::Zero();
 
   //    float elementCount = 0;
-  for (const int &pixel_id : pixels) {
+  for (const int& pixel_id : pixels) {
     int col = pixel_id % w;
     int row = pixel_id / w;
-    const TdI *dIv = dI + row * w;
-    const Vec3 d = Vec3(dIv[col][0], dIv[col][1],
-                        -(dIv[col][0] * col + dIv[col][1] * row));
+    const TdI* dIv = dI + row * w;
+    const Vec3 d = Vec3(dIv[col][0], dIv[col][1], -(dIv[col][0] * col + dIv[col][1] * row));
     //            const Eigen::Vector3d li = //H.T() * d;
     //                    Eigen::Vector3d( d[0]*H(0,0), d[1]*H(1,1), d[0]*H(0,2)
     //                    + d[1] * H(1,2) + d[2] );
-    const Vec3 &li = d;
+    const Vec3& li = d;
     Vec5 Ki;
-    Ki << li[0] * li[0], li[0] * li[1], li[1] * li[1], li[0] * li[2],
-        li[1] * li[2];
+    Ki << li[0] * li[0], li[0] * li[1], li[1] * li[1], li[0] * li[2], li[1] * li[2];
     A += Ki * Ki.transpose();
     b += -Ki * li[2] * li[2];
   }
@@ -77,8 +74,7 @@ Mat3 FindEllipse(const int w, const int /*h*/, const TdI *dI,
   //  //residual/=elementCount;
 
   Mat3 C_star_norm;
-  C_star_norm << x[0], x[1] / 2.0, x[3] / 2.0, x[1] / 2.0, x[2], x[4] / 2.0,
-      x[3] / 2.0, x[4] / 2.0, 1.0;
+  C_star_norm << x[0], x[1] / 2.0, x[3] / 2.0, x[1] / 2.0, x[2], x[4] / 2.0, x[3] / 2.0, x[4] / 2.0, 1.0;
 
   //    const Eigen::Matrix3d C = Hinv.transpose() * C_star_norm.inverse() *
   //    Hinv;
@@ -86,21 +82,20 @@ Mat3 FindEllipse(const int w, const int /*h*/, const TdI *dI,
   //  const Matrix3d C_star = LU<3>(C).get_inverse();
   //  return C_star/C_star[2][2];
 
-  return C; // C/C(2,2);
+  return C;  // C/C(2,2);
 }
 
 template <typename TdI>
-void FindConics(const int w, const int h, std::vector<PixelClass> &candidates,
-                const TdI *dI, std::vector<Conic> &conics,
-                bool black_on_white) {
+void FindConics(const int w, const int h, std::vector<PixelClass>& candidates, const TdI* dI,
+                std::vector<Conic>& conics, bool black_on_white) {
   const int dx[4] = {-1, 1, 0, 0};
   const int dy[4] = {0, 0, -1, 1};
 
-  for (auto &candidate : candidates) {
+  for (auto& candidate : candidates) {
     if (candidate.is_near_boarder) {
       continue;
     }
-    const IRectangle &region = candidate.bbox;
+    const IRectangle& region = candidate.bbox;
 
     Conic conic;
     double residual = 0;
@@ -108,14 +103,13 @@ void FindConics(const int w, const int h, std::vector<PixelClass> &candidates,
     candidate.cluster_center.setZero();
     candidate.ellipse_pixel_set.clear();
     std::queue<int> search_pixel_queue;
-    for (const auto &pixel_id : candidate.cluster_pixel_set) {
+    for (const auto& pixel_id : candidate.cluster_pixel_set) {
       search_pixel_queue.emplace(pixel_id);
       candidate.ellipse_pixel_set.insert(pixel_id);
       Vec2 uv(pixel_id % w, pixel_id / w);
       candidate.cluster_center += uv;
     }
-    candidate.cluster_center /=
-        static_cast<double>(candidate.cluster_pixel_set.size());
+    candidate.cluster_center /= static_cast<double>(candidate.cluster_pixel_set.size());
 
     while (!search_pixel_queue.empty()) {
       int col = search_pixel_queue.front() % w;
@@ -124,11 +118,10 @@ void FindConics(const int w, const int h, std::vector<PixelClass> &candidates,
         int nextCol = col + dx[i];
         int nextRow = row + dy[i];
         int pixel_id = nextCol + w * nextRow;
-        if (nextRow >= candidate.bbox.y1 && nextRow <= candidate.bbox.y2 &&
-            nextCol >= candidate.bbox.x1 && nextCol <= candidate.bbox.x2 &&
-            candidate.ellipse_pixel_set.find(pixel_id) ==
-                candidate.ellipse_pixel_set.end()) {
-          const TdI *dIv = dI + row * w;
+        if (nextRow >= candidate.bbox.y1 && nextRow <= candidate.bbox.y2 && nextCol >= candidate.bbox.x1 &&
+            nextCol <= candidate.bbox.x2 &&
+            candidate.ellipse_pixel_set.find(pixel_id) == candidate.ellipse_pixel_set.end()) {
+          const TdI* dIv = dI + row * w;
           Vec2 gradient_dir(dIv[col][0], dIv[col][1]);
           Vec2 ratio_to_center;
           if (gradient_dir.norm() < 5) {
@@ -152,13 +145,12 @@ void FindConics(const int w, const int h, std::vector<PixelClass> &candidates,
 
     // remove outlier pixel in cluster
     for (int pixel_id : candidate.cluster_pixel_set) {
-      if (candidate.ellipse_pixel_set.find(pixel_id) ==
-          candidate.ellipse_pixel_set.end()) {
+      if (candidate.ellipse_pixel_set.find(pixel_id) == candidate.ellipse_pixel_set.end()) {
         continue;
       }
       int col = pixel_id % w;
       int row = pixel_id / w;
-      const TdI *dIv = dI + row * w;
+      const TdI* dIv = dI + row * w;
       Vec2 gradient_dir(dIv[col][0], dIv[col][1]);
       if (gradient_dir.norm() < 5) {
         candidate.ellipse_pixel_set.erase(pixel_id);
@@ -186,9 +178,8 @@ void FindConics(const int w, const int h, std::vector<PixelClass> &candidates,
     conic.len = std::max(region.Width(), region.Height());
 
     const double max_dist = (std::min(region.Width(), region.Height())) / 4.0;
-    if ((conic.center - region.Center()).norm() < max_dist)
-      conics.push_back(conic);
+    if ((conic.center - region.Center()).norm() < max_dist) conics.push_back(conic);
   }
 };
 
-} // namespace dso::DotDetect
+}  // namespace dso::DotDetect

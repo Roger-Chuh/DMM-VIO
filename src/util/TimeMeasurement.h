@@ -32,19 +32,19 @@
 namespace dmvio {
 // Saves mean, maximum, and variance.
 class MeasurementLog {
-public:
+ public:
   MeasurementLog() = default;
 
   void addMeasurement(double time);
 
-  void writeLogLine(std::ostream &stream) const;
+  void writeLogLine(std::ostream& stream) const;
 
   int getNum() const;
   double getMax() const;
   double getMean() const;
   double getVariance() const;
 
-private:
+ private:
   double sum{0};
   double max{0};
   int num{0};
@@ -60,9 +60,9 @@ private:
 // be measurements with the same name in different threads, otherwise there can
 // be an endless loop / segfault in the first call!
 class TimeMeasurement final {
-public:
+ public:
   TimeMeasurement(std::string name);
-  TimeMeasurement(const TimeMeasurement &) = delete;
+  TimeMeasurement(const TimeMeasurement&) = delete;
   ~TimeMeasurement();
 
   // End the measurement interval. Optional, if not called the destructor will
@@ -74,7 +74,7 @@ public:
 
   static void saveResults(std::string filename);
 
-private:
+ private:
   static bool saveFileOpen;
   static std::ofstream saveFile;
   static std::map<std::string, MeasurementLog> logs;
@@ -83,8 +83,8 @@ private:
   std::chrono::high_resolution_clock::time_point begin;
   bool ended{false};
 };
-} // namespace dmvio
+}  // namespace dmvio
 
-std::ostream &operator<<(std::ostream &os, const dmvio::MeasurementLog &obj);
+std::ostream& operator<<(std::ostream& os, const dmvio::MeasurementLog& obj);
 
-#endif // DMVIO_TIMEMEASUREMENT_H
+#endif  // DMVIO_TIMEMEASUREMENT_H

@@ -40,7 +40,7 @@
 namespace dso {
 namespace IOWrap {
 
-KeyFrameDisplay::KeyFrameDisplay(MultiCamera *p_multi_camera_) {
+KeyFrameDisplay::KeyFrameDisplay(MultiCamera* p_multi_camera_) {
   p_multi_camera = p_multi_camera_;
   originalInputSparse = 0;
   numSparseBufferSize = 0;
@@ -62,7 +62,7 @@ KeyFrameDisplay::KeyFrameDisplay(MultiCamera *p_multi_camera_) {
   bufferValid = false;
 }
 
-void KeyFrameDisplay::setFromF(FrameShell *frame, CalibHessian *HCalib) {
+void KeyFrameDisplay::setFromF(FrameShell* frame, CalibHessian* HCalib) {
   id = frame->id;
   fx = HCalib->fxl();
   fy = HCalib->fyl();
@@ -78,8 +78,7 @@ void KeyFrameDisplay::setFromF(FrameShell *frame, CalibHessian *HCalib) {
   needRefresh = true;
 }
 
-void KeyFrameDisplay::setFromPose(const Sophus::SE3 &pose,
-                                  CalibHessian *HCalib) {
+void KeyFrameDisplay::setFromPose(const Sophus::SE3& pose, CalibHessian* HCalib) {
   id = 0;
   fx = HCalib->fxl();
   fy = HCalib->fyl();
@@ -95,28 +94,24 @@ void KeyFrameDisplay::setFromPose(const Sophus::SE3 &pose,
   needRefresh = true;
 }
 
-void KeyFrameDisplay::setFromKF(FrameHessian *fh, CalibHessian *HCalib) {
+void KeyFrameDisplay::setFromKF(FrameHessian* fh, CalibHessian* HCalib) {
   setFromF(fh->shell, HCalib);
 
   // add all traces, inlier and outlier points.
-  int npoints = fh->immaturePoints.size() + fh->pointHessians.size() +
-                fh->pointHessiansMarginalized.size() +
+  int npoints = fh->immaturePoints.size() + fh->pointHessians.size() + fh->pointHessiansMarginalized.size() +
                 fh->pointHessiansOut.size();
 
   if (numSparseBufferSize < npoints) {
-    if (originalInputSparse != 0)
-      delete originalInputSparse;
+    if (originalInputSparse != 0) delete originalInputSparse;
     numSparseBufferSize = npoints + 100;
-    originalInputSparse =
-        new InputPointSparse<MAX_RES_PER_POINT>[numSparseBufferSize];
+    originalInputSparse = new InputPointSparse<MAX_RES_PER_POINT>[numSparseBufferSize];
   }
 
-  InputPointSparse<MAX_RES_PER_POINT> *pc = originalInputSparse;
+  InputPointSparse<MAX_RES_PER_POINT>* pc = originalInputSparse;
   numSparsePoints = 0;
   if (true) {
-    for (ImmaturePoint *p : fh->immaturePoints) {
-      for (int i = 0; i < patternNum; i++)
-        pc[numSparsePoints].color[i] = p->color[i];
+    for (ImmaturePoint* p : fh->immaturePoints) {
+      for (int i = 0; i < patternNum; i++) pc[numSparsePoints].color[i] = p->color[i];
 
       pc[numSparsePoints].cid = p->host_cid;
       pc[numSparsePoints].u = p->u;
@@ -130,9 +125,8 @@ void KeyFrameDisplay::setFromKF(FrameHessian *fh, CalibHessian *HCalib) {
     }
   }
   if (true) {
-    for (PointHessian *p : fh->pointHessians) {
-      for (int i = 0; i < patternNum; i++)
-        pc[numSparsePoints].color[i] = p->color[i];
+    for (PointHessian* p : fh->pointHessians) {
+      for (int i = 0; i < patternNum; i++) pc[numSparsePoints].color[i] = p->color[i];
       pc[numSparsePoints].cid = p->host_cid;
       pc[numSparsePoints].u = p->u;
       pc[numSparsePoints].v = p->v;
@@ -145,9 +139,8 @@ void KeyFrameDisplay::setFromKF(FrameHessian *fh, CalibHessian *HCalib) {
       numSparsePoints++;
     }
   }
-  for (PointHessian *p : fh->pointHessiansMarginalized) {
-    for (int i = 0; i < patternNum; i++)
-      pc[numSparsePoints].color[i] = p->color[i];
+  for (PointHessian* p : fh->pointHessiansMarginalized) {
+    for (int i = 0; i < patternNum; i++) pc[numSparsePoints].color[i] = p->color[i];
     pc[numSparsePoints].cid = p->host_cid;
     pc[numSparsePoints].u = p->u;
     pc[numSparsePoints].v = p->v;
@@ -160,9 +153,8 @@ void KeyFrameDisplay::setFromKF(FrameHessian *fh, CalibHessian *HCalib) {
   }
 
   if (true) {
-    for (PointHessian *p : fh->pointHessiansOut) {
-      for (int i = 0; i < patternNum; i++)
-        pc[numSparsePoints].color[i] = p->color[i];
+    for (PointHessian* p : fh->pointHessiansOut) {
+      for (int i = 0; i < patternNum; i++) pc[numSparsePoints].color[i] = p->color[i];
       pc[numSparsePoints].cid = p->host_cid;
       pc[numSparsePoints].u = p->u;
       pc[numSparsePoints].v = p->v;
@@ -181,20 +173,16 @@ void KeyFrameDisplay::setFromKF(FrameHessian *fh, CalibHessian *HCalib) {
 }
 
 KeyFrameDisplay::~KeyFrameDisplay() {
-  if (originalInputSparse != 0)
-    delete[] originalInputSparse;
+  if (originalInputSparse != 0) delete[] originalInputSparse;
 }
 
-bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH,
-                                int mode, float minBS, int sparsity) {
+bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH, int mode, float minBS, int sparsity) {
   if (canRefresh) {
-    needRefresh = needRefresh || my_scaledTH != scaledTH || my_absTH != absTH ||
-                  my_displayMode != mode || my_minRelBS != minBS ||
-                  my_sparsifyFactor != sparsity;
+    needRefresh = needRefresh || my_scaledTH != scaledTH || my_absTH != absTH || my_displayMode != mode ||
+                  my_minRelBS != minBS || my_sparsifyFactor != sparsity;
   }
 
-  if (!needRefresh)
-    return false;
+  if (!needRefresh) return false;
   needRefresh = false;
 
   my_scaledTH = scaledTH;
@@ -204,12 +192,11 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH,
   my_sparsifyFactor = sparsity;
 
   // if there are no vertices, done!
-  if (numSparsePoints == 0)
-    return false;
+  if (numSparsePoints == 0) return false;
 
   // make data
-  Vec3f *tmpVertexBuffer = new Vec3f[numSparsePoints * patternNum];
-  Vec3b *tmpColorBuffer = new Vec3b[numSparsePoints * patternNum];
+  Vec3f* tmpVertexBuffer = new Vec3f[numSparsePoints * patternNum];
+  Vec3b* tmpColorBuffer = new Vec3b[numSparsePoints * patternNum];
   int vertexBufferNumPoints = 0;
 
   for (int i = 0; i < numSparsePoints; i++) {
@@ -220,44 +207,32 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH,
      * my_displayMode==3 - nothing
      */
 
-    if (my_displayMode == 1 && originalInputSparse[i].status != 1 &&
-        originalInputSparse[i].status != 2)
-      continue;
-    if (my_displayMode == 2 && originalInputSparse[i].status != 1)
-      continue;
-    if (my_displayMode > 2)
-      continue;
+    if (my_displayMode == 1 && originalInputSparse[i].status != 1 && originalInputSparse[i].status != 2) continue;
+    if (my_displayMode == 2 && originalInputSparse[i].status != 1) continue;
+    if (my_displayMode > 2) continue;
 
-    if (originalInputSparse[i].idpeth < 0)
-      continue;
+    if (originalInputSparse[i].idpeth < 0) continue;
 
     float depth = (1.0f / originalInputSparse[i].idpeth);
     float depth4 = depth * depth;
     depth4 *= depth4;
     float var = (1.0f / (originalInputSparse[i].idepth_hessian + 0.01));
 
-    if (var * depth4 > my_scaledTH)
-      continue;
+    if (var * depth4 > my_scaledTH) continue;
 
-    if (var > my_absTH)
-      continue;
+    if (var > my_absTH) continue;
 
-    if (originalInputSparse[i].relObsBaseline < my_minRelBS)
-      continue;
+    if (originalInputSparse[i].relObsBaseline < my_minRelBS) continue;
 
     for (int pnt = 0; pnt < patternNum; pnt++) {
-
-      if (my_sparsifyFactor > 1 && rand() % my_sparsifyFactor != 0)
-        continue;
+      if (my_sparsifyFactor > 1 && rand() % my_sparsifyFactor != 0) continue;
       float dx = patternP[pnt][0] / pattern_scale;
       float dy = patternP[pnt][1] / pattern_scale;
 
-      Vec3 xyz_ci =
-          Vec3(((originalInputSparse[i].u + dx) * fxi + cxi) * depth,
-               ((originalInputSparse[i].v + dy) * fyi + cyi) * depth,
-               depth * (1 + 2 * fxi * (rand() / (float)RAND_MAX - 0.5f)));
-      Vec3 xyz_c0 =
-          p_multi_camera->cid_to_T01_SE3[originalInputSparse[i].cid] * xyz_ci;
+      Vec3 xyz_ci = Vec3(((originalInputSparse[i].u + dx) * fxi + cxi) * depth,
+                         ((originalInputSparse[i].v + dy) * fyi + cyi) * depth,
+                         depth * (1 + 2 * fxi * (rand() / (float)RAND_MAX - 0.5f)));
+      Vec3 xyz_c0 = p_multi_camera->cid_to_T01_SE3[originalInputSparse[i].cid] * xyz_ci;
 
       tmpVertexBuffer[vertexBufferNumPoints][0] = xyz_c0[0];
       //((originalInputSparse[i].u + dx) * fxi + cxi) * depth;
@@ -290,12 +265,9 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH,
         }
 
       } else {
-        tmpColorBuffer[vertexBufferNumPoints][0] =
-            originalInputSparse[i].color[pnt];
-        tmpColorBuffer[vertexBufferNumPoints][1] =
-            originalInputSparse[i].color[pnt];
-        tmpColorBuffer[vertexBufferNumPoints][2] =
-            originalInputSparse[i].color[pnt];
+        tmpColorBuffer[vertexBufferNumPoints][0] = originalInputSparse[i].color[pnt];
+        tmpColorBuffer[vertexBufferNumPoints][1] = originalInputSparse[i].color[pnt];
+        tmpColorBuffer[vertexBufferNumPoints][2] = originalInputSparse[i].color[pnt];
       }
       vertexBufferNumPoints++;
 
@@ -312,15 +284,11 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH,
   numGLBufferGoodPoints = vertexBufferNumPoints;
   if (numGLBufferGoodPoints > numGLBufferPoints) {
     numGLBufferPoints = vertexBufferNumPoints * 1.3;
-    vertexBuffer.Reinitialise(pangolin::GlArrayBuffer, numGLBufferPoints,
-                              GL_FLOAT, 3, GL_DYNAMIC_DRAW);
-    colorBuffer.Reinitialise(pangolin::GlArrayBuffer, numGLBufferPoints,
-                             GL_UNSIGNED_BYTE, 3, GL_DYNAMIC_DRAW);
+    vertexBuffer.Reinitialise(pangolin::GlArrayBuffer, numGLBufferPoints, GL_FLOAT, 3, GL_DYNAMIC_DRAW);
+    colorBuffer.Reinitialise(pangolin::GlArrayBuffer, numGLBufferPoints, GL_UNSIGNED_BYTE, 3, GL_DYNAMIC_DRAW);
   }
-  vertexBuffer.Upload(tmpVertexBuffer,
-                      sizeof(float) * 3 * numGLBufferGoodPoints, 0);
-  colorBuffer.Upload(tmpColorBuffer,
-                     sizeof(unsigned char) * 3 * numGLBufferGoodPoints, 0);
+  vertexBuffer.Upload(tmpVertexBuffer, sizeof(float) * 3 * numGLBufferGoodPoints, 0);
+  colorBuffer.Upload(tmpColorBuffer, sizeof(unsigned char) * 3 * numGLBufferGoodPoints, 0);
   bufferValid = true;
   delete[] tmpColorBuffer;
   delete[] tmpVertexBuffer;
@@ -328,16 +296,15 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH,
   return true;
 }
 
-void KeyFrameDisplay::drawCam(float lineWidth, float *color, float sizeFactor) {
-  if (width == 0)
-    return;
+void KeyFrameDisplay::drawCam(float lineWidth, float* color, float sizeFactor) {
+  if (width == 0) return;
 
   float sz = sizeFactor;
 
   glPushMatrix();
 
   Sophus::Matrix4f m = camToWorld.matrix().cast<float>();
-  glMultMatrixf((GLfloat *)m.data());
+  glMultMatrixf((GLfloat*)m.data());
 
   if (color == 0) {
     glColor3f(1, 0, 0);
@@ -372,16 +339,14 @@ void KeyFrameDisplay::drawCam(float lineWidth, float *color, float sizeFactor) {
 }
 
 void KeyFrameDisplay::drawPC(float pointSize) {
-
-  if (!bufferValid || numGLBufferGoodPoints == 0)
-    return;
+  if (!bufferValid || numGLBufferGoodPoints == 0) return;
 
   glDisable(GL_LIGHTING);
 
   glPushMatrix();
 
   Sophus::Matrix4f m = camToWorld.matrix().cast<float>();
-  glMultMatrixf((GLfloat *)m.data());
+  glMultMatrixf((GLfloat*)m.data());
 
   glPointSize(pointSize);
 
@@ -402,5 +367,5 @@ void KeyFrameDisplay::drawPC(float pointSize) {
   glPopMatrix();
 }
 
-} // namespace IOWrap
-} // namespace dso
+}  // namespace IOWrap
+}  // namespace dso

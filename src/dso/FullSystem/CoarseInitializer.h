@@ -47,22 +47,22 @@ class DepthFilterDSM;
 class EstimatorConfig;
 class MultiCamera;
 struct Pnt {
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   // index in jacobian. never changes (actually, there is no reason why).
   float u, v;
 
   // idepth / isgood / energy during optimization.
-  float idepth; //!< 该点对应参考帧的逆深度
-  bool isGood;  //!< 点在新图像内, 相机前, 像素值有穷则好
-  Vec2f energy; //!< [0]残差的平方, [1]正则化项(逆深度减一的平方)//
-                //!< [[0表示evaluate的残差，1表示跟先验idepth的残差]]
-                //!< (UenergyPhotometric, energyRegularizer)
+  float idepth;  //!< 该点对应参考帧的逆深度
+  bool isGood;   //!< 点在新图像内, 相机前, 像素值有穷则好
+  Vec2f energy;  //!< [0]残差的平方, [1]正则化项(逆深度减一的平方)//
+                 //!< [[0表示evaluate的残差，1表示跟先验idepth的残差]]
+                 //!< (UenergyPhotometric, energyRegularizer)
   int host_cid;
   bool isGood_new;
-  float idepth_new; //!< 该点在新的一帧(当前帧)上的逆深度
-  Vec2f energy_new; //!< 迭代计算的新的能量,
-                    //!< [[0表示evaluate的残差，1表示跟先验idepth的残差]]
+  float idepth_new;  //!< 该点在新的一帧(当前帧)上的逆深度
+  Vec2f energy_new;  //!< 迭代计算的新的能量,
+                     //!< [[0表示evaluate的残差，1表示跟先验idepth的残差]]
   std::array<bool, kCameraNumUsed> is_valid_project;
 
   // float v_energy_vec[70];
@@ -72,133 +72,121 @@ public:
   float max_zncc = -999999;
   float median_energy = 999999;
 
-  float iR;       //!< 逆深度的期望值
-  float iRSumNum; //!< 子点逆深度信息矩阵之和
+  float iR;        //!< 逆深度的期望值
+  float iRSumNum;  //!< 子点逆深度信息矩阵之和
 
-  float iR_triangle;         //!< 逆深度的期望值
-  float idepth_new_triangle; //!< 逆深度的期望值
+  float iR_triangle;          //!< 逆深度的期望值
+  float idepth_new_triangle;  //!< 逆深度的期望值
 
-  float lastHessian;     //!< 逆深度的Hessian, 即协方差, dd*dd
-  float lastHessian_new; //!< 新一次迭代的协方差
+  float lastHessian;      //!< 逆深度的Hessian, 即协方差, dd*dd
+  float lastHessian_new;  //!< 新一次迭代的协方差
   int valid_cid_num = -1;
 
   // max stepsize for idepth (corresponding to max. movement in pixel-space).
-  float maxstep; //!< 逆深度增加的最大步长
+  float maxstep;  //!< 逆深度增加的最大步长
 
   // idx (x+y*w) of closest point one pyramid level above.
-  int parent;       //!< 上一层中该点的父节点 (距离最近的)的id
-  float parentDist; //!< 上一层中与父节点的距离
+  int parent;        //!< 上一层中该点的父节点 (距离最近的)的id
+  float parentDist;  //!< 上一层中与父节点的距离
 
   // idx (x+y*w) of up to 10 nearest points in pixel space.
-  int neighbours[10];         //!< 图像中离该点最近的10个点
-  float neighboursDist[10];   //!< 最近10个点的距离
-  float neighboursDistL1[10]; //!< 最近10个点的距离
+  int neighbours[10];          //!< 图像中离该点最近的10个点
+  float neighboursDist[10];    //!< 最近10个点的距离
+  float neighboursDistL1[10];  //!< 最近10个点的距离
 
-  float my_type;  //!< 第0层提取是1, 2, 4, 对应d, 2d, 4d, 其它层是1
-  float energyTH; //!< 外点阈值
+  float my_type;   //!< 第0层提取是1, 2, 4, 对应d, 2d, 4d, 其它层是1
+  float energyTH;  //!< 外点阈值
 };
 
 class CoarseInitializer {
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-  CoarseInitializer(int ww, int hh, MultiCamera *p_cam);
+  CoarseInitializer(int ww, int hh, MultiCamera* p_cam);
 
   ~CoarseInitializer();
 
-  void setFirst(CalibHessian *HCalib, FrameHessian *newFrameHessian);
+  void setFirst(CalibHessian* HCalib, FrameHessian* newFrameHessian);
 
-  void convert_to_ImageData(cv::Mat &data, ImageDataAM &image_data,
-                            uint8_t camera_id);
+  void convert_to_ImageData(cv::Mat& data, ImageDataAM& image_data, uint8_t camera_id);
 
-  void setFirstStereo(CalibHessian *HCalib, FrameHessian *newFrameHessian);
+  void setFirstStereo(CalibHessian* HCalib, FrameHessian* newFrameHessian);
 
-  bool trackFrame(FrameHessian *newFrameHessian,
-                  std::vector<IOWrap::Output3DWrapper *> &wraps,
-                  const Mat33 &Rwb);
+  bool trackFrame(FrameHessian* newFrameHessian, std::vector<IOWrap::Output3DWrapper*>& wraps, const Mat33& Rwb);
 
-  int frameID;    //!< 当前加入的帧数
-  bool fixAffine; //!< 是否优化光度参数
+  int frameID;     //!< 当前加入的帧数
+  bool fixAffine;  //!< 是否优化光度参数
   bool printDebug;
 
-  Pnt *points[PYR_LEVELS]; // * kCameraNumUsed]; //!< 每一层上的点类,
-                           // 是第一帧提取出来的
+  Pnt* points[PYR_LEVELS];  // * kCameraNumUsed]; //!< 每一层上的点类,
+                            // 是第一帧提取出来的
   std::array<std::array<int, kCameraNumUsed>, PYR_LEVELS>
-      level_cid_to_numPoints; // * kCameraNumUsed]; //!< 每一层的点数目
+      level_cid_to_numPoints;  // * kCameraNumUsed]; //!< 每一层的点数目
   std::array<std::array<int, kCameraNumUsed>, PYR_LEVELS> level_cid_to_npts;
-  std::array<std::array<int, kCameraNumUsed>, PYR_LEVELS>
-      level_cid_to_npts_success;
-  std::array<std::array<int, kCameraNumUsed>, PYR_LEVELS>
-      level_cid_to_npts_offset;
-  std::array<std::array<int, kCameraNumUsed>, PYR_LEVELS>
-      level_cid_to_npts_success_offset;
-  AffLight thisToNext_aff; //!< 参考帧与当前帧之间光度系数
-  SE3 thisToNext;          //!< 参考帧与当前帧之间位姿
+  std::array<std::array<int, kCameraNumUsed>, PYR_LEVELS> level_cid_to_npts_success;
+  std::array<std::array<int, kCameraNumUsed>, PYR_LEVELS> level_cid_to_npts_offset;
+  std::array<std::array<int, kCameraNumUsed>, PYR_LEVELS> level_cid_to_npts_success_offset;
+  AffLight thisToNext_aff;  //!< 参考帧与当前帧之间光度系数
+  SE3 thisToNext;           //!< 参考帧与当前帧之间位姿
   Mat33 Rwb;
 
-  FrameHessian *firstFrame; //!< 第一帧
-  FrameHessian *newFrame;   //!< track中新加入的帧
-private:
-  Mat33 K[PYR_LEVELS];    // * kCameraNumUsed]; //!< camera参数
-  Mat33 Ki[PYR_LEVELS];   // * kCameraNumUsed];
-  double fx[PYR_LEVELS];  // * kCameraNumUsed];
-  double fy[PYR_LEVELS];  // * kCameraNumUsed];
-  double fxi[PYR_LEVELS]; // * kCameraNumUsed];
-  double fyi[PYR_LEVELS]; // * kCameraNumUsed];
-  double cx[PYR_LEVELS];  // * kCameraNumUsed];
-  double cy[PYR_LEVELS];  // * kCameraNumUsed];
-  double cxi[PYR_LEVELS]; // * kCameraNumUsed];
-  double cyi[PYR_LEVELS]; // * kCameraNumUsed];
+  FrameHessian* firstFrame;  //!< 第一帧
+  FrameHessian* newFrame;    //!< track中新加入的帧
+ private:
+  Mat33 K[PYR_LEVELS];     // * kCameraNumUsed]; //!< camera参数
+  Mat33 Ki[PYR_LEVELS];    // * kCameraNumUsed];
+  double fx[PYR_LEVELS];   // * kCameraNumUsed];
+  double fy[PYR_LEVELS];   // * kCameraNumUsed];
+  double fxi[PYR_LEVELS];  // * kCameraNumUsed];
+  double fyi[PYR_LEVELS];  // * kCameraNumUsed];
+  double cx[PYR_LEVELS];   // * kCameraNumUsed];
+  double cy[PYR_LEVELS];   // * kCameraNumUsed];
+  double cxi[PYR_LEVELS];  // * kCameraNumUsed];
+  double cyi[PYR_LEVELS];  // * kCameraNumUsed];
   int w[PYR_LEVELS];
   int h[PYR_LEVELS];
-  DepthFilterDSM *p_depth_filter_DSM_;
+  DepthFilterDSM* p_depth_filter_DSM_;
   EstimatorConfig estimator_config_;
-  void makeK(CalibHessian *HCalib);
+  void makeK(CalibHessian* HCalib);
 
-  double MultiViewTriangulation(const double &focal,
-                                const std::vector<Mat4> &poses,
-                                const std::vector<Vec3> &points,
-                                std::vector<std::pair<double, int>> &err_vec,
-                                VecX &errs, Vec3 &point_3d);
-  float FindMedian(const std::vector<float> &numbers);
+  double MultiViewTriangulation(const double& focal, const std::vector<Mat4>& poses, const std::vector<Vec3>& points,
+                                std::vector<std::pair<double, int>>& err_vec, VecX& errs, Vec3& point_3d);
+  float FindMedian(const std::vector<float>& numbers);
 
-  bool snapped;  //!< 是否尺度收敛 (暂定)
-  int snappedAt; //!< 尺度收敛在第几帧
+  bool snapped;   //!< 是否尺度收敛 (暂定)
+  int snappedAt;  //!< 尺度收敛在第几帧
 
   // pyramid images & levels on all levels
-  Eigen::Vector3f *dINew[PYR_LEVELS];  // * kCameraNumUsed];
-  Eigen::Vector3f *dIFist[PYR_LEVELS]; // * kCameraNumUsed];
+  Eigen::Vector3f* dINew[PYR_LEVELS];   // * kCameraNumUsed];
+  Eigen::Vector3f* dIFist[PYR_LEVELS];  // * kCameraNumUsed];
 
   Eigen::DiagonalMatrix<float, 8> wM;
 
   // temporary buffers for H and b.
-  Vec10f *JbBuffer; //!< 用来计算Schur的	// 0-7: sum(dd * dp). 8:
-                    //!< sum(res*dd). 9: 1/(1+sum(dd*dd))=inverse hessian entry.
-  Vec10f *JbBuffer_new; //!< 跌待更新后新的值
+  Vec10f* JbBuffer;      //!< 用来计算Schur的	// 0-7: sum(dd * dp). 8:
+                         //!< sum(res*dd). 9: 1/(1+sum(dd*dd))=inverse hessian entry.
+  Vec10f* JbBuffer_new;  //!< 跌待更新后新的值
   //* 9维向量, 乘积获得9*9矩阵, 并做的累加器
   /// 6dof + affine(a,b) + idepth = 9
-  Accumulator9 acc9;   //!< Hessian 矩阵
-  Accumulator9 acc9SC; //!< Schur部分Hessian
+  Accumulator9 acc9;    //!< Hessian 矩阵
+  Accumulator9 acc9SC;  //!< Schur部分Hessian
   // Accumulator11 accE;
 
-  Vec3f dGrads[PYR_LEVELS]; // * kCameraNumUsed]; //!<
+  Vec3f dGrads[PYR_LEVELS];  // * kCameraNumUsed]; //!<
   float zncc_thr[8] = {0.7, 0.6, 0.5, 0.4, 0.4, 0.4, 0.4, 0.4};
 
-  float alphaK;         //!< 2.5*2.5
-  float alphaW;         //!< 150*150
-  float regWeight;      //!< 对逆深度的加权值, 0.8
-  float couplingWeight; //!< 1
+  float alphaK;          //!< 2.5*2.5
+  float alphaW;          //!< 150*150
+  float regWeight;       //!< 对逆深度的加权值, 0.8
+  float couplingWeight;  //!< 1
 
-  Vec4f calcResAndGS(int iter, int max_iter, int lvl, MatStatef &H_out,
-                     VecStatef &b_out, MatStatef &H_out_sc, VecStatef &b_out_sc,
-                     const SE3 &refToNew, AffLight refToNew_aff, bool plot,
-                     int &N, bool show_image = false, int lvl_target_ = -1);
-  Vec3f calcResAndGS_bak(int lvl, MatStatef &H_out, VecStatef &b_out,
-                         MatStatef &H_out_sc, VecStatef &b_out_sc,
-                         const SE3 &refToNew, AffLight refToNew_aff, bool plot,
-                         int &N, bool show_image = false);
+  Vec4f calcResAndGS(int iter, int max_iter, int lvl, MatStatef& H_out, VecStatef& b_out, MatStatef& H_out_sc,
+                     VecStatef& b_out_sc, const SE3& refToNew, AffLight refToNew_aff, bool plot, int& N,
+                     bool show_image = false, int lvl_target_ = -1);
+  Vec3f calcResAndGS_bak(int lvl, MatStatef& H_out, VecStatef& b_out, MatStatef& H_out_sc, VecStatef& b_out_sc,
+                         const SE3& refToNew, AffLight refToNew_aff, bool plot, int& N, bool show_image = false);
 
-  Vec3f calcEC(int lvl); // returns OLD NERGY, NEW ENERGY, NUM TERMS.
+  Vec3f calcEC(int lvl);  // returns OLD NERGY, NEW ENERGY, NUM TERMS.
   void optReg(int lvl);
 
   void propagateUp(int srcLvl);
@@ -213,10 +201,9 @@ private:
 
   void applyStep(int lvl);
 
-  void makeGradients(Eigen::Vector3f **data);
+  void makeGradients(Eigen::Vector3f** data);
 
-  void debugPlot(int lvl, std::vector<IOWrap::Output3DWrapper *> &wraps,
-                 SE3 T_th, bool show_details = false);
+  void debugPlot(int lvl, std::vector<IOWrap::Output3DWrapper*>& wraps, SE3 T_th, bool show_details = false);
 
   void makeNN();
 };
@@ -228,17 +215,16 @@ struct FLANNPointcloud {
     points = 0;
   }
 
-  inline FLANNPointcloud(int n, Pnt *p) : num(n), points(p) {}
+  inline FLANNPointcloud(int n, Pnt* p) : num(n), points(p) {}
 
   int num;
-  Pnt *points;
+  Pnt* points;
 
   // 返回数据点的数目
   inline size_t kdtree_get_point_count() const { return num; }
 
   // 使用L2度量时使用, 返回向量p1, 到第idx_p2个数据点的欧氏距离
-  inline float kdtree_distance(const float *p1, const size_t idx_p2,
-                               size_t /*size*/) const {
+  inline float kdtree_distance(const float* p1, const size_t idx_p2, size_t /*size*/) const {
     const float d0 = p1[0] - points[idx_p2].u;
     const float d1 = p1[1] - points[idx_p2].v;
     return d0 * d0 + d1 * d1;
@@ -255,9 +241,10 @@ struct FLANNPointcloud {
   // 可选计算bounding box
   // false 表示默认
   // true 本函数应该返回bb
-  template <class BBOX> bool kdtree_get_bbox(BBOX & /* bb */) const {
+  template <class BBOX>
+  bool kdtree_get_bbox(BBOX& /* bb */) const {
     return false;
   }
 };
 
-} // namespace dso
+}  // namespace dso

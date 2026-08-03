@@ -18,54 +18,48 @@ struct EstimatorConfig;
 struct InitDepthData;
 
 class DepthFilterDSM {
-public:
+ public:
   friend class EstimatorInterface;
 
-  DepthFilterDSM(MultiCamera *p_multi_camera,
-                 const EstimatorConfig *p_estimator_config);
+  DepthFilterDSM(MultiCamera* p_multi_camera, const EstimatorConfig* p_estimator_config);
 
   ~DepthFilterDSM();
 
-  void ProcessDepthFilter(
-      const size_t &cur_fid, const bool &is_first_frame,
-      const aligned_vector<aligned_vector<Vec2>> &edge_features,
-      const aligned_vector<aligned_vector<Vec2>> &corner_features,
-      InitDepthData *p_init_depth_data = nullptr);
+  void ProcessDepthFilter(const size_t& cur_fid, const bool& is_first_frame,
+                          const aligned_vector<aligned_vector<Vec2>>& edge_features,
+                          const aligned_vector<aligned_vector<Vec2>>& corner_features,
+                          InitDepthData* p_init_depth_data = nullptr);
 
   void Reset();
-  void DeleteFrame(const size_t &fid_to_delete);
+  void DeleteFrame(const size_t& fid_to_delete);
 
-  void RotateSeedPreFrameVM(const Mat3 &Rw0);
+  void RotateSeedPreFrameVM(const Mat3& Rw0);
 
-  void InsertNewFrame(const size_t &fid, const bool &is_first_frame);
-  void GetSeeds(std::vector<DF_Frame> &frames, std::vector<Seed *> &seeds_vec);
-  void GetSeeds(DF_Frame &frame, std::vector<Seed *> &seeds_vec);
+  void InsertNewFrame(const size_t& fid, const bool& is_first_frame);
+  void GetSeeds(std::vector<DF_Frame>& frames, std::vector<Seed*>& seeds_vec);
+  void GetSeeds(DF_Frame& frame, std::vector<Seed*>& seeds_vec);
   //  void UpdateSeeds(std::vector<Seed*>& seeds_vec);
   //  void UpdateSeed(Seed* seed, const size_t& target_cid);
-  void UpdateSeedMultiCam(
-      std::array<std::shared_ptr<AlgsImage>, kCameraNumUsed> cid_to_img,
-      std::vector<Seed *> &seeds_vec, bool mask_cur_frame = false,
-      bool is_first_frame = false);
-  int GenerateNewPoints(
-      const aligned_vector<aligned_vector<Vec2>> &edgelet_features,
-      const aligned_vector<aligned_vector<Vec2>> &corner_features,
-      InitDepthData *p_init_depth_data = nullptr);
+  void UpdateSeedMultiCam(std::array<std::shared_ptr<AlgsImage>, kCameraNumUsed> cid_to_img,
+                          std::vector<Seed*>& seeds_vec, bool mask_cur_frame = false, bool is_first_frame = false);
+  int GenerateNewPoints(const aligned_vector<aligned_vector<Vec2>>& edgelet_features,
+                        const aligned_vector<aligned_vector<Vec2>>& corner_features,
+                        InitDepthData* p_init_depth_data = nullptr);
 #if CODE_ACC_SETFROMIMG
-  int GenerateNewPoints_ACC(
-      const aligned_vector<aligned_vector<Vec2>> &edgelet_features,
-      const aligned_vector<aligned_vector<Vec2>> &corner_features,
-      InitDepthData *p_init_depth_data = nullptr);
+  int GenerateNewPoints_ACC(const aligned_vector<aligned_vector<Vec2>>& edgelet_features,
+                            const aligned_vector<aligned_vector<Vec2>>& corner_features,
+                            InitDepthData* p_init_depth_data = nullptr);
 #endif
 
   //  std::vector<std::pair<size_t, number_t>> CalCosAngle(Seed* p_seed);
-  EpipolarMatchDSM *p_epipolar_match_dsm_;
-  MultiCameraEpipolarSearch *p_multi_cam_epipolar_search_;
+  EpipolarMatchDSM* p_epipolar_match_dsm_;
+  MultiCameraEpipolarSearch* p_multi_cam_epipolar_search_;
   number_t px_noise_ = 0.5;
   std::vector<number_t> px_err_angle_vec_;
 
-private:
-  MultiCamera *p_level_to_multi_camera_;
-  const EstimatorConfig *p_estimator_config_;
+ private:
+  MultiCamera* p_level_to_multi_camera_;
+  const EstimatorConfig* p_estimator_config_;
 
   bool is_first_frame_ = false;
   bool is_keyframe_ = false;
@@ -82,7 +76,7 @@ private:
 
   number_t seed_convergence_sigma2_threshold_ = 200.0;
 
-  std::vector<Seed *> cur_frame_converged_seed_vec_;
+  std::vector<Seed*> cur_frame_converged_seed_vec_;
 
   size_t cur_fid_;
   std::vector<DF_Frame> frame_vec_;
@@ -93,10 +87,10 @@ private:
   size_t cell_size_;
   size_t row_cell_num_;
   size_t col_cell_num_;
-  std::vector<std::vector<Seed *>> cid_to_new_frame_mask_mat_;
+  std::vector<std::vector<Seed*>> cid_to_new_frame_mask_mat_;
 
   size_t removed_fid_in_depth_filter_ = kInvalid;
   std::vector<size_t> deleted_pid_vec_;
 };
 
-} // namespace dso
+}  // namespace dso

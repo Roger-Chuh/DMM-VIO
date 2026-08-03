@@ -5,8 +5,7 @@ namespace AprilTags {
 
 int UnionFindSimple::getRepresentative(int thisId) {
   // terminal case: a node is its own parent
-  if (data[thisId].id == thisId)
-    return thisId;
+  if (data[thisId].id == thisId) return thisId;
 
   // otherwise, recurse...
   int root = getRepresentative(data[thisId].id);
@@ -27,8 +26,7 @@ int UnionFindSimple::connectNodes(int aId, int bId) {
   int aRoot = getRepresentative(aId);
   int bRoot = getRepresentative(bId);
 
-  if (aRoot == bRoot)
-    return aRoot;
+  if (aRoot == bRoot) return aRoot;
 
   int asz = data[aRoot].size;
   int bsz = data[bRoot].size;
@@ -52,5 +50,5 @@ void UnionFindSimple::init() {
   }
 }
 
-} // namespace AprilTags
-} // namespace dso
+}  // namespace AprilTags
+}  // namespace dso

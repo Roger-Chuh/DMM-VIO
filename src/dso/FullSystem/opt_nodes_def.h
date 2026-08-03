@@ -20,24 +20,24 @@ struct InitDepthData {
   std::vector<CamDepthData> cid_to_block_data;
 };
 struct ImageDataAM {
-  uint64_t exposure_ts;        //!< 曝光时间戳，单位ns
-  uint32_t shutter_speed_ns;   //!< 曝光时长，单位ns
-  uint8_t camera_id;           //!< Camera标识
-  uint32_t frame_id;           //!< Camera帧ID
-  uint32_t tuning_index = 999; //!< Camera曝光调节的tuning index
-  int width;                   //!< 图像宽度
-  int height;                  //!< 图像高度
-  int step;                    //!< 图像行步长
-  uint8_t *data;               //!< 图像数据首地址
+  uint64_t exposure_ts;         //!< 曝光时间戳，单位ns
+  uint32_t shutter_speed_ns;    //!< 曝光时长，单位ns
+  uint8_t camera_id;            //!< Camera标识
+  uint32_t frame_id;            //!< Camera帧ID
+  uint32_t tuning_index = 999;  //!< Camera曝光调节的tuning index
+  int width;                    //!< 图像宽度
+  int height;                   //!< 图像高度
+  int step;                     //!< 图像行步长
+  uint8_t* data;                //!< 图像数据首地址
   uint16_t gain = 0;
 };
 struct Point {
-public:
+ public:
   enum TYPE { kEdgelet, kCorner };
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   size_t host_vid = kInvalid;
-  Vec3 n = Vec3::Constant(std::nan("")); // bearing vector in host camera frame
-  number_t rho = 0; //!< Inverse distance in host camera frame
+  Vec3 n = Vec3::Constant(std::nan(""));  // bearing vector in host camera frame
+  number_t rho = 0;                       //!< Inverse distance in host camera frame
   number_t rho_align1d = 0;
   Vec3 xyz = Vec3::Zero();
   PyramidPatch pyramid_patch;
@@ -53,11 +53,11 @@ public:
   number_t H22_prior = 0;
   number_t b2_prior = 0;
 
-private:
+ private:
   // backup
-  number_t backup_rho = 0; //!< Inverse depth in host frame
+  number_t backup_rho = 0;  //!< Inverse depth in host frame
   number_t backup_rho_align1d = 0;
   Vec3 backup_xyz = Vec3::Constant(std::nan(""));
 };
 
-} // namespace dso
+}  // namespace dso

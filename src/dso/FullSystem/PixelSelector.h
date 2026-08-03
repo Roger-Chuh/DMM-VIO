@@ -31,31 +31,29 @@ const float minUseGrad_pixsel = 10;
 
 //@ 对于高层(0层以上)选择梯度最大的位置点
 template <int pot>
-inline int gridMaxSelection(Eigen::Vector3f *grads, bool *map_out, int w, int h,
-                            float THFac) {
+inline int gridMaxSelection(Eigen::Vector3f* grads, bool* map_out, int w, int h, float THFac) {
   memset(map_out, 0, sizeof(bool) * w * h);
 
   int numGood = 0;
-  for (int y = 1; y < h - pot; y += pot) /// 每隔一个pot遍历
+  for (int y = 1; y < h - pot; y += pot)  /// 每隔一个pot遍历
   {
     for (int x = 1; x < w - pot; x += pot) {
-      int bestXXID = -1; // gradx 最大
-      int bestYYID = -1; // grady 最大
-      int bestXYID = -1; // gradx-grady 最大
-      int bestYXID = -1; // gradx+grady 最大
+      int bestXXID = -1;  // gradx 最大
+      int bestYYID = -1;  // grady 最大
+      int bestXYID = -1;  // gradx-grady 最大
+      int bestYXID = -1;  // gradx+grady 最大
 
       float bestXX = 0, bestYY = 0, bestXY = 0, bestYX = 0;
       /// 3个channel分别是：归一化灰度，gradX，gradY
-      Eigen::Vector3f *grads0 = grads + x + y * w; // 当前网格的起点
+      Eigen::Vector3f* grads0 = grads + x + y * w;  // 当前网格的起点
       /// 分别找到该网格内上面4个best
       /// this loop the pot square. and this square start from [x, y]
       for (int dx = 0; dx < pot; dx++)
         for (int dy = 0; dy < pot; dy++) {
           int idx = dx + dy * w;
-          Eigen::Vector3f g = grads0[idx]; // 遍历网格内的每一个像素
-          float sqgd = g.tail<2>().squaredNorm(); // 梯度平方和
-          float TH = THFac * minUseGrad_pixsel *
-                     (0.75f); //阈值, 为什么都乘0.75 ? downweight
+          Eigen::Vector3f g = grads0[idx];                 // 遍历网格内的每一个像素
+          float sqgd = g.tail<2>().squaredNorm();          // 梯度平方和
+          float TH = THFac * minUseGrad_pixsel * (0.75f);  //阈值, 为什么都乘0.75 ? downweight
 
           if (sqgd > TH * TH) {
             float agx = fabs((float)g[1]);
@@ -89,27 +87,24 @@ inline int gridMaxSelection(Eigen::Vector3f *grads, bool *map_out, int w, int h,
           /// 4个方向有一个是最大的，那这个点就会被选出来
         }
 
-      bool *map0 = map_out + x + y * w; // 选出来的像素为TRUE
-                                        // 选上这些最大的像素
+      bool* map0 = map_out + x + y * w;  // 选出来的像素为TRUE
+                                         // 选上这些最大的像素
       ///在一个pot*pot的小正方形区域内,对每个点来说，只要4个方向有一个是大于阈值的，那这个点就会被选出来
       if (bestXXID >= 0) {
-        if (!map0[bestXXID]) // 没有被选
+        if (!map0[bestXXID])  // 没有被选
           numGood++;
         map0[bestXXID] = true;
       }
       if (bestYYID >= 0) {
-        if (!map0[bestYYID])
-          numGood++;
+        if (!map0[bestYYID]) numGood++;
         map0[bestYYID] = true;
       }
       if (bestXYID >= 0) {
-        if (!map0[bestXYID])
-          numGood++;
+        if (!map0[bestXYID]) numGood++;
         map0[bestXYID] = true;
       }
       if (bestYXID >= 0) {
-        if (!map0[bestYXID])
-          numGood++;
+        if (!map0[bestYXID]) numGood++;
         map0[bestYXID] = true;
       }
     }
@@ -119,8 +114,7 @@ inline int gridMaxSelection(Eigen::Vector3f *grads, bool *map_out, int w, int h,
 }
 
 //* 同上, 只是把pot作为参数
-inline int gridMaxSelection(Eigen::Vector3f *grads, bool *map_out, int w, int h,
-                            int pot, float THFac) {
+inline int gridMaxSelection(Eigen::Vector3f* grads, bool* map_out, int w, int h, int pot, float THFac) {
   memset(map_out, 0, sizeof(bool) * w * h);
 
   int numGood = 0;
@@ -133,7 +127,7 @@ inline int gridMaxSelection(Eigen::Vector3f *grads, bool *map_out, int w, int h,
 
       float bestXX = 0, bestYY = 0, bestXY = 0, bestYX = 0;
 
-      Eigen::Vector3f *grads0 = grads + x + y * w;
+      Eigen::Vector3f* grads0 = grads + x + y * w;
       for (int dx = 0; dx < pot; dx++)
         for (int dy = 0; dy < pot; dy++) {
           int idx = dx + dy * w;
@@ -168,26 +162,22 @@ inline int gridMaxSelection(Eigen::Vector3f *grads, bool *map_out, int w, int h,
           }
         }
 
-      bool *map0 = map_out + x + y * w;
+      bool* map0 = map_out + x + y * w;
 
       if (bestXXID >= 0) {
-        if (!map0[bestXXID])
-          numGood++;
+        if (!map0[bestXXID]) numGood++;
         map0[bestXXID] = true;
       }
       if (bestYYID >= 0) {
-        if (!map0[bestYYID])
-          numGood++;
+        if (!map0[bestYYID]) numGood++;
         map0[bestYYID] = true;
       }
       if (bestXYID >= 0) {
-        if (!map0[bestXYID])
-          numGood++;
+        if (!map0[bestXYID]) numGood++;
         map0[bestXYID] = true;
       }
       if (bestYXID >= 0) {
-        if (!map0[bestYXID])
-          numGood++;
+        if (!map0[bestYXID]) numGood++;
         map0[bestYXID] = true;
       }
     }
@@ -196,11 +186,9 @@ inline int gridMaxSelection(Eigen::Vector3f *grads, bool *map_out, int w, int h,
   return numGood;
 }
 
-inline int makePixelStatus(Eigen::Vector3f *grads, bool *map, int w, int h,
-                           float desiredDensity, int recsLeft = 5,
+inline int makePixelStatus(Eigen::Vector3f* grads, bool* map, int w, int h, float desiredDensity, int recsLeft = 5,
                            float THFac = 1, int cid = 0) {
-  if (sparsityFactor < 1)
-    sparsityFactor = 1; // 网格的大小, 在网格内选择最大的
+  if (sparsityFactor < 1) sparsityFactor = 1;  // 网格的大小, 在网格内选择最大的
 
   int numGoodPoints;
 
@@ -235,31 +223,28 @@ inline int makePixelStatus(Eigen::Vector3f *grads, bool *map, int w, int h,
 
   float quotia = numGoodPoints / (float)(desiredDensity);
 
-  int newSparsity = (sparsityFactor * sqrtf(quotia)) + 0.7f; // 更新网格大小
+  int newSparsity = (sparsityFactor * sqrtf(quotia)) + 0.7f;  // 更新网格大小
 
-  if (newSparsity < 1)
-    newSparsity = 1;
+  if (newSparsity < 1) newSparsity = 1;
 
   float oldTHFac = THFac;
-  if (newSparsity == 1 && sparsityFactor == 1)
-    THFac = 0.5; // 已经是最小的了, 但是数目还是不够, 就减小阈值
+  if (newSparsity == 1 && sparsityFactor == 1) THFac = 0.5;  // 已经是最小的了, 但是数目还是不够, 就减小阈值
 
   // 如果满足网格大小变化小且阈值是0.5 || 点数量在20%误差内 || 递归次数已到 ,
   // 则返回
-  if ((abs(newSparsity - sparsityFactor) < 1 && THFac == oldTHFac) ||
-      (quotia > 0.8 && 1.0f / quotia > 0.8) || recsLeft == 0) {
+  if ((abs(newSparsity - sparsityFactor) < 1 && THFac == oldTHFac) || (quotia > 0.8 && 1.0f / quotia > 0.8) ||
+      recsLeft == 0) {
     //		printf(" \n");
     // all good
     sparsityFactor = newSparsity;
     return numGoodPoints;
-  } else // 否则进行递归
+  } else  // 否则进行递归
   {
     //		printf(" -> re-evaluate! \n");
     // re-evaluate.
     sparsityFactor = newSparsity;
-    return makePixelStatus(grads, map, w, h, desiredDensity, recsLeft - 1,
-                           THFac, cid);
+    return makePixelStatus(grads, map, w, h, desiredDensity, recsLeft - 1, THFac, cid);
   }
 }
 
-} // namespace dso
+}  // namespace dso

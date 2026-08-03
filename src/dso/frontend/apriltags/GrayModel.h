@@ -17,7 +17,7 @@ namespace AprilTags {
  * reading bits.
  */
 class GrayModel {
-public:
+ public:
   GrayModel();
 
   void addObservation(float x, float y, float gray);
@@ -26,7 +26,7 @@ public:
 
   float interpolate(float x, float y);
 
-private:
+ private:
   void compute();
 
   // We're solving Av = b.
@@ -40,10 +40,10 @@ private:
   Eigen::Vector4d v;
   Eigen::Vector4d b;
   int nobs;
-  bool dirty; //!< True if we've added an observation and need to recompute v
+  bool dirty;  //!< True if we've added an observation and need to recompute v
 };
 
-} // namespace AprilTags
-} // namespace dso
+}  // namespace AprilTags
+}  // namespace dso
 
 #endif

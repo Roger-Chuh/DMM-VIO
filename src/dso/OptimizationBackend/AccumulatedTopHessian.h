@@ -36,7 +36,7 @@ class EFPoint;
 class EnergyFunctional;
 
 class AccumulatedTopHessianSSE {
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   inline AccumulatedTopHessianSSE() {
@@ -49,18 +49,15 @@ public:
 
   inline ~AccumulatedTopHessianSSE() {
     for (int tid = 0; tid < NUM_THREADS; tid++) {
-      if (acc[tid] != 0)
-        delete[] acc[tid];
+      if (acc[tid] != 0) delete[] acc[tid];
     }
   };
 
   //@ 初始化
-  inline void setZero(int nFrames, int min = 0, int max = 1, Vec10 *stats = 0,
-                      int tid = 0) {
+  inline void setZero(int nFrames, int min = 0, int max = 1, Vec10* stats = 0, int tid = 0) {
     //? 什么情况下不等
     if (nFrames != nframes[tid]) {
-      if (acc[tid] != 0)
-        delete[] acc[tid];
+      if (acc[tid] != 0) delete[] acc[tid];
 #if USE_XI_MODEL
       acc[tid] = new Accumulator14[nFrames * nFrames];
 #else
@@ -76,15 +73,13 @@ public:
     nres[tid] = 0;
   }
 
-  void stitchDouble(MatXX &H, VecX &b, EnergyFunctional const *const EF,
-                    bool usePrior, bool useDelta, int tid = 0);
+  void stitchDouble(MatXX& H, VecX& b, EnergyFunctional const* const EF, bool usePrior, bool useDelta, int tid = 0);
 
   template <int mode>
-  void addPoint(EFPoint *p, EnergyFunctional const *const ef, int tid = 0);
+  void addPoint(EFPoint* p, EnergyFunctional const* const ef, int tid = 0);
 
   //@ 获得最终的 H 和 b
-  void stitchDoubleMT(IndexThreadReduce<Vec10> *red, MatXX &H, VecX &b,
-                      EnergyFunctional const *const EF, bool usePrior,
+  void stitchDoubleMT(IndexThreadReduce<Vec10>* red, MatXX& H, VecX& b, EnergyFunctional const* const EF, bool usePrior,
                       bool MT) {
     // sum up, splitting by bock in square.
     if (MT) {
@@ -94,14 +89,13 @@ public:
       for (int i = 0; i < NUM_THREADS; i++) {
         assert(nframes[0] == nframes[i]);
         //* 所有的优化变量维度
-        Hs[i] = MatXX::Zero(nframes[0] * STATE_DIM + CPARS,
-                            nframes[0] * STATE_DIM + CPARS);
+        Hs[i] = MatXX::Zero(nframes[0] * STATE_DIM + CPARS, nframes[0] * STATE_DIM + CPARS);
         bs[i] = VecX::Zero(nframes[0] * STATE_DIM + CPARS);
       }
 
-      red->reduce(boost::bind(&AccumulatedTopHessianSSE::stitchDoubleInternal,
-                              this, Hs, bs, EF, usePrior, _1, _2, _3, _4),
-                  0, nframes[0] * nframes[0], 0);
+      red->reduce(
+          boost::bind(&AccumulatedTopHessianSSE::stitchDoubleInternal, this, Hs, bs, EF, usePrior, _1, _2, _3, _4), 0,
+          nframes[0] * nframes[0], 0);
 
       // sum up results
       H = Hs[0];
@@ -112,52 +106,44 @@ public:
         b.noalias() += bs[i];
         nres[0] += nres[i];
       }
-    } else // 不使用多线程
+    } else  // 不使用多线程
     {
       printf("TopHessian, not use mt\n");
-      H = MatXX::Zero(nframes[0] * STATE_DIM + CPARS,
-                      nframes[0] * STATE_DIM + CPARS);
+      H = MatXX::Zero(nframes[0] * STATE_DIM + CPARS, nframes[0] * STATE_DIM + CPARS);
       b = VecX::Zero(nframes[0] * STATE_DIM + CPARS);
-      stitchDoubleInternal(&H, &b, EF, usePrior, 0, nframes[0] * nframes[0], 0,
-                           -1);
+      stitchDoubleInternal(&H, &b, EF, usePrior, 0, nframes[0] * nframes[0], 0, -1);
     }
 
     // make diagonal by copying over parts.
     for (int h = 0; h < nframes[0]; h++) {
       int hIdx = CPARS + h * STATE_DIM;
       H.block<CPARS, STATE_DIM>(0, hIdx).noalias() =
-          H.block<STATE_DIM, CPARS>(hIdx, 0)
-              .transpose(); //! [内参, 位姿] 对称部分
+          H.block<STATE_DIM, CPARS>(hIdx, 0).transpose();  //! [内参, 位姿] 对称部分
 
       for (int t = h + 1; t < nframes[0]; t++) {
         int tIdx = CPARS + t * STATE_DIM;
         //! 对于位姿, 相同两帧之间的Hessian需要加起来, 即对称位置的, (J差负号,
         //! 平方之后就好了)
-        H.block<STATE_DIM, STATE_DIM>(hIdx, tIdx).noalias() +=
-            H.block<STATE_DIM, STATE_DIM>(tIdx, hIdx).transpose();
-        H.block<STATE_DIM, STATE_DIM>(tIdx, hIdx).noalias() =
-            H.block<STATE_DIM, STATE_DIM>(hIdx, tIdx).transpose();
+        H.block<STATE_DIM, STATE_DIM>(hIdx, tIdx).noalias() += H.block<STATE_DIM, STATE_DIM>(tIdx, hIdx).transpose();
+        H.block<STATE_DIM, STATE_DIM>(tIdx, hIdx).noalias() = H.block<STATE_DIM, STATE_DIM>(hIdx, tIdx).transpose();
       }
     }
   }
 
-  int nframes[NUM_THREADS]; //!< 每个线程的帧数
+  int nframes[NUM_THREADS];  //!< 每个线程的帧数
 
-  EIGEN_ALIGN16 AccumulatorApprox *acc[NUM_THREADS]; //!< 计算hessian的累乘器
+  EIGEN_ALIGN16 AccumulatorApprox* acc[NUM_THREADS];  //!< 计算hessian的累乘器
 
-  int nres[NUM_THREADS]; //!< 残差计数
+  int nres[NUM_THREADS];  //!< 残差计数
 
   template <int mode>
-  void addPointsInternal(std::vector<EFPoint *> *points,
-                         EnergyFunctional const *const ef, int min = 0,
-                         int max = 1, Vec10 *stats = 0, int tid = 0) {
-    for (int i = min; i < max; i++)
-      addPoint<mode>((*points)[i], ef, tid);
+  void addPointsInternal(std::vector<EFPoint*>* points, EnergyFunctional const* const ef, int min = 0, int max = 1,
+                         Vec10* stats = 0, int tid = 0) {
+    for (int i = min; i < max; i++) addPoint<mode>((*points)[i], ef, tid);
   }
 
-private:
-  void stitchDoubleInternal(MatXX *H, VecX *b, EnergyFunctional const *const EF,
-                            bool usePrior, int min, int max, Vec10 *stats,
-                            int tid);
+ private:
+  void stitchDoubleInternal(MatXX* H, VecX* b, EnergyFunctional const* const EF, bool usePrior, int min, int max,
+                            Vec10* stats, int tid);
 };
-} // namespace dso
+}  // namespace dso

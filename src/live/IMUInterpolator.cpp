@@ -30,8 +30,7 @@
 
 using std::vector;
 
-dmvio::IMUInterpolator::IMUInterpolator(dmvio::FrameContainer &frameContainer,
-                                        DatasetSaver *datasetSaver)
+dmvio::IMUInterpolator::IMUInterpolator(dmvio::FrameContainer& frameContainer, DatasetSaver* datasetSaver)
     : frameContainer(frameContainer), saver(datasetSaver) {}
 
 void dmvio::IMUInterpolator::addAccData(vector<float> data, double timestamp) {
@@ -40,8 +39,7 @@ void dmvio::IMUInterpolator::addAccData(vector<float> data, double timestamp) {
   accData.emplace_back(data, timestamp);
 
   if (timestamp < lastAccTimestamp) {
-    throw std::invalid_argument(
-        "ERROR: Timestamp out of order: SHOULD NOT HAPPEN!");
+    throw std::invalid_argument("ERROR: Timestamp out of order: SHOULD NOT HAPPEN!");
   }
   lastAccTimestamp = timestamp;
 
@@ -57,14 +55,14 @@ void dmvio::IMUInterpolator::addAccData(vector<float> data, double timestamp) {
 
 void dmvio::IMUInterpolator::insertAccDataIfNecessary() {
   for (auto it = output.begin(); it != output.end();) {
-    auto &&data = *it;
+    auto&& data = *it;
     if (!data.accSet) {
       auto pair = interpolateDataFromArray(accData, data.timestamp);
 
       if (pair.second == IMUInterpolationResult::TIMESTAMP_TOO_EARLY) {
         // This output is too early, we need to remove it!
         it = output.erase(it, it + 1);
-        continue; // to not execute it++;
+        continue;  // to not execute it++;
       } else if (pair.second == IMUInterpolationResult::NOT_AVAILABLE_YET) {
         // There is no IMU data yet --> break and try again next time.
         break;
@@ -75,10 +73,9 @@ void dmvio::IMUInterpolator::insertAccDataIfNecessary() {
     }
     it++;
   }
-  if (!saver)
-    return;
+  if (!saver) return;
   // Save IMU data to file.
-  for (auto &&data : output) {
+  for (auto&& data : output) {
     if (data.saveStatus != IMUDataDuringInterpolation::DONT_SAVE) {
       if (!data.accSet || !data.gyrSet) {
         // Not set yet --> stop saving.
@@ -100,9 +97,7 @@ void dmvio::IMUInterpolator::addGyrData(vector<float> data, double timestamp) {
   insertGyrDataIfNecessary();
 
   auto it = std::find_if(output.begin(), output.end(),
-                         [timestamp](const IMUDataDuringInterpolation &data) {
-                           return data.timestamp == timestamp;
-                         });
+                         [timestamp](const IMUDataDuringInterpolation& data) { return data.timestamp == timestamp; });
   // Maybe there is already an image with this timestamp --> just insert.
   if (it == output.end()) {
     output.emplace_back(timestamp);
@@ -113,8 +108,7 @@ void dmvio::IMUInterpolator::addGyrData(vector<float> data, double timestamp) {
   it->saveStatus = IMUDataDuringInterpolation::SHALL_SAVE;
 
   if (timestamp < lastGyrTimestamp) {
-    throw std::invalid_argument(
-        "ERROR: Timestamp out of order: SHOULD NOT HAPPEN!");
+    throw std::invalid_argument("ERROR: Timestamp out of order: SHOULD NOT HAPPEN!");
   }
   lastGyrTimestamp = timestamp;
 
@@ -129,14 +123,14 @@ void dmvio::IMUInterpolator::addGyrData(vector<float> data, double timestamp) {
 void dmvio::IMUInterpolator::insertGyrDataIfNecessary() {
   // Check whether previous data needs gyr information.
   for (auto it = output.begin(); it != output.end();) {
-    auto &&data = *it;
+    auto&& data = *it;
     if (!data.gyrSet) {
       auto pair = interpolateDataFromArray(gyrData, data.timestamp);
 
       if (pair.second == IMUInterpolationResult::TIMESTAMP_TOO_EARLY) {
         // This output is too early, we need to remove it!
         it = output.erase(it, it + 1);
-        continue; // to not execute it++;
+        continue;  // to not execute it++;
       } else if (pair.second == IMUInterpolationResult::NOT_AVAILABLE_YET) {
         // There is no IMU data yet --> break and try again next time.
         break;
@@ -149,9 +143,7 @@ void dmvio::IMUInterpolator::insertGyrDataIfNecessary() {
   }
 }
 
-vector<float> dmvio::interpolateData(const PartialIMUData &data1,
-                                     const PartialIMUData &data2,
-                                     double timestamp) {
+vector<float> dmvio::interpolateData(const PartialIMUData& data1, const PartialIMUData& data2, double timestamp) {
   double firstTime = data1.timestamp;
   double secondTime = data2.timestamp;
 
@@ -166,15 +158,12 @@ vector<float> dmvio::interpolateData(const PartialIMUData &data1,
   return data;
 }
 
-std::pair<std::vector<float>, dmvio::IMUInterpolationResult>
-dmvio::interpolateDataFromArray(const vector<PartialIMUData> &array,
-                                double timestamp) {
-  auto it = std::lower_bound(array.begin(), array.end(),
-                             PartialIMUData(std::vector<float>{}, timestamp));
+std::pair<std::vector<float>, dmvio::IMUInterpolationResult> dmvio::interpolateDataFromArray(
+    const vector<PartialIMUData>& array, double timestamp) {
+  auto it = std::lower_bound(array.begin(), array.end(), PartialIMUData(std::vector<float>{}, timestamp));
 
   if (it == array.end()) {
-    return std::make_pair(std::vector<float>{},
-                          IMUInterpolationResult::NOT_AVAILABLE_YET);
+    return std::make_pair(std::vector<float>{}, IMUInterpolationResult::NOT_AVAILABLE_YET);
   }
 
   // Now it->timestamp >= timestamp.
@@ -182,24 +171,19 @@ dmvio::interpolateDataFromArray(const vector<PartialIMUData> &array,
     if (it->timestamp == timestamp) {
       return std::make_pair(it->data, IMUInterpolationResult::FOUND);
     } else {
-      return std::make_pair(std::vector<float>{},
-                            IMUInterpolationResult::TIMESTAMP_TOO_EARLY);
+      return std::make_pair(std::vector<float>{}, IMUInterpolationResult::TIMESTAMP_TOO_EARLY);
     }
   }
 
-  return std::make_pair(interpolateData(*(it - 1), *it, timestamp),
-                        IMUInterpolationResult::FOUND);
+  return std::make_pair(interpolateData(*(it - 1), *it, timestamp), IMUInterpolationResult::FOUND);
 }
 
-void dmvio::IMUInterpolator::addImage(
-    std::unique_ptr<dso::ImageAndExposure> image, double timestamp) {
+void dmvio::IMUInterpolator::addImage(std::unique_ptr<dso::ImageAndExposure> image, double timestamp) {
   dmvio::TimeMeasurement measurement("IMUInterpolator::addImage");
   std::unique_lock<std::mutex> lock(mutex);
 
   auto it = std::find_if(output.begin(), output.end(),
-                         [timestamp](const IMUDataDuringInterpolation &data) {
-                           return data.timestamp == timestamp;
-                         });
+                         [timestamp](const IMUDataDuringInterpolation& data) { return data.timestamp == timestamp; });
   // If there's already an IMU data for this timestamp we don't need to insert
   // it.
   if (it == output.end()) {
@@ -218,11 +202,11 @@ void dmvio::IMUInterpolator::trySendingImages() {
   std::sort(output.begin(), output.end());
 
   while (!imagesInProcess.empty()) {
-    auto &&frame = imagesInProcess[0];
+    auto&& frame = imagesInProcess[0];
     bool finished = true;
 
-    int removeNum = 0; // remove removable items at the beginning of output.
-    for (auto &&data : output) {
+    int removeNum = 0;  // remove removable items at the beginning of output.
+    for (auto&& data : output) {
       if (data.timestamp > frame.imgTimestamp) {
         // Later than the image --> this image is finished.
         break;
@@ -251,8 +235,7 @@ void dmvio::IMUInterpolator::trySendingImages() {
     // If the frame came before the first IMU measurement it can happen that it
     // does not have corresponding IMU data. In that case we don't send it, and
     // just delete it.
-    if (!frame.imuData.empty() &&
-        frame.imuData.back().timestamp == frame.imgTimestamp) {
+    if (!frame.imuData.empty() && frame.imuData.back().timestamp == frame.imgTimestamp) {
       frameContainer.addFrame(std::move(frame));
     } else {
       std::cout << "WARNING: Not sending frame, because it does not have IMU "
@@ -263,22 +246,15 @@ void dmvio::IMUInterpolator::trySendingImages() {
   }
 }
 
-dmvio::PartialIMUData::PartialIMUData(const vector<float> &data,
-                                      double timestamp)
-    : data(data), timestamp(timestamp) {}
+dmvio::PartialIMUData::PartialIMUData(const vector<float>& data, double timestamp) : data(data), timestamp(timestamp) {}
 
-bool dmvio::PartialIMUData::operator<(
-    const dmvio::PartialIMUData &other) const {
-  return timestamp < other.timestamp;
-}
+bool dmvio::PartialIMUData::operator<(const dmvio::PartialIMUData& other) const { return timestamp < other.timestamp; }
 
-dmvio::IMUDataDuringInterpolation::IMUDataDuringInterpolation(double timestamp)
-    : timestamp(timestamp) {
+dmvio::IMUDataDuringInterpolation::IMUDataDuringInterpolation(double timestamp) : timestamp(timestamp) {
   gyrSet = false;
   accSet = false;
 }
 
-bool dmvio::IMUDataDuringInterpolation::operator<(
-    const dmvio::IMUDataDuringInterpolation &other) const {
+bool dmvio::IMUDataDuringInterpolation::operator<(const dmvio::IMUDataDuringInterpolation& other) const {
   return timestamp < other.timestamp;
 }

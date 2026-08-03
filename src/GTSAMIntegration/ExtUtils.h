@@ -34,11 +34,10 @@
 namespace dmvio {
 
 template <typename T>
-void assertAlmostEq(const T &first, const T &second, double epsilon = 0.00001) {
+void assertAlmostEq(const T& first, const T& second, double epsilon = 0.00001) {
   T diff = std::abs(first - second);
   if (diff > epsilon) {
-    std::cout << "Error: Not Eq: " << diff << " first: " << first << " second"
-              << second << std::endl;
+    std::cout << "Error: Not Eq: " << diff << " first: " << first << " second" << second << std::endl;
 #ifdef STACKTRACE
     std::cout << boost::stacktrace::stacktrace();
 #endif
@@ -47,13 +46,10 @@ void assertAlmostEq(const T &first, const T &second, double epsilon = 0.00001) {
 }
 
 template <typename T>
-void assertEqEigen(const T &first, const T &second, double epsilon = 0.00001) {
+void assertEqEigen(const T& first, const T& second, double epsilon = 0.00001) {
   T diff = first - second;
   if (!diff.isZero(epsilon)) {
-    std::cout << "Error: Not Eq:\n"
-              << diff << "\nfirst:\n"
-              << first << "\nsecond\n"
-              << second << std::endl;
+    std::cout << "Error: Not Eq:\n" << diff << "\nfirst:\n" << first << "\nsecond\n" << second << std::endl;
     std::cout << "Max diff: " << diff.cwiseAbs().maxCoeff() << std::endl;
 #ifdef STACKTRACE
     std::cout << boost::stacktrace::stacktrace();
@@ -62,9 +58,10 @@ void assertEqEigen(const T &first, const T &second, double epsilon = 0.00001) {
   }
 }
 
-template <typename T> class MeanAccumulator {
-public:
-  void add(const T &t) {
+template <typename T>
+class MeanAccumulator {
+ public:
+  void add(const T& t) {
     sum += t;
     num++;
   }
@@ -76,13 +73,13 @@ public:
     return sum / num;
   }
 
-private:
+ private:
   T sum = 0.0;
   int num = 0;
 };
 
 typedef MeanAccumulator<double> MeanAccumulatorD;
 
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_EXTUTILS_H
+#endif  // DMVIO_EXTUTILS_H

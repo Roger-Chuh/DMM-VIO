@@ -24,15 +24,15 @@ TagFamily *tag36h11 = new TagFamily(tagCodes36h11);
 namespace dso {
 namespace AprilTags {
 
-TagFamily::TagFamily(const TagCodes &tagCodes, const size_t blackBorder)
-    : blackBorder(blackBorder), bits(tagCodes.bits),
+TagFamily::TagFamily(const TagCodes& tagCodes, const size_t blackBorder)
+    : blackBorder(blackBorder),
+      bits(tagCodes.bits),
       dimension((int)std::sqrt((float)bits)),
       minimumHammingDistance(tagCodes.minHammingDistance),
-      errorRecoveryBits(1), // 1
+      errorRecoveryBits(1),  // 1
       codes() {
   if (bits != dimension * dimension)
-    cerr << "Error: TagFamily constructor called with bits=" << bits
-         << "; must be a square number!" << endl;
+    cerr << "Error: TagFamily constructor called with bits=" << bits << "; must be a square number!" << endl;
   codes = tagCodes.codes;
 }
 
@@ -51,16 +51,13 @@ unsigned long long TagFamily::rotate90(unsigned long long w, int d) {
       int b = r + d * c;
       wr = wr << 1;
 
-      if ((w & (oneLongLong << b)) != 0)
-        wr |= 1;
+      if ((w & (oneLongLong << b)) != 0) wr |= 1;
     }
   }
   return wr;
 }
 
-int TagFamily::hammingDistance(unsigned long long a, unsigned long long b) {
-  return popCount(a ^ b);
-}
+int TagFamily::hammingDistance(unsigned long long a, unsigned long long b) { return popCount(a ^ b); }
 
 unsigned char TagFamily::popCountReal(unsigned long long w) {
   unsigned char cnt = 0;
@@ -80,8 +77,7 @@ int TagFamily::popCount(unsigned long long w) {
   return count;
 }
 
-void TagFamily::decode(TagDetection &det, unsigned long long rCode,
-                       double tagLen, double tagVar, int &hamDist) const {
+void TagFamily::decode(TagDetection& det, unsigned long long rCode, double tagLen, double tagVar, int& hamDist) const {
   int bestId = -1;
   int bestHamming = INT_MAX;
   int bestRotation = 0;
@@ -144,20 +140,18 @@ void TagFamily::printHammingDistances() const {
     unsigned long long r2 = rotate90(r1, dimension);
     unsigned long long r3 = rotate90(r2, dimension);
     for (unsigned int j = i + 1; j < codes.size(); j++) {
-      int d = min(
-          min(hammingDistance(r0, codes[j]), hammingDistance(r1, codes[j])),
-          min(hammingDistance(r2, codes[j]), hammingDistance(r3, codes[j])));
+      int d = min(min(hammingDistance(r0, codes[j]), hammingDistance(r1, codes[j])),
+                  min(hammingDistance(r2, codes[j]), hammingDistance(r3, codes[j])));
       hammings[d]++;
     }
   }
 
-  for (unsigned int i = 0; i < hammings.size(); i++)
-    printf("hammings: %u = %d\n", i, hammings[i]);
+  for (unsigned int i = 0; i < hammings.size(); i++) printf("hammings: %u = %d\n", i, hammings[i]);
 }
 
 unsigned char TagFamily::popCountTable[TagFamily::popCountTableSize];
 
 TagFamily::TableInitializer TagFamily::initializer;
 
-} // namespace AprilTags
-} // namespace dso
+}  // namespace AprilTags
+}  // namespace dso

@@ -7,21 +7,19 @@
 using namespace dso;
 
 bool DoubleSphereCamera::Project(
-    const Vec3 &p_3d, Vec2 &p_img,
-    LinearAlgebraLib::Matrix<number_t, 2, 3> *d_img_d_p3d,
-    LinearAlgebraLib::Matrix<number_t, 2, LinearAlgebraLib::Dynamic>
-        *d_img_d_param) const {
-  const number_t &fx = parameters_[0];
-  const number_t &fy = parameters_[1];
-  const number_t &cx = parameters_[2];
-  const number_t &cy = parameters_[3];
+    const Vec3& p_3d, Vec2& p_img, LinearAlgebraLib::Matrix<number_t, 2, 3>* d_img_d_p3d,
+    LinearAlgebraLib::Matrix<number_t, 2, LinearAlgebraLib::Dynamic>* d_img_d_param) const {
+  const number_t& fx = parameters_[0];
+  const number_t& fy = parameters_[1];
+  const number_t& cx = parameters_[2];
+  const number_t& cy = parameters_[3];
 
-  const number_t &xi = parameters_[4];
-  const number_t &alpha = parameters_[5];
+  const number_t& xi = parameters_[4];
+  const number_t& alpha = parameters_[5];
 
-  const number_t &x = p_3d[0];
-  const number_t &y = p_3d[1];
-  const number_t &z = p_3d[2];
+  const number_t& x = p_3d[0];
+  const number_t& y = p_3d[1];
+  const number_t& z = p_3d[2];
 
   const number_t xx = x * x;
   const number_t yy = y * y;
@@ -60,12 +58,9 @@ bool DoubleSphereCamera::Project(
       const number_t xy = x * y;
       const number_t tt2 = xi * z / d1 + number_t(1);
 
-      const number_t d_norm_d_r2 = (xi * (number_t(1) - alpha) / d1 +
-                                    alpha * (xi * k / d1 + number_t(1)) / d2) /
-                                   norm2;
+      const number_t d_norm_d_r2 = (xi * (number_t(1) - alpha) / d1 + alpha * (xi * k / d1 + number_t(1)) / d2) / norm2;
 
-      const number_t tmp2 =
-          ((number_t(1) - alpha) * tt2 + alpha * k * tt2 / d2) / norm2;
+      const number_t tmp2 = ((number_t(1) - alpha) * tt2 + alpha * k * tt2 / d2) / norm2;
 
       (*d_img_d_p3d)(0, 0) = fx * (number_t(1) / norm - xx * d_norm_d_r2);
       (*d_img_d_p3d)(1, 0) = -fy * xy * d_norm_d_r2;
@@ -99,17 +94,15 @@ bool DoubleSphereCamera::Project(
 }
 
 bool DoubleSphereCamera::UnProject(
-    const Vec2 &p_img, Vec3 &p_3d,
-    LinearAlgebraLib::Matrix<number_t, 3, 2> *d_p3d_d_img,
-    LinearAlgebraLib::Matrix<number_t, 3, LinearAlgebraLib::Dynamic>
-        *d_p3d_d_param) const {
-  const number_t &fx = parameters_[0];
-  const number_t &fy = parameters_[1];
-  const number_t &cx = parameters_[2];
-  const number_t &cy = parameters_[3];
+    const Vec2& p_img, Vec3& p_3d, LinearAlgebraLib::Matrix<number_t, 3, 2>* d_p3d_d_img,
+    LinearAlgebraLib::Matrix<number_t, 3, LinearAlgebraLib::Dynamic>* d_p3d_d_param) const {
+  const number_t& fx = parameters_[0];
+  const number_t& fy = parameters_[1];
+  const number_t& cx = parameters_[2];
+  const number_t& cy = parameters_[3];
 
-  const number_t &xi = parameters_[4];
-  const number_t &alpha = parameters_[5];
+  const number_t& xi = parameters_[4];
+  const number_t& alpha = parameters_[5];
 
   const number_t mx = (p_img[0] - cx) / fx;
   const number_t my = (p_img[1] - cy) / fy;
@@ -125,8 +118,7 @@ bool DoubleSphereCamera::UnProject(
   const number_t xi2_2 = alpha * alpha;
   const number_t xi1_2 = xi * xi;
 
-  const number_t sqrt2 =
-      std::sqrt(number_t(1) - (number_t(2) * alpha - number_t(1)) * r2);
+  const number_t sqrt2 = std::sqrt(number_t(1) - (number_t(2) * alpha - number_t(1)) * r2);
 
   const number_t norm2 = alpha * sqrt2 + number_t(1) - alpha;
 
@@ -145,25 +137,17 @@ bool DoubleSphereCamera::UnProject(
     const number_t norm2_2 = norm2 * norm2;
     const number_t norm1_2 = norm1 * norm1;
 
-    const number_t d_mz_d_r2 = (number_t(0.5) * alpha - xi2_2) *
-                                   (r2 * xi2_2 - number_t(1)) /
-                                   (sqrt2 * norm2_2) -
-                               xi2_2 / norm2;
+    const number_t d_mz_d_r2 =
+        (number_t(0.5) * alpha - xi2_2) * (r2 * xi2_2 - number_t(1)) / (sqrt2 * norm2_2) - xi2_2 / norm2;
 
     const number_t d_mz_d_mx = 2 * mx * d_mz_d_r2;
     const number_t d_mz_d_my = 2 * my * d_mz_d_r2;
 
-    const number_t d_k_d_mz =
-        (norm1 * (xi * sqrt1 + mz) - 2 * mz * (mz * xi + sqrt1) * sqrt1) /
-        (norm1_2 * sqrt1);
+    const number_t d_k_d_mz = (norm1 * (xi * sqrt1 + mz) - 2 * mz * (mz * xi + sqrt1) * sqrt1) / (norm1_2 * sqrt1);
 
     const number_t d_k_d_r2 =
-        (xi * d_mz_d_r2 +
-         number_t(0.5) / sqrt1 *
-             (number_t(2) * mz * d_mz_d_r2 + number_t(1) - xi1_2)) /
-            norm1 -
-        (mz * xi + sqrt1) * (number_t(2) * mz * d_mz_d_r2 + number_t(1)) /
-            norm1_2;
+        (xi * d_mz_d_r2 + number_t(0.5) / sqrt1 * (number_t(2) * mz * d_mz_d_r2 + number_t(1) - xi1_2)) / norm1 -
+        (mz * xi + sqrt1) * (number_t(2) * mz * d_mz_d_r2 + number_t(1)) / norm1_2;
 
     const number_t d_k_d_mx = d_k_d_r2 * 2 * mx;
     const number_t d_k_d_my = d_k_d_r2 * 2 * my;
@@ -192,10 +176,8 @@ bool DoubleSphereCamera::UnProject(
       d_p3d_d_param->setZero();
       const number_t d_k_d_xi1 = (mz * sqrt1 - xi * r2) / (sqrt1 * norm1);
 
-      const number_t d_mz_d_xi2 =
-          (number_t(1) - r2 * xi2_2) *
-              (r2 * alpha / sqrt2 - sqrt2 + number_t(1)) / norm2_2 -
-          number_t(2) * r2 * alpha / norm2;
+      const number_t d_mz_d_xi2 = (number_t(1) - r2 * xi2_2) * (r2 * alpha / sqrt2 - sqrt2 + number_t(1)) / norm2_2 -
+                                  number_t(2) * r2 * alpha / norm2;
 
       const number_t d_k_d_xi2 = d_k_d_mz * d_mz_d_xi2;
 

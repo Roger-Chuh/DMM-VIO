@@ -43,16 +43,14 @@ inline uint32_t clzll(uint64_t x) {
   _BitScanReverse64(&r, x);
 #else
   // Scan the high 32 bits.
-  if (_BitScanReverse(&r, static_cast<uint32_t>(x >> 32)))
-    return 63 - (r + 32);
+  if (_BitScanReverse(&r, static_cast<uint32_t>(x >> 32))) return 63 - (r + 32);
 
   // Scan the low 32 bits.
   _BitScanReverse(&r, static_cast<uint32_t>(x & 0xFFFFFFFF));
-#endif // _WIN64
+#endif  // _WIN64
 
   return 63 - r;
-#elif (defined(__GNUC__) && __GNUC__ >= 4) ||                                  \
-    RAPIDJSON_HAS_BUILTIN(__builtin_clzll)
+#elif (defined(__GNUC__) && __GNUC__ >= 4) || RAPIDJSON_HAS_BUILTIN(__builtin_clzll)
   // __builtin_clzll wrapper
   return static_cast<uint32_t>(__builtin_clzll(x));
 #else
@@ -64,12 +62,12 @@ inline uint32_t clzll(uint64_t x) {
   }
 
   return r;
-#endif // _MSC_VER
+#endif  // _MSC_VER
 }
 
 #define RAPIDJSON_CLZLL RAPIDJSON_NAMESPACE::internal::clzll
 
-} // namespace internal
+}  // namespace internal
 RAPIDJSON_NAMESPACE_END
 
-#endif // RAPIDJSON_CLZLL_H_
+#endif  // RAPIDJSON_CLZLL_H_

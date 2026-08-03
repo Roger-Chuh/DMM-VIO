@@ -11,7 +11,7 @@ class DirectVisualFactor;
 struct EstimatorConfig;
 
 class MultiCameraEpipolarSearch {
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   enum State { kVisible, kParallel, kFail, kSuccess, kReject, kUnVisible };
   struct CamData {
@@ -49,42 +49,34 @@ public:
     number_t avg_zncc = 0;
   };
 
-  MultiCameraEpipolarSearch(MultiCamera *cameras,
-                            const number_t &OOB_check_cos_theta_threshold,
-                            const number_t &cos_grad_epipolar_dir,
-                            const EstimatorConfig *estimator_config);
+  MultiCameraEpipolarSearch(MultiCamera* cameras, const number_t& OOB_check_cos_theta_threshold,
+                            const number_t& cos_grad_epipolar_dir, const EstimatorConfig* estimator_config);
 
-  State FindEpipolarMatch(
-      const Point &point, const int &host_cid,
-      std::array<std::shared_ptr<AlgsImage>, kCameraNumUsed> cid_to_img,
-      const size_t &pid, const number_t &init_rho, const number_t &rho_sigma2,
-      const size_t &target_fid,
-      std::array<MatchRes, kCameraNumUsed> &cid_to_output, number_t &idp,
-      const number_t &search_length_threshold, const bool &is_same_fid,
-      const int &intr_level, Mat4 *T10 = nullptr);
+  State FindEpipolarMatch(const Point& point, const int& host_cid,
+                          std::array<std::shared_ptr<AlgsImage>, kCameraNumUsed> cid_to_img, const size_t& pid,
+                          const number_t& init_rho, const number_t& rho_sigma2, const size_t& target_fid,
+                          std::array<MatchRes, kCameraNumUsed>& cid_to_output, number_t& idp,
+                          const number_t& search_length_threshold, const bool& is_same_fid, const int& intr_level,
+                          Mat4* T10 = nullptr);
 
   std::array<CamData, kCameraNumUsed> cid_to_cam_data_;
   number_t rad_step_;
 
-private:
-  bool InFrame(const Vec2 &uv, const size_t &img_width,
-               const size_t &img_height, const int &border);
-  bool Triangulate(number_t &idp, const Mat4 &T01, const Vec3 &v0,
-                   const Vec3 &v1);
+ private:
+  bool InFrame(const Vec2& uv, const size_t& img_width, const size_t& img_height, const int& border);
+  bool Triangulate(number_t& idp, const Mat4& T01, const Vec3& v0, const Vec3& v1);
 
-  size_t FindSearchedCid(const number_t *cid_to_epipolar_length);
+  size_t FindSearchedCid(const number_t* cid_to_epipolar_length);
 
-  std::vector<size_t> FindLocalMaxima(const std::vector<number_t> &zncc_vec);
+  std::vector<size_t> FindLocalMaxima(const std::vector<number_t>& zncc_vec);
 
-  void GetTheBestAndSecondScore(const std::vector<number_t> &zncc_vec,
-                                const std::vector<size_t> &maxima_index_vec,
-                                number_t &best_zncc, number_t &second_zncc);
+  void GetTheBestAndSecondScore(const std::vector<number_t>& zncc_vec, const std::vector<size_t>& maxima_index_vec,
+                                number_t& best_zncc, number_t& second_zncc);
 
   // maxSteps may cause the search unable to reach the min and max depth
   int maxSteps_ = 125;
-  number_t OOB_check_cos_theta_threshold_ =
-      -1; // FOV Threshold cos(75)
-          //  number_t cos_grad_epipolar_dir_theta_threshold_ = -1;  // cos(75)
+  number_t OOB_check_cos_theta_threshold_ = -1;  // FOV Threshold cos(75)
+                                                 //  number_t cos_grad_epipolar_dir_theta_threshold_ = -1;  // cos(75)
 
   //  number_t epipolar_length_threshold_ = 10.0;
 
@@ -94,15 +86,13 @@ private:
 
   //  number_t pixel_step_ = 1.0;
   // number_t rad_step_;
-  number_t search_zncc_threshold_ =
-      setting_outlierTH_zncc_angle_epi_trace_on; // 0.7; // 0.9;
-  number_t opt_zncc_threshold_ =
-      setting_outlierTH_zncc_angle_epi_linearize; // 0.6;    // 0.8;
+  number_t search_zncc_threshold_ = setting_outlierTH_zncc_angle_epi_trace_on;  // 0.7; // 0.9;
+  number_t opt_zncc_threshold_ = setting_outlierTH_zncc_angle_epi_linearize;    // 0.6;    // 0.8;
 
   size_t max_iter_ = 5;
 
-  MultiCamera *p_level_cid_to_camera_;
+  MultiCamera* p_level_cid_to_camera_;
   DirectVisualFactor direct_visual_factor_;
 };
 
-} // namespace dso
+}  // namespace dso

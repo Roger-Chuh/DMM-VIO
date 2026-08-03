@@ -49,53 +49,44 @@
 namespace dso {
 
 void FullSystem::debugPlotTracking() {
-  if (disableAllDisplay)
-    return;
-  if (!setting_render_plotTrackingFull)
-    return;
+  if (disableAllDisplay) return;
+  if (!setting_render_plotTrackingFull) return;
   int wh = hG[0] * wG[0];
 
   int idx = 0;
-  for (FrameHessian *f : frameHessians) {
-    std::vector<MinimalImageB3 *> images;
+  for (FrameHessian* f : frameHessians) {
+    std::vector<MinimalImageB3*> images;
 
     // make images for all frames. will be deleted by the FrameHessian's
     // destructor.
-    for (FrameHessian *f2 : frameHessians)
-      if (f2->debugImage == 0)
-        f2->debugImage = new MinimalImageB3(wG[0], hG[0]);
+    for (FrameHessian* f2 : frameHessians)
+      if (f2->debugImage == 0) f2->debugImage = new MinimalImageB3(wG[0], hG[0]);
 
-    for (FrameHessian *f2 : frameHessians) {
-      MinimalImageB3 *debugImage = f2->debugImage;
+    for (FrameHessian* f2 : frameHessians) {
+      MinimalImageB3* debugImage = f2->debugImage;
       images.push_back(debugImage);
 
-      Eigen::Vector3f *fd = f2->dI;
+      Eigen::Vector3f* fd = f2->dI;
 
-      Vec2 affL = AffLight::fromToVecExposure(f2->ab_exposure, f->ab_exposure,
-                                              f2->aff_g2l(), f->aff_g2l());
+      Vec2 affL = AffLight::fromToVecExposure(f2->ab_exposure, f->ab_exposure, f2->aff_g2l(), f->aff_g2l());
 
       for (int cid = 0; cid < kCameraNumUsed; ++cid) {
         for (int i = 0; i < wh; i++) {
           // BRIGHTNESS TRANSFER
           float colL = affL[0] * fd[i][0] + affL[1];
-          if (colL < 0)
-            colL = 0;
-          if (colL > 255)
-            colL = 255;
+          if (colL < 0) colL = 0;
+          if (colL > 255) colL = 255;
           debugImage->at(i, cid) = Vec3b(colL, colL, colL);
         }
       }
     }
 
     for (int cid = 0; cid < kCameraNumUsed; ++cid) {
-      for (PointHessian *ph : f->pointHessians) {
+      for (PointHessian* ph : f->pointHessians) {
         assert(ph->status == PointHessian::ACTIVE);
-        if (ph->status == PointHessian::ACTIVE ||
-            ph->status == PointHessian::MARGINALIZED) {
-          for (PointFrameResidual *r : ph->residuals)
-            r->debugPlot(cid);
-          f->debugImage->setPixel9(ph->u + 0.5, ph->v + 0.5,
-                                   makeRainbow3B(ph->idepth_scaled), cid);
+        if (ph->status == PointHessian::ACTIVE || ph->status == PointHessian::MARGINALIZED) {
+          for (PointFrameResidual* r : ph->residuals) r->debugPlot(cid);
+          f->debugImage->setPixel9(ph->u + 0.5, ph->v + 0.5, makeRainbow3B(ph->idepth_scaled), cid);
         }
       }
     }
@@ -110,27 +101,22 @@ void FullSystem::debugPlotTracking() {
 
 void FullSystem::debugPlot(std::string name, int cid) {
   dmvio::TimeMeasurement timeMeasurement("debugPlot");
-  if (disableAllDisplay)
-    return;
-  if (!setting_render_renderWindowFrames)
-    return;
-  std::vector<MinimalImageB3 *> images;
+  if (disableAllDisplay) return;
+  if (!setting_render_renderWindowFrames) return;
+  std::vector<MinimalImageB3*> images;
 
   float minID = 0, maxID = 0;
   if ((int)(freeDebugParam5 + 0.5f) == 7 || (debugSaveImages && false)) {
     std::vector<float> allID;
     for (unsigned int f = 0; f < frameHessians.size(); f++) {
-      for (PointHessian *ph : frameHessians[f]->pointHessians)
-        if (ph != 0)
-          allID.push_back(ph->idepth_scaled);
+      for (PointHessian* ph : frameHessians[f]->pointHessians)
+        if (ph != 0) allID.push_back(ph->idepth_scaled);
 
-      for (PointHessian *ph : frameHessians[f]->pointHessiansMarginalized)
-        if (ph != 0)
-          allID.push_back(ph->idepth_scaled);
+      for (PointHessian* ph : frameHessians[f]->pointHessiansMarginalized)
+        if (ph != 0) allID.push_back(ph->idepth_scaled);
 
-      for (PointHessian *ph : frameHessians[f]->pointHessiansOut)
-        if (ph != 0)
-          allID.push_back(ph->idepth_scaled);
+      for (PointHessian* ph : frameHessians[f]->pointHessiansOut)
+        if (ph != 0) allID.push_back(ph->idepth_scaled);
     }
     std::sort(allID.begin(), allID.end());
     int n = allID.size() - 1;
@@ -139,18 +125,13 @@ void FullSystem::debugPlot(std::string name, int cid) {
 
     // slowly adapt: change by maximum 10% of old span.
     float maxChange = 0.1 * (maxIdJetVisDebug - minIdJetVisDebug);
-    if (maxIdJetVisDebug < 0 || minIdJetVisDebug < 0)
-      maxChange = 1e5;
+    if (maxIdJetVisDebug < 0 || minIdJetVisDebug < 0) maxChange = 1e5;
 
-    if (minID < minIdJetVisDebug - maxChange)
-      minID = minIdJetVisDebug - maxChange;
-    if (minID > minIdJetVisDebug + maxChange)
-      minID = minIdJetVisDebug + maxChange;
+    if (minID < minIdJetVisDebug - maxChange) minID = minIdJetVisDebug - maxChange;
+    if (minID > minIdJetVisDebug + maxChange) minID = minIdJetVisDebug + maxChange;
 
-    if (maxID < maxIdJetVisDebug - maxChange)
-      maxID = maxIdJetVisDebug - maxChange;
-    if (maxID > maxIdJetVisDebug + maxChange)
-      maxID = maxIdJetVisDebug + maxChange;
+    if (maxID < maxIdJetVisDebug - maxChange) maxID = maxIdJetVisDebug - maxChange;
+    if (maxID > maxIdJetVisDebug + maxChange) maxID = maxIdJetVisDebug + maxChange;
 
     maxIdJetVisDebug = maxID;
     minIdJetVisDebug = minID;
@@ -158,199 +139,144 @@ void FullSystem::debugPlot(std::string name, int cid) {
 
   int wh = hG[0] * wG[0];
   for (unsigned int f = 0; f < frameHessians.size(); f++) {
-    MinimalImageB3 *img = new MinimalImageB3(wG[0], hG[0]);
+    MinimalImageB3* img = new MinimalImageB3(wG[0], hG[0]);
     images.push_back(img);
     // float* fd = frameHessians[f]->I;
-    Eigen::Vector3f *fd = frameHessians[f]->dI;
+    Eigen::Vector3f* fd = frameHessians[f]->dI;
 
     for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
       for (int i = 0; i < wh; i++) {
         int c = fd[i][0] * 0.9f;
-        if (c > 255)
-          c = 255;
-        img->at(i, target_cid) = Vec3b(c, c, c); // TODO 把单通道图像变成三通道
+        if (c > 255) c = 255;
+        img->at(i, target_cid) = Vec3b(c, c, c);  // TODO 把单通道图像变成三通道
       }
     }
     if ((int)(freeDebugParam5 + 0.5f) == 0) {
-      for (PointHessian *ph : frameHessians[f]->pointHessians) {
-        if (ph == 0)
-          continue;
+      for (PointHessian* ph : frameHessians[f]->pointHessians) {
+        if (ph == 0) continue;
 
-        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f,
-                          makeRainbow3B(ph->idepth_scaled), ph->host_cid);
+        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, makeRainbow3B(ph->idepth_scaled), ph->host_cid);
       }
-      for (PointHessian *ph : frameHessians[f]->pointHessiansMarginalized) {
-        if (ph == 0)
-          continue;
-        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f,
-                          makeRainbow3B(ph->idepth_scaled), ph->host_cid);
+      for (PointHessian* ph : frameHessians[f]->pointHessiansMarginalized) {
+        if (ph == 0) continue;
+        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, makeRainbow3B(ph->idepth_scaled), ph->host_cid);
       }
-      for (PointHessian *ph : frameHessians[f]->pointHessiansOut)
-        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 255, 255),
-                          ph->host_cid);
+      for (PointHessian* ph : frameHessians[f]->pointHessiansOut)
+        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 255, 255), ph->host_cid);
     } else if ((int)(freeDebugParam5 + 0.5f) == 1) {
-      for (PointHessian *ph : frameHessians[f]->pointHessians) {
-        if (ph == 0)
-          continue;
-        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f,
-                          makeRainbow3B(ph->idepth_scaled), ph->host_cid);
+      for (PointHessian* ph : frameHessians[f]->pointHessians) {
+        if (ph == 0) continue;
+        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, makeRainbow3B(ph->idepth_scaled), ph->host_cid);
       }
 
-      for (PointHessian *ph : frameHessians[f]->pointHessiansMarginalized)
-        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 0, 0),
-                          ph->host_cid);
+      for (PointHessian* ph : frameHessians[f]->pointHessiansMarginalized)
+        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 0, 0), ph->host_cid);
 
-      for (PointHessian *ph : frameHessians[f]->pointHessiansOut)
-        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 255, 255),
-                          ph->host_cid);
+      for (PointHessian* ph : frameHessians[f]->pointHessiansOut)
+        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 255, 255), ph->host_cid);
     } else if ((int)(freeDebugParam5 + 0.5f) == 2) {
     } else if ((int)(freeDebugParam5 + 0.5f) == 3) {
-      for (ImmaturePoint *ph : frameHessians[f]->immaturePoints) {
-        if (ph == 0)
-          continue;
+      for (ImmaturePoint* ph : frameHessians[f]->immaturePoints) {
+        if (ph == 0) continue;
         int bad_count = 0;
         for (int id = 0; id < kCameraNumUsed; ++id) {
           if (ph->lastTraceStatus[id] == ImmaturePointStatus::IPS_GOOD ||
               ph->lastTraceStatus[id] == ImmaturePointStatus::IPS_SKIPPED ||
-              ph->lastTraceStatus[id] ==
-                  ImmaturePointStatus::IPS_BADCONDITION) {
+              ph->lastTraceStatus[id] == ImmaturePointStatus::IPS_BADCONDITION) {
             bad_count++;
           }
         }
         if (bad_count == kCameraNumUsed) {
           if (!std::isfinite(ph->idepth_max))
-            img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 0, 0),
-                              ph->host_cid);
+            img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 0, 0), ph->host_cid);
           else {
-            img->setPixelCirc(
-                ph->u + 0.5f, ph->v + 0.5f,
-                makeRainbow3B((ph->idepth_min + ph->idepth_max) * 0.5f),
-                ph->host_cid);
+            img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, makeRainbow3B((ph->idepth_min + ph->idepth_max) * 0.5f),
+                              ph->host_cid);
           }
         }
       }
     } else if ((int)(freeDebugParam5 + 0.5f) == 4) {
-      for (ImmaturePoint *ph : frameHessians[f]->immaturePoints) {
-        if (ph == 0)
-          continue;
+      for (ImmaturePoint* ph : frameHessians[f]->immaturePoints) {
+        if (ph == 0) continue;
 
         if (ph->lastTraceStatus[cid] == ImmaturePointStatus::IPS_GOOD)
-          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 255, 0),
-                            ph->host_cid);
+          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 255, 0), ph->host_cid);
         if (ph->lastTraceStatus[cid] == ImmaturePointStatus::IPS_OOB)
-          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 0, 0),
-                            ph->host_cid);
+          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 0, 0), ph->host_cid);
         if (ph->lastTraceStatus[cid] == ImmaturePointStatus::IPS_OUTLIER)
-          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 0, 255),
-                            ph->host_cid);
+          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 0, 255), ph->host_cid);
         if (ph->lastTraceStatus[cid] == ImmaturePointStatus::IPS_SKIPPED)
-          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 255, 0),
-                            ph->host_cid);
+          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 255, 0), ph->host_cid);
         if (ph->lastTraceStatus[cid] == ImmaturePointStatus::IPS_BADCONDITION)
-          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 255, 255),
-                            ph->host_cid);
+          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 255, 255), ph->host_cid);
         if (ph->lastTraceStatus[cid] == ImmaturePointStatus::IPS_UNINITIALIZED)
-          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 0, 0),
-                            ph->host_cid);
+          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 0, 0), ph->host_cid);
       }
     } else if ((int)(freeDebugParam5 + 0.5f) == 5) {
-      for (ImmaturePoint *ph : frameHessians[f]->immaturePoints) {
-        if (ph == 0)
-          continue;
+      for (ImmaturePoint* ph : frameHessians[f]->immaturePoints) {
+        if (ph == 0) continue;
 
-        if (ph->lastTraceStatus[cid] == ImmaturePointStatus::IPS_UNINITIALIZED)
-          continue;
+        if (ph->lastTraceStatus[cid] == ImmaturePointStatus::IPS_UNINITIALIZED) continue;
         float d = freeDebugParam1 * (sqrtf(ph->quality[cid]) - 1);
-        if (d < 0)
-          d = 0;
-        if (d > 1)
-          d = 1;
-        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f,
-                          Vec3b(0, d * 255, (1 - d) * 255), ph->host_cid);
+        if (d < 0) d = 0;
+        if (d > 1) d = 1;
+        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, d * 255, (1 - d) * 255), ph->host_cid);
       }
 
     } else if ((int)(freeDebugParam5 + 0.5f) == 6) {
-      for (PointHessian *ph : frameHessians[f]->pointHessians) {
-        if (ph == 0)
-          continue;
-        if (ph->my_type == 0)
-          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 0, 255),
-                            ph->host_cid);
-        if (ph->my_type == 1)
-          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 0, 0),
-                            ph->host_cid);
-        if (ph->my_type == 2)
-          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 0, 255),
-                            ph->host_cid);
-        if (ph->my_type == 3)
-          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 255, 255),
-                            ph->host_cid);
+      for (PointHessian* ph : frameHessians[f]->pointHessians) {
+        if (ph == 0) continue;
+        if (ph->my_type == 0) img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 0, 255), ph->host_cid);
+        if (ph->my_type == 1) img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 0, 0), ph->host_cid);
+        if (ph->my_type == 2) img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 0, 255), ph->host_cid);
+        if (ph->my_type == 3) img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 255, 255), ph->host_cid);
       }
-      for (PointHessian *ph : frameHessians[f]->pointHessiansMarginalized) {
-        if (ph == 0)
-          continue;
-        if (ph->my_type == 0)
-          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 0, 255),
-                            ph->host_cid);
-        if (ph->my_type == 1)
-          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 0, 0),
-                            ph->host_cid);
-        if (ph->my_type == 2)
-          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 0, 255),
-                            ph->host_cid);
-        if (ph->my_type == 3)
-          img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 255, 255),
-                            ph->host_cid);
+      for (PointHessian* ph : frameHessians[f]->pointHessiansMarginalized) {
+        if (ph == 0) continue;
+        if (ph->my_type == 0) img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 0, 255), ph->host_cid);
+        if (ph->my_type == 1) img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(255, 0, 0), ph->host_cid);
+        if (ph->my_type == 2) img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 0, 255), ph->host_cid);
+        if (ph->my_type == 3) img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 255, 255), ph->host_cid);
       }
     }
     if ((int)(freeDebugParam5 + 0.5f) == 7) {
-      for (PointHessian *ph : frameHessians[f]->pointHessians) {
-        img->setPixelCirc(
-            ph->u + 0.5f, ph->v + 0.5f,
-            makeJet3B((ph->idepth_scaled - minID) / ((maxID - minID))),
-            ph->host_cid);
-      }
-      for (PointHessian *ph : frameHessians[f]->pointHessiansMarginalized) {
-        if (ph == 0)
-          continue;
-        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 0, 0),
+      for (PointHessian* ph : frameHessians[f]->pointHessians) {
+        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, makeJet3B((ph->idepth_scaled - minID) / ((maxID - minID))),
                           ph->host_cid);
+      }
+      for (PointHessian* ph : frameHessians[f]->pointHessiansMarginalized) {
+        if (ph == 0) continue;
+        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 0, 0), ph->host_cid);
       }
     }
   }
   IOWrap::displayImageStitch(name.c_str(), images);
   IOWrap::waitKey(5);
 
-  for (unsigned int i = 0; i < images.size(); i++)
-    delete images[i];
+  for (unsigned int i = 0; i < images.size(); i++) delete images[i];
 
   if ((debugSaveImages && false)) {
     for (unsigned int f = 0; f < frameHessians.size(); f++) {
-      MinimalImageB3 *img = new MinimalImageB3(wG[0], hG[0]);
-      Eigen::Vector3f *fd = frameHessians[f]->dI;
+      MinimalImageB3* img = new MinimalImageB3(wG[0], hG[0]);
+      Eigen::Vector3f* fd = frameHessians[f]->dI;
 
       for (int i = 0; i < wh; i++) {
         int c = fd[i][0] * 0.9f;
-        if (c > 255)
-          c = 255;
+        if (c > 255) c = 255;
         img->at(i, 0) = Vec3b(c, c, c);
       }
 
-      for (PointHessian *ph : frameHessians[f]->pointHessians) {
-        img->setPixelCirc(
-            ph->u + 0.5f, ph->v + 0.5f,
-            makeJet3B((ph->idepth_scaled - minID) / ((maxID - minID))), 0);
+      for (PointHessian* ph : frameHessians[f]->pointHessians) {
+        img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, makeJet3B((ph->idepth_scaled - minID) / ((maxID - minID))), 0);
       }
-      for (PointHessian *ph : frameHessians[f]->pointHessiansMarginalized) {
-        if (ph == 0)
-          continue;
+      for (PointHessian* ph : frameHessians[f]->pointHessiansMarginalized) {
+        if (ph == 0) continue;
         img->setPixelCirc(ph->u + 0.5f, ph->v + 0.5f, Vec3b(0, 0, 0), 0);
       }
 
       char buf[1000];
-      snprintf(buf, 1000, "images_out/kf_%05d_%05d_%02d.png",
-               frameHessians.back()->shell->id, frameHessians.back()->frameID,
-               f);
+      snprintf(buf, 1000, "images_out/kf_%05d_%05d_%02d.png", frameHessians.back()->shell->id,
+               frameHessians.back()->frameID, f);
       IOWrap::writeImage(buf, img);
 
       delete img;
@@ -358,4 +284,4 @@ void FullSystem::debugPlot(std::string name, int cid) {
   }
 }
 
-} // namespace dso
+}  // namespace dso

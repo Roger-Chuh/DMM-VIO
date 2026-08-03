@@ -29,45 +29,33 @@
 using namespace dmvio;
 using namespace gtsam;
 
-void dmvio::integrateIMUData(
-    const IMUData &imuData,
-    gtsam::PreintegratedImuMeasurements &preintegrated) {
-  for (const auto &measurement : imuData) {
+void dmvio::integrateIMUData(const IMUData& imuData, gtsam::PreintegratedImuMeasurements& preintegrated) {
+  for (const auto& measurement : imuData) {
     // std::cout<<"measurement.getAccData():
     // "<<measurement.getAccData().transpose()<<std::endl;
-    if (measurement.getIntegrationTime() == 0.0)
-      continue;
-    preintegrated.integrateMeasurement(gtsam::Vector(measurement.getAccData()),
-                                       gtsam::Vector(measurement.getGyrData()),
+    if (measurement.getIntegrationTime() == 0.0) continue;
+    preintegrated.integrateMeasurement(gtsam::Vector(measurement.getAccData()), gtsam::Vector(measurement.getGyrData()),
                                        measurement.getIntegrationTime());
   }
 }
 
 gtsam::noiseModel::Diagonal::shared_ptr dmvio::computeBiasNoiseModel(
-    const IMUCalibration &imuCalibration,
-    const gtsam::PreintegratedImuMeasurements &imuMeasurements) {
-  double sigma_b_a =
-      imuCalibration.sigma_between_b_a * sqrt(imuMeasurements.deltaTij());
-  double sigma_b_g =
-      imuCalibration.sigma_between_b_g * sqrt(imuMeasurements.deltaTij());
-  return gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << sigma_b_a,
-                                              sigma_b_a, sigma_b_a, sigma_b_g,
-                                              sigma_b_g, sigma_b_g)
-                                                 .finished());
+    const IMUCalibration& imuCalibration, const gtsam::PreintegratedImuMeasurements& imuMeasurements) {
+  double sigma_b_a = imuCalibration.sigma_between_b_a * sqrt(imuMeasurements.deltaTij());
+  double sigma_b_g = imuCalibration.sigma_between_b_g * sqrt(imuMeasurements.deltaTij());
+  return gtsam::noiseModel::Diagonal::Sigmas(
+      (gtsam::Vector(6) << sigma_b_a, sigma_b_a, sigma_b_a, sigma_b_g, sigma_b_g, sigma_b_g).finished());
 }
 
-void IMUTransformPriorSettings::registerArgs(dmvio::SettingsUtil &set,
-                                             std::string prefix) {
+void IMUTransformPriorSettings::registerArgs(dmvio::SettingsUtil& set, std::string prefix) {
   set.registerArg(prefix + "priorExtrinsicsRot", priorExtrinsicsRot);
   set.registerArg(prefix + "priorExtrinsicsTrans", priorExtrinsicsTrans);
   set.registerArg(prefix + "priorGravityDirection", priorGravityDirection);
   set.registerArg(prefix + "priorGravityDirectionZ", priorGravityDirectionZ);
 }
 
-std::vector<gtsam::NonlinearFactor::shared_ptr>
-dmvio::getPriorsAndAddValuesForTransform(
-    const TransformDSOToIMU &transform,
-    const IMUTransformPriorSettings &settings, gtsam::Values &values) {
+std::vector<gtsam::NonlinearFactor::shared_ptr> dmvio::getPriorsAndAddValuesForTransform(
+    const TransformDSOToIMU& transform, const IMUTransformPriorSettings& settings, gtsam::Values& values) {
   std::vector<gtsam::NonlinearFactor::shared_ptr> ret;
   int symInd = transform.getSymbolInd();
   if (transform.optimizeScale() /*|| true*/) {
@@ -79,8 +67,8 @@ dmvio::getPriorsAndAddValuesForTransform(
   if (transform.optimizeGravity() /*|| true*/) {
     gtsam::Key gravityKey = Symbol('g', symInd);
     gtsam::Rot3 initialRot(transform.getR_dsoW_metricW().matrix());
-    gtsam::Rot3 zeroRot; // Initialize with current transform but set prior to
-                         // zero transform.
+    gtsam::Rot3 zeroRot;  // Initialize with current transform but set prior to
+                          // zero transform.
     values.insert(gravityKey, initialRot);
 
     Eigen::Vector3d gravityModel;
@@ -88,9 +76,7 @@ dmvio::getPriorsAndAddValuesForTransform(
     gravityModel.setConstant(rotationalSigma);
     gravityModel(2) = settings.priorGravityDirectionZ;
     gtsam::PriorFactor<gtsam::Rot3>::shared_ptr rotationPrior(
-        new gtsam::PriorFactor<gtsam::Rot3>(
-            gravityKey, zeroRot,
-            gtsam::noiseModel::Diagonal::Sigmas(gravityModel)));
+        new gtsam::PriorFactor<gtsam::Rot3>(gravityKey, zeroRot, gtsam::noiseModel::Diagonal::Sigmas(gravityModel)));
     ret.push_back(rotationPrior);
   }
 
@@ -102,10 +88,8 @@ dmvio::getPriorsAndAddValuesForTransform(
     gtsam::Vector6 extrinsicsModel;
     extrinsicsModel.segment(0, 3).setConstant(settings.priorExtrinsicsRot);
     extrinsicsModel.segment(3, 3).setConstant(settings.priorExtrinsicsTrans);
-    gtsam::PriorFactor<gtsam::Pose3>::shared_ptr extrinsicsPrior(
-        new gtsam::PriorFactor<gtsam::Pose3>(
-            extrinsicsKey, initialExtr,
-            gtsam::noiseModel::Diagonal::Sigmas(extrinsicsModel)));
+    gtsam::PriorFactor<gtsam::Pose3>::shared_ptr extrinsicsPrior(new gtsam::PriorFactor<gtsam::Pose3>(
+        extrinsicsKey, initialExtr, gtsam::noiseModel::Diagonal::Sigmas(extrinsicsModel)));
     ret.push_back(extrinsicsPrior);
   }
   return ret;

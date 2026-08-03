@@ -46,4 +46,4 @@ namespace dso {
 
 //#define SHOW_LOG_IN_SELF_OPT
 
-} // namespace dso
+}  // namespace dso

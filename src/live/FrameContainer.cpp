@@ -26,16 +26,15 @@
 #include <dso/util/settings.h>
 #include <iomanip>
 
-std::pair<std::unique_ptr<dso::ImageAndExposure>, dmvio::IMUData>
-dmvio::FrameContainer::getImageAndIMUData(int maxSkipFrames) {
+std::pair<std::unique_ptr<dso::ImageAndExposure>, dmvio::IMUData> dmvio::FrameContainer::getImageAndIMUData(
+    int maxSkipFrames) {
   std::unique_lock<std::mutex> lock(framesMutex);
-  while (frames.size() == 0 && !stopSystem) // Wait for new image.
+  while (frames.size() == 0 && !stopSystem)  // Wait for new image.
   {
     frameArrivedCond.wait(lock);
   }
 
-  if (stopSystem)
-    return std::make_pair(nullptr, dmvio::IMUData{});
+  if (stopSystem) return std::make_pair(nullptr, dmvio::IMUData{});
 
   IMUData imuData;
 
@@ -44,8 +43,7 @@ dmvio::FrameContainer::getImageAndIMUData(int maxSkipFrames) {
   size_t useFrame = frames.size() - 1;
   int numFramesAfter = 0;
   if (frames.size() > 1) {
-    int framesToSkip =
-        frames.size() - 1; // also the index of the frame that will be used.
+    int framesToSkip = frames.size() - 1;  // also the index of the frame that will be used.
     if (maxSkipFrames >= 0 && maxSkipFrames < framesToSkip) {
       framesToSkip = maxSkipFrames;
     }
@@ -53,8 +51,7 @@ dmvio::FrameContainer::getImageAndIMUData(int maxSkipFrames) {
     numFramesAfter = frames.size() - useFrame - 1;
     if (!dso::setting_debugout_runquiet) {
       std::cout << "SKIPPING " << framesToSkip << " FRAMES!"
-                << " frames remaining in queue: " << numFramesAfter
-                << std::endl;
+                << " frames remaining in queue: " << numFramesAfter << std::endl;
     }
   }
 
@@ -62,7 +59,7 @@ dmvio::FrameContainer::getImageAndIMUData(int maxSkipFrames) {
 
   // Fill IMU data to return, also consider IMU data for skipped frames.
   for (int j = 0; j <= useFrame; ++j) {
-    std::vector<dmvio::IMUDataDuringInterpolation> &data = frames[j].imuData;
+    std::vector<dmvio::IMUDataDuringInterpolation>& data = frames[j].imuData;
     for (int i = 0; i < data.size(); ++i) {
       Eigen::Vector3d acc, gyr;
       for (int x = 0; x < 3; ++x) {
@@ -108,6 +105,5 @@ void dmvio::FrameContainer::stop() {
   frameArrivedCond.notify_all();
 }
 
-dmvio::Frame::Frame(std::unique_ptr<dso::ImageAndExposure> &&img,
-                    double imgTimestamp)
+dmvio::Frame::Frame(std::unique_ptr<dso::ImageAndExposure>&& img, double imgTimestamp)
     : img(std::move(img)), imgTimestamp(imgTimestamp) {}

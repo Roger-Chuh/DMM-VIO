@@ -37,59 +37,47 @@ using namespace dmvio;
 using std::cout;
 using std::endl;
 
-IMUIntegration::IMUIntegration(dso::CalibHessian *HCalib,
-                               const IMUCalibration &imuCalibrationPassed,
-                               IMUSettings &imuSettingsPassed,
-                               bool linearizeOperationPassed)
-    : linearizeOperation(linearizeOperationPassed), preparedKeyframe(-1),
-      preparedKFCreated(false), imuCalibration(imuCalibrationPassed),
+IMUIntegration::IMUIntegration(dso::CalibHessian* HCalib, const IMUCalibration& imuCalibrationPassed,
+                               IMUSettings& imuSettingsPassed, bool linearizeOperationPassed)
+    : linearizeOperation(linearizeOperationPassed),
+      preparedKeyframe(-1),
+      preparedKFCreated(false),
+      imuCalibration(imuCalibrationPassed),
       imuSettings(imuSettingsPassed) {
   // Create preintegrationParams
   double accelVar = imuCalibration.accel_sigma * imuCalibration.accel_sigma;
   double gyroVar = imuCalibration.gyro_sigma * imuCalibration.gyro_sigma;
-  double integrationVar =
-      imuCalibration.integration_sigma * imuCalibration.integration_sigma;
+  double integrationVar = imuCalibration.integration_sigma * imuCalibration.integration_sigma;
 
   // --------------------------------------------------
-  preintegrationParams.reset(
-      new gtsam::PreintegrationParams(imuCalibrationPassed.gravity));
-  preintegrationParams->setIntegrationCovariance(integrationVar *
-                                                 Eigen::Matrix3d::Identity());
-  preintegrationParams->setAccelerometerCovariance(accelVar *
-                                                   Eigen::Matrix3d::Identity());
-  preintegrationParams->setGyroscopeCovariance(gyroVar *
-                                               Eigen::Matrix3d::Identity());
+  preintegrationParams.reset(new gtsam::PreintegrationParams(imuCalibrationPassed.gravity));
+  preintegrationParams->setIntegrationCovariance(integrationVar * Eigen::Matrix3d::Identity());
+  preintegrationParams->setAccelerometerCovariance(accelVar * Eigen::Matrix3d::Identity());
+  preintegrationParams->setGyroscopeCovariance(gyroVar * Eigen::Matrix3d::Identity());
 
   // Create Delayed Marginalization Graphs.
   std::unique_ptr<BAGraphs> baGraphs;
-  DelayedMarginalizationGraphs *delayedGraphs =
-      new DelayedMarginalizationGraphs(0, BAIMULogic::METRIC_GROUP);
+  DelayedMarginalizationGraphs* delayedGraphs = new DelayedMarginalizationGraphs(0, BAIMULogic::METRIC_GROUP);
   baGraphs.reset(delayedGraphs);
 
   // Create BAGTSAMIntegration.
   // Pass empty transformation, because DSO and baGraph have the same coordinate
   // system (except for the side of epsilon).
-  std::unique_ptr<TransformIdentity> transformationDSOToBA(
-      new TransformIdentity());
+  std::unique_ptr<TransformIdentity> transformationDSOToBA(new TransformIdentity());
   GTSAMIntegrationSettings baGTSAMSettings;
   baGTSAMSettings.weightDSOToGTSAM = imuSettings.setting_weightDSOToGTSAM;
-  baGTSAMIntegration.reset(new BAGTSAMIntegration(
-      std::move(baGraphs), std::move(transformationDSOToBA), baGTSAMSettings,
-      HCalib));
+  baGTSAMIntegration.reset(
+      new BAGTSAMIntegration(std::move(baGraphs), std::move(transformationDSOToBA), baGTSAMSettings, HCalib));
 
   // Create classes handling the IMUIntegration in BA and Coarse tracking
   // respectively.
-  baLogic.reset(new BAIMULogic(this, baGTSAMIntegration.get(), imuCalibration,
-                               imuSettings));
-  std::unique_ptr<PoseTransformation> coarsePoseTransformation =
-      baLogic->getTransformDSOToIMU()->clone();
-  coarseLogic.reset(new CoarseIMULogic(std::move(coarsePoseTransformation),
-                                       preintegrationParams, imuCalibration,
-                                       imuSettings));
+  baLogic.reset(new BAIMULogic(this, baGTSAMIntegration.get(), imuCalibration, imuSettings));
+  std::unique_ptr<PoseTransformation> coarsePoseTransformation = baLogic->getTransformDSOToIMU()->clone();
+  coarseLogic.reset(
+      new CoarseIMULogic(std::move(coarsePoseTransformation), preintegrationParams, imuCalibration, imuSettings));
 
-  if (!imuSettings.initSettings
-           .disableVIOUntilFirstInit) // Only add the extension right away if we
-                                      // start with VIO immediately.
+  if (!imuSettings.initSettings.disableVIOUntilFirstInit)  // Only add the extension right away if we
+                                                           // start with VIO immediately.
   {
     baGTSAMIntegration->addExtension(baLogic);
     coarseInitialized = true;
@@ -97,28 +85,25 @@ IMUIntegration::IMUIntegration(dso::CalibHessian *HCalib,
   }
 
   // IMUInitializer:
-  imuInitializer.reset(new IMUInitializer(
-      imuSettings.resultsPrefix, preintegrationParams, imuCalibration,
-      imuSettings.initSettings, delayedGraphs, linearizeOperation,
-      [this](const gtsam::Values &values, bool willReplaceGraph) {
-        // Callback called upon IMU initialization.
-        bool reinit = baInitialized;
-        if (!reinit) {
-          baGTSAMIntegration->addExtension(baLogic);
-        }
-        baLogic->initFromIMUInit(values, reinit, willReplaceGraph);
-        baInitialized = true; // Note: not threadsafe for RT yet if we
-        // initialize from CoarseIMUInit (which we do not do in the normal
-        // transition mode).
-      }));
+  imuInitializer.reset(new IMUInitializer(imuSettings.resultsPrefix, preintegrationParams, imuCalibration,
+                                          imuSettings.initSettings, delayedGraphs, linearizeOperation,
+                                          [this](const gtsam::Values& values, bool willReplaceGraph) {
+                                            // Callback called upon IMU initialization.
+                                            bool reinit = baInitialized;
+                                            if (!reinit) {
+                                              baGTSAMIntegration->addExtension(baLogic);
+                                            }
+                                            baLogic->initFromIMUInit(values, reinit, willReplaceGraph);
+                                            baInitialized = true;  // Note: not threadsafe for RT yet if we
+                                            // initialize from CoarseIMUInit (which we do not do in the normal
+                                            // transition mode).
+                                          }));
 
   // --------------------------------------------------
   TS_cam_imu = imuCalibration.T_cam_imu;
 
-  preintegratedBA.reset(
-      new gtsam::PreintegratedImuMeasurements(preintegrationParams));
-  preintegratedBACurr.reset(
-      new gtsam::PreintegratedImuMeasurements(preintegrationParams));
+  preintegratedBA.reset(new gtsam::PreintegratedImuMeasurements(preintegrationParams));
+  preintegratedBACurr.reset(new gtsam::PreintegratedImuMeasurements(preintegrationParams));
 }
 
 // return lastKeyframe to newKeyframe.
@@ -133,15 +118,13 @@ Sophus::SE3d IMUIntegration::initCoarseGraph() {
     return Sophus::SE3d{};
   }
   coarseInitialized = true;
-  return coarseLogic->initCoarseGraph(keyframeId,
-                                      std::move(informationBAToCoarse));
+  return coarseLogic->initCoarseGraph(keyframeId, std::move(informationBAToCoarse));
 }
 
 // updateBAValues should be called before this...
 void IMUIntegration::finishKeyframeOperations(int keyframeId) {
   if (baInitialized) {
-    dmvio::TimeMeasurement timeMeasurement(
-        "IMUIntegration::finishKeyframeOperations");
+    dmvio::TimeMeasurement timeMeasurement("IMUIntegration::finishKeyframeOperations");
 
     // Forward to baLogic which does the work.
     baLogic->finishKeyframeOperations(keyframeId);
@@ -151,17 +134,15 @@ void IMUIntegration::finishKeyframeOperations(int keyframeId) {
   }
 }
 
-void IMUIntegration::addIMUDataToBA(const IMUData &imuData) {
+void IMUIntegration::addIMUDataToBA(const IMUData& imuData) {
   dmvio::TimeMeasurement timeMeasurement("addIMUDataToBA");
   integrateIMUData(imuData, *preintegratedBACurr);
   lastIMUData = imuData;
 }
 
 // returns estimated referenceToFrame.
-Sophus::SE3 IMUIntegration::addIMUData(const IMUData &imuData, int frameId,
-                                       double frameTimestamp,
-                                       bool firstFrameAfterKFChange,
-                                       int lastFrameId, bool onlyForHint) {
+Sophus::SE3 IMUIntegration::addIMUData(const IMUData& imuData, int frameId, double frameTimestamp,
+                                       bool firstFrameAfterKFChange, int lastFrameId, bool onlyForHint) {
   boost::shared_ptr<gtsam::PreintegratedImuMeasurements> additionalMeasurements;
   if (firstFrameAfterKFChange) {
     additionalMeasurements = preintegratedForNextCoarse;
@@ -181,49 +162,40 @@ Sophus::SE3 IMUIntegration::addIMUData(const IMUData &imuData, int frameId,
     imuInitializer->addIMUData(imuData, frameId);
   }
 
-  if (!isCoarseInitialized())
-    return Sophus::SE3d{};
+  if (!isCoarseInitialized()) return Sophus::SE3d{};
 
-  printf("################## [frameId lastFrameId: [%d %d]\n", frameId,
-         lastFrameId);
-  return coarseLogic->addIMUData(imuData, frameId, frameTimestamp, lastFrameId,
-                                 additionalMeasurements, preparedKeyframe);
+  printf("################## [frameId lastFrameId: [%d %d]\n", frameId, lastFrameId);
+  return coarseLogic->addIMUData(imuData, frameId, frameTimestamp, lastFrameId, additionalMeasurements,
+                                 preparedKeyframe);
 }
 
-void IMUIntegration::updateCoarsePose(const Sophus::SE3 &refToFrame) {
-  if (!coarseInitialized)
-    return;
+void IMUIntegration::updateCoarsePose(const Sophus::SE3& refToFrame) {
+  if (!coarseInitialized) return;
   coarseLogic->updateCoarsePose(refToFrame);
 }
 
-Sophus::SE3 IMUIntegration::computeCoarseUpdate(
-    dso::Vec8 &inc_gtsam, const dso::Mat88 &H_in, const dso::Vec8 &b_in,
-    float extrapFac, float lambda, double &incA, double &incB, double &incNorm,
-    bool force_zero_inc) {
-  assert(isCoarseInitialized()); // Caller is responsible for not calling if not
-                                 // initialized.
+Sophus::SE3 IMUIntegration::computeCoarseUpdate(dso::Vec8& inc_gtsam, const dso::Mat88& H_in, const dso::Vec8& b_in,
+                                                float extrapFac, float lambda, double& incA, double& incB,
+                                                double& incNorm, bool force_zero_inc) {
+  assert(isCoarseInitialized());  // Caller is responsible for not calling if not
+                                  // initialized.
   Sophus::SE3d newReferenceToFrame =
-      coarseLogic->computeCoarseUpdate(inc_gtsam, H_in, b_in, extrapFac, lambda,
-                                       incA, incB, incNorm, force_zero_inc);
+      coarseLogic->computeCoarseUpdate(inc_gtsam, H_in, b_in, extrapFac, lambda, incA, incB, incNorm, force_zero_inc);
 
   return newReferenceToFrame;
 }
 
 void IMUIntegration::acceptCoarseUpdate() {
-  if (!isCoarseInitialized())
-    return;
+  if (!isCoarseInitialized()) return;
   coarseLogic->acceptCoarseUpdate();
 }
 
-void IMUIntegration::addVisualToCoarseGraph(const dso::Mat88 &H,
-                                            const dso::Vec8 &b,
-                                            bool trackingIsGood) {
-  if (!isCoarseInitialized())
-    return;
+void IMUIntegration::addVisualToCoarseGraph(const dso::Mat88& H, const dso::Vec8& b, bool trackingIsGood) {
+  if (!isCoarseInitialized()) return;
   coarseLogic->addVisualToCoarseGraph(H, b, trackingIsGood);
 }
 
-void IMUIntegration::setGTData(dmvio::GTData *gtData, int frameId) {
+void IMUIntegration::setGTData(dmvio::GTData* gtData, int frameId) {
   dmvio::TimeMeasurement timeMeasurement("printBiases");
 
   // This must be done only for linearizeOperation! (because otherwise it's not
@@ -241,14 +213,12 @@ IMUIntegration::~IMUIntegration() = default;
 // This contains code relevant for both, CoarseTracking and BA. Mainly to make
 // it work in realtime mode.
 void IMUIntegration::prepareKeyframe(int frameId) {
-  bool previouslyPrepared =
-      false; // The last frame was already prepared to be a KF.
+  bool previouslyPrepared = false;  // The last frame was already prepared to be a KF.
 
   // Make sure that the previous keyframe was finished!
   if (preparedKeyframe != -1 && !linearizeOperation) {
     if (!dso::setting_debugout_runquiet) {
-      std::cout << "Note: there is already a keyframe prepared! "
-                << preparedKeyframe << std::endl;
+      std::cout << "Note: there is already a keyframe prepared! " << preparedKeyframe << std::endl;
     }
     assert(frameId == preparedKeyframe + 1);
     assert(!preparedKFCreated);
@@ -261,12 +231,10 @@ void IMUIntegration::prepareKeyframe(int frameId) {
   preparedKFCreated = false;
 
   gtsam::imuBias::ConstantBias currentBias = coarseLogic->getBias(frameId);
-  preparedCoarseVel = coarseLogic->getVelocity(
-      frameId); // We can call this without mutex because we are in the coarse
-                // tracking thread.
+  preparedCoarseVel = coarseLogic->getVelocity(frameId);  // We can call this without mutex because we are in the coarse
+                                                          // tracking thread.
 
-  preintegratedForNextCoarse.reset(new gtsam::PreintegratedImuMeasurements(
-      preintegrationParams, currentBias));
+  preintegratedForNextCoarse.reset(new gtsam::PreintegratedImuMeasurements(preintegrationParams, currentBias));
   imuDataPreintegrated = false;
 
   // We solve that sometimes a new keyframe shall be prepared even though the
@@ -283,8 +251,7 @@ void IMUIntegration::prepareKeyframe(int frameId) {
     // multithreaded case we need the preintegratedBACurr
     integrateIMUData(lastIMUData, *preintegratedBA);
   } else {
-    boost::shared_ptr<gtsam::PreintegratedImuMeasurements> swap =
-        preintegratedBA;
+    boost::shared_ptr<gtsam::PreintegratedImuMeasurements> swap = preintegratedBA;
     preintegratedBA = preintegratedBACurr;
     preintegratedBACurr = swap;
   }
@@ -294,8 +261,7 @@ void IMUIntegration::prepareKeyframe(int frameId) {
   preintegratedBACurr->resetIntegrationAndSetBias(latestBias);
 }
 
-const gtsam::PreintegratedImuMeasurements &
-IMUIntegration::getPreintegratedMeasurements(int keyframeId) {
+const gtsam::PreintegratedImuMeasurements& IMUIntegration::getPreintegratedMeasurements(int keyframeId) {
   assert(linearizeOperation || keyframeId == preparedKeyframe);
 
   return *preintegratedBA;
@@ -308,10 +274,8 @@ void IMUIntegration::postOptimization(int keyframeId) {
     baLogic->postOptimization(keyframeId);
   }
   if (imuInitializer) {
-    imuInitializer->postBAInit(keyframeId,
-                               baGTSAMIntegration->getActiveDSOFactor(),
-                               *(baGTSAMIntegration->getBaValues()),
-                               baGTSAMIntegration->getCurrBaTimestamp(),
+    imuInitializer->postBAInit(keyframeId, baGTSAMIntegration->getActiveDSOFactor(),
+                               *(baGTSAMIntegration->getBaValues()), baGTSAMIntegration->getCurrBaTimestamp(),
                                getPreintegratedMeasurements(keyframeId));
   }
 }
@@ -329,9 +293,7 @@ bool IMUIntegration::finishKeyframeOptimization(int keyframeId) {
   return true;
 }
 
-bool IMUIntegration::newTrackingRefNeedsHandling() {
-  return imuDataPreintegrated;
-}
+bool IMUIntegration::newTrackingRefNeedsHandling() { return imuDataPreintegrated; }
 
 int IMUIntegration::getPreparedKeyframe() const { return preparedKeyframe; }
 
@@ -348,24 +310,18 @@ void IMUIntegration::keyframeCreated(int frameId) {
 bool IMUIntegration::isPreparedKFCreated() const { return preparedKFCreated; }
 
 Sophus::SE3d IMUIntegration::getCoarseKFPose() {
-  if (!isCoarseInitialized())
-    return Sophus::SE3d{};
+  if (!isCoarseInitialized()) return Sophus::SE3d{};
   Sophus::SE3d pose = coarseLogic->getCoarseKFPose();
   return pose;
 }
 
-IMUSettings &IMUIntegration::getImuSettings() const { return imuSettings; }
+IMUSettings& IMUIntegration::getImuSettings() const { return imuSettings; }
 
-const std::unique_ptr<BAGTSAMIntegration> &
-IMUIntegration::getBAGTSAMIntegration() const {
-  return baGTSAMIntegration;
-}
+const std::unique_ptr<BAGTSAMIntegration>& IMUIntegration::getBAGTSAMIntegration() const { return baGTSAMIntegration; }
 
-TransformDSOToIMU &IMUIntegration::getTransformDSOToIMU() {
-  return *(baLogic->getTransformDSOToIMU());
-}
+TransformDSOToIMU& IMUIntegration::getTransformDSOToIMU() { return *(baLogic->getTransformDSOToIMU()); }
 
-void IMUIntegration::newFrameEnergyTH(float &energyThreshold) {
+void IMUIntegration::newFrameEnergyTH(float& energyThreshold) {
   lastDSOEnergyTH = energyThreshold;
   float th = imuSettings.maxFrameEnergyThreshold;
   if (th > 0.0 && energyThreshold > th) {
@@ -373,8 +329,7 @@ void IMUIntegration::newFrameEnergyTH(float &energyThreshold) {
   }
 }
 
-void IMUIntegration::finishCoarseTracking(const dso::FrameShell &frameShell,
-                                          bool willBecomeKeyframe) {
+void IMUIntegration::finishCoarseTracking(const dso::FrameShell& frameShell, bool willBecomeKeyframe) {
   if (imuInitializer) {
     imuInitializer->addPose(frameShell, willBecomeKeyframe);
   }
@@ -382,8 +337,6 @@ void IMUIntegration::finishCoarseTracking(const dso::FrameShell &frameShell,
 
 bool IMUIntegration::isCoarseInitialized() { return coarseInitialized; }
 
-void IMUIntegration::resetBAPreintegration() {
-  preintegratedBACurr->resetIntegration();
-}
+void IMUIntegration::resetBAPreintegration() { preintegratedBACurr->resetIntegration(); }
 
 double IMUIntegration::getCoarseScale() { return coarseLogic->getScale(); }

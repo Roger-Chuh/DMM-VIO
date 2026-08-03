@@ -30,10 +30,10 @@
 namespace dmvio {
 
 class CoarseIMUInitOptimizerSettings {
-public:
-  void registerArgs(dmvio::SettingsUtil &set, std::string prefix);
+ public:
+  void registerArgs(dmvio::SettingsUtil& set, std::string prefix);
 
-  int maxNumPoses = 100; // forgets older poses.
+  int maxNumPoses = 100;  // forgets older poses.
   bool fixPoses = true, multipleBiases = false;
 
   // Prior on rotation and translation (not used if fixPoses=true).
@@ -43,44 +43,39 @@ public:
   // Optimizer settings
   double lambdaLowerBound = 1e-16;
 
-  PoseTransformationFactor::ConversionType conversionType =
-      PoseTransformationFactor::JACOBIAN_FACTOR;
+  PoseTransformationFactor::ConversionType conversionType = PoseTransformationFactor::JACOBIAN_FACTOR;
 
-  bool updatePoses =
-      true; // if true we get the updated poses from DSO before optimizing.
+  bool updatePoses = true;  // if true we get the updated poses from DSO before optimizing.
 
-  double requestFullResetErrorThreshold =
-      -1; // if the error gets higher than this request a full reset.
+  double requestFullResetErrorThreshold = -1;  // if the error gets higher than this request a full reset.
   double requestFullResetNormalizedErrorThreshold =
-      -1; // if the normalized error gets higher than this request a full reset.
+      -1;  // if the normalized error gets higher than this request a full reset.
 };
 
 class PGBASettings {
-public:
-  void registerArgs(dmvio::SettingsUtil &set, std::string prefix);
+ public:
+  void registerArgs(dmvio::SettingsUtil& set, std::string prefix);
 
   // Delay of the graph used for the PGBA.
-  int delay = 100; // 10;//100;
+  int delay = 100;  // 10;//100;
 
-  double scaleUncertaintyThresh = 1.0; // Threshold for first init to succeed.
-  double reinitScaleUncertaintyThresh =
-      0.5; // Threshold to stop reinitializing.
+  double scaleUncertaintyThresh = 1.0;        // Threshold for first init to succeed.
+  double reinitScaleUncertaintyThresh = 0.5;  // Threshold to stop reinitializing.
 
-  int skipFirstKFs = 0; // if positive the first n KFs are skipped.
+  int skipFirstKFs = 0;  // if positive the first n KFs are skipped.
 
   // Should theoretically be best set to true, but in practice false seems to be
   // better.
   bool prepareGraphAddFactors = false;
   bool prepareGraphAddDelValues = false;
 
-  PoseTransformationFactor::ConversionType conversionType =
-      PoseTransformationFactor::JACOBIAN_FACTOR;
+  PoseTransformationFactor::ConversionType conversionType = PoseTransformationFactor::JACOBIAN_FACTOR;
   IMUTransformPriorSettings transformPriors;
 };
 
 class IMUThresholdSettings {
-public:
-  void registerArgs(dmvio::SettingsUtil &set, std::string prefix = "thresh_");
+ public:
+  void registerArgs(dmvio::SettingsUtil& set, std::string prefix = "thresh_");
 
   double threshScale = 1000.0;
   double threshGravdir = 1000.0;
@@ -88,8 +83,8 @@ public:
 
 // Settings related to the initializer
 class IMUInitSettings {
-public:
-  void registerArgs(dmvio::SettingsUtil &set, std::string prefix = "init_");
+ public:
+  void registerArgs(dmvio::SettingsUtil& set, std::string prefix = "init_");
 
   // For available options see enum InitTransitionMode in file
   // IMUInitializerTransitions.
@@ -97,24 +92,21 @@ public:
 
   // Settings regarding coarse initializer.
   CoarseIMUInitOptimizerSettings coarseInitSettings;
-  bool onlyKFs = true; // Only include keyframes in the coarse IMU initializer.
+  bool onlyKFs = true;  // Only include keyframes in the coarse IMU initializer.
   // Priors for the coarse optimizer.
   IMUTransformPriorSettings transformPriors;
-  double coarseScaleUncertaintyThresh =
-      1.0; // Scale uncertainty must be below this to consider the coarse init
-           // to have succeeded.
+  double coarseScaleUncertaintyThresh = 1.0;  // Scale uncertainty must be below this to consider the coarse init
+                                              // to have succeeded.
 
   // Settings regarding PGBA based initializer.
   PGBASettings pgbaSettings;
 
   // Threshold settings for the marginalization replacement.
-  IMUThresholdSettings thresholdSettings; // default for scale threshold is 1.02
-  double percentageSwitchToSecondTH =
-      0.5; // switch to second threshold once this fraction of IMU factors would
-           // be lost.
-  IMUThresholdSettings
-      secondThresholdSettings; // default for second scale threshold is
-                               // effectively infinity (see cpp file).
+  IMUThresholdSettings thresholdSettings;        // default for scale threshold is 1.02
+  double percentageSwitchToSecondTH = 0.5;       // switch to second threshold once this fraction of IMU factors would
+                                                 // be lost.
+  IMUThresholdSettings secondThresholdSettings;  // default for second scale threshold is
+                                                 // effectively infinity (see cpp file).
 
   // Also init IMU params.
   bool initDSOParams = true;
@@ -135,6 +127,6 @@ public:
   bool multithreadedInitDespiteNonRT = false;
 };
 
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_IMUINITSETTINGS_H
+#endif  // DMVIO_IMUINITSETTINGS_H

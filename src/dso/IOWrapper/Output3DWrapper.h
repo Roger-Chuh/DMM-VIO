@@ -57,7 +57,7 @@ enum SystemStatus {
   // frame tracking will use IMU data for the first time.
   VISUAL_INERTIAL
 };
-} // namespace dmvio
+}  // namespace dmvio
 
 namespace dso {
 
@@ -151,7 +151,7 @@ namespace IOWrap {
  */
 
 class Output3DWrapper {
-public:
+ public:
   Output3DWrapper() {}
 
   virtual ~Output3DWrapper() {}
@@ -168,8 +168,7 @@ public:
    * std::shared_ptr<bool> optScale, std::shared_ptr<bool> optGravity,
    * std::shared_ptr<bool> optT_cam_imu);
    */
-  virtual void
-  publishTransformDSOToIMU(const dmvio::TransformDSOToIMU &transformDSOToIMU) {}
+  virtual void publishTransformDSOToIMU(const dmvio::TransformDSOToIMU& transformDSOToIMU) {}
 
   /*
    * Usage:
@@ -189,10 +188,8 @@ public:
    *  Always called, no overhead if not used.
    */
   virtual void publishGraph(
-      const std::map<
-          uint64_t, Eigen::Vector2i, std::less<uint64_t>,
-          Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector2i>>>
-          &connectivity) {}
+      const std::map<uint64_t, Eigen::Vector2i, std::less<uint64_t>,
+                     Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector2i>>>& connectivity) {}
 
   /* Usage:
    * Called after each new Keyframe is inserted & optimized, with all keyframes
@@ -210,8 +207,7 @@ public:
    * Calling:
    * Always called, negligible overhead if not used.
    */
-  virtual void publishKeyframes(std::vector<FrameHessian *> &frames, bool final,
-                                CalibHessian *HCalib) {}
+  virtual void publishKeyframes(std::vector<FrameHessian*>& frames, bool final, CalibHessian* HCalib) {}
 
   /* Usage:
    * Called once for each tracked frame, with the real-time, low-delay frame
@@ -220,7 +216,7 @@ public:
    * Calling:
    * Always called, no overhead if not used.
    */
-  virtual void publishCamPose(FrameShell *frame, CalibHessian *HCalib) {}
+  virtual void publishCamPose(FrameShell* frame, CalibHessian* HCalib) {}
 
   /* Usage:
    * Called once for each new frame, before it is tracked (i.e., it doesn't have
@@ -229,7 +225,7 @@ public:
    * Calling:
    * Always called, no overhead if not used.
    */
-  virtual void pushLiveFrame(FrameHessian *image) {}
+  virtual void pushLiveFrame(FrameHessian* image) {}
 
   /* called once after a new keyframe is created, with the color-coded,
    * forward-warped inverse depthmap for that keyframe, which is used for
@@ -239,9 +235,7 @@ public:
    * Needs to prepare the depth image, so it is only called if
    * [needPushDepthImage()] returned true.
    */
-  virtual void pushDepthImage(MinimalImageB3 *image,
-                              std::array<float, kCameraNumUsed> mena_gray_val) {
-  }
+  virtual void pushDepthImage(MinimalImageB3* image, std::array<float, kCameraNumUsed> mena_gray_val) {}
 
   virtual bool needPushDepthImage() { return false; }
 
@@ -254,7 +248,7 @@ public:
    * Calling:
    * Always called, almost no overhead if not used.
    */
-  virtual void pushDepthImageFloat(MinimalImageF *image, FrameHessian *KF) {}
+  virtual void pushDepthImageFloat(MinimalImageF* image, FrameHessian* KF) {}
 
   /* call on finish */
   virtual void join() {}
@@ -263,5 +257,5 @@ public:
   virtual void reset() {}
 };
 
-} // namespace IOWrap
-} // namespace dso
+}  // namespace IOWrap
+}  // namespace dso

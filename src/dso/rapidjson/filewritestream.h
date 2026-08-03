@@ -33,18 +33,16 @@ RAPIDJSON_NAMESPACE_BEGIN
     \note implements Stream concept
 */
 class FileWriteStream {
-public:
-  typedef char Ch; //!< Character type. Only support char.
+ public:
+  typedef char Ch;  //!< Character type. Only support char.
 
-  FileWriteStream(std::FILE *fp, char *buffer, size_t bufferSize)
-      : fp_(fp), buffer_(buffer), bufferEnd_(buffer + bufferSize),
-        current_(buffer_) {
+  FileWriteStream(std::FILE* fp, char* buffer, size_t bufferSize)
+      : fp_(fp), buffer_(buffer), bufferEnd_(buffer + bufferSize), current_(buffer_) {
     RAPIDJSON_ASSERT(fp_ != 0);
   }
 
   void Put(char c) {
-    if (current_ >= bufferEnd_)
-      Flush();
+    if (current_ >= bufferEnd_) Flush();
 
     *current_++ = c;
   }
@@ -67,8 +65,7 @@ public:
 
   void Flush() {
     if (current_ != buffer_) {
-      size_t result =
-          std::fwrite(buffer_, 1, static_cast<size_t>(current_ - buffer_), fp_);
+      size_t result = std::fwrite(buffer_, 1, static_cast<size_t>(current_ - buffer_), fp_);
       if (result < static_cast<size_t>(current_ - buffer_)) {
         // failure deliberately ignored at this time
         // added to avoid warn_unused_result build errors
@@ -90,29 +87,30 @@ public:
     RAPIDJSON_ASSERT(false);
     return 0;
   }
-  char *PutBegin() {
+  char* PutBegin() {
     RAPIDJSON_ASSERT(false);
     return 0;
   }
-  size_t PutEnd(char *) {
+  size_t PutEnd(char*) {
     RAPIDJSON_ASSERT(false);
     return 0;
   }
 
-private:
+ private:
   // Prohibit copy constructor & assignment operator.
-  FileWriteStream(const FileWriteStream &);
-  FileWriteStream &operator=(const FileWriteStream &);
+  FileWriteStream(const FileWriteStream&);
+  FileWriteStream& operator=(const FileWriteStream&);
 
-  std::FILE *fp_;
-  char *buffer_;
-  char *bufferEnd_;
-  char *current_;
+  std::FILE* fp_;
+  char* buffer_;
+  char* bufferEnd_;
+  char* current_;
 };
 
 //! Implement specialized version of PutN() with memset() for better
 //! performance.
-template <> inline void PutN(FileWriteStream &stream, char c, size_t n) {
+template <>
+inline void PutN(FileWriteStream& stream, char c, size_t n) {
   stream.PutN(c, n);
 }
 
@@ -122,4 +120,4 @@ RAPIDJSON_NAMESPACE_END
 RAPIDJSON_DIAG_POP
 #endif
 
-#endif // RAPIDJSON_FILESTREAM_H_
+#endif  // RAPIDJSON_FILESTREAM_H_

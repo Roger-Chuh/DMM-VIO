@@ -54,19 +54,18 @@ namespace IOWrap {
 class KeyFrameDisplay;
 
 struct GraphConnection {
-  KeyFrameDisplay *from;
-  KeyFrameDisplay *to;
+  KeyFrameDisplay* from;
+  KeyFrameDisplay* to;
   int fwdMarg, bwdMarg, fwdAct, bwdAct;
 };
 
 class PangolinDSOViewer : public Output3DWrapper {
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   PangolinDSOViewer(int w, int h, bool startRunThread = true,
                     std::shared_ptr<dmvio::SettingsUtil> settingsUtil = nullptr,
-                    std::shared_ptr<double> normalizeCamSize = nullptr,
-                    MultiCamera *p_multi_camera_ = nullptr);
+                    std::shared_ptr<double> normalizeCamSize = nullptr, MultiCamera* p_multi_camera_ = nullptr);
 
   virtual ~PangolinDSOViewer();
 
@@ -74,34 +73,28 @@ public:
 
   void close();
 
-  void addImageToDisplay(std::string name, MinimalImageB3 *image);
+  void addImageToDisplay(std::string name, MinimalImageB3* image);
 
   void clearAllImagesToDisplay();
 
   // ==================== Output3DWrapper Functionality ======================
-  virtual void publishTransformDSOToIMU(
-      const dmvio::TransformDSOToIMU &transformDSOToIMU) override;
+  virtual void publishTransformDSOToIMU(const dmvio::TransformDSOToIMU& transformDSOToIMU) override;
 
   virtual void publishGraph(
-      const std::map<
-          uint64_t, Eigen::Vector2i, std::less<uint64_t>,
-          Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector2i>>>
-          &connectivity) override;
+      const std::map<uint64_t, Eigen::Vector2i, std::less<uint64_t>,
+                     Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector2i>>>& connectivity) override;
 
-  virtual void publishKeyframes(std::vector<FrameHessian *> &frames, bool final,
-                                CalibHessian *HCalib) override;
+  virtual void publishKeyframes(std::vector<FrameHessian*>& frames, bool final, CalibHessian* HCalib) override;
 
-  virtual void publishCamPose(FrameShell *frame, CalibHessian *HCalib) override;
+  virtual void publishCamPose(FrameShell* frame, CalibHessian* HCalib) override;
 
   virtual void publishSystemStatus(dmvio::SystemStatus systemStatus) override;
 
-  void addGTCamPose(const Sophus::SE3 &gtPose);
+  void addGTCamPose(const Sophus::SE3& gtPose);
 
-  virtual void pushLiveFrame(FrameHessian *image) override;
+  virtual void pushLiveFrame(FrameHessian* image) override;
 
-  virtual void
-  pushDepthImage(MinimalImageB3 *image,
-                 std::array<float, kCameraNumUsed> mean_gray_val) override;
+  virtual void pushDepthImage(MinimalImageB3* image, std::array<float, kCameraNumUsed> mean_gray_val) override;
 
   virtual bool needPushDepthImage() override;
 
@@ -111,7 +104,7 @@ public:
 
   virtual void reset() override;
 
-private:
+ private:
   bool needReset;
 
   void reset_internal();
@@ -125,21 +118,20 @@ private:
 
   // images rendering
   boost::mutex openImagesMutex;
-  MinimalImageB3 *internalVideoImg;
-  MinimalImageB3 *internalKFImg;
-  MinimalImageB3 *internalResImg;
+  MinimalImageB3* internalVideoImg;
+  MinimalImageB3* internalKFImg;
+  MinimalImageB3* internalResImg;
   bool videoImgChanged, kfImgChanged, resImgChanged;
 
-  CalibHessian *HCalib;
+  CalibHessian* HCalib;
 
   // 3D model rendering
   boost::mutex model3DMutex;
   KeyFrameDisplay *currentCam, *currentGTCam;
-  std::vector<KeyFrameDisplay *> keyframes;
+  std::vector<KeyFrameDisplay*> keyframes;
   std::vector<Vec3f, Eigen::aligned_allocator<Vec3f>> allFramePoses;
-  std::map<int, KeyFrameDisplay *> keyframesByKFID;
-  std::vector<GraphConnection, Eigen::aligned_allocator<GraphConnection>>
-      connections;
+  std::map<int, KeyFrameDisplay*> keyframesByKFID;
+  std::vector<GraphConnection, Eigen::aligned_allocator<GraphConnection>> connections;
 
   // render settings
   bool settings_showKFCameras;
@@ -163,9 +155,9 @@ private:
   std::deque<float> lastNMappingMs;
 
   // GT cam poses
-  SE3 gtCamPoseMetric; // in metric frame, but will be displayed in DSO frame
-                       // using.
-  SE3 firstCamPoseDSO; // DSO pose corresponding to the first groundtruth pose.
+  SE3 gtCamPoseMetric;  // in metric frame, but will be displayed in DSO frame
+                        // using.
+  SE3 firstCamPoseDSO;  // DSO pose corresponding to the first groundtruth pose.
   SE3 firstGTCamPoseMetric;
   bool gtCamPoseSet = false;
   std::unique_ptr<dmvio::TransformDSOToIMU> transformDSOToIMU;
@@ -176,9 +168,9 @@ private:
   std::shared_ptr<double> normalizeCamSize;
 
   std::shared_ptr<dmvio::SettingsUtil> settingsUtil;
-  MultiCamera *p_multi_camera = nullptr;
+  MultiCamera* p_multi_camera = nullptr;
 };
 
-} // namespace IOWrap
+}  // namespace IOWrap
 
-} // namespace dso
+}  // namespace dso

@@ -24,8 +24,7 @@
 
 using namespace gtsam;
 
-gtsam::Matrix dmvio::augmentedHessianFromPair(
-    const std::pair<gtsam::Matrix, gtsam::Vector> &pair) {
+gtsam::Matrix dmvio::augmentedHessianFromPair(const std::pair<gtsam::Matrix, gtsam::Vector>& pair) {
   int n = pair.first.rows();
 
   gtsam::Matrix returning = gtsam::Matrix::Zero(n + 1, n + 1);
@@ -35,15 +34,12 @@ gtsam::Matrix dmvio::augmentedHessianFromPair(
   return returning;
 }
 
-std::pair<gtsam::Matrix, gtsam::Vector>
-dmvio::pairFromAugmentedHessian(const gtsam::Matrix &matrix) {
+std::pair<gtsam::Matrix, gtsam::Vector> dmvio::pairFromAugmentedHessian(const gtsam::Matrix& matrix) {
   int n = matrix.rows() - 1;
-  return std::pair<gtsam::Matrix, gtsam::Vector>(matrix.block(0, 0, n, n),
-                                                 matrix.block(0, n, n, 1));
+  return std::pair<gtsam::Matrix, gtsam::Vector>(matrix.block(0, 0, n, n), matrix.block(0, n, n, 1));
 }
 
-void dmvio::removeKeysFromGraph(gtsam::NonlinearFactorGraph &graph,
-                                const std::set<gtsam::Key> &keysToRemove,
+void dmvio::removeKeysFromGraph(gtsam::NonlinearFactorGraph& graph, const std::set<gtsam::Key>& keysToRemove,
                                 int stopAfterNoRemoval) {
   if (keysToRemove.empty()) {
     return;
@@ -51,9 +47,9 @@ void dmvio::removeKeysFromGraph(gtsam::NonlinearFactorGraph &graph,
   int noRemoval = 0;
   // We use the fact that we inserted the factors in order.
   for (auto it = graph.begin(); it != graph.end(); ++it) {
-    auto &&keys = (*it)->keys();
+    auto&& keys = (*it)->keys();
     bool keyContained = false;
-    for (auto &&key : keys) {
+    for (auto&& key : keys) {
       if (keysToRemove.find(key) != keysToRemove.end()) {
         keyContained = true;
         break;
@@ -65,8 +61,7 @@ void dmvio::removeKeysFromGraph(gtsam::NonlinearFactorGraph &graph,
       noRemoval = 0;
     } else {
       noRemoval++;
-      if (stopAfterNoRemoval > 0 && noRemoval >= stopAfterNoRemoval)
-        break;
+      if (stopAfterNoRemoval > 0 && noRemoval >= stopAfterNoRemoval) break;
     }
   }
 }

@@ -40,20 +40,19 @@ namespace dso {
  *  eigenvectors as A.
  */
 class Homography33 {
-public:
+ public:
   //! Constructor
-  Homography33(const std::pair<float, float> &opticalCenter);
+  Homography33(const std::pair<float, float>& opticalCenter);
 
 #ifdef STABLE_H
-  void setCorrespondences(const std::vector<std::pair<float, float>> &srcPts,
-                          const std::vector<std::pair<float, float>> &dstPts);
+  void setCorrespondences(const std::vector<std::pair<float, float>>& srcPts,
+                          const std::vector<std::pair<float, float>>& dstPts);
 #else
-  void addCorrespondence(float worldx, float worldy, float imagex,
-                         float imagey);
+  void addCorrespondence(float worldx, float worldy, float imagex, float imagey);
 #endif
 
   //! Note that the returned H matrix does not reflect cxy.
-  Eigen::Matrix3d &getH();
+  Eigen::Matrix3d& getH();
 
   const std::pair<float, float> getCXY() const { return cxy; }
 
@@ -61,7 +60,7 @@ public:
 
   std::pair<float, float> project(float worldx, float worldy);
 
-private:
+ private:
   std::pair<float, float> cxy;
   Eigen::Matrix<double, 9, 9> fA;
   Eigen::Matrix3d H;
@@ -71,6 +70,6 @@ private:
 #endif
 };
 
-} // namespace dso
+}  // namespace dso
 
 #endif

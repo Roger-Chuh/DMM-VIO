@@ -29,7 +29,8 @@
 using namespace Sophus;
 using namespace std;
 
-template <class Scalar> void tests() {
+template <class Scalar>
+void tests() {
   typedef SO3Group<Scalar> SO3Type;
   typedef typename SO3Group<Scalar>::Point Point;
   typedef typename SO3Group<Scalar>::Tangent Tangent;
@@ -43,11 +44,9 @@ template <class Scalar> void tests() {
   so3_vec.push_back(SO3Type::exp(Point(0., 0., 0.)));
   so3_vec.push_back(SO3Type::exp(Point(0., 0., 0.00001)));
   so3_vec.push_back(SO3Type::exp(Point(M_PI, 0, 0)));
-  so3_vec.push_back(SO3Type::exp(Point(0.2, 0.5, 0.0)) *
-                    SO3Type::exp(Point(M_PI, 0, 0)) *
+  so3_vec.push_back(SO3Type::exp(Point(0.2, 0.5, 0.0)) * SO3Type::exp(Point(M_PI, 0, 0)) *
                     SO3Type::exp(Point(-0.2, -0.5, -0.0)));
-  so3_vec.push_back(SO3Type::exp(Point(0.3, 0.5, 0.1)) *
-                    SO3Type::exp(Point(M_PI, 0, 0)) *
+  so3_vec.push_back(SO3Type::exp(Point(0.3, 0.5, 0.1)) * SO3Type::exp(Point(M_PI, 0, 0)) *
                     SO3Type::exp(Point(-0.3, -0.5, -0.1)));
 
   vector<Tangent> tangent_vec;

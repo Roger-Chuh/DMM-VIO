@@ -9,9 +9,8 @@
 #include <iostream>
 using namespace dso;
 
-bool KB20Camera::Project(
-    const Vec3 &p_3d22, Vec2 &p_img, Eigen::Matrix<number_t, 2, 3> *d_img_d_p3d,
-    Eigen::Matrix<number_t, 2, Eigen::Dynamic> *d_img_d_param) const {
+bool KB20Camera::Project(const Vec3& p_3d22, Vec2& p_img, Eigen::Matrix<number_t, 2, 3>* d_img_d_p3d,
+                         Eigen::Matrix<number_t, 2, Eigen::Dynamic>* d_img_d_param) const {
   const number_t fx = parameters_[0];
   const number_t fy = parameters_[1];
   const number_t cx = parameters_[2];
@@ -20,10 +19,9 @@ bool KB20Camera::Project(
   const number_t k1 = parameters_[4];
   const number_t k2 = parameters_[5];
   const number_t k3 = parameters_[6];
-  number_t k4 = 0, k5 = 0, k6 = 0, s5 = 0, s6 = 0, t1 = 0, t2 = 0, alpha = 0,
-           beta = 0, rotx = 0, roty = 0, ofst_x0 = 0, ofst_y0 = 0, ofst_x1 = 0,
-           ofst_y1 = 0, ofst_x2 = 0, ofst_y2 = 0, q1 = 0, q2 = 0, q3 = 0,
-           p1_1 = 0, p2_1 = 0, p1_2 = 0, p2_2 = 0;
+  number_t k4 = 0, k5 = 0, k6 = 0, s5 = 0, s6 = 0, t1 = 0, t2 = 0, alpha = 0, beta = 0, rotx = 0, roty = 0, ofst_x0 = 0,
+           ofst_y0 = 0, ofst_x1 = 0, ofst_y1 = 0, ofst_x2 = 0, ofst_y2 = 0, q1 = 0, q2 = 0, q3 = 0, p1_1 = 0, p2_1 = 0,
+           p1_2 = 0, p2_2 = 0;
   if (k_nums_used >= 4) {
     k4 = parameters_[7];
   }
@@ -91,8 +89,7 @@ bool KB20Camera::Project(
   Vec3 p_3d2, p_3d2_temp, p_3d1_temp;
   // Mat3 d_bering_d_p_3d22 = Mat3::Identity();
   Mat3 d_noamalized_z_d_p_3d22 = Mat3::Identity();
-  Mat3 d_uv_w_p_d_xy_wo_p2 = Mat3::Identity(),
-       d_uv_w_p_d_xy_wo_p1 = Mat3::Identity();
+  Mat3 d_uv_w_p_d_xy_wo_p2 = Mat3::Identity(), d_uv_w_p_d_xy_wo_p1 = Mat3::Identity();
   Mat32 d_uv_w_p_d_p2, d_uv_w_p_d_p1;
   p_3d2 = p_3d22;
   if (!extra_param) {
@@ -108,8 +105,7 @@ bool KB20Camera::Project(
         p_3d2(1) += ofst_y2;
       }
       if (opt_p2) {
-        compute_d_uv_w_p_d_xy_wo_p(p_3d2, p_3d2_temp, d_uv_w_p_d_xy_wo_p2,
-                                   d_uv_w_p_d_p2, p1_2, p2_2);
+        compute_d_uv_w_p_d_xy_wo_p(p_3d2, p_3d2_temp, d_uv_w_p_d_xy_wo_p2, d_uv_w_p_d_p2, p1_2, p2_2);
         p_3d2 = p_3d2_temp;
       }
     } else {
@@ -133,8 +129,7 @@ bool KB20Camera::Project(
     p_3d1(1) += ofst_y1;
   }
   if (opt_p1) {
-    compute_d_uv_w_p_d_xy_wo_p(p_3d1, p_3d1_temp, d_uv_w_p_d_xy_wo_p1,
-                               d_uv_w_p_d_p1, p1_1, p2_1);
+    compute_d_uv_w_p_d_xy_wo_p(p_3d1, p_3d1_temp, d_uv_w_p_d_xy_wo_p1, d_uv_w_p_d_p1, p1_1, p2_1);
     p_3d1 = p_3d1_temp;
   }
   Vec3 rot_vec = Vec3(rotx, roty, 0);
@@ -155,8 +150,7 @@ bool KB20Camera::Project(
     p_3d1(1) += ofst_y1;
   }
   if (opt_p1) {
-    compute_d_uv_w_p_d_xy_wo_p(p_3d1, p_3d1_temp, d_uv_w_p_d_xy_wo_p1,
-                               d_uv_w_p_d_p1, p1_1, p2_1);
+    compute_d_uv_w_p_d_xy_wo_p(p_3d1, p_3d1_temp, d_uv_w_p_d_xy_wo_p1, d_uv_w_p_d_p1, p1_1, p2_1);
     p_3d1 = p_3d1_temp;
   }
   Vec3 p_3d = maskTilt * p_3d1;
@@ -192,8 +186,7 @@ bool KB20Camera::Project(
   number_t r3 = r * r2;
   number_t r4 = r2 * r2;
 
-  number_t thd = th * (1.0 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8 +
-                       k5 * th10 + k6 * th12);
+  number_t thd = th * (1.0 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8 + k5 * th10 + k6 * th12);
 
   number_t x_r = a / r * thd;
   number_t y_r = b / r * thd;
@@ -207,11 +200,9 @@ bool KB20Camera::Project(
 
   number_t q_coeff = 1 + q1 * r_d2 + q2 * r_d4 + q3 * r_d6;
   number_t u_distorted =
-      x_r + (p1 * (2.0 * x_r2 + r_d2) + 2.0 * x_r * y_r * p2) * (q_coeff) +
-      s1 * r_d2 + s2 * r_d4 + s5 * r_d6;
+      x_r + (p1 * (2.0 * x_r2 + r_d2) + 2.0 * x_r * y_r * p2) * (q_coeff) + s1 * r_d2 + s2 * r_d4 + s5 * r_d6;
   number_t v_distorted =
-      y_r + (p2 * (2.0 * y_r2 + r_d2) + 2.0 * x_r * y_r * p1) * (q_coeff) +
-      s3 * r_d2 + s4 * r_d4 + s6 * r_d6;
+      y_r + (p2 * (2.0 * y_r2 + r_d2) + 2.0 * x_r * y_r * p1) * (q_coeff) + s3 * r_d2 + s4 * r_d4 + s6 * r_d6;
 
   Mat3 matTilt, invMatTilt;
   computeTiltProjectionMatrix(t1, t2, matTilt, invMatTilt);
@@ -233,12 +224,11 @@ bool KB20Camera::Project(
     Mat2 duvDistorted_dxryr, d_xr_yr_d_ab, d_uv_d_uvDistorted, d_uv_d_uvTilted;
     Mat23 duvDistorted_dq;
 
-    compute_duvDistorted_dxryr(xr_yr, duvDistorted_dxryr, duvDistorted_dq, r_d2,
-                               p1, p2, s1, s2, s3, s4, s5, s6, q1, q2, q3);
+    compute_duvDistorted_dxryr(xr_yr, duvDistorted_dxryr, duvDistorted_dq, r_d2, p1, p2, s1, s2, s3, s4, s5, s6, q1, q2,
+                               q3);
 
-    number_t d_thd_d_th = 1.0 + 3.0 * k1 * th2 + 5.0 * k2 * th4 +
-                          7.0 * k3 * th6 + 9.0 * k4 * th8 + 11.0 * k5 * th10 +
-                          13.0 * k6 * th12;
+    number_t d_thd_d_th =
+        1.0 + 3.0 * k1 * th2 + 5.0 * k2 * th4 + 7.0 * k3 * th6 + 9.0 * k4 * th8 + 11.0 * k5 * th10 + 13.0 * k6 * th12;
     number_t d_x_r_d_a = b2 / r3 * thd + a2 / (r2 + r4) * d_thd_d_th;
     number_t d_x_r_d_b = -a * b / r3 * thd + a * b / (r2 + r4) * d_thd_d_th;
     number_t d_y_r_d_a = -a * b / r3 * thd + a * b / (r2 + r4) * d_thd_d_th;
@@ -266,42 +256,30 @@ bool KB20Camera::Project(
     number_t u_d = uvDistorted(0);
     number_t v_d = uvDistorted(1);
 
-    number_t d_ut_d_ud =
-        tt1 / (tt7 * u_d + tt8 * v_d + tt9) -
-        tt1 * u_d * tt7 /
-            ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
-    number_t d_ut_d_vd =
-        -tt1 * u_d * tt8 /
-        ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
+    number_t d_ut_d_ud = tt1 / (tt7 * u_d + tt8 * v_d + tt9) -
+                         tt1 * u_d * tt7 / ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
+    number_t d_ut_d_vd = -tt1 * u_d * tt8 / ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
     number_t d_vt_d_ud =
         tt4 / (tt7 * u_d + tt8 * v_d + tt9) -
-        (tt4 * u_d + tt5 * v_d) * tt7 /
-            ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
+        (tt4 * u_d + tt5 * v_d) * tt7 / ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
     number_t d_vt_d_vd =
         tt5 / (tt7 * u_d + tt8 * v_d + tt9) -
-        (tt4 * u_d + tt5 * v_d) * tt8 /
-            ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
+        (tt4 * u_d + tt5 * v_d) * tt8 / ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
 
     Mat2 d_uvTilted_d_uvDistorted;
     d_uvTilted_d_uvDistorted << d_ut_d_ud, d_ut_d_vd, d_vt_d_ud, d_vt_d_vd;
 
     number_t temp = sty * u_d - stx * cty * v_d + ctx * cty;
 
-    number_t d_ut_d_tx =
-        -stx * u_d / temp -
-        ctx * u_d * (-ctx * cty * v_d - stx * cty) / (temp * temp);
+    number_t d_ut_d_tx = -stx * u_d / temp - ctx * u_d * (-ctx * cty * v_d - stx * cty) / (temp * temp);
 
-    number_t d_ut_d_ty =
-        -ctx * u_d * (cty * u_d + stx * sty * v_d - ctx * sty) / (temp * temp);
+    number_t d_ut_d_ty = -ctx * u_d * (cty * u_d + stx * sty * v_d - ctx * sty) / (temp * temp);
 
     number_t d_vt_d_tx = (-ctx * sty * u_d + cty * v_d) / temp -
-                         (cty * v_d - stx * sty * u_d) *
-                             (-ctx * cty * v_d - stx * cty) / (temp * temp);
+                         (cty * v_d - stx * sty * u_d) * (-ctx * cty * v_d - stx * cty) / (temp * temp);
 
     number_t d_vt_d_ty = (-stx * cty * u_d - sty * v_d) / temp -
-                         (cty * v_d - stx * sty * u_d) *
-                             (cty * u_d + stx * sty * v_d - ctx * sty) /
-                             (temp * temp);
+                         (cty * v_d - stx * sty * u_d) * (cty * u_d + stx * sty * v_d - ctx * sty) / (temp * temp);
 
     Mat2 d_uvTilted_d_t1t2;
     d_uvTilted_d_t1t2 << d_ut_d_tx, d_ut_d_ty, d_vt_d_tx, d_vt_d_ty;
@@ -318,114 +296,84 @@ bool KB20Camera::Project(
     Mat16 d_thd_d_k1k2k3k4k5k6;
     d_thd_d_k1k2k3k4k5k6 << th2, th4, th6, th8, th10, th12;
     d_thd_d_k1k2k3k4k5k6 *= th;
-    Mat26 d_uv_d_k1k2k3k4k5k6 = d_uv_d_uvTilted * d_uvTilted_d_uvDistorted *
-                                duvDistorted_dxryr * d_xr_yr_d_thd *
-                                d_thd_d_k1k2k3k4k5k6;
+    Mat26 d_uv_d_k1k2k3k4k5k6 =
+        d_uv_d_uvTilted * d_uvTilted_d_uvDistorted * duvDistorted_dxryr * d_xr_yr_d_thd * d_thd_d_k1k2k3k4k5k6;
 
     Mat2 duvDistorted_d_p1p2;
-    duvDistorted_d_p1p2 << (2.0 * x_r2 + r_d2), 2.0 * x_r * y_r,
-        2.0 * x_r * y_r, (2.0 * y_r2 + r_d2);
+    duvDistorted_d_p1p2 << (2.0 * x_r2 + r_d2), 2.0 * x_r * y_r, 2.0 * x_r * y_r, (2.0 * y_r2 + r_d2);
     duvDistorted_d_p1p2 *= q_coeff;
 
     Mat26 duvDistorted_d_s1s2s3s4s5s6;
-    duvDistorted_d_s1s2s3s4s5s6 << r_d2, r_d4, 0, 0, r_d6, 0, 0, 0, r_d2, r_d4,
-        0, r_d6;
-    Mat2 d_uv_d_p1p2 =
-        d_uv_d_uvTilted * d_uvTilted_d_uvDistorted * duvDistorted_d_p1p2;
-    Mat26 d_uv_d_s1s2s3s4s5s6 = d_uv_d_uvTilted * d_uvTilted_d_uvDistorted *
-                                duvDistorted_d_s1s2s3s4s5s6;
+    duvDistorted_d_s1s2s3s4s5s6 << r_d2, r_d4, 0, 0, r_d6, 0, 0, 0, r_d2, r_d4, 0, r_d6;
+    Mat2 d_uv_d_p1p2 = d_uv_d_uvTilted * d_uvTilted_d_uvDistorted * duvDistorted_d_p1p2;
+    Mat26 d_uv_d_s1s2s3s4s5s6 = d_uv_d_uvTilted * d_uvTilted_d_uvDistorted * duvDistorted_d_s1s2s3s4s5s6;
 
-    Mat23 d_uv_d_q =
-        d_uv_d_uvTilted * d_uvTilted_d_uvDistorted * duvDistorted_dq;
+    Mat23 d_uv_d_q = d_uv_d_uvTilted * d_uvTilted_d_uvDistorted * duvDistorted_dq;
 
 #ifndef USE_TILT_IN_KB20
-    Mat3 d_p3d0_un_ofsted_normalized_z_d_p3d0_orig =
-        ComputeNormalizedZJac(p_3d0_orig);
-    Mat3 d_p3d1_un_ofsted_normalized_z_d_p3d1_orig =
-        ComputeNormalizedZJac(p_3d1_orig);
+    Mat3 d_p3d0_un_ofsted_normalized_z_d_p3d0_orig = ComputeNormalizedZJac(p_3d0_orig);
+    Mat3 d_p3d1_un_ofsted_normalized_z_d_p3d1_orig = ComputeNormalizedZJac(p_3d1_orig);
     if (!opt_ofst_xy0) {
       d_p3d0_un_ofsted_normalized_z_d_p3d0_orig.setIdentity();
     }
     if (!(opt_ofst_xy1 || opt_p1)) {
       d_p3d1_un_ofsted_normalized_z_d_p3d1_orig.setIdentity();
     }
-    Mat3 d_p3d1_ofsted_normalized_z_d_p3d1_un_ofsted_normalized =
-        Mat3::Identity();
-    Mat3 d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z =
-        Mat3::Identity();
+    Mat3 d_p3d1_ofsted_normalized_z_d_p3d1_un_ofsted_normalized = Mat3::Identity();
+    Mat3 d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z = Mat3::Identity();
     Mat3 d_p3d0_ofsted_normalized_z_d_p3d1_orig =
-        d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z *
-        d_p3d0_un_ofsted_normalized_z_d_p3d0_orig * rotMat *
-        d_uv_w_p_d_xy_wo_p1 *
-        d_p3d1_ofsted_normalized_z_d_p3d1_un_ofsted_normalized *
+        d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z * d_p3d0_un_ofsted_normalized_z_d_p3d0_orig * rotMat *
+        d_uv_w_p_d_xy_wo_p1 * d_p3d1_ofsted_normalized_z_d_p3d1_un_ofsted_normalized *
         d_p3d1_un_ofsted_normalized_z_d_p3d1_orig;
     Mat3 d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z =
-        d_p3d0_un_ofsted_normalized_z_d_p3d0_orig * rotMat *
-        d_uv_w_p_d_xy_wo_p1;
+        d_p3d0_un_ofsted_normalized_z_d_p3d0_orig * rotMat * d_uv_w_p_d_xy_wo_p1;
     Mat3 d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z_with_p1 =
         d_p3d0_un_ofsted_normalized_z_d_p3d0_orig * rotMat;
 #else
-    Mat3 d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z,
-        d_p3d0_ofsted_normalized_z_d_p3d1_orig;
-    Mat32 d_p3d0_ofsted_normalized_z_d_t1t2,
-        d_p3d0_un_ofsted_normalized_z_d_t1t2;
+    Mat3 d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z, d_p3d0_ofsted_normalized_z_d_p3d1_orig;
+    Mat32 d_p3d0_ofsted_normalized_z_d_t1t2, d_p3d0_un_ofsted_normalized_z_d_t1t2;
     // Mat3 d_p3d1_d_p3d1_with_ofst = Mat3::Identity();
-    ComputeForwardTiltJac(
-        rotx, roty, p_3d1,
-        d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z,
-        d_p3d0_un_ofsted_normalized_z_d_t1t2);
+    ComputeForwardTiltJac(rotx, roty, p_3d1, d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z,
+                          d_p3d0_un_ofsted_normalized_z_d_t1t2);
     Mat3 d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z_with_p1 =
         d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z;
-    d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z *=
-        d_uv_w_p_d_xy_wo_p1;
-    Mat3 d_p3d1_un_ofsted_normalized_z_d_p3d1_orig =
-        ComputeNormalizedZJac(p_3d1_orig);
+    d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z *= d_uv_w_p_d_xy_wo_p1;
+    Mat3 d_p3d1_un_ofsted_normalized_z_d_p3d1_orig = ComputeNormalizedZJac(p_3d1_orig);
     if (!opt_ofst_xy1) {
       /// 只要USE_TILT的宏打开了，无论opt_ofst_xy1是否打开，pt3d1永远要求对归一化z的雅可比
       // d_p3d1_un_ofsted_normalized_z_d_p3d1_orig.setIdentity();
     }
-    Mat3 d_p3d1_ofsted_normalized_z_d_p3d1_un_ofsted_normalized_z =
-        Mat3::Identity();
-    Mat3 d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z =
-        Mat3::Identity();
-    d_p3d0_ofsted_normalized_z_d_p3d1_orig =
-        d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z *
-        d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z *
-        d_p3d1_ofsted_normalized_z_d_p3d1_un_ofsted_normalized_z *
-        d_p3d1_un_ofsted_normalized_z_d_p3d1_orig;
+    Mat3 d_p3d1_ofsted_normalized_z_d_p3d1_un_ofsted_normalized_z = Mat3::Identity();
+    Mat3 d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z = Mat3::Identity();
+    d_p3d0_ofsted_normalized_z_d_p3d1_orig = d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z *
+                                             d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z *
+                                             d_p3d1_ofsted_normalized_z_d_p3d1_un_ofsted_normalized_z *
+                                             d_p3d1_un_ofsted_normalized_z_d_p3d1_orig;
     d_p3d0_ofsted_normalized_z_d_t1t2 =
-        d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z *
-        d_p3d0_un_ofsted_normalized_z_d_t1t2;
+        d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z * d_p3d0_un_ofsted_normalized_z_d_t1t2;
 #endif
     Mat3 d_p3d1_orig_d_p3d2_ofsted_normalized_z = Mat3::Identity(),
          d_p3d1_orig_d_p3d2_ofsted_normalized_z_with_p2 = Mat3::Identity();
-    d_p3d1_orig_d_p3d2_ofsted_normalized_z(2, 0) =
-        alpha * d_inv * beta * p_3d2(0);
-    d_p3d1_orig_d_p3d2_ofsted_normalized_z(2, 1) =
-        alpha * d_inv * beta * p_3d2(1);
-    d_p3d1_orig_d_p3d2_ofsted_normalized_z(2, 2) =
-        alpha * d_inv * beta * z_old + 1 - alpha;
+    d_p3d1_orig_d_p3d2_ofsted_normalized_z(2, 0) = alpha * d_inv * beta * p_3d2(0);
+    d_p3d1_orig_d_p3d2_ofsted_normalized_z(2, 1) = alpha * d_inv * beta * p_3d2(1);
+    d_p3d1_orig_d_p3d2_ofsted_normalized_z(2, 2) = alpha * d_inv * beta * z_old + 1 - alpha;
 
-    d_p3d1_orig_d_p3d2_ofsted_normalized_z_with_p2 =
-        d_p3d1_orig_d_p3d2_ofsted_normalized_z;
+    d_p3d1_orig_d_p3d2_ofsted_normalized_z_with_p2 = d_p3d1_orig_d_p3d2_ofsted_normalized_z;
     d_p3d1_orig_d_p3d2_ofsted_normalized_z *= d_uv_w_p_d_xy_wo_p2;
 
     Mat23 d_img_d_p3d0_ofsted_normalized_z, d_img_d_p3d1_orig;
 
     d_img_d_p3d0_ofsted_normalized_z.setZero();
     d_img_d_p3d0_ofsted_normalized_z.topLeftCorner<2, 3>() =
-        d_uv_d_uvTilted * d_uvTilted_d_uvDistorted * duvDistorted_dxryr *
-        d_xr_yr_d_ab * d_ab_d_xyz;
-    d_img_d_p3d1_orig = d_img_d_p3d0_ofsted_normalized_z *
-                        d_p3d0_ofsted_normalized_z_d_p3d1_orig;
+        d_uv_d_uvTilted * d_uvTilted_d_uvDistorted * duvDistorted_dxryr * d_xr_yr_d_ab * d_ab_d_xyz;
+    d_img_d_p3d1_orig = d_img_d_p3d0_ofsted_normalized_z * d_p3d0_ofsted_normalized_z_d_p3d1_orig;
 
     if (d_img_d_p3d) {
       d_img_d_p3d->resize(2, 3);
       (*d_img_d_p3d).setZero();
       (*d_img_d_p3d) = d_img_d_p3d0_ofsted_normalized_z;
       if (extra_param) {
-        Mat3 d_p3d2_ofsted_normalized_z_d_p3d2_un_ofsted_normalized_z =
-            Mat3::Identity();
+        Mat3 d_p3d2_ofsted_normalized_z_d_p3d2_un_ofsted_normalized_z = Mat3::Identity();
         (*d_img_d_p3d) *=
             d_p3d0_ofsted_normalized_z_d_p3d1_orig *
             (d_p3d1_orig_d_p3d2_ofsted_normalized_z)*d_p3d2_ofsted_normalized_z_d_p3d2_un_ofsted_normalized_z *
@@ -437,17 +385,14 @@ bool KB20Camera::Project(
       d_img_d_param->resize(2, kParamLength);
       (*d_img_d_param).setZero();
       (*d_img_d_param).leftCols(4) = d_uv_d_fxfycxcy;
-      (*d_img_d_param).block(0, 4, 2, k_nums_used) =
-          d_uv_d_k1k2k3k4k5k6.leftCols(k_nums_used);
+      (*d_img_d_param).block(0, 4, 2, k_nums_used) = d_uv_d_k1k2k3k4k5k6.leftCols(k_nums_used);
       (*d_img_d_param).block<2, 2>(0, p0_start_idx) = d_uv_d_p1p2;
-      (*d_img_d_param).block(0, s_start_idx, 2, s_size) =
-          d_uv_d_s1s2s3s4s5s6.leftCols(s_size);
+      (*d_img_d_param).block(0, s_start_idx, 2, s_size) = d_uv_d_s1s2s3s4s5s6.leftCols(s_size);
       if (opt_s5s6t1t2) {
         (*d_img_d_param).block<2, 2>(0, tilt_start_idx) = d_uv_d_t1t2;
       }
 #ifdef USE_EXP_IN_KB20
-      number_t d_alpha_d_alpha_true =
-          alpha * alpha * exp(-parameters_[eucm_start_idx]);
+      number_t d_alpha_d_alpha_true = alpha * alpha * exp(-parameters_[eucm_start_idx]);
       number_t d_beta_d_beta_true = beta;
 #else
       number_t d_alpha_d_alpha_true = 1;
@@ -456,16 +401,13 @@ bool KB20Camera::Project(
       Vec3 d_p3d1_orig_d_alpha, d_p3d1_orig_d_alpha_true;
       Vec3 d_p3d1_orig_d_beta, d_p3d1_orig_d_beta_true;
       d_p3d1_orig_d_alpha << 0, 0, d - z_old;
-      d_p3d1_orig_d_beta << 0, 0,
-          alpha * 0.5 * d_inv * p_3d2.head(2).squaredNorm();
+      d_p3d1_orig_d_beta << 0, 0, alpha * 0.5 * d_inv * p_3d2.head(2).squaredNorm();
 
       d_p3d1_orig_d_alpha_true = d_p3d1_orig_d_alpha * d_alpha_d_alpha_true;
       d_p3d1_orig_d_beta_true = d_p3d1_orig_d_beta * d_beta_d_beta_true;
       if (extra_param && opt_eucm) {
-        (*d_img_d_param).block<2, 1>(0, eucm_start_idx) =
-            d_img_d_p3d1_orig * d_p3d1_orig_d_alpha_true;
-        (*d_img_d_param).block<2, 1>(0, eucm_start_idx + 1) =
-            d_img_d_p3d1_orig * d_p3d1_orig_d_beta_true;
+        (*d_img_d_param).block<2, 1>(0, eucm_start_idx) = d_img_d_p3d1_orig * d_p3d1_orig_d_alpha_true;
+        (*d_img_d_param).block<2, 1>(0, eucm_start_idx + 1) = d_img_d_p3d1_orig * d_p3d1_orig_d_beta_true;
       }
 
 #ifndef USE_TILT_IN_KB20
@@ -474,13 +416,11 @@ bool KB20Camera::Project(
 #else
       Mat3 d_p3d0_orig_d_rot = -rotMat * Skew(p_3d1) * Jr(rot_vec);
 #endif
-      Mat3 d_p3d0_ofsted_normalized_z_d_rot =
-          d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z *
-          d_p3d0_un_ofsted_normalized_z_d_p3d0_orig * d_p3d0_orig_d_rot;
+      Mat3 d_p3d0_ofsted_normalized_z_d_rot = d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z *
+                                              d_p3d0_un_ofsted_normalized_z_d_p3d0_orig * d_p3d0_orig_d_rot;
       if (extra_param && opt_rot) {
         (*d_img_d_param).block<2, 2>(0, rot_start_idx) =
-            d_img_d_p3d0_ofsted_normalized_z *
-            d_p3d0_ofsted_normalized_z_d_rot.leftCols(2);
+            d_img_d_p3d0_ofsted_normalized_z * d_p3d0_ofsted_normalized_z_d_rot.leftCols(2);
       }
 #else
       (*d_img_d_param).block<2, 2>(0, rot_start_idx) =
@@ -492,32 +432,25 @@ bool KB20Camera::Project(
       // (*d_img_d_param) << std::endl;
 
       Mat32 d_p3d0_ofsted_normalized_z_d_ofst_xy0 = Mat32::Zero();
-      d_p3d0_ofsted_normalized_z_d_ofst_xy0.topLeftCorner<2, 2>() =
-          Mat2::Identity();
+      d_p3d0_ofsted_normalized_z_d_ofst_xy0.topLeftCorner<2, 2>() = Mat2::Identity();
 
       Mat32 d_p3d1_ofsted_normalized_z_d_ofst_xy1 = Mat32::Zero();
-      d_p3d1_ofsted_normalized_z_d_ofst_xy1.topLeftCorner<2, 2>() =
-          Mat2::Identity();
+      d_p3d1_ofsted_normalized_z_d_ofst_xy1.topLeftCorner<2, 2>() = Mat2::Identity();
 
       Mat32 d_p3d2_ofsted_normalized_z_d_ofst_xy2 = Mat32::Zero();
-      d_p3d2_ofsted_normalized_z_d_ofst_xy2.topLeftCorner<2, 2>() =
-          Mat2::Identity();
+      d_p3d2_ofsted_normalized_z_d_ofst_xy2.topLeftCorner<2, 2>() = Mat2::Identity();
       if (extra_param && opt_ofst_xy0) {
         (*d_img_d_param).block<2, 2>(0, ofst0_start_idx) =
-            d_img_d_p3d0_ofsted_normalized_z *
-            d_p3d0_ofsted_normalized_z_d_ofst_xy0;
+            d_img_d_p3d0_ofsted_normalized_z * d_p3d0_ofsted_normalized_z_d_ofst_xy0;
       }
       if (extra_param && opt_ofst_xy1) {
         (*d_img_d_param).block<2, 2>(0, ofst1_start_idx) =
-            d_img_d_p3d0_ofsted_normalized_z *
-            d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z *
-            d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z *
-            d_p3d1_ofsted_normalized_z_d_ofst_xy1;
+            d_img_d_p3d0_ofsted_normalized_z * d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z *
+            d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z * d_p3d1_ofsted_normalized_z_d_ofst_xy1;
       }
       if (extra_param && opt_ofst_xy2) {
         (*d_img_d_param).block<2, 2>(0, ofst2_start_idx) =
-            d_img_d_p3d1_orig * d_p3d1_orig_d_p3d2_ofsted_normalized_z *
-            d_p3d2_ofsted_normalized_z_d_ofst_xy2;
+            d_img_d_p3d1_orig * d_p3d1_orig_d_p3d2_ofsted_normalized_z * d_p3d2_ofsted_normalized_z_d_ofst_xy2;
       }
 
 #ifdef FIX_BETA_IN_KB20
@@ -529,15 +462,12 @@ bool KB20Camera::Project(
 
       if (extra_param && opt_p1) {
         (*d_img_d_param).block<2, 2>(0, p1_start_idx) =
-            d_img_d_p3d0_ofsted_normalized_z *
-            d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z *
-            d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z_with_p1 *
-            d_uv_w_p_d_p1;
+            d_img_d_p3d0_ofsted_normalized_z * d_p3d0_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z *
+            d_p3d0_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z_with_p1 * d_uv_w_p_d_p1;
       }
       if (extra_param && opt_p2) {
         (*d_img_d_param).block<2, 2>(0, p2_start_idx) =
-            d_img_d_p3d1_orig * d_p3d1_orig_d_p3d2_ofsted_normalized_z_with_p2 *
-            d_uv_w_p_d_p2;
+            d_img_d_p3d1_orig * d_p3d1_orig_d_p3d2_ofsted_normalized_z_with_p2 * d_uv_w_p_d_p2;
       }
       if (fix_fc) {
         (*d_img_d_param).leftCols(4).setZero();
@@ -562,10 +492,8 @@ bool KB20Camera::Project(
   return true;
 }
 
-bool KB20Camera::Project(
-    const Vec3 &p_3d22, Eigen::Ref<Vec2> &p_img,
-    Eigen::Matrix<number_t, 2, 3> *d_img_d_p3d,
-    Eigen::Matrix<number_t, 2, Eigen::Dynamic> *d_img_d_param) const {
+bool KB20Camera::Project(const Vec3& p_3d22, Eigen::Ref<Vec2>& p_img, Eigen::Matrix<number_t, 2, 3>* d_img_d_p3d,
+                         Eigen::Matrix<number_t, 2, Eigen::Dynamic>* d_img_d_param) const {
   const number_t fx = parameters_[0];
   const number_t fy = parameters_[1];
   const number_t cx = parameters_[2];
@@ -677,8 +605,7 @@ bool KB20Camera::Project(
   number_t r3 = r * r2;
   number_t r4 = r2 * r2;
 
-  number_t thd = th * (1.0 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8 +
-                       k5 * th10 + k6 * th12);
+  number_t thd = th * (1.0 + k1 * th2 + k2 * th4 + k3 * th6 + k4 * th8 + k5 * th10 + k6 * th12);
 
   number_t x_r = a / r * thd;
   number_t y_r = b / r * thd;
@@ -690,10 +617,8 @@ bool KB20Camera::Project(
   number_t x_r2 = x_r * x_r;
   number_t y_r2 = y_r * y_r;
 
-  number_t u_distorted = x_r + p1 * (2.0 * x_r2 + r_d2) + 2.0 * x_r * y_r * p2 +
-                         s1 * r_d2 + s2 * r_d4 + s5 * r_d6;
-  number_t v_distorted = y_r + p2 * (2.0 * y_r2 + r_d2) + 2.0 * x_r * y_r * p1 +
-                         s3 * r_d2 + s4 * r_d4 + s6 * r_d6;
+  number_t u_distorted = x_r + p1 * (2.0 * x_r2 + r_d2) + 2.0 * x_r * y_r * p2 + s1 * r_d2 + s2 * r_d4 + s5 * r_d6;
+  number_t v_distorted = y_r + p2 * (2.0 * y_r2 + r_d2) + 2.0 * x_r * y_r * p1 + s3 * r_d2 + s4 * r_d4 + s6 * r_d6;
 
   Mat3 matTilt, invMatTilt;
   computeTiltProjectionMatrix(t1, t2, matTilt, invMatTilt);
@@ -715,12 +640,11 @@ bool KB20Camera::Project(
     Mat2 duvDistorted_dxryr, d_xr_yr_d_ab, d_uv_d_uvDistorted, d_uv_d_uvTilted;
     Mat23 duvDistorted_dq;
 
-    compute_duvDistorted_dxryr(xr_yr, duvDistorted_dxryr, duvDistorted_dq, r_d2,
-                               p1, p2, s1, s2, s3, s4, s5, s6, q1, q2, q3);
+    compute_duvDistorted_dxryr(xr_yr, duvDistorted_dxryr, duvDistorted_dq, r_d2, p1, p2, s1, s2, s3, s4, s5, s6, q1, q2,
+                               q3);
 
-    number_t d_thd_d_th = 1.0 + 3.0 * k1 * th2 + 5.0 * k2 * th4 +
-                          7.0 * k3 * th6 + 9.0 * k4 * th8 + 11.0 * k5 * th10 +
-                          13.0 * k6 * th12;
+    number_t d_thd_d_th =
+        1.0 + 3.0 * k1 * th2 + 5.0 * k2 * th4 + 7.0 * k3 * th6 + 9.0 * k4 * th8 + 11.0 * k5 * th10 + 13.0 * k6 * th12;
     number_t d_x_r_d_a = b2 / r3 * thd + a2 / (r2 + r4) * d_thd_d_th;
     number_t d_x_r_d_b = -a * b / r3 * thd + a * b / (r2 + r4) * d_thd_d_th;
     number_t d_y_r_d_a = -a * b / r3 * thd + a * b / (r2 + r4) * d_thd_d_th;
@@ -748,42 +672,30 @@ bool KB20Camera::Project(
     number_t u_d = uvDistorted(0);
     number_t v_d = uvDistorted(1);
 
-    number_t d_ut_d_ud =
-        tt1 / (tt7 * u_d + tt8 * v_d + tt9) -
-        tt1 * u_d * tt7 /
-            ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
-    number_t d_ut_d_vd =
-        -tt1 * u_d * tt8 /
-        ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
+    number_t d_ut_d_ud = tt1 / (tt7 * u_d + tt8 * v_d + tt9) -
+                         tt1 * u_d * tt7 / ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
+    number_t d_ut_d_vd = -tt1 * u_d * tt8 / ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
     number_t d_vt_d_ud =
         tt4 / (tt7 * u_d + tt8 * v_d + tt9) -
-        (tt4 * u_d + tt5 * v_d) * tt7 /
-            ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
+        (tt4 * u_d + tt5 * v_d) * tt7 / ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
     number_t d_vt_d_vd =
         tt5 / (tt7 * u_d + tt8 * v_d + tt9) -
-        (tt4 * u_d + tt5 * v_d) * tt8 /
-            ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
+        (tt4 * u_d + tt5 * v_d) * tt8 / ((tt7 * u_d + tt8 * v_d + tt9) * ((tt7 * u_d + tt8 * v_d + tt9)));
 
     Mat2 d_uvTilted_d_uvDistorted;
     d_uvTilted_d_uvDistorted << d_ut_d_ud, d_ut_d_vd, d_vt_d_ud, d_vt_d_vd;
 
     number_t temp = sty * u_d - stx * cty * v_d + ctx * cty;
 
-    number_t d_ut_d_tx =
-        -stx * u_d / temp -
-        ctx * u_d * (-ctx * cty * v_d - stx * cty) / (temp * temp);
+    number_t d_ut_d_tx = -stx * u_d / temp - ctx * u_d * (-ctx * cty * v_d - stx * cty) / (temp * temp);
 
-    number_t d_ut_d_ty =
-        -ctx * u_d * (cty * u_d + stx * sty * v_d - ctx * sty) / (temp * temp);
+    number_t d_ut_d_ty = -ctx * u_d * (cty * u_d + stx * sty * v_d - ctx * sty) / (temp * temp);
 
     number_t d_vt_d_tx = (-ctx * sty * u_d + cty * v_d) / temp -
-                         (cty * v_d - stx * sty * u_d) *
-                             (-ctx * cty * v_d - stx * cty) / (temp * temp);
+                         (cty * v_d - stx * sty * u_d) * (-ctx * cty * v_d - stx * cty) / (temp * temp);
 
     number_t d_vt_d_ty = (-stx * cty * u_d - sty * v_d) / temp -
-                         (cty * v_d - stx * sty * u_d) *
-                             (cty * u_d + stx * sty * v_d - ctx * sty) /
-                             (temp * temp);
+                         (cty * v_d - stx * sty * u_d) * (cty * u_d + stx * sty * v_d - ctx * sty) / (temp * temp);
 
     Mat2 d_uvTilted_d_t1t2;
     d_uvTilted_d_t1t2 << d_ut_d_tx, d_ut_d_ty, d_vt_d_tx, d_vt_d_ty;
@@ -800,29 +712,23 @@ bool KB20Camera::Project(
     Mat16 d_thd_d_k1k2k3k4k5k6;
     d_thd_d_k1k2k3k4k5k6 << th2, th4, th6, th8, th10, th12;
     d_thd_d_k1k2k3k4k5k6 *= th;
-    Mat26 d_uv_d_k1k2k3k4k5k6 = d_uv_d_uvTilted * d_uvTilted_d_uvDistorted *
-                                duvDistorted_dxryr * d_xr_yr_d_thd *
-                                d_thd_d_k1k2k3k4k5k6;
+    Mat26 d_uv_d_k1k2k3k4k5k6 =
+        d_uv_d_uvTilted * d_uvTilted_d_uvDistorted * duvDistorted_dxryr * d_xr_yr_d_thd * d_thd_d_k1k2k3k4k5k6;
 
     Mat2 duvDistorted_d_p1p2;
-    duvDistorted_d_p1p2 << (2.0 * x_r2 + r_d2), 2.0 * x_r * y_r,
-        2.0 * x_r * y_r, (2.0 * y_r2 + r_d2);
+    duvDistorted_d_p1p2 << (2.0 * x_r2 + r_d2), 2.0 * x_r * y_r, 2.0 * x_r * y_r, (2.0 * y_r2 + r_d2);
 
     Mat26 duvDistorted_d_s1s2s3s4s5s6;
-    duvDistorted_d_s1s2s3s4s5s6 << r_d2, r_d4, 0, 0, r_d6, 0, 0, 0, r_d2, r_d4,
-        0, r_d6;
-    Mat2 d_uv_d_p1p2 =
-        d_uv_d_uvTilted * d_uvTilted_d_uvDistorted * duvDistorted_d_p1p2;
-    Mat26 d_uv_d_s1s2s3s4s5s6 = d_uv_d_uvTilted * d_uvTilted_d_uvDistorted *
-                                duvDistorted_d_s1s2s3s4s5s6;
+    duvDistorted_d_s1s2s3s4s5s6 << r_d2, r_d4, 0, 0, r_d6, 0, 0, 0, r_d2, r_d4, 0, r_d6;
+    Mat2 d_uv_d_p1p2 = d_uv_d_uvTilted * d_uvTilted_d_uvDistorted * duvDistorted_d_p1p2;
+    Mat26 d_uv_d_s1s2s3s4s5s6 = d_uv_d_uvTilted * d_uvTilted_d_uvDistorted * duvDistorted_d_s1s2s3s4s5s6;
 
 #ifndef USE_TILT_IN_KB20
     Mat3 d_p3d0_d_p3d1 = rotMat;
 #else
     Mat3 d_p3d0_d_p3d1_normalized_z, d_p3d0_d_p3d1;
     Mat32 d_p3d0_d_t1t2;
-    ComputeForwardTiltJac(rotx, roty, p_3d1, d_p3d0_d_p3d1_normalized_z,
-                          d_p3d0_d_t1t2);
+    ComputeForwardTiltJac(rotx, roty, p_3d1, d_p3d0_d_p3d1_normalized_z, d_p3d0_d_t1t2);
     Mat3 d_normalized_z_d_p3d1 = ComputeNormalizedZJac(p_3d1_orig);
     d_p3d0_d_p3d1 = d_p3d0_d_p3d1_normalized_z * d_normalized_z_d_p3d1;
 #endif
@@ -835,8 +741,7 @@ bool KB20Camera::Project(
 
     d_img_d_p3d0.setZero();
     d_img_d_p3d0.topLeftCorner<2, 3>() =
-        d_uv_d_uvTilted * d_uvTilted_d_uvDistorted * duvDistorted_dxryr *
-        d_xr_yr_d_ab * d_ab_d_xyz;
+        d_uv_d_uvTilted * d_uvTilted_d_uvDistorted * duvDistorted_dxryr * d_xr_yr_d_ab * d_ab_d_xyz;
     d_img_d_p3d1 = d_img_d_p3d0 * d_p3d0_d_p3d1;
 
     if (d_img_d_p3d) {
@@ -844,8 +749,7 @@ bool KB20Camera::Project(
       (*d_img_d_p3d).setZero();
       (*d_img_d_p3d) = d_img_d_p3d0;
       if (extra_param) {
-        (*d_img_d_p3d) *=
-            d_p3d0_d_p3d1 * (d_p3d1_d_p3d2)*d_noamalized_z_d_p_3d22;
+        (*d_img_d_p3d) *= d_p3d0_d_p3d1 * (d_p3d1_d_p3d2)*d_noamalized_z_d_p_3d22;
       }
     }
 
@@ -880,8 +784,7 @@ bool KB20Camera::Project(
 #else
       Mat3 d_p3d0_d_rot = -rotMat * Skew(p_3d1) * Jr(rot_vec);
 #endif
-      (*d_img_d_param).block<2, 2>(0, 22) =
-          d_img_d_p3d0 * d_p3d0_d_rot.leftCols(2);
+      (*d_img_d_param).block<2, 2>(0, 22) = d_img_d_p3d0 * d_p3d0_d_rot.leftCols(2);
 #else
       (*d_img_d_param).block<2, 2>(0, 22) = d_img_d_p3d0 * d_p3d0_d_t1t2;
 #endif
@@ -900,9 +803,7 @@ bool KB20Camera::Project(
         (*d_img_d_param).block<2, 6>(0, 4).setZero();
       } else {
         if (k_nums_used != 6) {
-          (*d_img_d_param)
-              .block(0, 4 + k_nums_used, 2, 6 - k_nums_used)
-              .setZero();
+          (*d_img_d_param).block(0, 4 + k_nums_used, 2, 6 - k_nums_used).setZero();
         }
       }
     }
@@ -910,9 +811,8 @@ bool KB20Camera::Project(
   return true;
 }
 
-bool KB20Camera::UnProject(
-    const Vec2 &p_img, Vec3 &p_3d2, Eigen::Matrix<number_t, 3, 2> *d_p3d2_d_img,
-    Eigen::Matrix<number_t, 3, Eigen::Dynamic> *d_p3d2_d_param) const {
+bool KB20Camera::UnProject(const Vec2& p_img, Vec3& p_3d2, Eigen::Matrix<number_t, 3, 2>* d_p3d2_d_img,
+                           Eigen::Matrix<number_t, 3, Eigen::Dynamic>* d_p3d2_d_param) const {
   Vec3 p_3d, p_3d1;
   Mat3 d_p3d1_un_ofsted_normalized_z_d_p3d2_orig;
   const number_t fx = parameters_[0];
@@ -923,10 +823,9 @@ bool KB20Camera::UnProject(
   const number_t k1 = parameters_[4];
   const number_t k2 = parameters_[5];
   const number_t k3 = parameters_[6];
-  number_t k4 = 0, k5 = 0, k6 = 0, s5 = 0, s6 = 0, t1 = 0, t2 = 0, alpha = 0,
-           beta = 0, rotx = 0, roty = 0, ofst_x0 = 0, ofst_y0 = 0, ofst_x1 = 0,
-           ofst_y1 = 0, ofst_x2 = 0, ofst_y2 = 0, q1 = 0, q2 = 0, q3 = 0,
-           p1_1 = 0, p2_1 = 0, p1_2 = 0, p2_2 = 0;
+  number_t k4 = 0, k5 = 0, k6 = 0, s5 = 0, s6 = 0, t1 = 0, t2 = 0, alpha = 0, beta = 0, rotx = 0, roty = 0, ofst_x0 = 0,
+           ofst_y0 = 0, ofst_x1 = 0, ofst_y1 = 0, ofst_x2 = 0, ofst_y2 = 0, q1 = 0, q2 = 0, q3 = 0, p1_1 = 0, p2_1 = 0,
+           p1_2 = 0, p2_2 = 0;
   if (k_nums_used >= 4) {
     k4 = parameters_[7];
   }
@@ -1016,9 +915,8 @@ bool KB20Camera::UnProject(
   uvTilted << uTilted, vTilted, 1.0;
   Vec3 uvDistorted = invMatTilt * uvTilted;
   uvDistorted /= uvDistorted(2);
-  bool suc_distort = compute_xr_yr_from_uvDistorted(
-      uvDistorted.head(2), xr_yr, duvDistorted_dxryr, duvDistorted_dq, p1, p2,
-      s1, s2, s3, s4, s5, s6, q1, q2, q3);
+  bool suc_distort = compute_xr_yr_from_uvDistorted(uvDistorted.head(2), xr_yr, duvDistorted_dxryr, duvDistorted_dq, p1,
+                                                    p2, s1, s2, s3, s4, s5, s6, q1, q2, q3);
 
   number_t xr_yrNorm = xr_yr.norm();
 
@@ -1043,9 +941,7 @@ bool KB20Camera::UnProject(
       //      d_p3d1_d_p3d0_normalized_z, d_p3d1_d_t1t2);
 
 #endif
-      success = compute_p3d2_from_p3d1(
-          p_3d1, p_3d2, d_p3d1_un_ofsted_normalized_z_d_p3d2_orig, alpha, beta,
-          p_img);
+      success = compute_p3d2_from_p3d1(p_3d1, p_3d2, d_p3d1_un_ofsted_normalized_z_d_p3d2_orig, alpha, beta, p_img);
       p_3d2.normalize();
     } else {
       p_3d2 = p_3d;
@@ -1060,10 +956,9 @@ bool KB20Camera::UnProject(
         (*d_p3d2_d_param).setZero();
       }
     }
-    return false; // true;
+    return false;  // true;
   } else {
-    suc_theta = getThetaFromNorm_xr_yr(xr_yrNorm, theta, dthD_dth, k1, k2, k3,
-                                       k4, k5, k6);
+    suc_theta = getThetaFromNorm_xr_yr(xr_yrNorm, theta, dthD_dth, k1, k2, k3, k4, k5, k6);
     //    theta = SolveTheta(xr_yrNorm, dthD_dth, k1, k2, k3, k4);
   }
 
@@ -1073,10 +968,8 @@ bool KB20Camera::UnProject(
 
   Vec3 p_3d2_orig, p_3d1_orig, p_3d1_, p_3d2_temp, p_3d1_temp, p_3d0_temp;
   Mat3 d_bearing_d_p3d2_un_ofsted_normalized_z;
-  Mat3 d_uv_w_p_d_xy_wo_p2 = Mat3::Identity(),
-       d_uv_w_p_d_xy_wo_p1 = Mat3::Identity();
-  Mat3 d_uv_w_p_d_xy_wo_p2_inv = Mat3::Identity(),
-       d_uv_w_p_d_xy_wo_p1_inv = Mat3::Identity();
+  Mat3 d_uv_w_p_d_xy_wo_p2 = Mat3::Identity(), d_uv_w_p_d_xy_wo_p1 = Mat3::Identity();
+  Mat3 d_uv_w_p_d_xy_wo_p2_inv = Mat3::Identity(), d_uv_w_p_d_xy_wo_p1_inv = Mat3::Identity();
   Mat32 d_uv_w_p_d_p2, d_uv_w_p_d_p1;
   Vec3 p_3d0_orig = p_3d;
   success = true;
@@ -1100,30 +993,24 @@ bool KB20Camera::UnProject(
     p_3d1_orig = p_3d1;
 #endif
     if (opt_p1) {
-      suc1 = compute_xy_wo_p_from_uv_w_p(p_3d1, p_3d1_temp, d_uv_w_p_d_xy_wo_p1,
-                                         d_uv_w_p_d_p1, p1_1, p2_1);
+      suc1 = compute_xy_wo_p_from_uv_w_p(p_3d1, p_3d1_temp, d_uv_w_p_d_xy_wo_p1, d_uv_w_p_d_p1, p1_1, p2_1);
       d_uv_w_p_d_xy_wo_p1_inv.setZero();
-      d_uv_w_p_d_xy_wo_p1_inv.topLeftCorner<2, 2>() =
-          d_uv_w_p_d_xy_wo_p1.topLeftCorner<2, 2>().inverse();
+      d_uv_w_p_d_xy_wo_p1_inv.topLeftCorner<2, 2>() = d_uv_w_p_d_xy_wo_p1.topLeftCorner<2, 2>().inverse();
       p_3d1 = p_3d1_temp;
     }
     if (opt_ofst_xy1) {
       p_3d1(0) -= ofst_x1;
       p_3d1(1) -= ofst_y1;
     }
-    success = compute_p3d2_from_p3d1(p_3d1, p_3d2,
-                                     d_p3d1_un_ofsted_normalized_z_d_p3d2_orig,
-                                     alpha, beta, p_img);
+    success = compute_p3d2_from_p3d1(p_3d1, p_3d2, d_p3d1_un_ofsted_normalized_z_d_p3d2_orig, alpha, beta, p_img);
     p_3d2_orig = p_3d2;
     if (opt_ofst_xy2 || opt_p2) {
       p_3d2 /= p_3d2(2);
     }
     if (opt_p2) {
-      suc2 = compute_xy_wo_p_from_uv_w_p(p_3d2, p_3d2_temp, d_uv_w_p_d_xy_wo_p2,
-                                         d_uv_w_p_d_p2, p1_2, p2_2);
+      suc2 = compute_xy_wo_p_from_uv_w_p(p_3d2, p_3d2_temp, d_uv_w_p_d_xy_wo_p2, d_uv_w_p_d_p2, p1_2, p2_2);
       d_uv_w_p_d_xy_wo_p2_inv.setZero();
-      d_uv_w_p_d_xy_wo_p2_inv.topLeftCorner<2, 2>() =
-          d_uv_w_p_d_xy_wo_p2.topLeftCorner<2, 2>().inverse();
+      d_uv_w_p_d_xy_wo_p2_inv.topLeftCorner<2, 2>() = d_uv_w_p_d_xy_wo_p2.topLeftCorner<2, 2>().inverse();
       p_3d2 = p_3d2_temp;
     }
     if (opt_ofst_xy2) {
@@ -1170,8 +1057,7 @@ bool KB20Camera::UnProject(
     number_t d_thetad_d_my = my / thd;
 
     number_t theta2 = theta * theta;
-    number_t d_scaling_d_thetad =
-        (thd * cos_theta / dthD_dth - sin_theta) / (thd * thd);
+    number_t d_scaling_d_thetad = (thd * cos_theta / dthD_dth - sin_theta) / (thd * thd);
     number_t d_cos_d_thetad = -sin_theta / dthD_dth;
     number_t d_scaling_d_k1 = -cos_theta * theta * theta2 / (dthD_dth * thd);
     number_t d_cos_d_k1 = -d_cos_d_thetad * theta * theta2;
@@ -1179,18 +1065,12 @@ bool KB20Camera::UnProject(
     Vec3 d_pt3d_d_k1;
     d_pt3d_d_k1 << mx * d_scaling_d_k1, my * d_scaling_d_k1, d_cos_d_k1;
 
-    Mat3 d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z =
-        Mat3::Identity();
-    Mat3 d_p3d2_ofsted_normalized_z_d_p3d2_orig =
-        ComputeNormalizedZJac(p_3d2_orig);
-    Mat3 d_p3d1_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z =
-        Mat3::Identity();
-    Mat3 d_p3d1_ofsted_normalized_z_d_p3d1_orig =
-        ComputeNormalizedZJac(p_3d1_orig);
-    Mat3 d_p3d0_un_ofsted_normalized_z_d_p3d0_ofsted_normalized_z =
-        Mat3::Identity();
-    Mat3 d_p3d0_ofsted_normalized_z_d_p3d0_orig =
-        ComputeNormalizedZJac(p_3d0_orig);
+    Mat3 d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z = Mat3::Identity();
+    Mat3 d_p3d2_ofsted_normalized_z_d_p3d2_orig = ComputeNormalizedZJac(p_3d2_orig);
+    Mat3 d_p3d1_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z = Mat3::Identity();
+    Mat3 d_p3d1_ofsted_normalized_z_d_p3d1_orig = ComputeNormalizedZJac(p_3d1_orig);
+    Mat3 d_p3d0_un_ofsted_normalized_z_d_p3d0_ofsted_normalized_z = Mat3::Identity();
+    Mat3 d_p3d0_ofsted_normalized_z_d_p3d0_orig = ComputeNormalizedZJac(p_3d0_orig);
 #ifndef USE_TILT_IN_KB20
     if (!opt_ofst_xy0) {
       d_p3d0_ofsted_normalized_z_d_p3d0_orig.setIdentity();
@@ -1203,31 +1083,25 @@ bool KB20Camera::UnProject(
     }
     Mat3 d_p3d1_orig_d_p3d0_un_ofsted_normalized_z = rotMat.transpose();
     Mat3 d_p3d1_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z =
-        d_p3d1_ofsted_normalized_z_d_p3d1_orig *
-        d_p3d1_orig_d_p3d0_un_ofsted_normalized_z;
+        d_p3d1_ofsted_normalized_z_d_p3d1_orig * d_p3d1_orig_d_p3d0_un_ofsted_normalized_z;
 #else
     if (!(opt_ofst_xy2 || opt_p2)) {
       d_p3d2_ofsted_normalized_z_d_p3d2_orig.setIdentity();
     }
-    Mat3 d_p3d1_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z,
-        d_p3d1_d_p3d0_orig;
+    Mat3 d_p3d1_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z, d_p3d1_d_p3d0_orig;
     Mat32 d_p3d1_ofsted_normalized_z_d_t1t2;
-    ComputeBackwardTiltJac(
-        rotx, roty, p_3d,
-        d_p3d1_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z,
-        d_p3d1_ofsted_normalized_z_d_t1t2);
+    ComputeBackwardTiltJac(rotx, roty, p_3d, d_p3d1_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z,
+                           d_p3d1_ofsted_normalized_z_d_t1t2);
 #endif
 
     if (extra_param) {
-      d_pt3d_d_k1 =
-          d_bearing_d_p3d2_un_ofsted_normalized_z *
-          d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
-          (d_uv_w_p_d_xy_wo_p2_inv)*d_p3d2_ofsted_normalized_z_d_p3d2_orig *
-          (d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) *
-          d_p3d1_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z *
-          (d_uv_w_p_d_xy_wo_p1_inv)*d_p3d1_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z *
-          d_p3d0_un_ofsted_normalized_z_d_p3d0_ofsted_normalized_z *
-          d_p3d0_ofsted_normalized_z_d_p3d0_orig * d_pt3d_d_k1;
+      d_pt3d_d_k1 = d_bearing_d_p3d2_un_ofsted_normalized_z * d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
+                    (d_uv_w_p_d_xy_wo_p2_inv)*d_p3d2_ofsted_normalized_z_d_p3d2_orig *
+                    (d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) *
+                    d_p3d1_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z *
+                    (d_uv_w_p_d_xy_wo_p1_inv)*d_p3d1_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z *
+                    d_p3d0_un_ofsted_normalized_z_d_p3d0_ofsted_normalized_z * d_p3d0_ofsted_normalized_z_d_p3d0_orig *
+                    d_pt3d_d_k1;
     }
     Vec3 d_pt3d_d_k2 = d_pt3d_d_k1 * theta2;
     Vec3 d_pt3d_d_k3 = d_pt3d_d_k2 * theta2;
@@ -1248,22 +1122,20 @@ bool KB20Camera::UnProject(
     d_pt3d_d_mxmy << d_X_d_mx, d_X_d_my, d_Y_d_mx, d_Y_d_my, d_Z_d_mx, d_Z_d_my;
     d_pt3d_d_mxmy0 = d_pt3d_d_mxmy;
     if (extra_param) {
-      d_pt3d_d_mxmy =
-          d_bearing_d_p3d2_un_ofsted_normalized_z *
-          d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
-          (d_uv_w_p_d_xy_wo_p2_inv)*d_p3d2_ofsted_normalized_z_d_p3d2_orig *
-          (d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) *
-          d_p3d1_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z *
-          (d_uv_w_p_d_xy_wo_p1_inv)*d_p3d1_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z *
-          d_p3d0_un_ofsted_normalized_z_d_p3d0_ofsted_normalized_z *
-          d_p3d0_ofsted_normalized_z_d_p3d0_orig * d_pt3d_d_mxmy;
+      d_pt3d_d_mxmy = d_bearing_d_p3d2_un_ofsted_normalized_z *
+                      d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
+                      (d_uv_w_p_d_xy_wo_p2_inv)*d_p3d2_ofsted_normalized_z_d_p3d2_orig *
+                      (d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) *
+                      d_p3d1_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z *
+                      (d_uv_w_p_d_xy_wo_p1_inv)*d_p3d1_ofsted_normalized_z_d_p3d0_un_ofsted_normalized_z *
+                      d_p3d0_un_ofsted_normalized_z_d_p3d0_ofsted_normalized_z *
+                      d_p3d0_ofsted_normalized_z_d_p3d0_orig * d_pt3d_d_mxmy;
     }
 
     Mat2 d_xryr_duvDistorted = duvDistorted_dxryr.inverse();
 
     Mat24 d_utvt_d_fxfycxcy;
-    d_utvt_d_fxfycxcy << -uvTilted(0) / fx, 0, -1 / fx, 0, 0, -uvTilted(1) / fy,
-        0, -1 / fy;
+    d_utvt_d_fxfycxcy << -uvTilted(0) / fx, 0, -1 / fx, 0, 0, -uvTilted(1) / fy, 0, -1 / fy;
 
     Mat2 d_utvt_d_uv;
     d_utvt_d_uv << 1 / fx, 0, 0, 1 / fy;
@@ -1285,24 +1157,18 @@ bool KB20Camera::UnProject(
     number_t u_t = uvTilted(0);
     number_t v_t = uvTilted(1);
 
-    number_t d_ud_d_ut =
-        tt1 / (tt7 * u_t + tt8 * v_t + tt9) -
-        tt1 * u_t * tt7 /
-            ((tt7 * u_t + tt8 * v_t + tt9) * (tt7 * u_t + tt8 * v_t + tt9));
+    number_t d_ud_d_ut = tt1 / (tt7 * u_t + tt8 * v_t + tt9) -
+                         tt1 * u_t * tt7 / ((tt7 * u_t + tt8 * v_t + tt9) * (tt7 * u_t + tt8 * v_t + tt9));
 
-    number_t d_ud_d_vt =
-        -tt1 * u_t * tt8 /
-        ((tt7 * u_t + tt8 * v_t + tt9) * (tt7 * u_t + tt8 * v_t + tt9));
+    number_t d_ud_d_vt = -tt1 * u_t * tt8 / ((tt7 * u_t + tt8 * v_t + tt9) * (tt7 * u_t + tt8 * v_t + tt9));
 
     number_t d_vd_d_ut =
         tt4 / (tt7 * u_t + tt8 * v_t + tt9) -
-        (tt4 * u_t + tt5 * v_t) * tt7 /
-            ((tt7 * u_t + tt8 * v_t + tt9) * (tt7 * u_t + tt8 * v_t + tt9));
+        (tt4 * u_t + tt5 * v_t) * tt7 / ((tt7 * u_t + tt8 * v_t + tt9) * (tt7 * u_t + tt8 * v_t + tt9));
 
     number_t d_vd_d_vt =
         tt5 / (tt7 * u_t + tt8 * v_t + tt9) -
-        (tt4 * u_t + tt5 * v_t) * tt8 /
-            ((tt7 * u_t + tt8 * v_t + tt9) * (tt7 * u_t + tt8 * v_t + tt9));
+        (tt4 * u_t + tt5 * v_t) * tt8 / ((tt7 * u_t + tt8 * v_t + tt9) * (tt7 * u_t + tt8 * v_t + tt9));
 
     Mat2 d_uvDistorted_d_uvTilted;
     d_uvDistorted_d_uvTilted << d_ud_d_ut, d_ud_d_vt, d_vd_d_ut, d_vd_d_vt;
@@ -1313,113 +1179,87 @@ bool KB20Camera::UnProject(
 
     number_t d_ud_d_tx =
         (stx / (ctx * ctx) * u_t / temp) -
-        (1 / ctx * u_t *
-         (v_t / (ctx * ctx) / cty + cty * stx / ((ctx * cty) * (ctx * cty))) /
-         (temp * temp));
+        (1 / ctx * u_t * (v_t / (ctx * ctx) / cty + cty * stx / ((ctx * cty) * (ctx * cty))) / (temp * temp));
 
-    number_t d_ud_d_ty = -u_t / ctx *
-                         (-u_t / (cty * cty) + ttx * sty * v_t / (cty * cty) +
-                          ctx * sty / ((ctx * cty) * (ctx * cty))) /
-                         (temp * temp);
+    number_t d_ud_d_ty =
+        -u_t / ctx * (-u_t / (cty * cty) + ttx * sty * v_t / (cty * cty) + ctx * sty / ((ctx * cty) * (ctx * cty))) /
+        (temp * temp);
 
     number_t d_vd_d_tx = (1 / (ctx * ctx) * tty * u_t / temp) -
                          ((ttx * tty * u_t + 1 / cty * v_t) *
-                          (1 / cty / (ctx * ctx) * v_t +
-                           cty * stx / ((ctx * cty) * (ctx * cty))) /
-                          (temp * temp));
+                          (1 / cty / (ctx * ctx) * v_t + cty * stx / ((ctx * cty) * (ctx * cty))) / (temp * temp));
 
     number_t d_vd_d_ty =
         ((ttx * u_t / (cty * cty) + sty * v_t / (cty * cty)) / temp) -
         ((ttx * tty * u_t + 1 / cty * v_t) *
-         (-u_t / (cty * cty) + ttx * sty * v_t / (cty * cty) +
-          ctx * sty / ((ctx * cty) * (ctx * cty))) /
+         (-u_t / (cty * cty) + ttx * sty * v_t / (cty * cty) + ctx * sty / ((ctx * cty) * (ctx * cty))) /
          (temp * temp));
 
     Mat2 d_udvd_d_t1t2;
     d_udvd_d_t1t2 << d_ud_d_tx, d_ud_d_ty, d_vd_d_tx, d_vd_d_ty;
 
     Mat2 duvDistorted_d_p1p2;
-    duvDistorted_d_p1p2 << (2.0 * x_r2 + r_d2), 2.0 * x_r * y_r,
-        2.0 * x_r * y_r, (2.0 * y_r2 + r_d2);
+    duvDistorted_d_p1p2 << (2.0 * x_r2 + r_d2), 2.0 * x_r * y_r, 2.0 * x_r * y_r, (2.0 * y_r2 + r_d2);
     duvDistorted_d_p1p2 *= q_coeff;
     duvDistorted_d_p1p2 *= -1;
 
     Mat26 duvDistorted_d_s1s2s3s4s5s6;
-    duvDistorted_d_s1s2s3s4s5s6 << r_d2, r_d4, 0, 0, r_d6, 0, 0, 0, r_d2, r_d4,
-        0, r_d6;
+    duvDistorted_d_s1s2s3s4s5s6 << r_d2, r_d4, 0, 0, r_d6, 0, 0, 0, r_d2, r_d4, 0, r_d6;
     duvDistorted_d_s1s2s3s4s5s6 *= -1;
 
     duvDistorted_dq *= -1;
 
     Mat2 d_xryr_d_uv = d_xryr_duvDistorted * d_udvd_d_tilt * d_utvt_d_uv;
-    Mat24 d_xryr_d_fxfycxcy =
-        d_xryr_duvDistorted * d_udvd_d_tilt * d_utvt_d_fxfycxcy;
+    Mat24 d_xryr_d_fxfycxcy = d_xryr_duvDistorted * d_udvd_d_tilt * d_utvt_d_fxfycxcy;
     Mat2 d_xryr_d_p1p2 = d_xryr_duvDistorted * duvDistorted_d_p1p2;
-    Mat26 d_xryr_d_s1s2s3s4s5s6 =
-        d_xryr_duvDistorted * duvDistorted_d_s1s2s3s4s5s6;
+    Mat26 d_xryr_d_s1s2s3s4s5s6 = d_xryr_duvDistorted * duvDistorted_d_s1s2s3s4s5s6;
     Mat2 d_xryr_d_t1t2 = d_xryr_duvDistorted * d_udvd_d_t1t2;
     Mat23 d_xryr_d_q = d_xryr_duvDistorted * duvDistorted_dq;
 
     Mat36 d_pt3d_d_k1k2k3k4k5k6;
-    d_pt3d_d_k1k2k3k4k5k6 << d_pt3d_d_k1, d_pt3d_d_k2, d_pt3d_d_k3, d_pt3d_d_k4,
-        d_pt3d_d_k5, d_pt3d_d_k6;
+    d_pt3d_d_k1k2k3k4k5k6 << d_pt3d_d_k1, d_pt3d_d_k2, d_pt3d_d_k3, d_pt3d_d_k4, d_pt3d_d_k5, d_pt3d_d_k6;
 
     if (d_p3d2_d_param) {
       d_p3d2_d_param->resize(3, kParamLength);
       (*d_p3d2_d_param).setZero();
       (*d_p3d2_d_param).leftCols(4) = d_pt3d_d_mxmy * d_xryr_d_fxfycxcy;
-      (*d_p3d2_d_param).block(0, 4, 3, k_nums_used) =
-          d_pt3d_d_k1k2k3k4k5k6.leftCols(k_nums_used);
-      (*d_p3d2_d_param).block<3, 2>(0, p0_start_idx) =
-          d_pt3d_d_mxmy * d_xryr_d_p1p2;
-      (*d_p3d2_d_param).block(0, s_start_idx, 3, s_size) =
-          d_pt3d_d_mxmy * d_xryr_d_s1s2s3s4s5s6.leftCols(s_size);
+      (*d_p3d2_d_param).block(0, 4, 3, k_nums_used) = d_pt3d_d_k1k2k3k4k5k6.leftCols(k_nums_used);
+      (*d_p3d2_d_param).block<3, 2>(0, p0_start_idx) = d_pt3d_d_mxmy * d_xryr_d_p1p2;
+      (*d_p3d2_d_param).block(0, s_start_idx, 3, s_size) = d_pt3d_d_mxmy * d_xryr_d_s1s2s3s4s5s6.leftCols(s_size);
       if (opt_s5s6t1t2) {
-        (*d_p3d2_d_param).block<3, 2>(0, tilt_start_idx) =
-            d_pt3d_d_mxmy * d_xryr_d_t1t2;
+        (*d_p3d2_d_param).block<3, 2>(0, tilt_start_idx) = d_pt3d_d_mxmy * d_xryr_d_t1t2;
       }
-      Vec3 d_p3d1_un_ofsted_normalized_z_d_alpha,
-          d_p3d1_un_ofsted_normalized_z_d_alpha_true;
-      Vec3 d_p3d1_un_ofsted_normalized_z_d_beta,
-          d_p3d1_un_ofsted_normalized_z_d_beta_true;
+      Vec3 d_p3d1_un_ofsted_normalized_z_d_alpha, d_p3d1_un_ofsted_normalized_z_d_alpha_true;
+      Vec3 d_p3d1_un_ofsted_normalized_z_d_beta, d_p3d1_un_ofsted_normalized_z_d_beta_true;
       {
 #ifdef USE_EXP_IN_KB20
-        number_t d_alpha_d_alpha_true =
-            alpha * alpha * exp(-parameters_[eucm_start_idx]);
+        number_t d_alpha_d_alpha_true = alpha * alpha * exp(-parameters_[eucm_start_idx]);
         number_t d_beta_d_beta_true = beta;
 #else
         number_t d_alpha_d_alpha_true = 1;
         number_t d_beta_d_beta_true = 1;
 #endif
         number_t z_old2 = p_3d2_orig(2);
-        number_t d = std::sqrt(beta * p_3d2_orig.head(2).squaredNorm() +
-                               z_old2 * z_old2);
+        number_t d = std::sqrt(beta * p_3d2_orig.head(2).squaredNorm() + z_old2 * z_old2);
         number_t d_inv = 1 / d;
 
         d_p3d1_un_ofsted_normalized_z_d_alpha << 0, 0, d - z_old2;
-        d_p3d1_un_ofsted_normalized_z_d_beta << 0, 0,
-            alpha * 0.5 * d_inv * p_3d2_orig.head(2).squaredNorm();
+        d_p3d1_un_ofsted_normalized_z_d_beta << 0, 0, alpha * 0.5 * d_inv * p_3d2_orig.head(2).squaredNorm();
 
-        d_p3d1_un_ofsted_normalized_z_d_alpha_true =
-            d_p3d1_un_ofsted_normalized_z_d_alpha * d_alpha_d_alpha_true;
-        d_p3d1_un_ofsted_normalized_z_d_beta_true =
-            d_p3d1_un_ofsted_normalized_z_d_beta * d_beta_d_beta_true;
+        d_p3d1_un_ofsted_normalized_z_d_alpha_true = d_p3d1_un_ofsted_normalized_z_d_alpha * d_alpha_d_alpha_true;
+        d_p3d1_un_ofsted_normalized_z_d_beta_true = d_p3d1_un_ofsted_normalized_z_d_beta * d_beta_d_beta_true;
       }
 
 #ifndef USE_TILT_IN_KB20
       if (extra_param && opt_eucm) {
         (*d_p3d2_d_param).block<3, 1>(0, eucm_start_idx) =
-            d_bearing_d_p3d2_un_ofsted_normalized_z *
-            d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
+            d_bearing_d_p3d2_un_ofsted_normalized_z * d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
             (d_uv_w_p_d_xy_wo_p2_inv)*d_p3d2_ofsted_normalized_z_d_p3d2_orig *
-            (-d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) *
-            d_p3d1_un_ofsted_normalized_z_d_alpha_true;
+            (-d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) * d_p3d1_un_ofsted_normalized_z_d_alpha_true;
         (*d_p3d2_d_param).block<3, 1>(0, eucm_start_idx + 1) =
-            d_bearing_d_p3d2_un_ofsted_normalized_z *
-            d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
+            d_bearing_d_p3d2_un_ofsted_normalized_z * d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
             (d_uv_w_p_d_xy_wo_p2_inv)*d_p3d2_ofsted_normalized_z_d_p3d2_orig *
-            (-d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) *
-            d_p3d1_un_ofsted_normalized_z_d_beta_true;
+            (-d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) * d_p3d1_un_ofsted_normalized_z_d_beta_true;
       }
 #ifndef USE_JR
       Mat3 d_p3d1_orig_d_rot = rotMat.transpose() * Skew(p_3d);
@@ -1428,33 +1268,26 @@ bool KB20Camera::UnProject(
 #endif
       if (extra_param && opt_rot) {
         (*d_p3d2_d_param).block<3, 2>(0, rot_start_idx) =
-            d_bearing_d_p3d2_un_ofsted_normalized_z *
-            d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
+            d_bearing_d_p3d2_un_ofsted_normalized_z * d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
             (d_uv_w_p_d_xy_wo_p2_inv)*d_p3d2_ofsted_normalized_z_d_p3d2_orig *
             (d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) *
             d_p3d1_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z *
-            (d_uv_w_p_d_xy_wo_p1_inv)*d_p3d1_ofsted_normalized_z_d_p3d1_orig *
-            d_p3d1_orig_d_rot.leftCols(2);
+            (d_uv_w_p_d_xy_wo_p1_inv)*d_p3d1_ofsted_normalized_z_d_p3d1_orig * d_p3d1_orig_d_rot.leftCols(2);
       }
 #else
       if (extra_param && opt_eucm) {
         (*d_p3d2_d_param).block<3, 1>(0, eucm_start_idx) =
-            d_bearing_d_p3d2_un_ofsted_normalized_z *
-            d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
+            d_bearing_d_p3d2_un_ofsted_normalized_z * d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
             (d_uv_w_p_d_xy_wo_p2_inv)*d_p3d2_ofsted_normalized_z_d_p3d2_orig *
-            (-d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) *
-            d_p3d1_un_ofsted_normalized_z_d_alpha_true;
+            (-d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) * d_p3d1_un_ofsted_normalized_z_d_alpha_true;
         (*d_p3d2_d_param).block<3, 1>(0, eucm_start_idx + 1) =
-            d_bearing_d_p3d2_un_ofsted_normalized_z *
-            d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
+            d_bearing_d_p3d2_un_ofsted_normalized_z * d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
             (d_uv_w_p_d_xy_wo_p2_inv)*d_p3d2_ofsted_normalized_z_d_p3d2_orig *
-            (-d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) *
-            d_p3d1_un_ofsted_normalized_z_d_beta_true;
+            (-d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) * d_p3d1_un_ofsted_normalized_z_d_beta_true;
       }
       if (extra_param && opt_rot) {
         (*d_p3d2_d_param).block<3, 2>(0, rot_start_idx) =
-            d_bearing_d_p3d2_un_ofsted_normalized_z *
-            d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
+            d_bearing_d_p3d2_un_ofsted_normalized_z * d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
             (d_uv_w_p_d_xy_wo_p2_inv)*d_p3d2_ofsted_normalized_z_d_p3d2_orig *
             (d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) *
             d_p3d1_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z *
@@ -1465,21 +1298,17 @@ bool KB20Camera::UnProject(
       // (*d_p3d2_d_param).block<3, 2>(0, 20).setZero();
       // (*d_p3d2_d_param).block<3, 2>(0, 22).setZero();
       Mat32 d_p3d0_un_ofsted_normalized_z_d_ofst_xy0 = Mat32::Zero();
-      d_p3d0_un_ofsted_normalized_z_d_ofst_xy0.topLeftCorner<2, 2>() =
-          -Mat2::Identity();
+      d_p3d0_un_ofsted_normalized_z_d_ofst_xy0.topLeftCorner<2, 2>() = -Mat2::Identity();
 
       Mat32 d_p3d1_un_ofsted_normalized_z_d_ofst_xy1 = Mat32::Zero();
-      d_p3d1_un_ofsted_normalized_z_d_ofst_xy1.topLeftCorner<2, 2>() =
-          -Mat2::Identity();
+      d_p3d1_un_ofsted_normalized_z_d_ofst_xy1.topLeftCorner<2, 2>() = -Mat2::Identity();
 
       Mat32 d_p3d2_un_ofsted_normalized_z_d_ofst_xy2 = Mat32::Zero();
-      d_p3d2_un_ofsted_normalized_z_d_ofst_xy2.topLeftCorner<2, 2>() =
-          -Mat2::Identity();
+      d_p3d2_un_ofsted_normalized_z_d_ofst_xy2.topLeftCorner<2, 2>() = -Mat2::Identity();
 
       if (extra_param && opt_ofst_xy0) {
         (*d_p3d2_d_param).block<3, 2>(0, ofst0_start_idx) =
-            d_bearing_d_p3d2_un_ofsted_normalized_z *
-            d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
+            d_bearing_d_p3d2_un_ofsted_normalized_z * d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
             (d_uv_w_p_d_xy_wo_p2_inv)*d_p3d2_ofsted_normalized_z_d_p3d2_orig *
             (d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) *
             d_p3d1_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z *
@@ -1488,40 +1317,33 @@ bool KB20Camera::UnProject(
       }
       if (extra_param && opt_ofst_xy1) {
         (*d_p3d2_d_param).block<3, 2>(0, ofst1_start_idx) =
-            d_bearing_d_p3d2_un_ofsted_normalized_z *
-            d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
+            d_bearing_d_p3d2_un_ofsted_normalized_z * d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
             (d_uv_w_p_d_xy_wo_p2_inv)*d_p3d2_ofsted_normalized_z_d_p3d2_orig *
-            (d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) *
-            d_p3d1_un_ofsted_normalized_z_d_ofst_xy1;
+            (d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) * d_p3d1_un_ofsted_normalized_z_d_ofst_xy1;
       }
       if (extra_param && opt_ofst_xy2) {
         (*d_p3d2_d_param).block<3, 2>(0, ofst2_start_idx) =
-            d_bearing_d_p3d2_un_ofsted_normalized_z *
-            d_p3d2_un_ofsted_normalized_z_d_ofst_xy2;
+            d_bearing_d_p3d2_un_ofsted_normalized_z * d_p3d2_un_ofsted_normalized_z_d_ofst_xy2;
       }
 
 #ifdef FIX_BETA_IN_KB20
       (*d_p3d2_d_param).block<3, 1>(0, eucm_start_idx + 1).setZero();
 #endif
       if (extra_param && opt_extra_p) {
-        (*d_p3d2_d_param).block<3, 3>(0, extra_p_start_idx) =
-            d_pt3d_d_mxmy * d_xryr_d_q;
+        (*d_p3d2_d_param).block<3, 3>(0, extra_p_start_idx) = d_pt3d_d_mxmy * d_xryr_d_q;
       }
       if (extra_param && opt_p1) {
         (*d_p3d2_d_param).block<3, 2>(0, p1_start_idx) =
-            d_bearing_d_p3d2_un_ofsted_normalized_z *
-            d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
+            d_bearing_d_p3d2_un_ofsted_normalized_z * d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
             (d_uv_w_p_d_xy_wo_p2_inv)*d_p3d2_ofsted_normalized_z_d_p3d2_orig *
             (d_p3d1_un_ofsted_normalized_z_d_p3d2_orig.inverse()) *
-            d_p3d1_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z *
-            (-d_uv_w_p_d_xy_wo_p1_inv) * d_uv_w_p_d_p1;
+            d_p3d1_un_ofsted_normalized_z_d_p3d1_ofsted_normalized_z * (-d_uv_w_p_d_xy_wo_p1_inv) * d_uv_w_p_d_p1;
       }
       // (*d_p3d2_d_param).block<3, 33>(0, 0).setZero();
       if (extra_param && opt_p2 /*&& false*/) {
-        (*d_p3d2_d_param).block<3, 2>(0, p2_start_idx) =
-            d_bearing_d_p3d2_un_ofsted_normalized_z *
-            d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
-            (-d_uv_w_p_d_xy_wo_p2_inv) * d_uv_w_p_d_p2;
+        (*d_p3d2_d_param).block<3, 2>(0, p2_start_idx) = d_bearing_d_p3d2_un_ofsted_normalized_z *
+                                                         d_p3d2_un_ofsted_normalized_z_d_p3d2_ofsted_normalized_z *
+                                                         (-d_uv_w_p_d_xy_wo_p2_inv) * d_uv_w_p_d_p2;
       }
       if (fix_fc) {
         (*d_p3d2_d_param).leftCols(4).setZero();

@@ -30,7 +30,7 @@ namespace dmvio {
 // Defines how to transition between states. There are multiple different
 // transition models for the main method and ablation studies.
 class StateTransitionModel {
-public:
+ public:
   virtual ~StateTransitionModel() = default;
 
   // Return the initial state.
@@ -38,9 +38,8 @@ public:
 
   // Called when the coarse IMU init optimization has finished and returns the
   // new state.
-  virtual IMUInitializerState::unique_ptr
-  coarseIMUInitOptimized(const gtsam::Values &optimizedValues,
-                         dmvio::IMUInitVariances initVariances) = 0;
+  virtual IMUInitializerState::unique_ptr coarseIMUInitOptimized(const gtsam::Values& optimizedValues,
+                                                                 dmvio::IMUInitVariances initVariances) = 0;
 
   // Called when a PGBA has been finished. If return.first is true the result of
   // this optimization shall be taken over. In this case, if return.second is
@@ -48,14 +47,13 @@ public:
   // itself. If return.first is true the also returned state shall always be
   // used. Note that the passed optimizedValues can be moved away, if
   // pair.second != nullptr.
-  virtual std::pair<bool, IMUInitializerState::unique_ptr>
-  pgbaOptimized(std::unique_ptr<gtsam::Values> &optimizedValues,
-                IMUInitVariances initVariances) = 0;
+  virtual std::pair<bool, IMUInitializerState::unique_ptr> pgbaOptimized(
+      std::unique_ptr<gtsam::Values>& optimizedValues, IMUInitVariances initVariances) = 0;
 
   virtual IMUInitializerState::unique_ptr initialized() = 0;
 
   virtual IMUInitializerState::unique_ptr marginalizationReplacementReady(
-      std::unique_ptr<gtsam::Values> &&optimizedValues){};
+      std::unique_ptr<gtsam::Values>&& optimizedValues){};
 
   virtual IMUInitializerState::unique_ptr marginalizationReplaced(){};
 };
@@ -76,99 +74,88 @@ enum class InitTransitionMode {
   ONLY_COARSE_IMU_INIT
 };
 
-std::unique_ptr<StateTransitionModel>
-createTransitionModel(InitTransitionMode mode, IMUInitializerLogic &logic);
+std::unique_ptr<StateTransitionModel> createTransitionModel(InitTransitionMode mode, IMUInitializerLogic& logic);
 
 // This is similar to the transition model shown in the paper but without the
 // marginalization replacement. TransitionModel with 2 thresholds, where
 // reinitialization is performed as long as the scale uncertainty is greater
 // than a second larger threshold.
 class CombinedTransitionModel : public StateTransitionModel {
-public:
+ public:
   // A reference to logic is kept and must be alive together with this object.
-  CombinedTransitionModel(IMUInitializerLogic &logic);
+  CombinedTransitionModel(IMUInitializerLogic& logic);
 
   IMUInitializerState::unique_ptr getInitialState() override;
 
-  IMUInitializerState::unique_ptr
-  coarseIMUInitOptimized(const gtsam::Values &optimizedValues,
-                         dmvio::IMUInitVariances initVariances) override;
+  IMUInitializerState::unique_ptr coarseIMUInitOptimized(const gtsam::Values& optimizedValues,
+                                                         dmvio::IMUInitVariances initVariances) override;
 
-  std::pair<bool, IMUInitializerState::unique_ptr>
-  pgbaOptimized(std::unique_ptr<gtsam::Values> &optimizedValues,
-                IMUInitVariances initVariances) override;
+  std::pair<bool, IMUInitializerState::unique_ptr> pgbaOptimized(std::unique_ptr<gtsam::Values>& optimizedValues,
+                                                                 IMUInitVariances initVariances) override;
 
   IMUInitializerState::unique_ptr initialized() override;
 
-protected:
-  IMUInitializerLogic &logic;
+ protected:
+  IMUInitializerLogic& logic;
   IMUInitVariances lastInitUncert;
 
-  virtual std::pair<bool, IMUInitializerState::unique_ptr>
-  takeOverLargeBAOptim(std::unique_ptr<gtsam::Values> &optimizedValues,
-                       IMUInitVariances &&initVariances);
+  virtual std::pair<bool, IMUInitializerState::unique_ptr> takeOverLargeBAOptim(
+      std::unique_ptr<gtsam::Values>& optimizedValues, IMUInitVariances&& initVariances);
 };
 
 // This is the full transition model as shown in the paper.
 // We base it on the CombinedTransitionModel and only override the methods which
 // need to be changed.
-class CombinedWithMarginalizationReplacementModel
-    : public CombinedTransitionModel {
-public:
-  CombinedWithMarginalizationReplacementModel(IMUInitializerLogic &logic);
+class CombinedWithMarginalizationReplacementModel : public CombinedTransitionModel {
+ public:
+  CombinedWithMarginalizationReplacementModel(IMUInitializerLogic& logic);
 
   IMUInitializerState::unique_ptr initialized() override;
 
   virtual IMUInitializerState::unique_ptr marginalizationReplacementReady(
-      std::unique_ptr<gtsam::Values> &&optimizedValues) override;
+      std::unique_ptr<gtsam::Values>&& optimizedValues) override;
 
   virtual IMUInitializerState::unique_ptr marginalizationReplaced() override;
 
-protected:
-  std::pair<bool, IMUInitializerState::unique_ptr>
-  takeOverLargeBAOptim(std::unique_ptr<gtsam::Values> &optimizedValues,
-                       IMUInitVariances &&initVariances) override;
+ protected:
+  std::pair<bool, IMUInitializerState::unique_ptr> takeOverLargeBAOptim(std::unique_ptr<gtsam::Values>& optimizedValues,
+                                                                        IMUInitVariances&& initVariances) override;
 
   int startIdSecondTh = -1;
 };
 
 // For ablations: This transition model does not do a marginalization
 // replacement after initializing (despite using PGBA).
-class CombinedTransitionModelNoInitialMarginalizationReplacement
-    : public CombinedTransitionModel {
-public:
-  CombinedTransitionModelNoInitialMarginalizationReplacement(
-      IMUInitializerLogic &logic);
+class CombinedTransitionModelNoInitialMarginalizationReplacement : public CombinedTransitionModel {
+ public:
+  CombinedTransitionModelNoInitialMarginalizationReplacement(IMUInitializerLogic& logic);
 
-protected:
-  std::pair<bool, IMUInitializerState::unique_ptr>
-  takeOverLargeBAOptim(std::unique_ptr<gtsam::Values> &optimizedValues,
-                       IMUInitVariances &&initVariances) override;
+ protected:
+  std::pair<bool, IMUInitializerState::unique_ptr> takeOverLargeBAOptim(std::unique_ptr<gtsam::Values>& optimizedValues,
+                                                                        IMUInitVariances&& initVariances) override;
 };
 
 // This transition model only uses the CoarseIMUInit.
 class OnlyCoarseIMUInitTransitionModel : public StateTransitionModel {
-public:
+ public:
   // A reference to logic is kept and must be alive together with this object.
-  OnlyCoarseIMUInitTransitionModel(IMUInitializerLogic &logic);
+  OnlyCoarseIMUInitTransitionModel(IMUInitializerLogic& logic);
 
   IMUInitializerState::unique_ptr getInitialState() override;
 
-  IMUInitializerState::unique_ptr
-  coarseIMUInitOptimized(const gtsam::Values &optimizedValues,
-                         dmvio::IMUInitVariances initVariances) override;
+  IMUInitializerState::unique_ptr coarseIMUInitOptimized(const gtsam::Values& optimizedValues,
+                                                         dmvio::IMUInitVariances initVariances) override;
 
-  std::pair<bool, IMUInitializerState::unique_ptr>
-  pgbaOptimized(std::unique_ptr<gtsam::Values> &optimizedValues,
-                IMUInitVariances initVariances) override;
+  std::pair<bool, IMUInitializerState::unique_ptr> pgbaOptimized(std::unique_ptr<gtsam::Values>& optimizedValues,
+                                                                 IMUInitVariances initVariances) override;
 
   IMUInitializerState::unique_ptr initialized() override;
 
-protected:
-  IMUInitializerLogic &logic;
+ protected:
+  IMUInitializerLogic& logic;
   IMUInitVariances lastInitUncert;
 };
 
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_IMUINITIALIZERTRANSITIONS_H
+#endif  // DMVIO_IMUINITIALIZERTRANSITIONS_H

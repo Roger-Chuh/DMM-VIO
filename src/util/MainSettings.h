@@ -32,17 +32,17 @@ namespace dmvio {
 // Parses the main commandline arguments needed for DM-VIO and forwards all
 // other arguments to the SettingsUtil.
 class MainSettings {
-public:
+ public:
   // Parse all commandline arguments. Unknown arguments will be forwarded to
   // settingsUtil.
-  void parseArguments(int argc, char **argv, SettingsUtil &settingsUtil);
+  void parseArguments(int argc, char** argv, SettingsUtil& settingsUtil);
 
   // Parse a single argument. Unknown arguments will be forwarded to
   // settingsUtil.
-  void parseArgument(char *arg, dmvio::SettingsUtil &settingsUtil);
+  void parseArgument(char* arg, dmvio::SettingsUtil& settingsUtil);
 
   // Register args for these settings and for global DSO settings.
-  void registerArgs(dmvio::SettingsUtil &set);
+  void registerArgs(dmvio::SettingsUtil& set);
 
   std::string vignette = "";
   std::string gammaCalib = "";
@@ -50,9 +50,8 @@ public:
   std::string imuCalibFile = "";
 
   // only relevant for datasets.
-  float playbackSpeed =
-      0; // 0 for linearize (play as fast as possible, while sequentializing
-         // tracking & mapping). otherwise, factor on timestamps.
+  float playbackSpeed = 0;  // 0 for linearize (play as fast as possible, while sequentializing
+                            // tracking & mapping). otherwise, factor on timestamps.
   bool preload = false;
 
   // 0 means photometric calibration (exposure times, vignette and response
@@ -63,6 +62,6 @@ public:
   void settingsDefault(int preset);
 };
 
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_MAINSETTINGS_H
+#endif  // DMVIO_MAINSETTINGS_H

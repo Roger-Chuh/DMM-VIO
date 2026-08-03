@@ -8,21 +8,19 @@
 
 using namespace dso;
 
-bool KBL16Camera::Project(
-    const Vec3 &p_3d, Vec2 &p_img, Eigen::Matrix<number_t, 2, 3> *d_img_d_p3d,
-    Eigen::Matrix<number_t, 2, Eigen::Dynamic> *d_img_d_param) const {
-  const number_t &fx = parameters_[0];
-  const number_t &fy = parameters_[1];
-  const number_t &cx = parameters_[2];
-  const number_t &cy = parameters_[3];
+bool KBL16Camera::Project(const Vec3& p_3d, Vec2& p_img, Eigen::Matrix<number_t, 2, 3>* d_img_d_p3d,
+                          Eigen::Matrix<number_t, 2, Eigen::Dynamic>* d_img_d_param) const {
+  const number_t& fx = parameters_[0];
+  const number_t& fy = parameters_[1];
+  const number_t& cx = parameters_[2];
+  const number_t& cy = parameters_[3];
 
   Vec2 xy_undistort = Vec2(p_3d[0] / p_3d[2], p_3d[1] / p_3d[2]);
   Vec2 uv_distort;
 
   Mat2 d_uvd_xy;
 
-  Distortion(xy_undistort, uv_distort,
-             (d_img_d_p3d == nullptr ? nullptr : &d_uvd_xy), d_img_d_param);
+  Distortion(xy_undistort, uv_distort, (d_img_d_p3d == nullptr ? nullptr : &d_uvd_xy), d_img_d_param);
 
   p_img[0] = fx * uv_distort[0] + cx;
   p_img[1] = fy * uv_distort[1] + cy;
@@ -34,8 +32,7 @@ bool KBL16Camera::Project(
     d_img_uvd << fx, 0, 0, fy;
     if (d_img_d_p3d) {
       Mat23 d_xy_xyz;
-      d_xy_xyz << 1.0 / p_3d[2], 0, -p_3d[0] / p_3d[2] / p_3d[2], 0,
-          1.0 / p_3d[2], -p_3d[1] / p_3d[2] / p_3d[2];
+      d_xy_xyz << 1.0 / p_3d[2], 0, -p_3d[0] / p_3d[2] / p_3d[2], 0, 1.0 / p_3d[2], -p_3d[1] / p_3d[2] / p_3d[2];
 
       (*d_img_d_p3d) = d_img_uvd * d_uvd_xy * d_xy_xyz;
     }
@@ -44,29 +41,26 @@ bool KBL16Camera::Project(
       (*d_img_d_param) = (d_img_uvd * (*d_img_d_param)).eval();
       Eigen::Matrix<number_t, 2, 4> d_img_dfc;
       d_img_dfc << uv_distort[0], 0, 1, 0, 0, uv_distort[1], 0,
-          1; // d fx_fy_cx_cy
+          1;  // d fx_fy_cx_cy
       (*d_img_d_param).block<2, 4>(0, 0) = d_img_dfc;
     }
   }
   return true;
 }
 
-bool KBL16Camera::Project(
-    const Vec3 &p_3d, Eigen::Ref<Vec2> &p_img,
-    Eigen::Matrix<number_t, 2, 3> *d_img_d_p3d,
-    Eigen::Matrix<number_t, 2, Eigen::Dynamic> *d_img_d_param) const {
-  const number_t &fx = parameters_[0];
-  const number_t &fy = parameters_[1];
-  const number_t &cx = parameters_[2];
-  const number_t &cy = parameters_[3];
+bool KBL16Camera::Project(const Vec3& p_3d, Eigen::Ref<Vec2>& p_img, Eigen::Matrix<number_t, 2, 3>* d_img_d_p3d,
+                          Eigen::Matrix<number_t, 2, Eigen::Dynamic>* d_img_d_param) const {
+  const number_t& fx = parameters_[0];
+  const number_t& fy = parameters_[1];
+  const number_t& cx = parameters_[2];
+  const number_t& cy = parameters_[3];
 
   Vec2 xy_undistort = Vec2(p_3d[0] / p_3d[2], p_3d[1] / p_3d[2]);
   Vec2 uv_distort;
 
   Mat2 d_uvd_xy;
 
-  Distortion(xy_undistort, uv_distort,
-             (d_img_d_p3d == nullptr ? nullptr : &d_uvd_xy), d_img_d_param);
+  Distortion(xy_undistort, uv_distort, (d_img_d_p3d == nullptr ? nullptr : &d_uvd_xy), d_img_d_param);
 
   p_img[0] = fx * uv_distort[0] + cx;
   p_img[1] = fy * uv_distort[1] + cy;
@@ -80,8 +74,7 @@ bool KBL16Camera::Project(
     d_img_uvd << fx, 0, 0, fy;
     if (d_img_d_p3d) {
       Mat23 d_xy_xyz;
-      d_xy_xyz << 1.0 / p_3d[2], 0, -p_3d[0] / p_3d[2] / p_3d[2], 0,
-          1.0 / p_3d[2], -p_3d[1] / p_3d[2] / p_3d[2];
+      d_xy_xyz << 1.0 / p_3d[2], 0, -p_3d[0] / p_3d[2] / p_3d[2], 0, 1.0 / p_3d[2], -p_3d[1] / p_3d[2] / p_3d[2];
 
       (*d_img_d_p3d) = d_img_uvd * d_uvd_xy * d_xy_xyz;
     }
@@ -90,20 +83,19 @@ bool KBL16Camera::Project(
       (*d_img_d_param) = (d_img_uvd * (*d_img_d_param)).eval();
       Eigen::Matrix<number_t, 2, 4> d_img_dfc;
       d_img_dfc << uv_distort[0], 0, 1, 0, 0, uv_distort[1], 0,
-          1; // d fx_fy_cx_cy
+          1;  // d fx_fy_cx_cy
       (*d_img_d_param).block<2, 4>(0, 0) = d_img_dfc;
     }
   }
   return true;
 }
 
-bool KBL16Camera::UnProject(
-    const Vec2 &p_img, Vec3 &p_3d, Eigen::Matrix<number_t, 3, 2> *d_p3d_d_img,
-    Eigen::Matrix<number_t, 3, Eigen::Dynamic> *d_p3d_d_param) const {
-  const number_t &fx = parameters_[0];
-  const number_t &fy = parameters_[1];
-  const number_t &cx = parameters_[2];
-  const number_t &cy = parameters_[3];
+bool KBL16Camera::UnProject(const Vec2& p_img, Vec3& p_3d, Eigen::Matrix<number_t, 3, 2>* d_p3d_d_img,
+                            Eigen::Matrix<number_t, 3, Eigen::Dynamic>* d_p3d_d_param) const {
+  const number_t& fx = parameters_[0];
+  const number_t& fy = parameters_[1];
+  const number_t& cx = parameters_[2];
+  const number_t& cy = parameters_[3];
 
   Vec2 uv_distort;
   uv_distort[0] = (p_img[0] - cx) / fx;
@@ -112,9 +104,7 @@ bool KBL16Camera::UnProject(
   Mat2 d_xy_uvd;
   Eigen::Matrix<number_t, 2, Eigen::Dynamic> d_xy_params;
   Vec2 uv_undistort;
-  UnDistortion(uv_distort, uv_undistort,
-               (d_p3d_d_img == nullptr && d_p3d_d_param == nullptr ? nullptr
-                                                                   : &d_xy_uvd),
+  UnDistortion(uv_distort, uv_undistort, (d_p3d_d_img == nullptr && d_p3d_d_param == nullptr ? nullptr : &d_xy_uvd),
                (d_p3d_d_param == nullptr ? nullptr : &d_xy_params));
 
   p_3d = Vec3(uv_undistort[0], uv_undistort[1], 1.0);
@@ -150,7 +140,7 @@ bool KBL16Camera::UnProject(
 
 // ------------------------------
 
-inline Vec2 J_length_xy(const Vec2 &xy) {
+inline Vec2 J_length_xy(const Vec2& xy) {
   // Define the optical axis
   const Vec3 optical_axis(0, 0, 1);
 
@@ -168,23 +158,21 @@ inline Vec2 J_length_xy(const Vec2 &xy) {
   Vec3 delta_normalized = delta / delta_norm;
 
   Eigen::Matrix<number_t, 1, 3> jacobian_v =
-      delta_normalized.transpose() *
-      (Mat3::Identity() - unit_v * unit_v.transpose()) / norm_v;
+      delta_normalized.transpose() * (Mat3::Identity() - unit_v * unit_v.transpose()) / norm_v;
   Vec2 jacobian = jacobian_v.head<2>();
 
   return jacobian;
 }
 
-void KBL16Camera::Distortion(
-    const Vec2 &xy, Vec2 &uv, Mat2 *d_uv_xy,
-    Eigen::Matrix<number_t, 2, Eigen::Dynamic> *d_uv_params) const {
+void KBL16Camera::Distortion(const Vec2& xy, Vec2& uv, Mat2* d_uv_xy,
+                             Eigen::Matrix<number_t, 2, Eigen::Dynamic>* d_uv_params) const {
   const Vec6 k_vec = Eigen::Map<const Vec6>(parameters_ + k_start);
   const Vec2 p_vec = Eigen::Map<const Vec2>(parameters_ + p_start);
   const Vec4 s_vec = Eigen::Map<const Vec4>(parameters_ + s_start);
 
   Vec2 xy_squared = xy.array().square().matrix();
-  const number_t &r_sq = xy_squared[0] + xy_squared[1];
-  const number_t &r = std::sqrt(r_sq);
+  const number_t& r_sq = xy_squared[0] + xy_squared[1];
+  const number_t& r = std::sqrt(r_sq);
 
   // radial distortion
   const Vec3 optical_axis = {0, 0, 1};
@@ -200,14 +188,13 @@ void KBL16Camera::Distortion(
     length_radial += length2is * k_vec[i];
     length2is *= lengthSq;
   }
-  const number_t length_divr =
-      (r < std::numeric_limits<number_t>::epsilon()) ? 1.0 : length / r;
+  const number_t length_divr = (r < std::numeric_limits<number_t>::epsilon()) ? 1.0 : length / r;
   Vec2 xr_yr = (length_radial * length_divr) * xy;
   const number_t xr_yr_squareNorm = xr_yr.squaredNorm();
   uv = xr_yr;
 
   // tangent distortion
-  const number_t &temp = 2.0 * xr_yr.dot(p_vec);
+  const number_t& temp = 2.0 * xr_yr.dot(p_vec);
   uv += temp * xr_yr + xr_yr_squareNorm * p_vec;
 
   // thin prism distortion
@@ -236,8 +223,7 @@ void KBL16Camera::Distortion(
         Mat2 d_xryr_xy;
         Mat2 d_xryr_xy_p1 = lengthd / r * Mat2::Identity();
         Mat2 d_xryr_xy_p2 =
-            xy * (dlengthD_dlength * J_length_xy(xy).transpose() / r -
-                  lengthd / r_sq / r * xy.transpose());
+            xy * (dlengthD_dlength * J_length_xy(xy).transpose() / r - lengthd / r_sq / r * xy.transpose());
         d_xryr_xy = d_xryr_xy_p1 + d_xryr_xy_p2;
 
         (*d_uv_xy) = d_uv_xryr * d_xryr_xy;
@@ -273,9 +259,8 @@ void KBL16Camera::Distortion(
   }
 }
 
-void KBL16Camera::UnDistortion(
-    const Vec2 &uv, Vec2 &xy, Mat2 *d_xy_uv,
-    Eigen::Matrix<number_t, 2, Eigen::Dynamic> *d_xy_params) const {
+void KBL16Camera::UnDistortion(const Vec2& uv, Vec2& xy, Mat2* d_xy_uv,
+                               Eigen::Matrix<number_t, 2, Eigen::Dynamic>* d_xy_params) const {
   const Vec6 k_vec = Eigen::Map<const Vec6>(parameters_ + k_start);
   const Vec2 p_vec = Eigen::Map<const Vec2>(parameters_ + p_start);
   const Vec4 s_vec = Eigen::Map<const Vec4>(parameters_ + s_start);
@@ -289,10 +274,10 @@ void KBL16Camera::UnDistortion(
   int j = 0;
   for (; j < kMaxIterNum; ++j) {
     Vec2 uv_est = xr_yr;
-    const number_t &xr_yr_squaredNorm = xr_yr.squaredNorm();
+    const number_t& xr_yr_squaredNorm = xr_yr.squaredNorm();
 
     // tangent distortion
-    const number_t &temp = 2.0 * xr_yr.dot(p_vec);
+    const number_t& temp = 2.0 * xr_yr.dot(p_vec);
     uv_est += temp * xr_yr + xr_yr_squaredNorm * p_vec;
 
     // thin prism distortion
@@ -316,7 +301,7 @@ void KBL16Camera::UnDistortion(
 
   // printf("tangent and thin prism iter %d\n", j);
 
-  const number_t &xr_yrNorm = xr_yr.norm();
+  const number_t& xr_yrNorm = xr_yr.norm();
   if (xr_yrNorm == 0) {
     // if point is in the center of the image
     xy = xr_yr;
@@ -326,7 +311,7 @@ void KBL16Camera::UnDistortion(
 
     j = 0;
     for (; j < kMaxIterNum; ++j) {
-      const number_t &lengthSq = length * length;
+      const number_t& lengthSq = length * length;
       number_t length_radial = 1.0;
       number_t dlengthD_dlength = 1.0;
 
@@ -341,15 +326,13 @@ void KBL16Camera::UnDistortion(
 
       number_t step;
       // make sure we don't divide by zero:
-      if (std::abs(dlengthD_dlength) >
-          std::numeric_limits<number_t>::epsilon()) {
+      if (std::abs(dlengthD_dlength) > std::numeric_limits<number_t>::epsilon()) {
         step = (xr_yrNorm - length_radial) / dlengthD_dlength;
       } else {
         // if derivative is close to zero, apply small correction in the
         // appropriate direction to avoid numerical explosions
-        step = (xr_yrNorm - length_radial) * dlengthD_dlength > 0.0
-                   ? 10.0 * std::numeric_limits<number_t>::epsilon()
-                   : -10.0 * std::numeric_limits<number_t>::epsilon();
+        step = (xr_yrNorm - length_radial) * dlengthD_dlength > 0.0 ? 10.0 * std::numeric_limits<number_t>::epsilon()
+                                                                    : -10.0 * std::numeric_limits<number_t>::epsilon();
       }
 
       length += step;
@@ -396,21 +379,19 @@ void KBL16Camera::UnDistortion(
   }
 }
 
-void KBL16Camera::ComputeDuvDxryr(const Vec2 &xr_yr,
-                                  const number_t &xr_yr_squaredNorm,
-                                  Mat2 &d_uv_xryr) const {
+void KBL16Camera::ComputeDuvDxryr(const Vec2& xr_yr, const number_t& xr_yr_squaredNorm, Mat2& d_uv_xryr) const {
   const Vec2 p_vec = Eigen::Map<const Vec2>(parameters_ + p_start);
   const Vec4 s_vec = Eigen::Map<const Vec4>(parameters_ + s_start);
   d_uv_xryr(0, 0) = 1.0 + 6.0 * xr_yr[0] * p_vec[0] + 2.0 * xr_yr[1] * p_vec[1];
-  const number_t &offdiag = 2.0 * (xr_yr[0] * p_vec[1] + xr_yr[1] * p_vec[0]);
+  const number_t& offdiag = 2.0 * (xr_yr[0] * p_vec[1] + xr_yr[1] * p_vec[0]);
   d_uv_xryr(0, 1) = offdiag;
   d_uv_xryr(1, 0) = offdiag;
   d_uv_xryr(1, 1) = 1.0 + 6.0 * xr_yr[1] * p_vec[1] + 2.0 * xr_yr[0] * p_vec[0];
   // thin prism
-  const number_t &temp1 = 2.0 * (s_vec[0] + 2.0 * s_vec[1] * xr_yr_squaredNorm);
+  const number_t& temp1 = 2.0 * (s_vec[0] + 2.0 * s_vec[1] * xr_yr_squaredNorm);
   d_uv_xryr(0, 0) += xr_yr[0] * temp1;
   d_uv_xryr(0, 1) += xr_yr[1] * temp1;
-  const number_t &temp2 = 2.0 * (s_vec[2] + 2.0 * s_vec[3] * xr_yr_squaredNorm);
+  const number_t& temp2 = 2.0 * (s_vec[2] + 2.0 * s_vec[3] * xr_yr_squaredNorm);
   d_uv_xryr(1, 0) += xr_yr[0] * temp2;
   d_uv_xryr(1, 1) += xr_yr[1] * temp2;
 }

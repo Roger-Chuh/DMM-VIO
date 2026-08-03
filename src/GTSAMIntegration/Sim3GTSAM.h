@@ -30,7 +30,7 @@
 // In contrast to Sim3GTSAM this contains only the scale.
 // Could probably be made faster by not basing it on Sophus.
 class ScaleGTSAM : public gtsam::LieGroup<ScaleGTSAM, 1> {
-public:
+ public:
   ScaleGTSAM(double scale);
 
   Sophus::Sim3d sim() const;
@@ -41,26 +41,22 @@ public:
   static ScaleGTSAM identity();
 
   /// Composition
-  ScaleGTSAM operator*(const ScaleGTSAM &T) const;
+  ScaleGTSAM operator*(const ScaleGTSAM& T) const;
 
   /// Return the inverse
   ScaleGTSAM inverse() const;
 
-  static gtsam::Vector1 Logmap(const ScaleGTSAM &s,
-                               gtsam::OptionalJacobian<1, 1> Hm = boost::none);
+  static gtsam::Vector1 Logmap(const ScaleGTSAM& s, gtsam::OptionalJacobian<1, 1> Hm = boost::none);
 
-  static ScaleGTSAM Expmap(const gtsam::Vector1 &v,
-                           gtsam::OptionalJacobian<1, 1> Hm = boost::none);
+  static ScaleGTSAM Expmap(const gtsam::Vector1& v, gtsam::OptionalJacobian<1, 1> Hm = boost::none);
 
   /// Chart at the origin
   struct ChartAtOrigin {
-    static ScaleGTSAM Retract(const gtsam::Vector1 &v,
-                              ChartJacobian H = boost::none) {
+    static ScaleGTSAM Retract(const gtsam::Vector1& v, ChartJacobian H = boost::none) {
       return ScaleGTSAM::Expmap(v, H);
     }
 
-    static gtsam::Vector1 Local(const ScaleGTSAM &other,
-                                ChartJacobian H = boost::none) {
+    static gtsam::Vector1 Local(const ScaleGTSAM& other, ChartJacobian H = boost::none) {
       return ScaleGTSAM::Logmap(other, H);
     }
   };
@@ -69,11 +65,11 @@ public:
 
   gtsam::Matrix1 AdjointMap() const;
 
-  void print(const std::string &str) const;
+  void print(const std::string& str) const;
 
   size_t dim() const;
 
-  bool equals(const ScaleGTSAM &other, double tol) const;
+  bool equals(const ScaleGTSAM& other, double tol) const;
 };
 
 namespace gtsam {
@@ -84,6 +80,6 @@ struct traits<ScaleGTSAM> : public internal::LieGroup<ScaleGTSAM> {};
 template <>
 struct traits<const ScaleGTSAM> : public internal::LieGroup<ScaleGTSAM> {};
 
-} // namespace gtsam
+}  // namespace gtsam
 
-#endif // DMVIO_SIM3GTSAM_H
+#endif  // DMVIO_SIM3GTSAM_H

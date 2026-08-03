@@ -28,11 +28,11 @@
 namespace dso {
 // Lookup table (LUT) for NFA computation
 class NFALUT {
-public:
+ public:
   NFALUT(int size, number_t _prob, number_t _logNT);
   ~NFALUT();
 
-  int *LUT; // look up table
+  int* LUT;  // look up table
   int LUTSize;
 
   number_t prob;
@@ -41,13 +41,13 @@ public:
   bool checkValidationByNFA(int n, int k);
   static number_t myAtan2(number_t yy, number_t xx);
 
-private:
+ private:
   number_t nfa(int n, int k);
   static number_t log_gamma_lanczos(number_t x);
   static number_t log_gamma_windschitl(number_t x);
   static number_t log_gamma(number_t x);
   static int number_t_equal(number_t a, number_t b);
 };
-} // namespace dso
+}  // namespace dso
 
 #endif

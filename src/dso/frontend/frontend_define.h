@@ -6,4 +6,4 @@ namespace dso {
 #define LOG_FRONT_WARN(...) dso::LOG_FrontEnd.Warn(__VA_ARGS__);
 #define LOG_FRONT_ERROR(...) dso::LOG_FrontEnd.Error(__VA_ARGS__);
 
-} // namespace dso
+}  // namespace dso

@@ -9,10 +9,10 @@ size_t searched_pid = dso::kInvalid;
 
 namespace dso {
 
-MultiCameraEpipolarSearch::MultiCameraEpipolarSearch(
-    MultiCamera *cameras, const number_t &OOB_check_cos_theta_threshold,
-    const number_t &cos_grad_epipolar_dir,
-    const EstimatorConfig *estimator_config) {
+MultiCameraEpipolarSearch::MultiCameraEpipolarSearch(MultiCamera* cameras,
+                                                     const number_t& OOB_check_cos_theta_threshold,
+                                                     const number_t& cos_grad_epipolar_dir,
+                                                     const EstimatorConfig* estimator_config) {
   p_level_cid_to_camera_ = cameras;
 
   direct_visual_factor_.check_depth_ = false;
@@ -23,27 +23,22 @@ MultiCameraEpipolarSearch::MultiCameraEpipolarSearch(
 
   search_target_level_ = estimator_config->search_level;
   number_t search_level_focal_length =
-      p_level_cid_to_camera_->cid_to_cam[0]->GetParamByIndex(0) *
-      std::pow(2.0f, -search_target_level_);
+      p_level_cid_to_camera_->cid_to_cam[0]->GetParamByIndex(0) * std::pow(2.0f, -search_target_level_);
 
-  rad_step_ = estimator_config->pixel_step *
-              std::asin(1.0 / search_level_focal_length / 2.0) * 2.0;
+  rad_step_ = estimator_config->pixel_step * std::asin(1.0 / search_level_focal_length / 2.0) * 2.0;
 }
 
 MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
-    const Point &point, const int &host_cid,
-    std::array<std::shared_ptr<AlgsImage>, kCameraNumUsed> cid_to_img,
-    const size_t &pid, const number_t &init_rho, const number_t &rho_sigma2,
-    const size_t &target_fid,
-    std::array<MatchRes, kCameraNumUsed> &cid_to_output, number_t &res_idp,
-    const number_t &search_length_threshold, const bool &is_same_fid,
-    const int &intr_level, Mat4 *T10) {
+    const Point& point, const int& host_cid, std::array<std::shared_ptr<AlgsImage>, kCameraNumUsed> cid_to_img,
+    const size_t& pid, const number_t& init_rho, const number_t& rho_sigma2, const size_t& target_fid,
+    std::array<MatchRes, kCameraNumUsed>& cid_to_output, number_t& res_idp, const number_t& search_length_threshold,
+    const bool& is_same_fid, const int& intr_level, Mat4* T10) {
   // Point point;
-  const Patch &patch = point.pyramid_patch.patchs[0];
+  const Patch& patch = point.pyramid_patch.patchs[0];
   //  VisualMeasurement host_vm;
   //  p_opt_database_->GetOrSetVM(point.host_vid, true, host_vm);
   //
-  const size_t &host_fid = 1; // host_vm.fid;
+  const size_t& host_fid = 1;  // host_vm.fid;
   // const size_t &host_cid = 1; // host_vm.cid;
   //  NavState host_nav_state, target_nav_state;
   //  p_opt_database_->GetOrSetNavState(host_vm.fid, true, host_nav_state);
@@ -69,24 +64,19 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
   }
 
   for (size_t target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
-    CamData &cur_search_data = cid_to_cam_data_[target_cid];
+    CamData& cur_search_data = cid_to_cam_data_[target_cid];
     if (T10 == nullptr) {
       cur_search_data.T10 =
           InversePose(p_level_cid_to_camera_->cid_to_T01.at(target_cid)) *
-          p_level_cid_to_camera_->cid_to_T01.at(
-              host_cid); // = target_nav_state.v_Tcw[target_cid] * Twc0;
+          p_level_cid_to_camera_->cid_to_T01.at(host_cid);  // = target_nav_state.v_Tcw[target_cid] * Twc0;
     } else {
-      cur_search_data.T10 =
-          InversePose(p_level_cid_to_camera_->cid_to_T01[target_cid]) * (*T10) *
-          p_level_cid_to_camera_->cid_to_T01[host_cid];
+      cur_search_data.T10 = InversePose(p_level_cid_to_camera_->cid_to_T01[target_cid]) * (*T10) *
+                            p_level_cid_to_camera_->cid_to_T01[host_cid];
     }
     cur_search_data.T01 = InversePose(cur_search_data.T10);
-    cur_search_data.target_level =
-        search_target_level_; // todo: change target level
+    cur_search_data.target_level = search_target_level_;  // todo: change target level
 
-    CameraBase *camera =
-        p_level_cid_to_camera_->level_cid_to_cam_pinhole.at(intr_level)
-            .at(target_cid);
+    CameraBase* camera = p_level_cid_to_camera_->level_cid_to_cam_pinhole.at(intr_level).at(target_cid);
     //    std::cout << "width: " << camera->width()
     //              << ", height: " << camera->height()
     //              << ", patch dir0: " << patch.dir0.transpose()
@@ -101,60 +91,51 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
     {
       // Check mid dir
       cur_search_data.dir_mid =
-          (cur_search_data.T10.block<3, 3>(0, 0) * point.n +
-           init_rho * cur_search_data.T10.block<3, 1>(0, 3))
+          (cur_search_data.T10.block<3, 3>(0, 0) * point.n + init_rho * cur_search_data.T10.block<3, 1>(0, 3))
               .normalized();
       if (cur_search_data.dir_mid.z() < OOB_check_cos_theta_threshold_) {
         cur_search_data.state = kReject;
         continue;
       }
       camera->Project(cur_search_data.dir_mid, cur_search_data.uv_mid);
-      if (!InFrame(cur_search_data.uv_mid, camera->width(), camera->height(),
-                   1)) {
+      if (!InFrame(cur_search_data.uv_mid, camera->width(), camera->height(), 1)) {
         cur_search_data.state = kReject;
         continue;
       }
 
       // Check left dir
       cur_search_data.dir_left =
-          (cur_search_data.T10.block<3, 3>(0, 0) * point.n +
-           idp_min * cur_search_data.T10.block<3, 1>(0, 3))
+          (cur_search_data.T10.block<3, 3>(0, 0) * point.n + idp_min * cur_search_data.T10.block<3, 1>(0, 3))
               .normalized();
       if (cur_search_data.dir_left.z() < OOB_check_cos_theta_threshold_) {
         cur_search_data.state = kReject;
         continue;
       }
       camera->Project(cur_search_data.dir_left, cur_search_data.uv_left);
-      if (!InFrame(cur_search_data.uv_left, camera->width(), camera->height(),
-                   1)) {
+      if (!InFrame(cur_search_data.uv_left, camera->width(), camera->height(), 1)) {
         cur_search_data.state = kReject;
         continue;
       }
 
       // Check right dir
       cur_search_data.dir_right =
-          (cur_search_data.T10.block<3, 3>(0, 0) * point.n +
-           idp_max * cur_search_data.T10.block<3, 1>(0, 3))
+          (cur_search_data.T10.block<3, 3>(0, 0) * point.n + idp_max * cur_search_data.T10.block<3, 1>(0, 3))
               .normalized();
       if (cur_search_data.dir_right.z() < OOB_check_cos_theta_threshold_) {
         cur_search_data.state = kReject;
         continue;
       }
       camera->Project(cur_search_data.dir_right, cur_search_data.uv_right);
-      if (!InFrame(cur_search_data.uv_right, camera->width(), camera->height(),
-                   1)) {
+      if (!InFrame(cur_search_data.uv_right, camera->width(), camera->height(), 1)) {
         cur_search_data.state = kReject;
         continue;
       }
 
-      cur_search_data.epipolar_px_length =
-          (cur_search_data.uv_left - cur_search_data.uv_right).norm();
+      cur_search_data.epipolar_px_length = (cur_search_data.uv_left - cur_search_data.uv_right).norm();
 
       const number_t cur_cam_length_threshold =
-          (host_cid == target_cid ? 5 * search_length_threshold
-                                  : search_length_threshold);
-      if (search_length_threshold > 0 &&
-          cur_search_data.epipolar_px_length > cur_cam_length_threshold) {
+          (host_cid == target_cid ? 5 * search_length_threshold : search_length_threshold);
+      if (search_length_threshold > 0 && cur_search_data.epipolar_px_length > cur_cam_length_threshold) {
         //        std::cout << "skip max px length " <<
         //        cur_search_data.epipolar_px_length << std::endl;
         cur_search_data.state = kReject;
@@ -168,13 +149,13 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
   int visible_cam_num = 0;
   std::vector<size_t> searched_cid_vec;
 
-  number_t cid_to_epipolar_length[kCameraNumUsed]; // = {-1, -1, -1, -1};
+  number_t cid_to_epipolar_length[kCameraNumUsed];  // = {-1, -1, -1, -1};
   for (int id = 0; id < kCameraNumUsed; ++id) {
     cid_to_epipolar_length[id] = -1;
   }
 
   for (size_t target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
-    CamData &cur_search_data = cid_to_cam_data_[target_cid];
+    CamData& cur_search_data = cid_to_cam_data_[target_cid];
     if (cur_search_data.state == kVisible) {
       visible_cam_num++;
       searched_cid_vec.emplace_back(target_cid);
@@ -197,19 +178,17 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
 
 #ifdef _SHOW_EPIPOLAR_SEARCH_DETAIL_
   if (pid == searched_pid) {
-    printf("cam state %d, %d, %d, %d\n", cid_to_cam_data_[0].state,
-           cid_to_cam_data_[1].state, cid_to_cam_data_[2].state,
-           cid_to_cam_data_[3].state);
+    printf("cam state %d, %d, %d, %d\n", cid_to_cam_data_[0].state, cid_to_cam_data_[1].state,
+           cid_to_cam_data_[2].state, cid_to_cam_data_[3].state);
   }
 #endif
 
-  const size_t &searched_cid = FindSearchedCid(cid_to_epipolar_length);
+  const size_t& searched_cid = FindSearchedCid(cid_to_epipolar_length);
 
 #ifdef _SHOW_EPIPOLAR_SEARCH_DETAIL_
   if (pid == searched_pid) {
-    printf("epipolar length %f, %f, %f, %f, searched cid %zu, length %f\n",
-           cid_to_epipolar_length[0], cid_to_epipolar_length[1],
-           cid_to_epipolar_length[2], cid_to_epipolar_length[3], searched_cid,
+    printf("epipolar length %f, %f, %f, %f, searched cid %zu, length %f\n", cid_to_epipolar_length[0],
+           cid_to_epipolar_length[1], cid_to_epipolar_length[2], cid_to_epipolar_length[3], searched_cid,
            cid_to_epipolar_length[searched_cid]);
   }
 #endif
@@ -220,10 +199,9 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
   bool has_valid_match = false;
 
   // calc left and right step
-  CamData &searched_cam_data = cid_to_cam_data_[searched_cid];
+  CamData& searched_cam_data = cid_to_cam_data_[searched_cid];
 
-  number_t cos_theta_left =
-      searched_cam_data.dir_left.dot(searched_cam_data.dir_mid);
+  number_t cos_theta_left = searched_cam_data.dir_left.dot(searched_cam_data.dir_mid);
   cos_theta_left = cos_theta_left > 1.0f ? 1.0f : cos_theta_left;
   cos_theta_left = cos_theta_left < -1.0f ? -1.0f : cos_theta_left;
   number_t theta_left = std::acos(cos_theta_left);
@@ -231,8 +209,7 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
   //      theta_left / rad_step_ > static_cast<number_t>(maxSteps_) ? maxSteps_
   //      : static_cast<int>(theta_left / rad_step_);
 
-  number_t cos_theta_right =
-      searched_cam_data.dir_mid.dot(searched_cam_data.dir_right);
+  number_t cos_theta_right = searched_cam_data.dir_mid.dot(searched_cam_data.dir_right);
   cos_theta_right = cos_theta_right > 1.0f ? 1.0f : cos_theta_right;
   cos_theta_right = cos_theta_right < -1.0f ? -1.0f : cos_theta_right;
   number_t theta_right = std::acos(cos_theta_right);
@@ -253,15 +230,12 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
   if (total_theta > rad_step_ / 2) {
 #ifdef _SHOW_EPIPOLAR_SEARCH_DETAIL_
     if (pid == searched_pid) {
-      std::cout << "left steps " << (int)(theta_left / rad_step_)
-                << " right steps " << (int)(theta_right / rad_step_)
-                << " searched cam epi length "
-                << searched_cam_data.epipolar_px_length << std::endl;
+      std::cout << "left steps " << (int)(theta_left / rad_step_) << " right steps " << (int)(theta_right / rad_step_)
+                << " searched cam epi length " << searched_cam_data.epipolar_px_length << std::endl;
     }
 #endif
 
-    Vec3 normal_dir =
-        searched_cam_data.dir_left.cross(searched_cam_data.dir_right);
+    Vec3 normal_dir = searched_cam_data.dir_left.cross(searched_cam_data.dir_right);
     normal_dir.normalize();
 
     Mat3 R_step = ExpSO3(normal_dir * rad_step_);
@@ -273,20 +247,17 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
     aligned_vector<Vec3> search_dir_vec;
     number_t left_step_number_t = theta_left / rad_step_;
     int left_step = static_cast<int>(left_step_number_t);
-    int left_bool =
-        left_step < maxSteps_ && left_step_number_t - (number_t)left_step > 0.1;
+    int left_bool = left_step < maxSteps_ && left_step_number_t - (number_t)left_step > 0.1;
 
     number_t right_step_number_t = theta_right / rad_step_;
     int right_step = static_cast<int>(right_step_number_t);
-    int right_bool = right_step < maxSteps_ &&
-                     right_step_number_t - (number_t)right_step > 0.1;
+    int right_bool = right_step < maxSteps_ && right_step_number_t - (number_t)right_step > 0.1;
 
-    int search_dir_vec_num = std::min(maxSteps_, left_step) + left_bool + 1 +
-                             std::min(maxSteps_, right_step) + right_bool;
+    int search_dir_vec_num =
+        std::min(maxSteps_, left_step) + left_bool + 1 + std::min(maxSteps_, right_step) + right_bool;
     search_dir_vec.resize(search_dir_vec_num);
     int search_dir_vec_i = std::min(maxSteps_, left_step) + left_bool - 1;
-    Vec3 *psearch_dir_vec_push =
-        &search_dir_vec[std::min(maxSteps_, left_step) + left_bool - 1];
+    Vec3* psearch_dir_vec_push = &search_dir_vec[std::min(maxSteps_, left_step) + left_bool - 1];
     {
       Vec3 search_dir = searched_cam_data.dir_mid;
 
@@ -316,7 +287,7 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
         search_dir_vec[search_dir_vec_i++] = searched_cam_data.dir_right;
       }
     }
-#else  // CODE_ACC_SEARCH_DIR_VEC
+#else   // CODE_ACC_SEARCH_DIR_VEC
     aligned_vector<Vec3> search_dir_vec;
     {
       number_t left_step_number_t = theta_left / rad_step_;
@@ -328,8 +299,7 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
         search_dir = R_step_T * search_dir;
         search_dir_vec.emplace_back(search_dir);
       }
-      if (left_step < maxSteps_ &&
-          left_step_number_t - (number_t)left_step > 0.1) {
+      if (left_step < maxSteps_ && left_step_number_t - (number_t)left_step > 0.1) {
         search_dir_vec.emplace_back(searched_cam_data.dir_left);
       }
 
@@ -348,23 +318,19 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
         search_dir = R_step * search_dir;
         search_dir_vec.emplace_back(search_dir);
       }
-      if (right_step < maxSteps_ &&
-          right_step_number_t - (number_t)right_step > 0.1) {
+      if (right_step < maxSteps_ && right_step_number_t - (number_t)right_step > 0.1) {
         search_dir_vec.emplace_back(searched_cam_data.dir_right);
       }
     }
-#endif // CODE_ACC_SEARCH_DIR_VEC
+#endif  // CODE_ACC_SEARCH_DIR_VEC
 
 #if CODE_ACC_Triangulate
 
     int Triangulate_size = search_dir_vec.size();
     number_t idp_array[Triangulate_size + 4];
-    void Triangulate_ACC_array(float *p_idp, const float *pM4_T01,
-                               const float *pV3_v0, const float *pV3_v1,
-                               int size);
-    Triangulate_ACC_array(
-        &idp_array[0], &cid_to_cam_data_[searched_cid].T01(0, 0),
-        &point.n(0, 0), &search_dir_vec[0](0, 0), Triangulate_size);
+    void Triangulate_ACC_array(float* p_idp, const float* pM4_T01, const float* pV3_v0, const float* pV3_v1, int size);
+    Triangulate_ACC_array(&idp_array[0], &cid_to_cam_data_[searched_cid].T01(0, 0), &point.n(0, 0),
+                          &search_dir_vec[0](0, 0), Triangulate_size);
 
 #endif
     //    std::cout << "search dir vec size " << search_dir_vec.size() <<
@@ -401,15 +367,14 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
     size_t total_step = search_dir_vec.size();
     std::vector<MultiCamMatchRes> search_res_vec(total_step);
     for (int i = 0; i < total_step; ++i) {
-      MultiCamMatchRes &multi_cam_match_res = search_res_vec[i];
+      MultiCamMatchRes& multi_cam_match_res = search_res_vec[i];
 
 #if CODE_ACC_Triangulate
       multi_cam_match_res.idp = idp_array[i];
       multi_cam_match_res.tri_success = (multi_cam_match_res.idp != -1.0f);
 #else
-      multi_cam_match_res.tri_success = Triangulate(
-          multi_cam_match_res.idp, cid_to_cam_data_[searched_cid].T01, point.n,
-          search_dir_vec[i]);
+      multi_cam_match_res.tri_success =
+          Triangulate(multi_cam_match_res.idp, cid_to_cam_data_[searched_cid].T01, point.n, search_dir_vec[i]);
 #endif
 
       if (!multi_cam_match_res.tri_success || multi_cam_match_res.idp > 20.0) {
@@ -417,29 +382,24 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
         multi_cam_match_res.avg_zncc = -1;
 #ifdef _SHOW_EPIPOLAR_SEARCH_DETAIL_
         if (pid == searched_pid) {
-          printf("index %d, idp %f, target cid %zu, tri fail\n", i,
-                 multi_cam_match_res.idp, searched_cid);
+          printf("index %d, idp %f, target cid %zu, tri fail\n", i, multi_cam_match_res.idp, searched_cid);
         }
 #endif
         continue;
       }
 
-      for (const size_t &target_cid : searched_cid_vec) {
-        CamData &cur_search_data = cid_to_cam_data_[target_cid];
-        MatchRes &match_res = multi_cam_match_res.cid_to_match_res[target_cid];
+      for (const size_t& target_cid : searched_cid_vec) {
+        CamData& cur_search_data = cid_to_cam_data_[target_cid];
+        MatchRes& match_res = multi_cam_match_res.cid_to_match_res[target_cid];
         //        std::shared_ptr<AlgsImage> target_image =
         //            target_nav_state.cid_level_to_img[target_cid][cur_search_data.target_level];
         //        direct_visual_factor_.cur_target_level_ = 0;
         //        direct_visual_factor_.target_image_level0_ =
         //        target_nav_state.cid_level_to_img[target_cid][0];
-        CameraBase *camera =
-            p_level_cid_to_camera_->level_cid_to_cam_pinhole.at(intr_level)
-                .at(target_cid);
+        CameraBase* camera = p_level_cid_to_camera_->level_cid_to_cam_pinhole.at(intr_level).at(target_cid);
         DirectFactorRes direct_factor_res = direct_visual_factor_.Evaluate(
-            cur_search_data.T10, multi_cam_match_res.idp,
-            cid_to_img[target_cid], patch, camera, 1, r_vec, ws2, r2,
-            &match_res.target_uv, &match_res.target_dir,
-            &match_res.disparity_cos_theta, nullptr, &match_res.zncc,
+            cur_search_data.T10, multi_cam_match_res.idp, cid_to_img[target_cid], patch, camera, 1, r_vec, ws2, r2,
+            &match_res.target_uv, &match_res.target_dir, &match_res.disparity_cos_theta, nullptr, &match_res.zncc,
             search_zncc_threshold_);
 
 #ifdef _SHOW_EPIPOLAR_SEARCH_DETAIL_
@@ -448,10 +408,9 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
           printf(
               "index %d, idp %f, target cid %zu, res %d, zncc %f, "
               "dir_reject %d, epipolar %f, disparity %f\n",
-              i, multi_cam_match_res.idp, target_cid, (int)direct_factor_res,
-              match_res.zncc, direct_visual_factor_.dir_reject_,
-              std::acos(direct_visual_factor_.epipolar_grad_cos_theta_) *
-                  180.0 / M_PI,
+              i, multi_cam_match_res.idp, target_cid, (int)direct_factor_res, match_res.zncc,
+              direct_visual_factor_.dir_reject_,
+              std::acos(direct_visual_factor_.epipolar_grad_cos_theta_) * 180.0 / M_PI,
               //              std::acos(direct_visual_factor_.test_grad_by_dir_cos_theta_)
               //              * 180.0 / M_PI,
               match_res.disparity_cos_theta);
@@ -461,8 +420,7 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
         if (direct_factor_res == DirectFactorRes::kInlier) {
           has_success_match = true;
           match_res.match_success = true;
-          match_res.epipolar_grad_cos_theta =
-              direct_visual_factor_.epipolar_grad_cos_theta_;
+          match_res.epipolar_grad_cos_theta = direct_visual_factor_.epipolar_grad_cos_theta_;
           match_res.dir_reject = direct_visual_factor_.dir_reject_;
           if (!match_res.dir_reject) {
             has_valid_match = true;
@@ -474,8 +432,7 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
         }
       }
 
-      multi_cam_match_res.avg_zncc /=
-          (number_t)multi_cam_match_res.match_success_cam_num;
+      multi_cam_match_res.avg_zncc /= (number_t)multi_cam_match_res.match_success_cam_num;
 
       if (multi_cam_match_res.match_success_cam_num > max_match_cam_num ||
           (multi_cam_match_res.match_success_cam_num == max_match_cam_num &&
@@ -487,10 +444,8 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
         max_match_cam_num = multi_cam_match_res.match_success_cam_num;
         max_avg_zncc = multi_cam_match_res.avg_zncc;
         max_index = i;
-      } else if (multi_cam_match_res.match_success_cam_num >
-                     second_max_match_cam_num ||
-                 (multi_cam_match_res.match_success_cam_num ==
-                      second_max_match_cam_num &&
+      } else if (multi_cam_match_res.match_success_cam_num > second_max_match_cam_num ||
+                 (multi_cam_match_res.match_success_cam_num == second_max_match_cam_num &&
                   multi_cam_match_res.avg_zncc > second_max_avg_zncc)) {
         second_max_match_cam_num = multi_cam_match_res.match_success_cam_num;
         second_max_avg_zncc = multi_cam_match_res.avg_zncc;
@@ -509,10 +464,8 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
 
 #ifdef _SHOW_EPIPOLAR_SEARCH_DETAIL_
     if (pid == searched_pid) {
-      std::cout << "max match cam num " << max_match_cam_num << " max avg zncc "
-                << max_avg_zncc << " max index " << max_index
-                << " max match idp " << search_res_vec[max_index].idp
-                << std::endl;
+      std::cout << "max match cam num " << max_match_cam_num << " max avg zncc " << max_avg_zncc << " max index "
+                << max_index << " max match idp " << search_res_vec[max_index].idp << std::endl;
     }
 #endif
 
@@ -534,15 +487,13 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
         std::vector<cv::Mat> colored_mat_vec(4);
         cv::Mat gray_mat;
         for (size_t cam_id = 0; cam_id < kCameraNumUsed; ++cam_id) {
-          std::shared_ptr<AlgsImage> p_img =
-              target_nav_state.cid_level_to_img[cam_id][search_target_level_];
-          gray_mat = cv::Mat(p_img->height, p_img->width, CV_8UC1, p_img->data,
-                             p_img->stride);
+          std::shared_ptr<AlgsImage> p_img = target_nav_state.cid_level_to_img[cam_id][search_target_level_];
+          gray_mat = cv::Mat(p_img->height, p_img->width, CV_8UC1, p_img->data, p_img->stride);
           cv::cvtColor(gray_mat, colored_mat_vec[cam_id], cv::COLOR_GRAY2BGR);
         }
 
         size_t test_index = 0;
-        for (const MultiCamMatchRes &multi_cam_match_res : search_res_vec) {
+        for (const MultiCamMatchRes& multi_cam_match_res : search_res_vec) {
           //          printf("index %zu, tri success %d, success num %zu, avg
           //          zncc %f\n", test_index,
           //                 multi_cam_match_res.tri_success,
@@ -554,15 +505,12 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
           }
 
           for (size_t cam_id = 0; cam_id < kCameraNumUsed; ++cam_id) {
-            const MatchRes match_res =
-                multi_cam_match_res.cid_to_match_res[cam_id];
+            const MatchRes match_res = multi_cam_match_res.cid_to_match_res[cam_id];
             if (match_res.match_success) {
-              colored_mat_vec[cam_id].at<cv::Vec3b>(match_res.target_uv[1],
-                                                    match_res.target_uv[0]) =
+              colored_mat_vec[cam_id].at<cv::Vec3b>(match_res.target_uv[1], match_res.target_uv[0]) =
                   cv::Vec3b(0, 255, 0);
             } else {
-              colored_mat_vec[cam_id].at<cv::Vec3b>(match_res.target_uv[1],
-                                                    match_res.target_uv[0]) =
+              colored_mat_vec[cam_id].at<cv::Vec3b>(match_res.target_uv[1], match_res.target_uv[0]) =
                   cv::Vec3b(0, 0, 255);
             }
 
@@ -589,23 +537,16 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
         }
 
         // draw max match result
-        std::cout << "max match before draw, cam num "
-                  << search_res_vec[max_index].match_success_cam_num
-                  << " avg zncc " << search_res_vec[max_index].avg_zncc
-                  << std::endl;
+        std::cout << "max match before draw, cam num " << search_res_vec[max_index].match_success_cam_num
+                  << " avg zncc " << search_res_vec[max_index].avg_zncc << std::endl;
         for (size_t cam_id = 0; cam_id < kCameraNumUsed; ++cam_id) {
-          const MatchRes match_res =
-              search_res_vec[max_index].cid_to_match_res[cam_id];
+          const MatchRes match_res = search_res_vec[max_index].cid_to_match_res[cam_id];
           if (match_res.match_success) {
-            cv::circle(
-                colored_mat_vec[cam_id],
-                cv::Point(match_res.target_uv[0], match_res.target_uv[1]), 2,
-                cv::Scalar(0, 255, 0), -1);
+            cv::circle(colored_mat_vec[cam_id], cv::Point(match_res.target_uv[0], match_res.target_uv[1]), 2,
+                       cv::Scalar(0, 255, 0), -1);
           } else {
-            cv::circle(
-                colored_mat_vec[cam_id],
-                cv::Point(match_res.target_uv[0], match_res.target_uv[1]), 2,
-                cv::Scalar(0, 0, 255), -1);
+            cv::circle(colored_mat_vec[cam_id], cv::Point(match_res.target_uv[0], match_res.target_uv[1]), 2,
+                       cv::Scalar(0, 0, 255), -1);
           }
         }
 
@@ -643,8 +584,7 @@ MultiCameraEpipolarSearch::State MultiCameraEpipolarSearch::FindEpipolarMatch(
 
     best_search_res = search_res_vec[max_index];
 
-    if (max_match_cam_num == second_max_match_cam_num &&
-        max_avg_zncc - second_max_avg_zncc < 0.01 &&
+    if (max_match_cam_num == second_max_match_cam_num && max_avg_zncc - second_max_avg_zncc < 0.01 &&
         std::abs(max_index - second_max_index) > 2) {
       return kReject;
     }
@@ -702,28 +642,24 @@ second_zncc); cv::waitKey(0);
   } else {
     best_search_res.tri_success = true;
     best_search_res.idp = init_rho;
-    for (const size_t &target_cid : searched_cid_vec) {
-      CamData &cur_search_data = cid_to_cam_data_[target_cid];
-      MatchRes &match_res = best_search_res.cid_to_match_res[target_cid];
+    for (const size_t& target_cid : searched_cid_vec) {
+      CamData& cur_search_data = cid_to_cam_data_[target_cid];
+      MatchRes& match_res = best_search_res.cid_to_match_res[target_cid];
       //      std::shared_ptr<AlgsImage> target_image =
       //          target_nav_state.cid_level_to_img[target_cid][cur_search_data.target_level];
       //      direct_visual_factor_.cur_target_level_ = 0;
       //      direct_visual_factor_.target_image_level0_ =
       //      target_nav_state.cid_level_to_img[target_cid][0];
-      CameraBase *camera =
-          p_level_cid_to_camera_->level_cid_to_cam_pinhole.at(intr_level)
-              .at(target_cid);
+      CameraBase* camera = p_level_cid_to_camera_->level_cid_to_cam_pinhole.at(intr_level).at(target_cid);
       DirectFactorRes direct_factor_res = direct_visual_factor_.Evaluate(
-          cur_search_data.T10, best_search_res.idp, cid_to_img[target_cid],
-          patch, camera, 1, r_vec, ws2, r2, &match_res.target_uv,
-          &match_res.target_dir, &match_res.disparity_cos_theta, nullptr,
-          &match_res.zncc, search_zncc_threshold_);
+          cur_search_data.T10, best_search_res.idp, cid_to_img[target_cid], patch, camera, 1, r_vec, ws2, r2,
+          &match_res.target_uv, &match_res.target_dir, &match_res.disparity_cos_theta, nullptr, &match_res.zncc,
+          search_zncc_threshold_);
 
       if (direct_factor_res == kInlier) {
         has_success_match = true;
         match_res.match_success = true;
-        match_res.epipolar_grad_cos_theta =
-            direct_visual_factor_.epipolar_grad_cos_theta_;
+        match_res.epipolar_grad_cos_theta = direct_visual_factor_.epipolar_grad_cos_theta_;
         match_res.dir_reject = direct_visual_factor_.dir_reject_;
 
         if (!match_res.dir_reject) {
@@ -811,16 +747,14 @@ second_zncc); cv::waitKey(0);
   number_t before_opt_zncc_sum = 0;
   number_t after_opt_zncc_sum = 0;
 
-  for (const size_t &target_cid : opt_cid_vec) {
-    CamData &cur_search_data = cid_to_cam_data_[target_cid];
+  for (const size_t& target_cid : opt_cid_vec) {
+    CamData& cur_search_data = cid_to_cam_data_[target_cid];
     //    std::shared_ptr<AlgsImage> target_image =
     //    target_nav_state.cid_level_to_img[target_cid][opt_target_level_];
     size_t target_level = 1;
-    CameraBase *camera =
-        p_level_cid_to_camera_->level_cid_to_cam_pinhole.at(intr_level)
-            .at(target_cid);
+    CameraBase* camera = p_level_cid_to_camera_->level_cid_to_cam_pinhole.at(intr_level).at(target_cid);
 
-    MatchRes &match_res = cid_to_output[target_cid];
+    MatchRes& match_res = cid_to_output[target_cid];
     match_res.match_success = true;
     match_res.T01 = cid_to_cam_data_[target_cid].T01;
 
@@ -829,9 +763,8 @@ second_zncc); cv::waitKey(0);
     //    target_nav_state.cid_level_to_img[target_cid][0];
 
     DirectFactorRes direct_factor_res = direct_visual_factor_.Evaluate(
-        cur_search_data.T10, cur_idp, cid_to_img[target_cid], patch, camera, 1,
-        r_vec, ws2, r2, &(match_res.target_uv), &(match_res.target_dir),
-        nullptr, &dp_didp, &(match_res.zncc), opt_zncc_threshold_);
+        cur_search_data.T10, cur_idp, cid_to_img[target_cid], patch, camera, 1, r_vec, ws2, r2, &(match_res.target_uv),
+        &(match_res.target_dir), nullptr, &dp_didp, &(match_res.zncc), opt_zncc_threshold_);
 
     if (direct_factor_res != kInlier) {
       //      LOG_VIO_INFO("pid %zu, target cid %d, pre zncc %f, cur res %d, cur
@@ -858,8 +791,7 @@ second_zncc); cv::waitKey(0);
     //#endif
     */
 
-    match_res.epipolar_grad_cos_theta =
-        direct_visual_factor_.epipolar_grad_cos_theta_;
+    match_res.epipolar_grad_cos_theta = direct_visual_factor_.epipolar_grad_cos_theta_;
 
     J_idp = patch.J_dir * dp_didp;
 
@@ -898,16 +830,14 @@ second_zncc); cv::waitKey(0);
 
     std::array<MatchRes, kCameraNumUsed> new_cid_to_output;
 
-    for (const size_t &target_cid : opt_cid_vec) {
-      CamData &cur_search_data = cid_to_cam_data_[target_cid];
+    for (const size_t& target_cid : opt_cid_vec) {
+      CamData& cur_search_data = cid_to_cam_data_[target_cid];
       //      std::shared_ptr<AlgsImage> target_image =
       //      target_nav_state.cid_level_to_img[target_cid][opt_target_level_];
 
-      CameraBase *camera =
-          p_level_cid_to_camera_->level_cid_to_cam_pinhole.at(intr_level)
-              .at(target_cid);
+      CameraBase* camera = p_level_cid_to_camera_->level_cid_to_cam_pinhole.at(intr_level).at(target_cid);
 
-      MatchRes &match_res = new_cid_to_output[target_cid];
+      MatchRes& match_res = new_cid_to_output[target_cid];
       match_res.match_success = true;
       match_res.T01 = cid_to_cam_data_[target_cid].T01;
 
@@ -916,9 +846,8 @@ second_zncc); cv::waitKey(0);
       //      target_nav_state.cid_level_to_img[target_cid][0];
 
       DirectFactorRes direct_factor_res = direct_visual_factor_.Evaluate(
-          cur_search_data.T10, new_idp, cid_to_img[target_cid], patch, camera,
-          1, r_vec, ws2, r2, &(match_res.target_uv), &(match_res.target_dir),
-          nullptr, &dp_didp, &(match_res.zncc), opt_zncc_threshold_);
+          cur_search_data.T10, new_idp, cid_to_img[target_cid], patch, camera, 1, r_vec, ws2, r2,
+          &(match_res.target_uv), &(match_res.target_dir), nullptr, &dp_didp, &(match_res.zncc), opt_zncc_threshold_);
 
       match_res.R_theta = direct_visual_factor_.R_theta_;
 
@@ -939,8 +868,7 @@ second_zncc); cv::waitKey(0);
       //#endif
       */
 
-      match_res.epipolar_grad_cos_theta =
-          direct_visual_factor_.epipolar_grad_cos_theta_;
+      match_res.epipolar_grad_cos_theta = direct_visual_factor_.epipolar_grad_cos_theta_;
 
       J_idp = patch.J_dir * dp_didp;
 
@@ -980,21 +908,20 @@ second_zncc); cv::waitKey(0);
 #ifdef _SHOW_EPIPOLAR_SEARCH_DETAIL_
   if (pid == searched_pid) {
     for (size_t cid = 0; cid < kCameraNumUsed; ++cid) {
-      printf("target cid %zu, match success %d, dir %f, %f, %f, zncc %f, "
-             "epipolar_grad_cos_theta %f\n",
-             cid, (int)cid_to_output[cid].match_success,
-             cid_to_output[cid].target_dir[0], cid_to_output[cid].target_dir[1],
-             cid_to_output[cid].target_dir[2], cid_to_output[cid].zncc,
-             cid_to_output[cid].epipolar_grad_cos_theta);
+      printf(
+          "target cid %zu, match success %d, dir %f, %f, %f, zncc %f, "
+          "epipolar_grad_cos_theta %f\n",
+          cid, (int)cid_to_output[cid].match_success, cid_to_output[cid].target_dir[0],
+          cid_to_output[cid].target_dir[1], cid_to_output[cid].target_dir[2], cid_to_output[cid].zncc,
+          cid_to_output[cid].epipolar_grad_cos_theta);
     }
 
-    printf("pid %zu, opt cam num %zu, zncc before %f, after %f, idp before %f, "
-           "after %f, success step %zu, idp is "
-           "converged %d, opt success %d\n",
-           pid, opt_cid_vec.size(), before_opt_zncc_sum / opt_cid_vec.size(),
-           after_opt_zncc_sum / opt_cid_vec.size(), best_search_res.idp,
-           cur_idp, success_step, (int)opt_converged,
-           (success_step >= 4 || opt_converged) ? 1 : 0);
+    printf(
+        "pid %zu, opt cam num %zu, zncc before %f, after %f, idp before %f, "
+        "after %f, success step %zu, idp is "
+        "converged %d, opt success %d\n",
+        pid, opt_cid_vec.size(), before_opt_zncc_sum / opt_cid_vec.size(), after_opt_zncc_sum / opt_cid_vec.size(),
+        best_search_res.idp, cur_idp, success_step, (int)opt_converged, (success_step >= 4 || opt_converged) ? 1 : 0);
   }
 #endif
   //  if (success_step >= 4 || opt_converged) {
@@ -1016,24 +943,20 @@ second_zncc); cv::waitKey(0);
   }
 }
 
-bool MultiCameraEpipolarSearch::InFrame(const Vec2 &uv, const size_t &img_width,
-                                        const size_t &img_height,
-                                        const int &border) {
-  if (uv[0] >= border && uv[0] < img_width - border && uv[1] >= border &&
-      uv[1] < img_height - border) {
+bool MultiCameraEpipolarSearch::InFrame(const Vec2& uv, const size_t& img_width, const size_t& img_height,
+                                        const int& border) {
+  if (uv[0] >= border && uv[0] < img_width - border && uv[1] >= border && uv[1] < img_height - border) {
     return true;
   }
   return false;
 }
 
-bool MultiCameraEpipolarSearch::Triangulate(number_t &idp, const Mat4 &T01,
-                                            const Vec3 &v0, const Vec3 &v1) {
+bool MultiCameraEpipolarSearch::Triangulate(number_t& idp, const Mat4& T01, const Vec3& v0, const Vec3& v1) {
   Mat63 A = Mat63::Zero();
   Vec6 b = Vec6::Zero();
   A.block<3, 3>(0, 0) = Skew(v0);
   A.block<3, 3>(3, 0) = Skew(v1) * T01.block<3, 3>(0, 0).transpose();
-  b.segment<3>(3) =
-      Skew(v1) * T01.block<3, 3>(0, 0).transpose() * T01.block<3, 1>(0, 3);
+  b.segment<3>(3) = Skew(v1) * T01.block<3, 3>(0, 0).transpose() * T01.block<3, 1>(0, 3);
   Vec3 s = A.transpose() * b;
   Mat3 AA = A.transpose() * A;
   Vec3 xyz = AA.ldlt().solve(s);
@@ -1052,8 +975,7 @@ bool MultiCameraEpipolarSearch::Triangulate(number_t &idp, const Mat4 &T01,
   return true;
 }
 
-size_t MultiCameraEpipolarSearch::FindSearchedCid(
-    const number_t *cid_to_epipolar_length) {
+size_t MultiCameraEpipolarSearch::FindSearchedCid(const number_t* cid_to_epipolar_length) {
   //  number_t minAbove = std::numeric_limits<number_t>::max();
   //  size_t minAboveCid = 0;
   //  number_t maxBelow = -1.0;
@@ -1087,7 +1009,7 @@ size_t MultiCameraEpipolarSearch::FindSearchedCid(
     if (cid_to_epipolar_length[cid] < 0) {
       continue;
     }
-    const number_t &cur_length = cid_to_epipolar_length[cid];
+    const number_t& cur_length = cid_to_epipolar_length[cid];
     if (cur_length > max_length) {
       max_length = cur_length;
       max_length_cid = cid;
@@ -1097,8 +1019,7 @@ size_t MultiCameraEpipolarSearch::FindSearchedCid(
   return max_length_cid;
 }
 
-std::vector<size_t> MultiCameraEpipolarSearch::FindLocalMaxima(
-    const std::vector<number_t> &zncc_vec) {
+std::vector<size_t> MultiCameraEpipolarSearch::FindLocalMaxima(const std::vector<number_t>& zncc_vec) {
   std::vector<size_t> maxima_index_vec;
   if (zncc_vec[0] > zncc_vec[1]) {
     maxima_index_vec.emplace_back(0);
@@ -1118,17 +1039,16 @@ std::vector<size_t> MultiCameraEpipolarSearch::FindLocalMaxima(
   return maxima_index_vec;
 }
 
-void MultiCameraEpipolarSearch::GetTheBestAndSecondScore(
-    const std::vector<number_t> &zncc_vec,
-    const std::vector<size_t> &maxima_index_vec, number_t &best_zncc,
-    number_t &second_zncc) {
+void MultiCameraEpipolarSearch::GetTheBestAndSecondScore(const std::vector<number_t>& zncc_vec,
+                                                         const std::vector<size_t>& maxima_index_vec,
+                                                         number_t& best_zncc, number_t& second_zncc) {
   best_zncc = -1;
   second_zncc = -1;
   //  size_t best_zncc_index = -1;
   //  size_t second_best_zncc_index = -1;
 
-  for (const size_t &index : maxima_index_vec) {
-    const number_t &cur_zncc = zncc_vec[index];
+  for (const size_t& index : maxima_index_vec) {
+    const number_t& cur_zncc = zncc_vec[index];
     if (cur_zncc > best_zncc) {
       second_zncc = best_zncc;
       //      second_best_zncc_index = best_zncc_index;
@@ -1145,7 +1065,7 @@ void MultiCameraEpipolarSearch::GetTheBestAndSecondScore(
 #if CODE_ACC_Triangulate
 
 #if CODE_ACC_Triangulate >= 3
-void ldlt_3_simd4(const float *pm3A, const float *pv3B, float *pv3X) {
+void ldlt_3_simd4(const float* pm3A, const float* pv3B, float* pv3X) {
 #define A_INFO()
 #define X_INFO()
 #define OUT_INFO()
@@ -1204,7 +1124,7 @@ void ldlt_3_simd4(const float *pm3A, const float *pv3B, float *pv3X) {
   }
 
   if (found_zero_pivot && pivot_is_valid)
-    ret = false; // factorization failed
+    ret = false;  // factorization failed
   else if (!pivot_is_valid)
     found_zero_pivot = true;
 
@@ -1242,7 +1162,7 @@ void ldlt_3_simd4(const float *pm3A, const float *pv3B, float *pv3X) {
   }
 
   if (found_zero_pivot && pivot_is_valid)
-    ret = false; // factorization failed
+    ret = false;  // factorization failed
   else if (!pivot_is_valid)
     found_zero_pivot = true;
 
@@ -1274,7 +1194,7 @@ void ldlt_3_simd4(const float *pm3A, const float *pv3B, float *pv3X) {
   bool pivot_is_valid = (abs(realAkk) > 0.0f);
 
   if (found_zero_pivot && pivot_is_valid)
-    ret = false; // factorization failed
+    ret = false;  // factorization failed
   else if (!pivot_is_valid)
     found_zero_pivot = true;
 
@@ -1346,16 +1266,14 @@ pv3X[1] = v3X1;
 pv3X[2] = v3X2;
 }
 
-::Eigen::Vector3f ldlt_solve(const ::Eigen::Matrix3f &A,
-                             const ::Eigen::Vector3f &B) {
+::Eigen::Vector3f ldlt_solve(const ::Eigen::Matrix3f& A, const ::Eigen::Vector3f& B) {
   ::Eigen::Vector3f X;
   ldlt_3_simd4(&A(0, 0), &B(0, 0), &X(0, 0));
   return X;
 }
-#endif // #if CODE_ACC_Triangulate >= 3
+#endif  // #if CODE_ACC_Triangulate >= 3
 
-void Triangulate_ACC_array(float *p_idp, const float *pM4_T01,
-                           const float *pV3_v0, const float *pV3_v1, int size) {
+void Triangulate_ACC_array(float* p_idp, const float* pM4_T01, const float* pV3_v0, const float* pV3_v1, int size) {
 #if CODE_ACC_Triangulate == 1
   number_t idp;
   Mat4 T01;
@@ -1375,8 +1293,7 @@ void Triangulate_ACC_array(float *p_idp, const float *pM4_T01,
       Vec6 b = Vec6::Zero();
       A.block<3, 3>(0, 0) = Skew(v0);
       A.block<3, 3>(3, 0) = Skew(v1) * T01.block<3, 3>(0, 0).transpose();
-      b.segment<3>(3) =
-          Skew(v1) * T01.block<3, 3>(0, 0).transpose() * T01.block<3, 1>(0, 3);
+      b.segment<3>(3) = Skew(v1) * T01.block<3, 3>(0, 0).transpose() * T01.block<3, 1>(0, 3);
       Vec3 s = A.transpose() * b;
       Mat3 AA = A.transpose() * A;
       Vec3 xyz = AA.ldlt().solve(s);
@@ -1424,103 +1341,67 @@ void Triangulate_ACC_array(float *p_idp, const float *pM4_T01,
       float32x4_t v1_1_f32x4 = v1_f32x4x3.val[1];
       float32x4_t v1_2_f32x4 = v1_f32x4x3.val[2];
 
-      float32x4_t A2_00_f32x4x3 = T01_f32x4x3.val[0][2] * v1_1_f32x4 -
-                                  T01_f32x4x3.val[0][1] * v1_2_f32x4;
-      float32x4_t A2_01_f32x4x3 = T01_f32x4x3.val[1][2] * v1_1_f32x4 -
-                                  T01_f32x4x3.val[1][1] * v1_2_f32x4;
-      float32x4_t A2_02_f32x4x3 = T01_f32x4x3.val[2][2] * v1_1_f32x4 -
-                                  T01_f32x4x3.val[2][1] * v1_2_f32x4;
-      float32x4_t A2_10_f32x4x3 = -T01_f32x4x3.val[0][2] * v1_0_f32x4 +
-                                  T01_f32x4x3.val[0][0] * v1_2_f32x4;
-      float32x4_t A2_11_f32x4x3 = -T01_f32x4x3.val[1][2] * v1_0_f32x4 +
-                                  T01_f32x4x3.val[1][0] * v1_2_f32x4;
-      float32x4_t A2_12_f32x4x3 = -T01_f32x4x3.val[2][2] * v1_0_f32x4 +
-                                  T01_f32x4x3.val[2][0] * v1_2_f32x4;
-      float32x4_t A2_20_f32x4x3 = T01_f32x4x3.val[0][1] * v1_0_f32x4 -
-                                  T01_f32x4x3.val[0][0] * v1_1_f32x4;
-      float32x4_t A2_21_f32x4x3 = T01_f32x4x3.val[1][1] * v1_0_f32x4 -
-                                  T01_f32x4x3.val[1][0] * v1_1_f32x4;
-      float32x4_t A2_22_f32x4x3 = T01_f32x4x3.val[2][1] * v1_0_f32x4 -
-                                  T01_f32x4x3.val[2][0] * v1_1_f32x4;
+      float32x4_t A2_00_f32x4x3 = T01_f32x4x3.val[0][2] * v1_1_f32x4 - T01_f32x4x3.val[0][1] * v1_2_f32x4;
+      float32x4_t A2_01_f32x4x3 = T01_f32x4x3.val[1][2] * v1_1_f32x4 - T01_f32x4x3.val[1][1] * v1_2_f32x4;
+      float32x4_t A2_02_f32x4x3 = T01_f32x4x3.val[2][2] * v1_1_f32x4 - T01_f32x4x3.val[2][1] * v1_2_f32x4;
+      float32x4_t A2_10_f32x4x3 = -T01_f32x4x3.val[0][2] * v1_0_f32x4 + T01_f32x4x3.val[0][0] * v1_2_f32x4;
+      float32x4_t A2_11_f32x4x3 = -T01_f32x4x3.val[1][2] * v1_0_f32x4 + T01_f32x4x3.val[1][0] * v1_2_f32x4;
+      float32x4_t A2_12_f32x4x3 = -T01_f32x4x3.val[2][2] * v1_0_f32x4 + T01_f32x4x3.val[2][0] * v1_2_f32x4;
+      float32x4_t A2_20_f32x4x3 = T01_f32x4x3.val[0][1] * v1_0_f32x4 - T01_f32x4x3.val[0][0] * v1_1_f32x4;
+      float32x4_t A2_21_f32x4x3 = T01_f32x4x3.val[1][1] * v1_0_f32x4 - T01_f32x4x3.val[1][0] * v1_1_f32x4;
+      float32x4_t A2_22_f32x4x3 = T01_f32x4x3.val[2][1] * v1_0_f32x4 - T01_f32x4x3.val[2][0] * v1_1_f32x4;
 
-      float32x4_t b_0_f32x4x3 = A2_02_f32x4x3 * T01_f32x4x3.val[2][3] +
-                                A2_01_f32x4x3 * T01_f32x4x3.val[1][3] +
+      float32x4_t b_0_f32x4x3 = A2_02_f32x4x3 * T01_f32x4x3.val[2][3] + A2_01_f32x4x3 * T01_f32x4x3.val[1][3] +
                                 A2_00_f32x4x3 * T01_f32x4x3.val[0][3];
-      float32x4_t b_1_f32x4x3 = A2_12_f32x4x3 * T01_f32x4x3.val[2][3] +
-                                A2_11_f32x4x3 * T01_f32x4x3.val[1][3] +
+      float32x4_t b_1_f32x4x3 = A2_12_f32x4x3 * T01_f32x4x3.val[2][3] + A2_11_f32x4x3 * T01_f32x4x3.val[1][3] +
                                 A2_10_f32x4x3 * T01_f32x4x3.val[0][3];
-      float32x4_t b_2_f32x4x3 = A2_22_f32x4x3 * T01_f32x4x3.val[2][3] +
-                                A2_21_f32x4x3 * T01_f32x4x3.val[1][3] +
+      float32x4_t b_2_f32x4x3 = A2_22_f32x4x3 * T01_f32x4x3.val[2][3] + A2_21_f32x4x3 * T01_f32x4x3.val[1][3] +
                                 A2_20_f32x4x3 * T01_f32x4x3.val[0][3];
 
-      float32x4_t s_0_f32x4x3 = A2_20_f32x4x3 * b_2_f32x4x3 +
-                                A2_10_f32x4x3 * b_1_f32x4x3 +
-                                A2_00_f32x4x3 * b_0_f32x4x3;
-      float32x4_t s_1_f32x4x3 = A2_21_f32x4x3 * b_2_f32x4x3 +
-                                A2_11_f32x4x3 * b_1_f32x4x3 +
-                                A2_01_f32x4x3 * b_0_f32x4x3;
-      float32x4_t s_2_f32x4x3 = A2_22_f32x4x3 * b_2_f32x4x3 +
-                                A2_12_f32x4x3 * b_1_f32x4x3 +
-                                A2_02_f32x4x3 * b_0_f32x4x3;
+      float32x4_t s_0_f32x4x3 = A2_20_f32x4x3 * b_2_f32x4x3 + A2_10_f32x4x3 * b_1_f32x4x3 + A2_00_f32x4x3 * b_0_f32x4x3;
+      float32x4_t s_1_f32x4x3 = A2_21_f32x4x3 * b_2_f32x4x3 + A2_11_f32x4x3 * b_1_f32x4x3 + A2_01_f32x4x3 * b_0_f32x4x3;
+      float32x4_t s_2_f32x4x3 = A2_22_f32x4x3 * b_2_f32x4x3 + A2_12_f32x4x3 * b_1_f32x4x3 + A2_02_f32x4x3 * b_0_f32x4x3;
 
-      float32x4_t AA2_00_f32x4x3 = A2_20_f32x4x3 * A2_20_f32x4x3 +
-                                   A2_10_f32x4x3 * A2_10_f32x4x3 +
-                                   A2_00_f32x4x3 * A2_00_f32x4x3;
-      float32x4_t AA2_01_f32x4x3 = A2_20_f32x4x3 * A2_21_f32x4x3 +
-                                   A2_10_f32x4x3 * A2_11_f32x4x3 +
-                                   A2_00_f32x4x3 * A2_01_f32x4x3;
-      float32x4_t AA2_02_f32x4x3 = A2_20_f32x4x3 * A2_22_f32x4x3 +
-                                   A2_10_f32x4x3 * A2_12_f32x4x3 +
-                                   A2_00_f32x4x3 * A2_02_f32x4x3;
-      float32x4_t AA2_11_f32x4x3 = A2_21_f32x4x3 * A2_21_f32x4x3 +
-                                   A2_11_f32x4x3 * A2_11_f32x4x3 +
-                                   A2_01_f32x4x3 * A2_01_f32x4x3;
-      float32x4_t AA2_12_f32x4x3 = A2_21_f32x4x3 * A2_22_f32x4x3 +
-                                   A2_11_f32x4x3 * A2_12_f32x4x3 +
-                                   A2_01_f32x4x3 * A2_02_f32x4x3;
-      float32x4_t AA2_22_f32x4x3 = A2_22_f32x4x3 * A2_22_f32x4x3 +
-                                   A2_12_f32x4x3 * A2_12_f32x4x3 +
-                                   A2_02_f32x4x3 * A2_02_f32x4x3;
+      float32x4_t AA2_00_f32x4x3 =
+          A2_20_f32x4x3 * A2_20_f32x4x3 + A2_10_f32x4x3 * A2_10_f32x4x3 + A2_00_f32x4x3 * A2_00_f32x4x3;
+      float32x4_t AA2_01_f32x4x3 =
+          A2_20_f32x4x3 * A2_21_f32x4x3 + A2_10_f32x4x3 * A2_11_f32x4x3 + A2_00_f32x4x3 * A2_01_f32x4x3;
+      float32x4_t AA2_02_f32x4x3 =
+          A2_20_f32x4x3 * A2_22_f32x4x3 + A2_10_f32x4x3 * A2_12_f32x4x3 + A2_00_f32x4x3 * A2_02_f32x4x3;
+      float32x4_t AA2_11_f32x4x3 =
+          A2_21_f32x4x3 * A2_21_f32x4x3 + A2_11_f32x4x3 * A2_11_f32x4x3 + A2_01_f32x4x3 * A2_01_f32x4x3;
+      float32x4_t AA2_12_f32x4x3 =
+          A2_21_f32x4x3 * A2_22_f32x4x3 + A2_11_f32x4x3 * A2_12_f32x4x3 + A2_01_f32x4x3 * A2_02_f32x4x3;
+      float32x4_t AA2_22_f32x4x3 =
+          A2_22_f32x4x3 * A2_22_f32x4x3 + A2_12_f32x4x3 * A2_12_f32x4x3 + A2_02_f32x4x3 * A2_02_f32x4x3;
 
 #if 0
 #elif 1
-      float32x4_t AA_00_f32x4x3 =
-          A2_20_f32x4x3 * A2_20_f32x4x3 + A2_10_f32x4x3 * A2_10_f32x4x3 +
-          A2_00_f32x4x3 * A2_00_f32x4x3 + vdupq_n_f32(AA1(0, 0));
-      float32x4_t AA_01_f32x4x3 =
-          A2_20_f32x4x3 * A2_21_f32x4x3 + A2_10_f32x4x3 * A2_11_f32x4x3 +
-          A2_00_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(0, 1));
-      float32x4_t AA_02_f32x4x3 =
-          A2_20_f32x4x3 * A2_22_f32x4x3 + A2_10_f32x4x3 * A2_12_f32x4x3 +
-          A2_00_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(0, 2));
-      float32x4_t AA_11_f32x4x3 =
-          A2_21_f32x4x3 * A2_21_f32x4x3 + A2_11_f32x4x3 * A2_11_f32x4x3 +
-          A2_01_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(1, 1));
-      float32x4_t AA_12_f32x4x3 =
-          A2_21_f32x4x3 * A2_22_f32x4x3 + A2_11_f32x4x3 * A2_12_f32x4x3 +
-          A2_01_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(1, 2));
-      float32x4_t AA_22_f32x4x3 =
-          A2_22_f32x4x3 * A2_22_f32x4x3 + A2_12_f32x4x3 * A2_12_f32x4x3 +
-          A2_02_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(2, 2));
+      float32x4_t AA_00_f32x4x3 = A2_20_f32x4x3 * A2_20_f32x4x3 + A2_10_f32x4x3 * A2_10_f32x4x3 +
+                                  A2_00_f32x4x3 * A2_00_f32x4x3 + vdupq_n_f32(AA1(0, 0));
+      float32x4_t AA_01_f32x4x3 = A2_20_f32x4x3 * A2_21_f32x4x3 + A2_10_f32x4x3 * A2_11_f32x4x3 +
+                                  A2_00_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(0, 1));
+      float32x4_t AA_02_f32x4x3 = A2_20_f32x4x3 * A2_22_f32x4x3 + A2_10_f32x4x3 * A2_12_f32x4x3 +
+                                  A2_00_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(0, 2));
+      float32x4_t AA_11_f32x4x3 = A2_21_f32x4x3 * A2_21_f32x4x3 + A2_11_f32x4x3 * A2_11_f32x4x3 +
+                                  A2_01_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(1, 1));
+      float32x4_t AA_12_f32x4x3 = A2_21_f32x4x3 * A2_22_f32x4x3 + A2_11_f32x4x3 * A2_12_f32x4x3 +
+                                  A2_01_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(1, 2));
+      float32x4_t AA_22_f32x4x3 = A2_22_f32x4x3 * A2_22_f32x4x3 + A2_12_f32x4x3 * A2_12_f32x4x3 +
+                                  A2_02_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(2, 2));
 #elif 1
-      float32x4_t AA_00_f32x4x3 =
-          A2_20_f32x4x3 * A2_20_f32x4x3 + A2_10_f32x4x3 * A2_10_f32x4x3 +
-          A2_00_f32x4x3 * A2_00_f32x4x3 + vdupq_n_f32(AA1(0, 0));
-      float32x4_t AA_01_f32x4x3 =
-          A2_20_f32x4x3 * A2_21_f32x4x3 + A2_10_f32x4x3 * A2_11_f32x4x3 +
-          A2_00_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(0, 1));
-      float32x4_t AA_02_f32x4x3 =
-          A2_20_f32x4x3 * A2_22_f32x4x3 + A2_10_f32x4x3 * A2_12_f32x4x3 +
-          A2_00_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(0, 2));
-      float32x4_t AA_11_f32x4x3 =
-          A2_21_f32x4x3 * A2_21_f32x4x3 + A2_11_f32x4x3 * A2_11_f32x4x3 +
-          A2_01_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(1, 1));
-      float32x4_t AA_12_f32x4x3 =
-          A2_21_f32x4x3 * A2_22_f32x4x3 + A2_11_f32x4x3 * A2_12_f32x4x3 +
-          A2_01_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(1, 2));
-      float32x4_t AA_22_f32x4x3 =
-          A2_22_f32x4x3 * A2_22_f32x4x3 + A2_12_f32x4x3 * A2_12_f32x4x3 +
-          A2_02_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(2, 2));
+      float32x4_t AA_00_f32x4x3 = A2_20_f32x4x3 * A2_20_f32x4x3 + A2_10_f32x4x3 * A2_10_f32x4x3 +
+                                  A2_00_f32x4x3 * A2_00_f32x4x3 + vdupq_n_f32(AA1(0, 0));
+      float32x4_t AA_01_f32x4x3 = A2_20_f32x4x3 * A2_21_f32x4x3 + A2_10_f32x4x3 * A2_11_f32x4x3 +
+                                  A2_00_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(0, 1));
+      float32x4_t AA_02_f32x4x3 = A2_20_f32x4x3 * A2_22_f32x4x3 + A2_10_f32x4x3 * A2_12_f32x4x3 +
+                                  A2_00_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(0, 2));
+      float32x4_t AA_11_f32x4x3 = A2_21_f32x4x3 * A2_21_f32x4x3 + A2_11_f32x4x3 * A2_11_f32x4x3 +
+                                  A2_01_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(1, 1));
+      float32x4_t AA_12_f32x4x3 = A2_21_f32x4x3 * A2_22_f32x4x3 + A2_11_f32x4x3 * A2_12_f32x4x3 +
+                                  A2_01_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(1, 2));
+      float32x4_t AA_22_f32x4x3 = A2_22_f32x4x3 * A2_22_f32x4x3 + A2_12_f32x4x3 * A2_12_f32x4x3 +
+                                  A2_02_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(2, 2));
 #elif 1
       float32x4_t AA_00_f32x4x3 = AA2_00_f32x4x3 + vdupq_n_f32(AA1(0, 0));
       float32x4_t AA_01_f32x4x3 = AA2_01_f32x4x3 + vdupq_n_f32(AA1(0, 1));
@@ -1598,9 +1479,9 @@ void Triangulate_ACC_array(float *p_idp, const float *pM4_T01,
 #endif
 
 #if 0
-#define std_cout(_var)                                                         \
-  do {                                                                         \
-    std::cout << #_var << std::endl << _var << std::endl;                      \
+#define std_cout(_var)                                    \
+  do {                                                    \
+    std::cout << #_var << std::endl << _var << std::endl; \
   } while (0)
 std_cout(AA[0]);
 std_cout(s[0]);
@@ -1617,27 +1498,21 @@ exit(1);
       float32x4_t xyz_1_f32x4x3 = xyz_f32x4x3.val[1];
       float32x4_t xyz_2_f32x4x3 = xyz_f32x4x3.val[2];
 
-      float32x4_t squaredNorm_f32x4x3 = xyz_2_f32x4x3 * xyz_2_f32x4x3 +
-                                        xyz_1_f32x4x3 * xyz_1_f32x4x3 +
-                                        xyz_0_f32x4x3 * xyz_0_f32x4x3;
+      float32x4_t squaredNorm_f32x4x3 =
+          xyz_2_f32x4x3 * xyz_2_f32x4x3 + xyz_1_f32x4x3 * xyz_1_f32x4x3 + xyz_0_f32x4x3 * xyz_0_f32x4x3;
       float32x4_t norm_f32x4x3 = vsqrtq_f32(squaredNorm_f32x4x3);
       float32x4_t idp_f32x4x3 = vdupq_n_f32(1.0f) / norm_f32x4x3;
 
-      float32x4_t v1_0_0_f32x4 = T01_f32x4x3.val[0][2] * v1_2_f32x4 +
-                                 T01_f32x4x3.val[0][1] * v1_1_f32x4 +
-                                 T01_f32x4x3.val[0][0] * v1_0_f32x4;
-      float32x4_t v1_0_1_f32x4 = T01_f32x4x3.val[1][2] * v1_2_f32x4 +
-                                 T01_f32x4x3.val[1][1] * v1_1_f32x4 +
-                                 T01_f32x4x3.val[1][0] * v1_0_f32x4;
-      float32x4_t v1_0_2_f32x4 = T01_f32x4x3.val[2][2] * v1_2_f32x4 +
-                                 T01_f32x4x3.val[2][1] * v1_1_f32x4 +
-                                 T01_f32x4x3.val[2][0] * v1_0_f32x4;
-      float32x4_t cos_theta_f32x4 = v1_0_2_f32x4 * v0_f32x4[2] +
-                                    v1_0_1_f32x4 * v0_f32x4[1] +
-                                    v1_0_0_f32x4 * v0_f32x4[0];
+      float32x4_t v1_0_0_f32x4 =
+          T01_f32x4x3.val[0][2] * v1_2_f32x4 + T01_f32x4x3.val[0][1] * v1_1_f32x4 + T01_f32x4x3.val[0][0] * v1_0_f32x4;
+      float32x4_t v1_0_1_f32x4 =
+          T01_f32x4x3.val[1][2] * v1_2_f32x4 + T01_f32x4x3.val[1][1] * v1_1_f32x4 + T01_f32x4x3.val[1][0] * v1_0_f32x4;
+      float32x4_t v1_0_2_f32x4 =
+          T01_f32x4x3.val[2][2] * v1_2_f32x4 + T01_f32x4x3.val[2][1] * v1_1_f32x4 + T01_f32x4x3.val[2][0] * v1_0_f32x4;
+      float32x4_t cos_theta_f32x4 =
+          v1_0_2_f32x4 * v0_f32x4[2] + v1_0_1_f32x4 * v0_f32x4[1] + v1_0_0_f32x4 * v0_f32x4[0];
 
-      uint32x4_t valid_u32x4 = (xyz_2_f32x4x3 >= vdupq_n_f32(0)) &&
-                               (cos_theta_f32x4 <= vdupq_n_f32(0.99999));
+      uint32x4_t valid_u32x4 = (xyz_2_f32x4x3 >= vdupq_n_f32(0)) && (cos_theta_f32x4 <= vdupq_n_f32(0.99999));
       idp_f32x4x3 = vbslq_f32(valid_u32x4, idp_f32x4x3, vdupq_n_f32(-1));
 
       vst1q_f32(p_idp, idp_f32x4x3);
@@ -1649,103 +1524,67 @@ exit(1);
     float32x4_t v1_1_f32x4 = v1_f32x4x3.val[1];
     float32x4_t v1_2_f32x4 = v1_f32x4x3.val[2];
 
-    float32x4_t A2_00_f32x4x3 =
-        T01_f32x4x3.val[0][2] * v1_1_f32x4 - T01_f32x4x3.val[0][1] * v1_2_f32x4;
-    float32x4_t A2_01_f32x4x3 =
-        T01_f32x4x3.val[1][2] * v1_1_f32x4 - T01_f32x4x3.val[1][1] * v1_2_f32x4;
-    float32x4_t A2_02_f32x4x3 =
-        T01_f32x4x3.val[2][2] * v1_1_f32x4 - T01_f32x4x3.val[2][1] * v1_2_f32x4;
-    float32x4_t A2_10_f32x4x3 = -T01_f32x4x3.val[0][2] * v1_0_f32x4 +
-                                T01_f32x4x3.val[0][0] * v1_2_f32x4;
-    float32x4_t A2_11_f32x4x3 = -T01_f32x4x3.val[1][2] * v1_0_f32x4 +
-                                T01_f32x4x3.val[1][0] * v1_2_f32x4;
-    float32x4_t A2_12_f32x4x3 = -T01_f32x4x3.val[2][2] * v1_0_f32x4 +
-                                T01_f32x4x3.val[2][0] * v1_2_f32x4;
-    float32x4_t A2_20_f32x4x3 =
-        T01_f32x4x3.val[0][1] * v1_0_f32x4 - T01_f32x4x3.val[0][0] * v1_1_f32x4;
-    float32x4_t A2_21_f32x4x3 =
-        T01_f32x4x3.val[1][1] * v1_0_f32x4 - T01_f32x4x3.val[1][0] * v1_1_f32x4;
-    float32x4_t A2_22_f32x4x3 =
-        T01_f32x4x3.val[2][1] * v1_0_f32x4 - T01_f32x4x3.val[2][0] * v1_1_f32x4;
+    float32x4_t A2_00_f32x4x3 = T01_f32x4x3.val[0][2] * v1_1_f32x4 - T01_f32x4x3.val[0][1] * v1_2_f32x4;
+    float32x4_t A2_01_f32x4x3 = T01_f32x4x3.val[1][2] * v1_1_f32x4 - T01_f32x4x3.val[1][1] * v1_2_f32x4;
+    float32x4_t A2_02_f32x4x3 = T01_f32x4x3.val[2][2] * v1_1_f32x4 - T01_f32x4x3.val[2][1] * v1_2_f32x4;
+    float32x4_t A2_10_f32x4x3 = -T01_f32x4x3.val[0][2] * v1_0_f32x4 + T01_f32x4x3.val[0][0] * v1_2_f32x4;
+    float32x4_t A2_11_f32x4x3 = -T01_f32x4x3.val[1][2] * v1_0_f32x4 + T01_f32x4x3.val[1][0] * v1_2_f32x4;
+    float32x4_t A2_12_f32x4x3 = -T01_f32x4x3.val[2][2] * v1_0_f32x4 + T01_f32x4x3.val[2][0] * v1_2_f32x4;
+    float32x4_t A2_20_f32x4x3 = T01_f32x4x3.val[0][1] * v1_0_f32x4 - T01_f32x4x3.val[0][0] * v1_1_f32x4;
+    float32x4_t A2_21_f32x4x3 = T01_f32x4x3.val[1][1] * v1_0_f32x4 - T01_f32x4x3.val[1][0] * v1_1_f32x4;
+    float32x4_t A2_22_f32x4x3 = T01_f32x4x3.val[2][1] * v1_0_f32x4 - T01_f32x4x3.val[2][0] * v1_1_f32x4;
 
-    float32x4_t b_0_f32x4x3 = A2_02_f32x4x3 * T01_f32x4x3.val[2][3] +
-                              A2_01_f32x4x3 * T01_f32x4x3.val[1][3] +
+    float32x4_t b_0_f32x4x3 = A2_02_f32x4x3 * T01_f32x4x3.val[2][3] + A2_01_f32x4x3 * T01_f32x4x3.val[1][3] +
                               A2_00_f32x4x3 * T01_f32x4x3.val[0][3];
-    float32x4_t b_1_f32x4x3 = A2_12_f32x4x3 * T01_f32x4x3.val[2][3] +
-                              A2_11_f32x4x3 * T01_f32x4x3.val[1][3] +
+    float32x4_t b_1_f32x4x3 = A2_12_f32x4x3 * T01_f32x4x3.val[2][3] + A2_11_f32x4x3 * T01_f32x4x3.val[1][3] +
                               A2_10_f32x4x3 * T01_f32x4x3.val[0][3];
-    float32x4_t b_2_f32x4x3 = A2_22_f32x4x3 * T01_f32x4x3.val[2][3] +
-                              A2_21_f32x4x3 * T01_f32x4x3.val[1][3] +
+    float32x4_t b_2_f32x4x3 = A2_22_f32x4x3 * T01_f32x4x3.val[2][3] + A2_21_f32x4x3 * T01_f32x4x3.val[1][3] +
                               A2_20_f32x4x3 * T01_f32x4x3.val[0][3];
 
-    float32x4_t s_0_f32x4x3 = A2_20_f32x4x3 * b_2_f32x4x3 +
-                              A2_10_f32x4x3 * b_1_f32x4x3 +
-                              A2_00_f32x4x3 * b_0_f32x4x3;
-    float32x4_t s_1_f32x4x3 = A2_21_f32x4x3 * b_2_f32x4x3 +
-                              A2_11_f32x4x3 * b_1_f32x4x3 +
-                              A2_01_f32x4x3 * b_0_f32x4x3;
-    float32x4_t s_2_f32x4x3 = A2_22_f32x4x3 * b_2_f32x4x3 +
-                              A2_12_f32x4x3 * b_1_f32x4x3 +
-                              A2_02_f32x4x3 * b_0_f32x4x3;
+    float32x4_t s_0_f32x4x3 = A2_20_f32x4x3 * b_2_f32x4x3 + A2_10_f32x4x3 * b_1_f32x4x3 + A2_00_f32x4x3 * b_0_f32x4x3;
+    float32x4_t s_1_f32x4x3 = A2_21_f32x4x3 * b_2_f32x4x3 + A2_11_f32x4x3 * b_1_f32x4x3 + A2_01_f32x4x3 * b_0_f32x4x3;
+    float32x4_t s_2_f32x4x3 = A2_22_f32x4x3 * b_2_f32x4x3 + A2_12_f32x4x3 * b_1_f32x4x3 + A2_02_f32x4x3 * b_0_f32x4x3;
 
-    float32x4_t AA2_00_f32x4x3 = A2_20_f32x4x3 * A2_20_f32x4x3 +
-                                 A2_10_f32x4x3 * A2_10_f32x4x3 +
-                                 A2_00_f32x4x3 * A2_00_f32x4x3;
-    float32x4_t AA2_01_f32x4x3 = A2_20_f32x4x3 * A2_21_f32x4x3 +
-                                 A2_10_f32x4x3 * A2_11_f32x4x3 +
-                                 A2_00_f32x4x3 * A2_01_f32x4x3;
-    float32x4_t AA2_02_f32x4x3 = A2_20_f32x4x3 * A2_22_f32x4x3 +
-                                 A2_10_f32x4x3 * A2_12_f32x4x3 +
-                                 A2_00_f32x4x3 * A2_02_f32x4x3;
-    float32x4_t AA2_11_f32x4x3 = A2_21_f32x4x3 * A2_21_f32x4x3 +
-                                 A2_11_f32x4x3 * A2_11_f32x4x3 +
-                                 A2_01_f32x4x3 * A2_01_f32x4x3;
-    float32x4_t AA2_12_f32x4x3 = A2_21_f32x4x3 * A2_22_f32x4x3 +
-                                 A2_11_f32x4x3 * A2_12_f32x4x3 +
-                                 A2_01_f32x4x3 * A2_02_f32x4x3;
-    float32x4_t AA2_22_f32x4x3 = A2_22_f32x4x3 * A2_22_f32x4x3 +
-                                 A2_12_f32x4x3 * A2_12_f32x4x3 +
-                                 A2_02_f32x4x3 * A2_02_f32x4x3;
+    float32x4_t AA2_00_f32x4x3 =
+        A2_20_f32x4x3 * A2_20_f32x4x3 + A2_10_f32x4x3 * A2_10_f32x4x3 + A2_00_f32x4x3 * A2_00_f32x4x3;
+    float32x4_t AA2_01_f32x4x3 =
+        A2_20_f32x4x3 * A2_21_f32x4x3 + A2_10_f32x4x3 * A2_11_f32x4x3 + A2_00_f32x4x3 * A2_01_f32x4x3;
+    float32x4_t AA2_02_f32x4x3 =
+        A2_20_f32x4x3 * A2_22_f32x4x3 + A2_10_f32x4x3 * A2_12_f32x4x3 + A2_00_f32x4x3 * A2_02_f32x4x3;
+    float32x4_t AA2_11_f32x4x3 =
+        A2_21_f32x4x3 * A2_21_f32x4x3 + A2_11_f32x4x3 * A2_11_f32x4x3 + A2_01_f32x4x3 * A2_01_f32x4x3;
+    float32x4_t AA2_12_f32x4x3 =
+        A2_21_f32x4x3 * A2_22_f32x4x3 + A2_11_f32x4x3 * A2_12_f32x4x3 + A2_01_f32x4x3 * A2_02_f32x4x3;
+    float32x4_t AA2_22_f32x4x3 =
+        A2_22_f32x4x3 * A2_22_f32x4x3 + A2_12_f32x4x3 * A2_12_f32x4x3 + A2_02_f32x4x3 * A2_02_f32x4x3;
 
 #if 0
 #elif 1
-    float32x4_t AA_00_f32x4x3 =
-        A2_20_f32x4x3 * A2_20_f32x4x3 + A2_10_f32x4x3 * A2_10_f32x4x3 +
-        A2_00_f32x4x3 * A2_00_f32x4x3 + vdupq_n_f32(AA1(0, 0));
-    float32x4_t AA_01_f32x4x3 =
-        A2_20_f32x4x3 * A2_21_f32x4x3 + A2_10_f32x4x3 * A2_11_f32x4x3 +
-        A2_00_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(0, 1));
-    float32x4_t AA_02_f32x4x3 =
-        A2_20_f32x4x3 * A2_22_f32x4x3 + A2_10_f32x4x3 * A2_12_f32x4x3 +
-        A2_00_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(0, 2));
-    float32x4_t AA_11_f32x4x3 =
-        A2_21_f32x4x3 * A2_21_f32x4x3 + A2_11_f32x4x3 * A2_11_f32x4x3 +
-        A2_01_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(1, 1));
-    float32x4_t AA_12_f32x4x3 =
-        A2_21_f32x4x3 * A2_22_f32x4x3 + A2_11_f32x4x3 * A2_12_f32x4x3 +
-        A2_01_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(1, 2));
-    float32x4_t AA_22_f32x4x3 =
-        A2_22_f32x4x3 * A2_22_f32x4x3 + A2_12_f32x4x3 * A2_12_f32x4x3 +
-        A2_02_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(2, 2));
+    float32x4_t AA_00_f32x4x3 = A2_20_f32x4x3 * A2_20_f32x4x3 + A2_10_f32x4x3 * A2_10_f32x4x3 +
+                                A2_00_f32x4x3 * A2_00_f32x4x3 + vdupq_n_f32(AA1(0, 0));
+    float32x4_t AA_01_f32x4x3 = A2_20_f32x4x3 * A2_21_f32x4x3 + A2_10_f32x4x3 * A2_11_f32x4x3 +
+                                A2_00_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(0, 1));
+    float32x4_t AA_02_f32x4x3 = A2_20_f32x4x3 * A2_22_f32x4x3 + A2_10_f32x4x3 * A2_12_f32x4x3 +
+                                A2_00_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(0, 2));
+    float32x4_t AA_11_f32x4x3 = A2_21_f32x4x3 * A2_21_f32x4x3 + A2_11_f32x4x3 * A2_11_f32x4x3 +
+                                A2_01_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(1, 1));
+    float32x4_t AA_12_f32x4x3 = A2_21_f32x4x3 * A2_22_f32x4x3 + A2_11_f32x4x3 * A2_12_f32x4x3 +
+                                A2_01_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(1, 2));
+    float32x4_t AA_22_f32x4x3 = A2_22_f32x4x3 * A2_22_f32x4x3 + A2_12_f32x4x3 * A2_12_f32x4x3 +
+                                A2_02_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(2, 2));
 #elif 1
-    float32x4_t AA_00_f32x4x3 =
-        A2_20_f32x4x3 * A2_20_f32x4x3 + A2_10_f32x4x3 * A2_10_f32x4x3 +
-        A2_00_f32x4x3 * A2_00_f32x4x3 + vdupq_n_f32(AA1(0, 0));
-    float32x4_t AA_01_f32x4x3 =
-        A2_20_f32x4x3 * A2_21_f32x4x3 + A2_10_f32x4x3 * A2_11_f32x4x3 +
-        A2_00_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(0, 1));
-    float32x4_t AA_02_f32x4x3 =
-        A2_20_f32x4x3 * A2_22_f32x4x3 + A2_10_f32x4x3 * A2_12_f32x4x3 +
-        A2_00_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(0, 2));
-    float32x4_t AA_11_f32x4x3 =
-        A2_21_f32x4x3 * A2_21_f32x4x3 + A2_11_f32x4x3 * A2_11_f32x4x3 +
-        A2_01_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(1, 1));
-    float32x4_t AA_12_f32x4x3 =
-        A2_21_f32x4x3 * A2_22_f32x4x3 + A2_11_f32x4x3 * A2_12_f32x4x3 +
-        A2_01_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(1, 2));
-    float32x4_t AA_22_f32x4x3 =
-        A2_22_f32x4x3 * A2_22_f32x4x3 + A2_12_f32x4x3 * A2_12_f32x4x3 +
-        A2_02_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(2, 2));
+    float32x4_t AA_00_f32x4x3 = A2_20_f32x4x3 * A2_20_f32x4x3 + A2_10_f32x4x3 * A2_10_f32x4x3 +
+                                A2_00_f32x4x3 * A2_00_f32x4x3 + vdupq_n_f32(AA1(0, 0));
+    float32x4_t AA_01_f32x4x3 = A2_20_f32x4x3 * A2_21_f32x4x3 + A2_10_f32x4x3 * A2_11_f32x4x3 +
+                                A2_00_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(0, 1));
+    float32x4_t AA_02_f32x4x3 = A2_20_f32x4x3 * A2_22_f32x4x3 + A2_10_f32x4x3 * A2_12_f32x4x3 +
+                                A2_00_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(0, 2));
+    float32x4_t AA_11_f32x4x3 = A2_21_f32x4x3 * A2_21_f32x4x3 + A2_11_f32x4x3 * A2_11_f32x4x3 +
+                                A2_01_f32x4x3 * A2_01_f32x4x3 + vdupq_n_f32(AA1(1, 1));
+    float32x4_t AA_12_f32x4x3 = A2_21_f32x4x3 * A2_22_f32x4x3 + A2_11_f32x4x3 * A2_12_f32x4x3 +
+                                A2_01_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(1, 2));
+    float32x4_t AA_22_f32x4x3 = A2_22_f32x4x3 * A2_22_f32x4x3 + A2_12_f32x4x3 * A2_12_f32x4x3 +
+                                A2_02_f32x4x3 * A2_02_f32x4x3 + vdupq_n_f32(AA1(2, 2));
 #elif 1
     float32x4_t AA_00_f32x4x3 = AA2_00_f32x4x3 + vdupq_n_f32(AA1(0, 0));
     float32x4_t AA_01_f32x4x3 = AA2_01_f32x4x3 + vdupq_n_f32(AA1(0, 1));
@@ -1821,27 +1660,20 @@ exit(1);
     float32x4_t xyz_1_f32x4x3 = xyz_f32x4x3.val[1];
     float32x4_t xyz_2_f32x4x3 = xyz_f32x4x3.val[2];
 
-    float32x4_t squaredNorm_f32x4x3 = xyz_2_f32x4x3 * xyz_2_f32x4x3 +
-                                      xyz_1_f32x4x3 * xyz_1_f32x4x3 +
-                                      xyz_0_f32x4x3 * xyz_0_f32x4x3;
+    float32x4_t squaredNorm_f32x4x3 =
+        xyz_2_f32x4x3 * xyz_2_f32x4x3 + xyz_1_f32x4x3 * xyz_1_f32x4x3 + xyz_0_f32x4x3 * xyz_0_f32x4x3;
     float32x4_t norm_f32x4x3 = vsqrtq_f32(squaredNorm_f32x4x3);
     float32x4_t idp_f32x4x3 = vdupq_n_f32(1.0f) / norm_f32x4x3;
 
-    float32x4_t v1_0_0_f32x4 = T01_f32x4x3.val[0][2] * v1_2_f32x4 +
-                               T01_f32x4x3.val[0][1] * v1_1_f32x4 +
-                               T01_f32x4x3.val[0][0] * v1_0_f32x4;
-    float32x4_t v1_0_1_f32x4 = T01_f32x4x3.val[1][2] * v1_2_f32x4 +
-                               T01_f32x4x3.val[1][1] * v1_1_f32x4 +
-                               T01_f32x4x3.val[1][0] * v1_0_f32x4;
-    float32x4_t v1_0_2_f32x4 = T01_f32x4x3.val[2][2] * v1_2_f32x4 +
-                               T01_f32x4x3.val[2][1] * v1_1_f32x4 +
-                               T01_f32x4x3.val[2][0] * v1_0_f32x4;
-    float32x4_t cos_theta_f32x4 = v1_0_2_f32x4 * v0_f32x4[2] +
-                                  v1_0_1_f32x4 * v0_f32x4[1] +
-                                  v1_0_0_f32x4 * v0_f32x4[0];
+    float32x4_t v1_0_0_f32x4 =
+        T01_f32x4x3.val[0][2] * v1_2_f32x4 + T01_f32x4x3.val[0][1] * v1_1_f32x4 + T01_f32x4x3.val[0][0] * v1_0_f32x4;
+    float32x4_t v1_0_1_f32x4 =
+        T01_f32x4x3.val[1][2] * v1_2_f32x4 + T01_f32x4x3.val[1][1] * v1_1_f32x4 + T01_f32x4x3.val[1][0] * v1_0_f32x4;
+    float32x4_t v1_0_2_f32x4 =
+        T01_f32x4x3.val[2][2] * v1_2_f32x4 + T01_f32x4x3.val[2][1] * v1_1_f32x4 + T01_f32x4x3.val[2][0] * v1_0_f32x4;
+    float32x4_t cos_theta_f32x4 = v1_0_2_f32x4 * v0_f32x4[2] + v1_0_1_f32x4 * v0_f32x4[1] + v1_0_0_f32x4 * v0_f32x4[0];
 
-    uint32x4_t valid_u32x4 = (xyz_2_f32x4x3 >= vdupq_n_f32(0)) &&
-                             (cos_theta_f32x4 <= vdupq_n_f32(0.99999));
+    uint32x4_t valid_u32x4 = (xyz_2_f32x4x3 >= vdupq_n_f32(0)) && (cos_theta_f32x4 <= vdupq_n_f32(0.99999));
     idp_f32x4x3 = vbslq_f32(valid_u32x4, idp_f32x4x3, vdupq_n_f32(-1));
 
     *p_idp = vgetq_lane_f32(idp_f32x4x3, 0);
@@ -1851,4 +1683,4 @@ exit(1);
 }
 #endif
 
-} // namespace dso
+}  // namespace dso

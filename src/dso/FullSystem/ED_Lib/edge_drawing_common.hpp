@@ -27,43 +27,41 @@ namespace ED {
 #define EAST_EAST 3
 
 // Circular arc, circle thresholds
-#define VERY_SHORT_ARC_ERROR                                                   \
-  0.40 // Used for very short arcs (>= CANDIDATE_CIRCLE_RATIO1 && <
-       // CANDIDATE_CIRCLE_RATIO2)
-#define SHORT_ARC_ERROR                                                        \
-  1.00 // Used for short arcs (>= CANDIDATE_CIRCLE_RATIO2 && <
-       // HALF_CIRCLE_RATIO)
-#define HALF_ARC_ERROR                                                         \
-  1.25 // Used for arcs with length (>=HALF_CIRCLE_RATIO && < FULL_CIRCLE_RATIO)
-#define LONG_ARC_ERROR 1.50 // Used for long arcs (>= FULL_CIRCLE_RATIO)
+#define VERY_SHORT_ARC_ERROR \
+  0.40  // Used for very short arcs (>= CANDIDATE_CIRCLE_RATIO1 && <
+        // CANDIDATE_CIRCLE_RATIO2)
+#define SHORT_ARC_ERROR \
+  1.00                       // Used for short arcs (>= CANDIDATE_CIRCLE_RATIO2 && <
+                             // HALF_CIRCLE_RATIO)
+#define HALF_ARC_ERROR 1.25  // Used for arcs with length (>=HALF_CIRCLE_RATIO && < FULL_CIRCLE_RATIO)
+#define LONG_ARC_ERROR 1.50  // Used for long arcs (>= FULL_CIRCLE_RATIO)
 
-#define CANDIDATE_CIRCLE_RATIO1                                                \
-  0.25 // 25% -- If only 25% of the circle is detected, it may be a candidate
-       // for validation
-#define CANDIDATE_CIRCLE_RATIO2                                                \
-  0.33 // 33% -- If only 33% of the circle is detected, it may be a candidate
-       // for validation
-#define HALF_CIRCLE_RATIO                                                      \
-  0.50 // 50% -- If 50% of a circle is detected at any point during joins, we
-       // immediately make it a candidate
-#define FULL_CIRCLE_RATIO                                                      \
-  0.67 // 67% -- If 67% of the circle is detected, we assume that it is fully
-       // covered
+#define CANDIDATE_CIRCLE_RATIO1 \
+  0.25  // 25% -- If only 25% of the circle is detected, it may be a candidate
+        // for validation
+#define CANDIDATE_CIRCLE_RATIO2 \
+  0.33  // 33% -- If only 33% of the circle is detected, it may be a candidate
+        // for validation
+#define HALF_CIRCLE_RATIO \
+  0.50  // 50% -- If 50% of a circle is detected at any point during joins, we
+        // immediately make it a candidate
+#define FULL_CIRCLE_RATIO \
+  0.67  // 67% -- If 67% of the circle is detected, we assume that it is fully
+        // covered
 
 // Ellipse thresholds
-#define CANDIDATE_ELLIPSE_RATIO                                                \
-  0.50 // 50% -- If 50% of the ellipse is detected, it may be candidate for
-       // validation
-#define ELLIPSE_ERROR                                                          \
-  1.50 // Used for ellipses. (used to be 1.65 for what reason?)
+#define CANDIDATE_ELLIPSE_RATIO \
+  0.50                      // 50% -- If 50% of the ellipse is detected, it may be candidate for
+                            // validation
+#define ELLIPSE_ERROR 1.50  // Used for ellipses. (used to be 1.65 for what reason?)
 #define MAX_GRAD_VALUE 128 * 256
 
 class EdgeDrawingNFALUT {
-public:
+ public:
   EdgeDrawingNFALUT(int size, double _prob, int _w, int _h);
   ~EdgeDrawingNFALUT();
 
-  int *LUT; // look up table
+  int* LUT;  // look up table
   int LUTSize;
 
   double prob;
@@ -72,7 +70,7 @@ public:
   bool checkValidationByNFA(int n, int k);
   static double myAtan2(double yy, double xx);
 
-private:
+ private:
   double nfa(int n, int k);
   static double Comb(double n, double k);
 };
@@ -93,12 +91,10 @@ EdgeDrawingNFALUT::EdgeDrawingNFALUT(int size, double _prob, int _w, int _h) {
       while (j < i) {
         j++;
         ret = nfa(i, j);
-        if (ret <= 1.0)
-          break;
+        if (ret <= 1.0) break;
       }
 
-      if (ret >= 1.0)
-        continue;
+      if (ret >= 1.0) continue;
     }
     LUT[i] = j;
   }
@@ -116,17 +112,15 @@ bool EdgeDrawingNFALUT::checkValidationByNFA(int n, int k) {
 double EdgeDrawingNFALUT::myAtan2(double yy, double xx) {
   double angle = fastAtan2((float)yy, (float)xx);
 
-  if (angle > 180)
-    angle = angle - 180;
+  if (angle > 180) angle = angle - 180;
 
   return angle / 180 * CV_PI;
 }
 
 double EdgeDrawingNFALUT::Comb(double n,
-                               double k) // fast combination computation
+                               double k)  // fast combination computation
 {
-  if (k > n)
-    return 0;
+  if (k > n) return 0;
 
   double r = 1;
   for (double d = 1; d <= k; ++d) {
@@ -139,25 +133,24 @@ double EdgeDrawingNFALUT::Comb(double n,
 double EdgeDrawingNFALUT::nfa(int n, int k) {
   double sum = 0;
   double p = 0.125;
-  for (int i = k; i <= n; i++)
-    sum += Comb(n, i) * pow(p, i) * pow(1 - p, n - i);
+  for (int i = k; i <= n; i++) sum += Comb(n, i) * pow(p, i) * pow(1 - p, n - i);
 
   return sum * w * w * h * h;
 }
 
 struct StackNode {
-  int r, c;   // starting pixel
-  int parent; // parent chain (-1 if no parent)
-  int dir;    // direction where you are supposed to go
+  int r, c;    // starting pixel
+  int parent;  // parent chain (-1 if no parent)
+  int dir;     // direction where you are supposed to go
 };
 
 // Used during Edge Linking
 struct Chain {
-  int dir;         // Direction of the chain
-  int len;         // # of pixels in the chain
-  int parent;      // Parent of this node (-1 if no parent)
-  int children[2]; // Children of this node (-1 if no children)
-  Point *pixels;   // Pointer to the beginning of the pixels array
+  int dir;          // Direction of the chain
+  int len;          // # of pixels in the chain
+  int parent;       // Parent of this node (-1 if no parent)
+  int children[2];  // Children of this node (-1 if no children)
+  Point* pixels;    // Pointer to the beginning of the pixels array
 };
 
 // light weight struct for Start & End coordinates of the line segment
@@ -172,19 +165,18 @@ struct LS {
 };
 
 struct EDLineSegment {
-  double a, b; // y = a + bx (if invert = 0) || x = a + by (if invert = 1)
+  double a, b;  // y = a + bx (if invert = 0) || x = a + by (if invert = 1)
   int invert;
 
-  double sx, sy; // starting x & y coordinates
-  double ex, ey; // ending x & y coordinates
+  double sx, sy;  // starting x & y coordinates
+  double ex, ey;  // ending x & y coordinates
 
-  int segmentNo;       // Edge segment that this line belongs to
-  int firstPixelIndex; // Index of the first pixel within the segment of pixels
-  int len;             // No of pixels making up the line segment
+  int segmentNo;        // Edge segment that this line belongs to
+  int firstPixelIndex;  // Index of the first pixel within the segment of pixels
+  int len;              // No of pixels making up the line segment
 
-  EDLineSegment(double _a, double _b, int _invert, double _sx, double _sy,
-                double _ex, double _ey, int _segmentNo, int _firstPixelIndex,
-                int _len) {
+  EDLineSegment(double _a, double _b, int _invert, double _sx, double _sy, double _ex, double _ey, int _segmentNo,
+                int _firstPixelIndex, int _len) {
     a = _a;
     b = _b;
     invert = _invert;
@@ -225,11 +217,10 @@ struct mEllipse {
 // Ax^2 + Bxy + Cy^2 + Dx + Ey + F = 0
 //
 struct EllipseEquation {
-  double coeff[7]; // coeff[1] = A
+  double coeff[7];  // coeff[1] = A
 
   EllipseEquation() {
-    for (int i = 0; i < 7; i++)
-      coeff[i] = 0;
+    for (int i = 0; i < 7; i++) coeff[i] = 0;
   }
 
   double A() { return coeff[1]; }
@@ -242,47 +233,47 @@ struct EllipseEquation {
 
 // ================================ CIRCLES ================================
 struct Circle {
-  double xc, yc, r;      // Center (xc, yc) & radius.
-  double circleFitError; // circle fit error
-  double coverRatio; // Percentage of the circle covered by the arcs making up
-                     // this circle [0-1]
+  double xc, yc, r;       // Center (xc, yc) & radius.
+  double circleFitError;  // circle fit error
+  double coverRatio;      // Percentage of the circle covered by the arcs making up
+                          // this circle [0-1]
 
   double *x,
-      *y; // Pointers to buffers containing the pixels making up this circle
-  int noPixels; // # of pixels making up this circle
+      *y;        // Pointers to buffers containing the pixels making up this circle
+  int noPixels;  // # of pixels making up this circle
 
   // If this circle is better approximated by an ellipse, we set isEllipse to
   // true & eq contains the ellipse's equation
   EllipseEquation eq;
-  double ellipseFitError; // ellipse fit error
+  double ellipseFitError;  // ellipse fit error
   bool isEllipse;
-  double majorAxisLength; // Length of the major axis
-  double minorAxisLength; // Length of the minor axis
+  double majorAxisLength;  // Length of the major axis
+  double minorAxisLength;  // Length of the minor axis
 };
 
 // ------------------------------------------- ARCS
 // ----------------------------------------------------
 struct MyArc {
-  double xc, yc, r;      // center x, y and radius
-  double circleFitError; // Error during circle fit
+  double xc, yc, r;       // center x, y and radius
+  double circleFitError;  // Error during circle fit
 
-  double sTheta, eTheta; // Start & end angle in radius
-  double coverRatio; // Ratio of the pixels covered on the covering circle [0-1]
-                     // (noPixels/circumference)
+  double sTheta, eTheta;  // Start & end angle in radius
+  double coverRatio;      // Ratio of the pixels covered on the covering circle [0-1]
+                          // (noPixels/circumference)
 
-  int turn; // Turn direction: 1 or -1
+  int turn;  // Turn direction: 1 or -1
 
-  int segmentNo; // SegmentNo where this arc belongs
+  int segmentNo;  // SegmentNo where this arc belongs
 
-  int sx, sy; // Start (x, y) coordinate
-  int ex, ey; // End (x, y) coordinate of the arc
+  int sx, sy;  // Start (x, y) coordinate
+  int ex, ey;  // End (x, y) coordinate of the arc
 
-  double *x, *y; // Pointer to buffer containing the pixels making up this arc
-  int noPixels;  // # of pixels making up the arc
+  double *x, *y;  // Pointer to buffer containing the pixels making up this arc
+  int noPixels;   // # of pixels making up the arc
 
-  bool isEllipse;         // Did we fit an ellipse to this arc?
-  EllipseEquation eq;     // If an ellipse, then the ellipse's equation
-  double ellipseFitError; // Error during ellipse fit
+  bool isEllipse;          // Did we fit an ellipse to this arc?
+  EllipseEquation eq;      // If an ellipse, then the ellipse's equation
+  double ellipseFitError;  // Error during ellipse fit
 };
 
 // =============================== EdgeDrawingAngleSet
@@ -301,15 +292,15 @@ inline double ArcLength(double sTheta, double eTheta) {
 struct EdgeDrawingAngleSetArc {
   double sTheta;
   double eTheta;
-  int next; // Next EdgeDrawingAngleSetArc in the linked list
+  int next;  // Next EdgeDrawingAngleSetArc in the linked list
 };
 
 struct EdgeDrawingAngleSet {
   EdgeDrawingAngleSetArc angles[360];
   int head;
-  int next;             // Next EdgeDrawingAngleSetArc to be allocated
-  double overlapAmount; // Total overlap of the arcs in angleSet. Computed
-                        // during set() function
+  int next;              // Next EdgeDrawingAngleSetArc to be allocated
+  double overlapAmount;  // Total overlap of the arcs in angleSet. Computed
+                         // during set() function
 
   EdgeDrawingAngleSet() { clear(); }
   void clear() {
@@ -325,7 +316,7 @@ struct EdgeDrawingAngleSet {
   double _overlap(double sTheta, double eTheta);
   double overlap(double sTheta, double eTheta);
 
-  void computeStartEndTheta(double &sTheta, double &eTheta);
+  void computeStartEndTheta(double& sTheta, double& eTheta);
   double coverRatio();
 };
 
@@ -389,10 +380,8 @@ void EdgeDrawingAngleSet::_set(double sTheta, double eTheta) {
       }
 
       // Now join current with arc
-      if (angles[current].sTheta < angles[arc].sTheta)
-        angles[arc].sTheta = angles[current].sTheta;
-      if (angles[current].eTheta > angles[arc].eTheta)
-        angles[arc].eTheta = angles[current].eTheta;
+      if (angles[current].sTheta < angles[arc].sTheta) angles[arc].sTheta = angles[current].sTheta;
+      if (angles[current].eTheta > angles[arc].eTheta) angles[arc].eTheta = angles[current].eTheta;
       current = angles[current].next;
     }
   }
@@ -445,7 +434,7 @@ double EdgeDrawingAngleSet::overlap(double sTheta, double eTheta) {
   return o / ArcLength(sTheta, eTheta);
 }
 
-void EdgeDrawingAngleSet::computeStartEndTheta(double &sTheta, double &eTheta) {
+void EdgeDrawingAngleSet::computeStartEndTheta(double& sTheta, double& eTheta) {
   // Special case: Just one arc
   if (angles[head].next < 0) {
     sTheta = angles[head].sTheta;
@@ -466,8 +455,7 @@ void EdgeDrawingAngleSet::computeStartEndTheta(double &sTheta, double &eTheta) {
   while (1) {
     current = nextArc;
     nextArc = angles[nextArc].next;
-    if (nextArc < 0)
-      break;
+    if (nextArc < 0) break;
 
     start = angles[current].eTheta;
     end = angles[nextArc].sTheta;
@@ -504,10 +492,10 @@ double EdgeDrawingAngleSet::coverRatio() {
 }
 
 struct EDArcs {
-  MyArc *arcs;
+  MyArc* arcs;
   int noArcs;
 
-public:
+ public:
   EDArcs(int size = 10000) {
     arcs = new MyArc[size];
     noArcs = 0;
@@ -531,16 +519,16 @@ struct BufferManager {
     delete[] y;
   }
 
-  double *getX() { return &x[index]; }
-  double *getY() { return &y[index]; }
+  double* getX() { return &x[index]; }
+  double* getY() { return &y[index]; }
   void move(int size) { index += size; }
 };
 
 struct Info {
-  int sign;     // -1 or 1: sign of the cross product
-  double angle; // angle with the next line (in radians)
-  bool taken;   // Is this line taken during arc detection
+  int sign;      // -1 or 1: sign of the cross product
+  double angle;  // angle with the next line (in radians)
+  bool taken;    // Is this line taken during arc detection
 };
-} // namespace ED
-} // namespace dso
+}  // namespace ED
+}  // namespace dso
 #endif

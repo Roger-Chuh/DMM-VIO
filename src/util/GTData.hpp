@@ -32,20 +32,19 @@
 
 namespace dmvio {
 class GTData {
-public:
+ public:
   inline GTData() {}
 
-  inline GTData(Sophus::SE3 pose, Eigen::Vector3d velocity,
-                Eigen::Vector3d biasRotation, Eigen::Vector3d biasTranslation)
-      : pose(pose), velocity(velocity), biasRotation(biasRotation),
-        biasTranslation(biasTranslation) {}
+  inline GTData(Sophus::SE3 pose, Eigen::Vector3d velocity, Eigen::Vector3d biasRotation,
+                Eigen::Vector3d biasTranslation)
+      : pose(pose), velocity(velocity), biasRotation(biasRotation), biasTranslation(biasTranslation) {}
 
   Sophus::SE3 pose;
-  Eigen::Vector3d velocity; // Note: velocities might be in the vicon frame
-                            // instead of the world frame...
+  Eigen::Vector3d velocity;  // Note: velocities might be in the vicon frame
+                             // instead of the world frame...
   Eigen::Vector3d biasRotation;
   Eigen::Vector3d biasTranslation;
 };
-} // namespace dmvio
+}  // namespace dmvio
 
 #endif /* GTData_hpp */

@@ -7,7 +7,7 @@
 #include "include/ed.hpp"
 #include <iostream>
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   // check input
   // if(argc != 2)
   //    {

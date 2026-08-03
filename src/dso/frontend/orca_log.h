@@ -32,12 +32,12 @@ enum LogLevel {
 };
 
 class ILOG {
-public:
-  ILOG(bool output, int log_level, const std::string &tag)
+ public:
+  ILOG(bool output, int log_level, const std::string& tag)
       : output_log(output), level(log_level), tag(tag), return_str(false) {}
 
   // Debug log, 既写到内存里 也输入到logcat
-  std::string Debug(const char *format, ...) {
+  std::string Debug(const char* format, ...) {
     if (!output_log || level > Debug_) {
       return "";
     }
@@ -48,8 +48,7 @@ public:
     va_list ap;
     va_start(ap, format);
     char buffFormat[size];
-    int nformatData =
-        vsnprintf(buffFormat, sizeof(buffFormat), (const char *)format, ap);
+    int nformatData = vsnprintf(buffFormat, sizeof(buffFormat), (const char*)format, ap);
     int n = snprintf(buffer, sizeof(buffer) - 1, "%s", buffFormat);
     va_end(ap);
 
@@ -71,7 +70,7 @@ public:
   }
 
   // Info log, 既写到内存里 也输入到logcat
-  std::string Info(const char *format, ...) {
+  std::string Info(const char* format, ...) {
     if (!output_log || level > Info_) {
       return "";
     }
@@ -82,8 +81,7 @@ public:
     va_list ap;
     va_start(ap, format);
     char buffFormat[size];
-    int nformatData =
-        vsnprintf(buffFormat, sizeof(buffFormat), (const char *)format, ap);
+    int nformatData = vsnprintf(buffFormat, sizeof(buffFormat), (const char*)format, ap);
     int n = snprintf(buffer, sizeof(buffer) - 1, "%s", buffFormat);
     va_end(ap);
 
@@ -111,7 +109,7 @@ public:
   }
 
   // Warn log, 既写到内存里 也输入到logcat
-  std::string Warn(const char *format, ...) {
+  std::string Warn(const char* format, ...) {
     if (!output_log || level > Warn_) {
       return "";
     }
@@ -122,8 +120,7 @@ public:
     va_list ap;
     va_start(ap, format);
     char buffFormat[size];
-    int nformatData =
-        vsnprintf(buffFormat, sizeof(buffFormat), (const char *)format, ap);
+    int nformatData = vsnprintf(buffFormat, sizeof(buffFormat), (const char*)format, ap);
     int n = snprintf(buffer, sizeof(buffer) - 1, "%s", buffFormat);
     va_end(ap);
 
@@ -149,7 +146,7 @@ public:
   }
 
   // Error log, 既写到内存里 也输入到logcat
-  std::string Error(const char *format, ...) {
+  std::string Error(const char* format, ...) {
     if (!output_log || level > Error_) {
       return "";
     }
@@ -160,8 +157,7 @@ public:
     va_list ap;
     va_start(ap, format);
     char buffFormat[size];
-    int nformatData =
-        vsnprintf(buffFormat, sizeof(buffFormat), (const char *)format, ap);
+    int nformatData = vsnprintf(buffFormat, sizeof(buffFormat), (const char*)format, ap);
     int n = snprintf(buffer, sizeof(buffer) - 1, "%s", buffFormat);
     va_end(ap);
 
@@ -199,7 +195,7 @@ public:
 
   void SetBufferMode(bool value) { return_str = value; }
 
-private:
+ private:
   // output log flag
   bool output_log;
   // output log level
@@ -214,4 +210,4 @@ extern ILOG LOG_Calib;
 extern ILOG LOG_FrontEnd;
 extern ILOG LOG_SCMBT;
 
-} // namespace dso
+}  // namespace dso

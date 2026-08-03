@@ -19,16 +19,14 @@ NFALUT::NFALUT(int size, double _prob, double _logNT) {
       while (j < i) {
         j++;
         ret = nfa(i, j);
-        if (ret >= 0)
-          break;
-      } // end-while
+        if (ret >= 0) break;
+      }  // end-while
 
-      if (ret < 0)
-        continue;
-    } // end-if
+      if (ret < 0) continue;
+    }  // end-if
 
     LUT[i] = j;
-  } // end-for
+  }  // end-for
 }
 
 NFALUT::~NFALUT() { delete[] LUT; }
@@ -46,10 +44,10 @@ double NFALUT::myAtan2(double yy, double xx) {
   if (!tableInited) {
     for (int i = 0; i <= MAX_LUT_SIZE; i++) {
       LUT[i] = atan((double)i / MAX_LUT_SIZE);
-    } // end-for
+    }  // end-for
 
     tableInited = true;
-  } // end-if
+  }  // end-if
 
   double y = fabs(yy);
   double x = fabs(xx);
@@ -60,10 +58,10 @@ double NFALUT::myAtan2(double yy, double xx) {
     x = y;
     y = t;
     invert = true;
-  } // end-if
+  }  // end-if
 
   double ratio;
-  if (x == 0) // avoid division error
+  if (x == 0)  // avoid division error
     x = 0.000001;
 
   ratio = y / x;
@@ -73,8 +71,7 @@ double NFALUT::myAtan2(double yy, double xx) {
   if (xx >= 0) {
     if (yy >= 0) {
       // I. quadrant
-      if (invert)
-        angle = M_PI / 2 - angle;
+      if (invert) angle = M_PI / 2 - angle;
 
     } else {
       // IV. quadrant
@@ -82,7 +79,7 @@ double NFALUT::myAtan2(double yy, double xx) {
         angle = M_PI - angle;
       else
         angle = M_PI / 2 + angle;
-    } // end-else
+    }  // end-else
 
   } else {
     if (yy >= 0) {
@@ -94,10 +91,9 @@ double NFALUT::myAtan2(double yy, double xx) {
 
     } else {
       /// III. quadrant
-      if (invert)
-        angle = M_PI / 2 - angle;
-    } // end-else
-  }   // end-else
+      if (invert) angle = M_PI / 2 - angle;
+    }  // end-else
+  }    // end-else
 
   return angle;
 }
@@ -109,14 +105,11 @@ double NFALUT::nfa(int n, int k) {
   int i;
 
   /* check parameters */
-  if (n < 0 || k < 0 || k > n || prob <= 0.0 || prob >= 1.0)
-    return -1.0;
+  if (n < 0 || k < 0 || k > n || prob <= 0.0 || prob >= 1.0) return -1.0;
 
   /* trivial cases */
-  if (n == 0 || k == 0)
-    return -logNT;
-  if (n == k)
-    return -logNT - (double)n * log10(prob);
+  if (n == 0 || k == 0) return -logNT;
+  if (n == k) return -logNT - (double)n * log10(prob);
 
   /* probability term */
   p_term = prob / (1.0 - prob);
@@ -129,9 +122,8 @@ double NFALUT::nfa(int n, int k) {
   bincoef(n,k) = gamma(n+1) / ( gamma(k+1) * gamma(n-k+1) ).
   We use this to compute the first term. Actually the log of it.
   */
-  log1term = log_gamma((double)n + 1.0) - log_gamma((double)k + 1.0) -
-             log_gamma((double)(n - k) + 1.0) + (double)k * log(prob) +
-             (double)(n - k) * log(1.0 - prob);
+  log1term = log_gamma((double)n + 1.0) - log_gamma((double)k + 1.0) - log_gamma((double)(n - k) + 1.0) +
+             (double)k * log(prob) + (double)(n - k) * log(1.0 - prob);
   term = exp(log1term);
 
   /* in some cases no more computations are needed */
@@ -159,9 +151,7 @@ double NFALUT::nfa(int n, int k) {
     p/(1-p) is computed only once and stored in 'p_term'.
     */
     bin_term =
-        (double)(n - i + 1) *
-        (i < TABSIZE ? (inv[i] != 0.0 ? inv[i] : (inv[i] = 1.0 / (double)i))
-                     : 1.0 / (double)i);
+        (double)(n - i + 1) * (i < TABSIZE ? (inv[i] != 0.0 ? inv[i] : (inv[i] = 1.0 / (double)i)) : 1.0 / (double)i);
 
     mult_term = bin_term * p_term;
     term *= mult_term;
@@ -172,9 +162,7 @@ double NFALUT::nfa(int n, int k) {
       Then, the error on the binomial tail when truncated at
       the i term can be bounded by a geometric series of form
       term_i * sum mult_term_i^j.                            */
-      err = term *
-            ((1.0 - pow(mult_term, (double)(n - i + 1))) / (1.0 - mult_term) -
-             1.0);
+      err = term * ((1.0 - pow(mult_term, (double)(n - i + 1))) / (1.0 - mult_term) - 1.0);
 
       /* One wants an error at most of tolerance*final_result, or:
       tolerance * abs(-log10(bin_tail)-logNT).
@@ -184,18 +172,16 @@ double NFALUT::nfa(int n, int k) {
       tolerance * abs(-log10(bin_tail)-logNT) / (1/bin_tail)
       Finally, we truncate the tail if the error is less than:
       tolerance * abs(-log10(bin_tail)-logNT) * bin_tail        */
-      if (err < tolerance * fabs(-log10(bin_tail) - logNT) * bin_tail)
-        break;
-    } // end-if
-  }   // end-for
+      if (err < tolerance * fabs(-log10(bin_tail) - logNT) * bin_tail) break;
+    }  // end-if
+  }    // end-for
 
   return -log10(bin_tail) - logNT;
 }
 
 double NFALUT::log_gamma_lanczos(double x) {
-  static double q[7] = {75122.6331530, 80916.6278952, 36308.2951477,
-                        8687.24529705, 1168.92649479, 83.8676043424,
-                        2.50662827511};
+  static double q[7] = {75122.6331530, 80916.6278952, 36308.2951477, 8687.24529705,
+                        1168.92649479, 83.8676043424, 2.50662827511};
   double a = (x + 0.5) * log(x + 5.5) - (x + 5.5);
   double b = 0.0;
   int n;
@@ -208,20 +194,16 @@ double NFALUT::log_gamma_lanczos(double x) {
 }
 
 double NFALUT::log_gamma_windschitl(double x) {
-  return 0.918938533204673 + (x - 0.5) * log(x) - x +
-         0.5 * x * log(x * sinh(1 / x) + 1 / (810.0 * pow(x, 6.0)));
+  return 0.918938533204673 + (x - 0.5) * log(x) - x + 0.5 * x * log(x * sinh(1 / x) + 1 / (810.0 * pow(x, 6.0)));
 }
 
-double NFALUT::log_gamma(double x) {
-  return x > 15 ? log_gamma_windschitl(x) : log_gamma_lanczos(x);
-}
+double NFALUT::log_gamma(double x) { return x > 15 ? log_gamma_windschitl(x) : log_gamma_lanczos(x); }
 
 int NFALUT::double_equal(double a, double b) {
   double abs_diff, aa, bb, abs_max;
 
   /* trivial case */
-  if (a == b)
-    return TRUE;
+  if (a == b) return TRUE;
 
   abs_diff = fabs(a - b);
   aa = fabs(a);
@@ -233,11 +215,10 @@ int NFALUT::double_equal(double a, double b) {
   smaller numbers, the same quantization steps as for DBL_MIN
   are used. Then, for smaller numbers, a meaningful "relative"
   error should be computed by dividing the difference by DBL_MIN. */
-  if (abs_max < DBL_MIN)
-    abs_max = DBL_MIN;
+  if (abs_max < DBL_MIN) abs_max = DBL_MIN;
 
   /* equal if relative error <= factor x eps */
   return (abs_diff / abs_max) <= (RELATIVE_ERROR_FACTOR * DBL_EPSILON);
 }
-} // namespace ED
-} // namespace dso
+}  // namespace ED
+}  // namespace dso

@@ -13,19 +13,18 @@ namespace dso {
 namespace AprilTags {
 
 class TagDetector {
-public:
+ public:
   const TagFamily thisTagFamily;
 
   //! Constructor
   // note: TagFamily is instantiated here from TagCodes
-  TagDetector(const TagCodes &tagCodes, const size_t blackBorder = 2)
-      : thisTagFamily(tagCodes, blackBorder) {}
+  TagDetector(const TagCodes& tagCodes, const size_t blackBorder = 2) : thisTagFamily(tagCodes, blackBorder) {}
 
-  std::vector<TagDetection> extractTags(const cv::Mat &image) const;
+  std::vector<TagDetection> extractTags(const cv::Mat& image) const;
 };
 
-} // namespace AprilTags
+}  // namespace AprilTags
 
-} // namespace dso
+}  // namespace dso
 
 #endif

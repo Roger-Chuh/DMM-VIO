@@ -56,7 +56,7 @@ TEST(TestIMUInterpolator, SimpleTest) {
   EXPECT_EQ(imuData.size(), 3);
 
   // ensure that all measurements have valid acc and gyr data.
-  for (auto &&data : imuData) {
+  for (auto&& data : imuData) {
     EXPECT_TRUE(data.getAccData().size() > 0);
     EXPECT_TRUE(data.getAccData().size() > 0);
   }
@@ -110,7 +110,7 @@ TEST(TestIMUInterpolator, ProblematicInputOrders) {
   EXPECT_EQ(imuData[1].getIntegrationTime(), 2);
 }
 
-void addEmptyFrame(IMUInterpolator &imuInt, double time, float imuData) {
+void addEmptyFrame(IMUInterpolator& imuInt, double time, float imuData) {
   imuInt.addAccData({imuData, imuData, imuData}, time);
   imuInt.addGyrData({imuData, imuData, imuData}, time);
   imuInt.addImage(std::make_unique<dso::ImageAndExposure>(0, 0, time), time);
@@ -125,7 +125,7 @@ TEST(TestIMUInterpolator, TestFrameSkipping) {
 
   addEmptyFrame(imuInt, 1.0, 1.0);
   addEmptyFrame(imuInt, 2.0, 2.0);
-  auto &&pair = frameContainer.getImageAndIMUData(10);
+  auto&& pair = frameContainer.getImageAndIMUData(10);
   EXPECT_EQ(pair.first->timestamp, 2.0);
 
   addEmptyFrame(imuInt, 3.0, 3.0);
@@ -166,7 +166,7 @@ TEST(TestIMUInterpolator, TestNoPrevAccData) {
   imuInt.addAccData({4, 4, 4}, 3.5);
   imuInt.addGyrData({4, 4, 4}, 3.5);
 
-  auto pair = frameContainer.getImageAndIMUData(0); // don't skip frames.
+  auto pair = frameContainer.getImageAndIMUData(0);  // don't skip frames.
 
   // Note that the IMU data of the first frame is not used (as there is no
   // previous frame), but we test it anyway.

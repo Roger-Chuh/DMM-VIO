@@ -59,4 +59,4 @@
 #include "toml11/visit.hpp"
 // IWYU pragma: end_exports
 
-#endif // TOML11_TOML_HPP
+#endif  // TOML11_TOML_HPP

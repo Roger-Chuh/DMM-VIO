@@ -28,24 +28,23 @@
 
 namespace dmvio {
 class IMUMeasurement {
-public:
-  IMUMeasurement(const Eigen::Vector3d &accData, const Eigen::Vector3d &gyrData,
-                 double integrationTime);
+ public:
+  IMUMeasurement(const Eigen::Vector3d& accData, const Eigen::Vector3d& gyrData, double integrationTime);
 
-  const Eigen::Vector3d &getAccData() const;
+  const Eigen::Vector3d& getAccData() const;
 
-  const Eigen::Vector3d &getGyrData() const;
+  const Eigen::Vector3d& getGyrData() const;
 
   double getIntegrationTime() const;
 
-private:
+ private:
   Eigen::Vector3d accData{};
   Eigen::Vector3d gyrData{};
   int64_t timestamp_ns;
-  double integrationTime; // time between this and previous IMU measurement.
+  double integrationTime;  // time between this and previous IMU measurement.
 };
 
 typedef std::vector<IMUMeasurement> IMUData;
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_IMUTYPES_H
+#endif  // DMVIO_IMUTYPES_H

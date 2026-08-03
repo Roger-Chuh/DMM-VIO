@@ -24,7 +24,7 @@ namespace ED {
  */
 
 class CV_EXPORTS_W EdgeDrawing : public Algorithm {
-public:
+ public:
   enum GradientOperator { PREWITT = 0, SOBEL = 1, SCHARR = 2, LSD = 3 };
 
   struct CV_EXPORTS_W_SIMPLE Params {
@@ -68,8 +68,8 @@ public:
     //! Default value is 1.3
     CV_PROP_RW double MaxErrorThreshold;
 
-    void read(const FileNode &fn);
-    void write(FileStorage &fs) const;
+    void read(const FileNode& fn);
+    void write(FileStorage& fs) const;
   };
 
   /** @brief Detects edges in a grayscale image and prepares them to detect
@@ -125,7 +125,7 @@ public:
   than c++ like python.
   @param parameters
   */
-  CV_WRAP void setParams(const EdgeDrawing::Params &parameters);
+  CV_WRAP void setParams(const EdgeDrawing::Params& parameters);
   virtual ~EdgeDrawing() {}
 };
 
@@ -136,6 +136,6 @@ CV_EXPORTS_W Ptr<EdgeDrawing> createEdgeDrawing();
 
 //     }
 // }
-} // namespace ED
-} // namespace dso
+}  // namespace ED
+}  // namespace dso
 #endif /* DMVIO_EDGE_DRAWING_HPP__ */

@@ -5,15 +5,12 @@ namespace dso {
 using namespace cv;
 using namespace std;
 
-ED::ED(Mat _srcImage, GradientOperator _op, int _gradThresh, int _anchorThresh,
-       int _scanInterval, int _minPathLen, number_t _sigma, bool _sumFlag) {
+ED::ED(Mat _srcImage, GradientOperator _op, int _gradThresh, int _anchorThresh, int _scanInterval, int _minPathLen,
+       number_t _sigma, bool _sumFlag) {
   // Check parameters for sanity
-  if (_gradThresh < 1)
-    _gradThresh = 1;
-  if (_anchorThresh < 0)
-    _anchorThresh = 0;
-  if (_sigma < 1.0)
-    _sigma = 1.0;
+  if (_gradThresh < 1) _gradThresh = 1;
+  if (_anchorThresh < 0) _anchorThresh = 0;
+  if (_sigma < 1.0) _sigma = 1.0;
 
   srcImage = _srcImage;
 
@@ -29,12 +26,11 @@ ED::ED(Mat _srcImage, GradientOperator _op, int _gradThresh, int _anchorThresh,
   sumFlag = _sumFlag;
 
   segmentNos = 0;
-  segmentPoints.push_back(
-      vector<Point>()); // create empty vector of points for segments
+  segmentPoints.push_back(vector<Point>());  // create empty vector of points for segments
 
-  edgeImage = Mat(height, width, CV_8UC1, Scalar(0)); // initialize edge Image
+  edgeImage = Mat(height, width, CV_8UC1, Scalar(0));  // initialize edge Image
   smoothImage = Mat(height, width, CV_8UC1);
-  gradImage = Mat(height, width, CV_16SC1); // gradImage contains short values
+  gradImage = Mat(height, width, CV_16SC1);  // gradImage contains short values
 
   srcImg = srcImage.data;
 
@@ -45,11 +41,11 @@ ED::ED(Mat _srcImage, GradientOperator _op, int _gradThresh, int _anchorThresh,
     GaussianBlur(srcImage, smoothImage, Size(5, 5), sigma);
   else
     GaussianBlur(srcImage, smoothImage, Size(),
-                 sigma); // calculate kernel from sigma
+                 sigma);  // calculate kernel from sigma
 
   // Assign Pointers from Mat's data
   smoothImg = smoothImage.data;
-  gradImg = (short *)gradImage.data;
+  gradImg = (short*)gradImage.data;
   edgeImg = edgeImage.data;
 
   dirImg = new unsigned char[width * height];
@@ -73,8 +69,7 @@ Mat ED::getAnchorImage() {
 
   std::vector<Point>::iterator it;
 
-  for (it = anchorPoints.begin(); it != anchorPoints.end(); it++)
-    anchorImage.at<uchar>(*it) = 255;
+  for (it = anchorPoints.begin(); it != anchorPoints.end(); it++) anchorImage.at<uchar>(*it) = 255;
 
   return anchorImage;
 }
@@ -99,9 +94,7 @@ std::vector<std::vector<Point>> ED::getSegments() { return segmentPoints; }
 std::vector<std::vector<Point>> ED::getSortedSegments() {
   // sort segments from largest to smallest
   std::sort(segmentPoints.begin(), segmentPoints.end(),
-            [](const std::vector<Point> &a, const std::vector<Point> &b) {
-              return a.size() > b.size();
-            });
+            [](const std::vector<Point>& a, const std::vector<Point>& b) { return a.size() > b.size(); });
 
   return segmentPoints;
 }
@@ -113,8 +106,7 @@ Mat ED::drawParticularSegments(std::vector<int> list) {
   std::vector<int>::iterator itInt;
 
   for (itInt = list.begin(); itInt != list.end(); itInt++)
-    for (it = segmentPoints[*itInt].begin(); it != segmentPoints[*itInt].end();
-         it++)
+    for (it = segmentPoints[*itInt].begin(); it != segmentPoints[*itInt].end(); it++)
       segmentsImage.at<uchar>(*it) = 255;
 
   return segmentsImage;
@@ -173,48 +165,35 @@ void ED::ComputeGradient() {
       // Then: gx = com1 + com2 = (D-A) + (B-C) = (B-A) + (D-C)
       //       gy = com1 - com2 = (D-A) - (B-C) = (C-A) + (D-B)
 
-      int com1 = smoothImg[(i + 1) * width + j + 1] -
-                 smoothImg[(i - 1) * width + j - 1];
-      int com2 = smoothImg[(i - 1) * width + j + 1] -
-                 smoothImg[(i + 1) * width + j - 1];
+      int com1 = smoothImg[(i + 1) * width + j + 1] - smoothImg[(i - 1) * width + j - 1];
+      int com2 = smoothImg[(i - 1) * width + j + 1] - smoothImg[(i + 1) * width + j - 1];
 
       int gx;
       int gy;
 
       switch (op) {
-      default:
-      case PREWITT_OPERATOR:
-        gx = abs(com1 + com2 +
-                 (smoothImg[i * width + j + 1] - smoothImg[i * width + j - 1]));
-        gy = abs(
-            com1 - com2 +
-            (smoothImg[(i + 1) * width + j] - smoothImg[(i - 1) * width + j]));
-        break;
-      case SOBEL_OPERATOR:
-        gx = abs(
-            com1 + com2 +
-            2 * (smoothImg[i * width + j + 1] - smoothImg[i * width + j - 1]));
-        gy = abs(com1 - com2 +
-                 2 * (smoothImg[(i + 1) * width + j] -
-                      smoothImg[(i - 1) * width + j]));
-        break;
-      case SCHARR_OPERATOR:
-        gx = abs(3 * (com1 + com2) + 10 * (smoothImg[i * width + j + 1] -
-                                           smoothImg[i * width + j - 1]));
-        gy = abs(3 * (com1 - com2) + 10 * (smoothImg[(i + 1) * width + j] -
-                                           smoothImg[(i - 1) * width + j]));
-        break;
-      case LSD_OPERATOR:
-        // com1 and com2 differs from previous operators, because LSD has 2x2
-        // kernel
-        int com1 =
-            smoothImg[(i + 1) * width + j + 1] - smoothImg[i * width + j];
-        int com2 =
-            smoothImg[i * width + j + 1] - smoothImg[(i + 1) * width + j];
+        default:
+        case PREWITT_OPERATOR:
+          gx = abs(com1 + com2 + (smoothImg[i * width + j + 1] - smoothImg[i * width + j - 1]));
+          gy = abs(com1 - com2 + (smoothImg[(i + 1) * width + j] - smoothImg[(i - 1) * width + j]));
+          break;
+        case SOBEL_OPERATOR:
+          gx = abs(com1 + com2 + 2 * (smoothImg[i * width + j + 1] - smoothImg[i * width + j - 1]));
+          gy = abs(com1 - com2 + 2 * (smoothImg[(i + 1) * width + j] - smoothImg[(i - 1) * width + j]));
+          break;
+        case SCHARR_OPERATOR:
+          gx = abs(3 * (com1 + com2) + 10 * (smoothImg[i * width + j + 1] - smoothImg[i * width + j - 1]));
+          gy = abs(3 * (com1 - com2) + 10 * (smoothImg[(i + 1) * width + j] - smoothImg[(i - 1) * width + j]));
+          break;
+        case LSD_OPERATOR:
+          // com1 and com2 differs from previous operators, because LSD has 2x2
+          // kernel
+          int com1 = smoothImg[(i + 1) * width + j + 1] - smoothImg[i * width + j];
+          int com2 = smoothImg[i * width + j + 1] - smoothImg[(i + 1) * width + j];
 
-        gx = abs(com1 + com2);
-        gy = abs(com1 - com2);
-        break;
+          gx = abs(com1 + com2);
+          gy = abs(com1 - com2);
+          break;
       }
 
       int sum;
@@ -232,9 +211,9 @@ void ED::ComputeGradient() {
           dirImg[index] = EDGE_VERTICAL;
         else
           dirImg[index] = EDGE_HORIZONTAL;
-      } // end-if
-    }   // end-for
-  }     // end-for
+      }  // end-if
+    }    // end-for
+  }      // end-for
 }
 
 void ED::ComputeAnchorPoints() {
@@ -248,8 +227,7 @@ void ED::ComputeAnchorPoints() {
     }
 
     for (int j = start; j < width - 2; j += inc) {
-      if (gradImg[i * width + j] < gradThresh)
-        continue;
+      if (gradImg[i * width + j] < gradThresh) continue;
 
       if (dirImg[i * width + j] == EDGE_VERTICAL) {
         // vertical edge
@@ -268,22 +246,22 @@ void ED::ComputeAnchorPoints() {
           edgeImg[i * width + j] = ANCHOR_PIXEL;
           anchorPoints.push_back(Point(j, i));
         }
-      } // end-else
-    }   // end-for-inner
-  }     // end-for-outer
+      }  // end-else
+    }    // end-for-inner
+  }      // end-for-outer
 
-  anchorNos = anchorPoints.size(); // get the total number of anchor points
+  anchorNos = anchorPoints.size();  // get the total number of anchor points
 }
 
 void ED::JoinAnchorPointsUsingSortedAnchors() {
-  int *chainNos = new int[(width + height) * 8];
+  int* chainNos = new int[(width + height) * 8];
 
-  Point *pixels = new Point[width * height];
-  StackNode *stack = new StackNode[width * height];
-  Chain *chains = new Chain[width * height];
+  Point* pixels = new Point[width * height];
+  StackNode* stack = new StackNode[width * height];
+  Chain* chains = new Chain[width * height];
 
   // sort the anchor points by their gradient value in decreasing order
-  int *A = sortAnchorsByGradValue1();
+  int* A = sortAnchorsByGradValue1();
 
   // Now join the anchors starting with the anchor having the greatest gradient
   // value int totalPixels = 0;
@@ -297,8 +275,7 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
     // int i = anchorPoints[k].y;
     // int j = anchorPoints[k].x;
 
-    if (edgeImg[i * width + j] != ANCHOR_PIXEL)
-      continue;
+    if (edgeImg[i * width + j] != ANCHOR_PIXEL) continue;
 
     chains[0].len = 0;
     chains[0].parent = -1;
@@ -309,7 +286,7 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
     int noChains = 1;
     int len = 0;
     int duplicatePixelCount = 0;
-    int top = -1; // top of the stack
+    int top = -1;  // top of the stack
 
     if (dirImg[i * width + j] == EDGE_VERTICAL) {
       stack[++top].r = i;
@@ -332,7 +309,7 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
       stack[top].c = j;
       stack[top].dir = LEFT;
       stack[top].parent = 0;
-    } // end-else
+    }  // end-else
 
     // While the stack is not empty
   StartOfWhile:
@@ -343,10 +320,9 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
       int parent = stack[top].parent;
       top--;
 
-      if (edgeImg[r * width + c] != EDGE_PIXEL)
-        duplicatePixelCount++;
+      if (edgeImg[r * width + c] != EDGE_PIXEL) duplicatePixelCount++;
 
-      chains[noChains].dir = dir; // traversal direction
+      chains[noChains].dir = dir;  // traversal direction
       chains[noChains].parent = parent;
       chains[noChains].children[0] = chains[noChains].children[1] = -1;
 
@@ -370,10 +346,8 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
           //   C
           //
           // cleanup up & down pixels
-          if (edgeImg[(r - 1) * width + c] == ANCHOR_PIXEL)
-            edgeImg[(r - 1) * width + c] = 0;
-          if (edgeImg[(r + 1) * width + c] == ANCHOR_PIXEL)
-            edgeImg[(r + 1) * width + c] = 0;
+          if (edgeImg[(r - 1) * width + c] == ANCHOR_PIXEL) edgeImg[(r - 1) * width + c] = 0;
+          if (edgeImg[(r + 1) * width + c] == ANCHOR_PIXEL) edgeImg[(r + 1) * width + c] = 0;
 
           // Look if there is an edge pixel in the neighbors
           if (edgeImg[r * width + c - 1] >= ANCHOR_PIXEL) {
@@ -398,23 +372,22 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
             } else if (C > B)
               r++;
             c--;
-          } // end-else
+          }  // end-else
 
-          if (edgeImg[r * width + c] == EDGE_PIXEL ||
-              gradImg[r * width + c] < gradThresh) {
+          if (edgeImg[r * width + c] == EDGE_PIXEL || gradImg[r * width + c] < gradThresh) {
             if (chainLen > 0) {
               chains[noChains].len = chainLen;
               chains[parent].children[0] = noChains;
               noChains++;
-            } // end-if
+            }  // end-if
             goto StartOfWhile;
-          } // end-else
+          }  // end-else
 
           pixels[len].y = r;
           pixels[len].x = c;
           len++;
           chainLen++;
-        } // end-while
+        }  // end-while
 
         stack[++top].r = r;
         stack[top].c = c;
@@ -444,10 +417,8 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
           //     C
           //
           // cleanup up&down pixels
-          if (edgeImg[(r + 1) * width + c] == ANCHOR_PIXEL)
-            edgeImg[(r + 1) * width + c] = 0;
-          if (edgeImg[(r - 1) * width + c] == ANCHOR_PIXEL)
-            edgeImg[(r - 1) * width + c] = 0;
+          if (edgeImg[(r + 1) * width + c] == ANCHOR_PIXEL) edgeImg[(r + 1) * width + c] = 0;
+          if (edgeImg[(r - 1) * width + c] == ANCHOR_PIXEL) edgeImg[(r - 1) * width + c] = 0;
 
           // Look if there is an edge pixel in the neighbors
           if (edgeImg[r * width + c + 1] >= ANCHOR_PIXEL) {
@@ -466,38 +437,37 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
 
             if (A > B) {
               if (A > C)
-                r--; // A
+                r--;  // A
               else
-                r++; // C
+                r++;  // C
             } else if (C > B)
-              r++; // C
+              r++;  // C
             c++;
-          } // end-else
+          }  // end-else
 
-          if (edgeImg[r * width + c] == EDGE_PIXEL ||
-              gradImg[r * width + c] < gradThresh) {
+          if (edgeImg[r * width + c] == EDGE_PIXEL || gradImg[r * width + c] < gradThresh) {
             if (chainLen > 0) {
               chains[noChains].len = chainLen;
               chains[parent].children[1] = noChains;
               noChains++;
-            } // end-if
+            }  // end-if
             goto StartOfWhile;
-          } // end-else
+          }  // end-else
 
           pixels[len].y = r;
           pixels[len].x = c;
           len++;
           chainLen++;
-        } // end-while
+        }  // end-while
 
         stack[++top].r = r;
         stack[top].c = c;
-        stack[top].dir = DOWN; // Go down
+        stack[top].dir = DOWN;  // Go down
         stack[top].parent = noChains;
 
         stack[++top].r = r;
         stack[top].c = c;
-        stack[top].dir = UP; // Go up
+        stack[top].dir = UP;  // Go up
         stack[top].parent = noChains;
 
         len--;
@@ -517,10 +487,8 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
           //     x
           //
           // Cleanup left & right pixels
-          if (edgeImg[r * width + c - 1] == ANCHOR_PIXEL)
-            edgeImg[r * width + c - 1] = 0;
-          if (edgeImg[r * width + c + 1] == ANCHOR_PIXEL)
-            edgeImg[r * width + c + 1] = 0;
+          if (edgeImg[r * width + c - 1] == ANCHOR_PIXEL) edgeImg[r * width + c - 1] = 0;
+          if (edgeImg[r * width + c + 1] == ANCHOR_PIXEL) edgeImg[r * width + c + 1] = 0;
 
           // Look if there is an edge pixel in the neighbors
           if (edgeImg[(r - 1) * width + c] >= ANCHOR_PIXEL) {
@@ -545,24 +513,23 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
             } else if (C > B)
               c++;
             r--;
-          } // end-else
+          }  // end-else
 
-          if (edgeImg[r * width + c] == EDGE_PIXEL ||
-              gradImg[r * width + c] < gradThresh) {
+          if (edgeImg[r * width + c] == EDGE_PIXEL || gradImg[r * width + c] < gradThresh) {
             if (chainLen > 0) {
               chains[noChains].len = chainLen;
               chains[parent].children[0] = noChains;
               noChains++;
-            } // end-if
+            }  // end-if
             goto StartOfWhile;
-          } // end-else
+          }  // end-else
 
           pixels[len].y = r;
           pixels[len].x = c;
 
           len++;
           chainLen++;
-        } // end-while
+        }  // end-while
 
         stack[++top].r = r;
         stack[top].c = c;
@@ -581,7 +548,7 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
         chains[parent].children[0] = noChains;
         noChains++;
 
-      } else { // dir == DOWN
+      } else {  // dir == DOWN
         while (dirImg[r * width + c] == EDGE_VERTICAL) {
           edgeImg[r * width + c] = EDGE_PIXEL;
 
@@ -591,10 +558,8 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
           //   A B C
           //
           // cleanup side pixels
-          if (edgeImg[r * width + c + 1] == ANCHOR_PIXEL)
-            edgeImg[r * width + c + 1] = 0;
-          if (edgeImg[r * width + c - 1] == ANCHOR_PIXEL)
-            edgeImg[r * width + c - 1] = 0;
+          if (edgeImg[r * width + c + 1] == ANCHOR_PIXEL) edgeImg[r * width + c + 1] = 0;
+          if (edgeImg[r * width + c - 1] == ANCHOR_PIXEL) edgeImg[r * width + c - 1] = 0;
 
           // Look if there is an edge pixel in the neighbors
           if (edgeImg[(r + 1) * width + c] >= ANCHOR_PIXEL) {
@@ -613,30 +578,29 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
 
             if (A > B) {
               if (A > C)
-                c--; // A
+                c--;  // A
               else
-                c++; // C
+                c++;  // C
             } else if (C > B)
-              c++; // C
+              c++;  // C
             r++;
-          } // end-else
+          }  // end-else
 
-          if (edgeImg[r * width + c] == EDGE_PIXEL ||
-              gradImg[r * width + c] < gradThresh) {
+          if (edgeImg[r * width + c] == EDGE_PIXEL || gradImg[r * width + c] < gradThresh) {
             if (chainLen > 0) {
               chains[noChains].len = chainLen;
               chains[parent].children[1] = noChains;
               noChains++;
-            } // end-if
+            }  // end-if
             goto StartOfWhile;
-          } // end-else
+          }  // end-else
 
           pixels[len].y = r;
           pixels[len].x = c;
 
           len++;
           chainLen++;
-        } // end-while
+        }  // end-while
 
         stack[++top].r = r;
         stack[top].c = c;
@@ -654,16 +618,16 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
         chains[noChains].len = chainLen;
         chains[parent].children[1] = noChains;
         noChains++;
-      } // end-else
+      }  // end-else
 
-    } // end-while
+    }  // end-while
 
     if (len - duplicatePixelCount < minPathLen) {
       for (int k = 0; k < len; k++) {
         edgeImg[pixels[k].y * width + pixels[k].x] = 0;
         edgeImg[pixels[k].y * width + pixels[k].x] = 0;
 
-      } // end-for
+      }  // end-for
 
     } else {
       int noSegmentPixels = 0;
@@ -697,7 +661,7 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
               index--;
             } else
               break;
-          } // end-while
+          }  // end-while
 
           if (chains[chainNo].len > 1 && noSegmentPixels > 0) {
             fr = chains[chainNo].pixels[chains[chainNo].len - 2].y;
@@ -706,19 +670,18 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
             int dr = abs(fr - segmentPoints[segmentNos][noSegmentPixels - 1].y);
             int dc = abs(fc - segmentPoints[segmentNos][noSegmentPixels - 1].x);
 
-            if (dr <= 1 && dc <= 1)
-              chains[chainNo].len--;
-          } // end-if
+            if (dr <= 1 && dc <= 1) chains[chainNo].len--;
+          }  // end-if
 #endif
 
           for (int l = chains[chainNo].len - 1; l >= 0; l--) {
             segmentPoints[segmentNos].push_back(chains[chainNo].pixels[l]);
             noSegmentPixels++;
-          } // end-for
+          }  // end-for
 
-          chains[chainNo].len = 0; // Mark as copied
-        }                          // end-for
-      }                            // end-if
+          chains[chainNo].len = 0;  // Mark as copied
+        }                           // end-for
+      }                             // end-if
 
       totalLen = LongestChain(chains, chains[0].children[0]);
       if (totalLen > 1) {
@@ -753,7 +716,7 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
               index--;
             } else
               break;
-          } // end-while
+          }  // end-while
 
           int startIndex = 0;
           int chainLen = chains[chainNo].len;
@@ -767,18 +730,18 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
             if (dr <= 1 && dc <= 1) {
               startIndex = 1;
             }
-          } // end-if
+          }  // end-if
 #endif
 
           /* Start a new chain & copy pixels from the new chain */
           for (int l = startIndex; l < chains[chainNo].len; l++) {
             segmentPoints[segmentNos].push_back(chains[chainNo].pixels[l]);
             noSegmentPixels++;
-          } // end-for
+          }  // end-for
 
-          chains[chainNo].len = 0; // Mark as copied
-        }                          // end-for
-      }                            // end-if
+          chains[chainNo].len = 0;  // Mark as copied
+        }                           // end-for
+      }                             // end-if
 
       // See if the first pixel can be cleaned up
       int fr = segmentPoints[segmentNos][1].y;
@@ -790,16 +753,14 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
       if (dr <= 1 && dc <= 1) {
         segmentPoints[segmentNos].erase(segmentPoints[segmentNos].begin());
         noSegmentPixels--;
-      } // end-if
+      }  // end-if
 
       segmentNos++;
-      segmentPoints.push_back(
-          vector<Point>()); // create empty vector of points for segments
+      segmentPoints.push_back(vector<Point>());  // create empty vector of points for segments
 
       // Copy the rest of the long chains here
       for (int k = 2; k < noChains; k++) {
-        if (chains[k].len < 2)
-          continue;
+        if (chains[k].len < 2) continue;
 
         totalLen = LongestChain(chains, k);
 
@@ -830,7 +791,7 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
                 index--;
               } else
                 break;
-            } // end-while
+            }  // end-while
 
             int startIndex = 0;
             int chainLen = chains[chainNo].len;
@@ -838,33 +799,30 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
               int fr = chains[chainNo].pixels[1].y;
               int fc = chains[chainNo].pixels[1].x;
 
-              int dr =
-                  abs(fr - segmentPoints[segmentNos][noSegmentPixels - 1].y);
-              int dc =
-                  abs(fc - segmentPoints[segmentNos][noSegmentPixels - 1].x);
+              int dr = abs(fr - segmentPoints[segmentNos][noSegmentPixels - 1].y);
+              int dc = abs(fc - segmentPoints[segmentNos][noSegmentPixels - 1].x);
 
               if (dr <= 1 && dc <= 1) {
                 startIndex = 1;
               }
-            } // end-if
+            }  // end-if
 #endif
             /* Start a new chain & copy pixels from the new chain */
             for (int l = startIndex; l < chains[chainNo].len; l++) {
               segmentPoints[segmentNos].push_back(chains[chainNo].pixels[l]);
               noSegmentPixels++;
-            } // end-for
+            }  // end-for
 
-            chains[chainNo].len = 0; // Mark as copied
-          }                          // end-for
-          segmentPoints.push_back(
-              vector<Point>()); // create empty vector of points for segments
+            chains[chainNo].len = 0;                 // Mark as copied
+          }                                          // end-for
+          segmentPoints.push_back(vector<Point>());  // create empty vector of points for segments
           segmentNos++;
-        } // end-if
-      }   // end-for
+        }  // end-if
+      }    // end-for
 
-    } // end-else
+    }  // end-else
 
-  } // end-for-outer
+  }  // end-for-outer
 
   // pop back last segment from vector
   // because of one preallocation in the beginning, it will always empty
@@ -879,7 +837,7 @@ void ED::JoinAnchorPointsUsingSortedAnchors() {
 }
 
 void ED::sortAnchorsByGradValue() {
-  auto sortFunc = [&](const Point &a, const Point &b) {
+  auto sortFunc = [&](const Point& a, const Point& b) {
     return gradImg[a.y * width + a.x] > gradImg[b.y * width + b.x];
   };
 
@@ -912,40 +870,37 @@ void ED::sortAnchorsByGradValue() {
   */
 }
 
-int *ED::sortAnchorsByGradValue1() {
+int* ED::sortAnchorsByGradValue1() {
   int SIZE = 128 * 256;
-  int *C = new int[SIZE];
+  int* C = new int[SIZE];
   memset(C, 0, sizeof(int) * SIZE);
 
   // Count the number of grad values
   for (int i = 1; i < height - 1; i++) {
     for (int j = 1; j < width - 1; j++) {
-      if (edgeImg[i * width + j] != ANCHOR_PIXEL)
-        continue;
+      if (edgeImg[i * width + j] != ANCHOR_PIXEL) continue;
 
       int grad = gradImg[i * width + j];
       C[grad]++;
-    } // end-for
-  }   // end-for
+    }  // end-for
+  }    // end-for
 
   // Compute indices
-  for (int i = 1; i < SIZE; i++)
-    C[i] += C[i - 1];
+  for (int i = 1; i < SIZE; i++) C[i] += C[i - 1];
 
   int noAnchors = C[SIZE - 1];
-  int *A = new int[noAnchors];
+  int* A = new int[noAnchors];
   memset(A, 0, sizeof(int) * noAnchors);
 
   for (int i = 1; i < height - 1; i++) {
     for (int j = 1; j < width - 1; j++) {
-      if (edgeImg[i * width + j] != ANCHOR_PIXEL)
-        continue;
+      if (edgeImg[i * width + j] != ANCHOR_PIXEL) continue;
 
       int grad = gradImg[i * width + j];
       int index = --C[grad];
-      A[index] = i * width + j; // anchor's offset
-    }                           // end-for
-  }                             // end-for
+      A[index] = i * width + j;  // anchor's offset
+    }                            // end-for
+  }                              // end-for
 
   delete[] C;
 
@@ -960,17 +915,14 @@ int *ED::sortAnchorsByGradValue1() {
   return A;
 }
 
-int ED::LongestChain(Chain *chains, int root) {
-  if (root == -1 || chains[root].len == 0)
-    return 0;
+int ED::LongestChain(Chain* chains, int root) {
+  if (root == -1 || chains[root].len == 0) return 0;
 
   int len0 = 0;
-  if (chains[root].children[0] != -1)
-    len0 = LongestChain(chains, chains[root].children[0]);
+  if (chains[root].children[0] != -1) len0 = LongestChain(chains, chains[root].children[0]);
 
   int len1 = 0;
-  if (chains[root].children[1] != -1)
-    len1 = LongestChain(chains, chains[root].children[1]);
+  if (chains[root].children[1] != -1) len1 = LongestChain(chains, chains[root].children[1]);
 
   int max = 0;
 
@@ -981,12 +933,12 @@ int ED::LongestChain(Chain *chains, int root) {
   } else {
     max = len1;
     chains[root].children[0] = -1;
-  } // end-else
+  }  // end-else
 
   return chains[root].len + max;
-} // end-LongestChain
+}  // end-LongestChain
 
-int ED::RetrieveChainNos(Chain *chains, int root, int chainNos[]) {
+int ED::RetrieveChainNos(Chain* chains, int root, int chainNos[]) {
   int count = 0;
 
   while (root != -1) {
@@ -997,8 +949,8 @@ int ED::RetrieveChainNos(Chain *chains, int root, int chainNos[]) {
       root = chains[root].children[0];
     else
       root = chains[root].children[1];
-  } // end-while
+  }  // end-while
 
   return count;
 }
-} // namespace dso
+}  // namespace dso

@@ -29,31 +29,27 @@
 namespace dso {
 namespace IOWrap {
 struct CalibFrame;
-MinimalImageB *readImageBW_8U(std::string filename);
+MinimalImageB* readImageBW_8U(std::string filename);
 
-MinimalImageB *readImageBW_8U2(
-    int fid, aligned_vector<dso::CalibFrame> *p_input_data,
-    std::array<std::pair<cv::Mat, cv::Mat>, kCameraNumUsed>
-        *p_cid_to_undist_map,
-    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> *p_vig_mat);
+MinimalImageB* readImageBW_8U2(int fid, aligned_vector<dso::CalibFrame>* p_input_data,
+                               std::array<std::pair<cv::Mat, cv::Mat>, kCameraNumUsed>* p_cid_to_undist_map,
+                               Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>* p_vig_mat);
 
-void VigCorrection(
-    cv::Mat &image,
-    const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> &vig_mat);
+void VigCorrection(cv::Mat& image, const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>& vig_mat);
 
-MinimalImageB3 *readImageRGB_8U(std::string filename);
+MinimalImageB3* readImageRGB_8U(std::string filename);
 
-MinimalImage<unsigned short> *readImageBW_16U(std::string filename);
+MinimalImage<unsigned short>* readImageBW_16U(std::string filename);
 
-MinimalImageB *readStreamBW_8U(char *data, int numBytes);
+MinimalImageB* readStreamBW_8U(char* data, int numBytes);
 
-void writeImage(std::string filename, MinimalImageB *img);
+void writeImage(std::string filename, MinimalImageB* img);
 
-void writeImage(std::string filename, MinimalImageB3 *img);
+void writeImage(std::string filename, MinimalImageB3* img);
 
-void writeImage(std::string filename, MinimalImageF *img);
+void writeImage(std::string filename, MinimalImageF* img);
 
-void writeImage(std::string filename, MinimalImageF3 *img);
+void writeImage(std::string filename, MinimalImageF3* img);
 
-} // namespace IOWrap
-} // namespace dso
+}  // namespace IOWrap
+}  // namespace dso

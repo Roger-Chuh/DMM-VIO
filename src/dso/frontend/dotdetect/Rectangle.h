@@ -7,11 +7,11 @@ namespace dso {
 namespace DotDetect {
 
 class IRectangle {
-public:
+ public:
   IRectangle() {}
   IRectangle(int x1, int y1) : x1(x1), y1(y1), x2(x1), y2(y1) {}
 
-  IRectangle(const IRectangle &r) {
+  IRectangle(const IRectangle& r) {
     this->x1 = r.x1;
     this->x2 = r.x2;
     this->y2 = r.y2;
@@ -33,27 +33,19 @@ public:
 
   int Area() const { return Width() * Height(); }
 
-  bool IntersectsWith(const IRectangle &other) const {
-    if (y2 < other.y1)
-      return false;
-    if (y1 > other.y2)
-      return false;
-    if (x2 < other.x1)
-      return false;
-    if (x1 > other.x2)
-      return false;
+  bool IntersectsWith(const IRectangle& other) const {
+    if (y2 < other.y1) return false;
+    if (y1 > other.y2) return false;
+    if (x2 < other.x1) return false;
+    if (x1 > other.x2) return false;
     return true;
   }
 
-  bool Contains(const IRectangle &other) const {
-    if (y1 >= other.y1)
-      return false;
-    if (x1 >= other.x1)
-      return false;
-    if (x2 <= other.x2)
-      return false;
-    if (y2 <= other.y2)
-      return false;
+  bool Contains(const IRectangle& other) const {
+    if (y1 >= other.y1) return false;
+    if (x1 >= other.x1) return false;
+    if (x2 <= other.x2) return false;
+    if (y2 <= other.y2) return false;
     return true;
   }
 
@@ -64,7 +56,7 @@ public:
     y2 = std::max(y2, y);
   }
 
-  void Insert(const IRectangle &d) {
+  void Insert(const IRectangle& d) {
     x1 = std::min(x1, d.x1);
     x2 = std::max(x2, d.x2);
     y1 = std::min(y1, d.y1);
@@ -96,14 +88,10 @@ public:
     return ret;
   }
 
-  bool Contains(int x, int y) const {
-    return x1 <= x && x <= x2 && y1 <= y && y <= y2;
-  }
+  bool Contains(int x, int y) const { return x1 <= x && x <= x2 && y1 <= y && y <= y2; }
 
-  Eigen::Vector2d Center() const {
-    return Eigen::Vector2d((x2 + x1) / 2.0, (y2 + y1) / 2.0);
-  }
+  Eigen::Vector2d Center() const { return Eigen::Vector2d((x2 + x1) / 2.0, (y2 + y1) / 2.0); }
 };
 
-} // namespace DotDetect
-} // namespace dso
+}  // namespace DotDetect
+}  // namespace dso

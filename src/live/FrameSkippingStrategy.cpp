@@ -22,7 +22,7 @@
 
 #include "FrameSkippingStrategy.h"
 
-void dmvio::FrameSkippingSettings::registerArgs(dmvio::SettingsUtil &set) {
+void dmvio::FrameSkippingSettings::registerArgs(dmvio::SettingsUtil& set) {
   set.registerArg("maxSkipFramesVisualInit", maxSkipFramesVisualInit);
   set.registerArg("maxSkipFramesVisualOnlyMode", maxSkipFramesVisualOnlyMode);
   set.registerArg("maxSkipFramesVisualInertial", maxSkipFramesVisualInertial);
@@ -31,8 +31,7 @@ void dmvio::FrameSkippingSettings::registerArgs(dmvio::SettingsUtil &set) {
   set.registerArg("minQueueSizeForSkipping", minQueueSizeForSkipping);
 }
 
-dmvio::FrameSkippingStrategy::FrameSkippingStrategy(
-    dmvio::FrameSkippingSettings settings)
+dmvio::FrameSkippingStrategy::FrameSkippingStrategy(dmvio::FrameSkippingSettings settings)
     : settings(std::move(settings)) {}
 
 int dmvio::FrameSkippingStrategy::getMaxSkipFrames(int queueSize) {
@@ -46,21 +45,20 @@ int dmvio::FrameSkippingStrategy::getMaxSkipFrames(int queueSize) {
     return 0;
   }
   switch (lastStatus) {
-  case VISUAL_INIT:
-    return settings.maxSkipFramesVisualInit;
-  case VISUAL_ONLY:
-    if (visualOnlyDelay > 0) {
-      visualOnlyDelay--;
+    case VISUAL_INIT:
       return settings.maxSkipFramesVisualInit;
-    }
-    return settings.maxSkipFramesVisualOnlyMode;
-  case VISUAL_INERTIAL:
-    return settings.maxSkipFramesVisualInertial;
+    case VISUAL_ONLY:
+      if (visualOnlyDelay > 0) {
+        visualOnlyDelay--;
+        return settings.maxSkipFramesVisualInit;
+      }
+      return settings.maxSkipFramesVisualOnlyMode;
+    case VISUAL_INERTIAL:
+      return settings.maxSkipFramesVisualInertial;
   }
 }
 
-void dmvio::FrameSkippingStrategy::publishSystemStatus(
-    dmvio::SystemStatus systemStatus) {
+void dmvio::FrameSkippingStrategy::publishSystemStatus(dmvio::SystemStatus systemStatus) {
   std::unique_lock<std::mutex> lock(mutex);
   if (lastStatus == VISUAL_INIT && systemStatus == VISUAL_ONLY) {
     visualOnlyDelay = settings.skipFramesVisualOnlyDelay;

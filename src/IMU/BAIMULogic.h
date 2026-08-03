@@ -46,8 +46,7 @@ struct InformationBAToCoarse {
   // TransformIMUToDSOForCoarse<TransformDSOToIMUNew>.
   std::unique_ptr<PoseTransformation> transformIMUToDSOForCoarse;
 
-  gtsam::LinearContainerFactor::shared_ptr
-      priorFactor; // Factor with priors to add to the graph.
+  gtsam::LinearContainerFactor::shared_ptr priorFactor;  // Factor with priors to add to the graph.
 };
 
 // Provides the preintegrated BA data for BAIMULogic.
@@ -55,9 +54,8 @@ struct InformationBAToCoarse {
 // for the frame which actually became a KF (which can change in realtime mode
 // because DSO can change its mind which frame becomes a keyframe).
 class PreintegrationProviderBA {
-public:
-  virtual const gtsam::PreintegratedImuMeasurements &
-  getPreintegratedMeasurements(int keyframeId) = 0;
+ public:
+  virtual const gtsam::PreintegratedImuMeasurements& getPreintegratedMeasurements(int keyframeId) = 0;
 };
 
 class IMUInitializer;
@@ -67,7 +65,7 @@ class IMUInitializer;
 // variables to be optimized. It adds IMU factors and bias random walk factors
 // between successive keyframes.
 class BAIMULogic : public BAExtension {
-public:
+ public:
   // We have three groups of factors. NO_IMU_GROUP contains all DSO factors,
   // BIAS_AND_PRIOR_group contains bias random walk factors and prior factors.
   // METRIC_GROUP contains IMU factors. This is used e.g. for adding only visual
@@ -76,37 +74,26 @@ public:
 
   // Note: A reference to preintegrationProvider, imuCalibration, imuSettings,
   // and baIntegration is kept, so they all must be kept alive.
-  BAIMULogic(PreintegrationProviderBA *preintegrationProvider,
-             BAGTSAMIntegration *baIntegration,
-             const IMUCalibration &imuCalibration, IMUSettings &imuSettings);
+  BAIMULogic(PreintegrationProviderBA* preintegrationProvider, BAGTSAMIntegration* baIntegration,
+             const IMUCalibration& imuCalibration, IMUSettings& imuSettings);
 
   // Methods called by BAGTSAMIntegration:
-  virtual void addFirstBAFrame(int keyframeId, BAGraphs *baGraphs,
-                               gtsam::Values::shared_ptr baValues) override;
+  virtual void addFirstBAFrame(int keyframeId, BAGraphs* baGraphs, gtsam::Values::shared_ptr baValues) override;
 
-  virtual void addKeyframe(BAGraphs *baGraphs,
-                           gtsam::Values::shared_ptr baValues, int keyframeId,
-                           const Sophus::SE3d &keyframePose,
-                           std::vector<dso::EFFrame *> &frames) override;
+  virtual void addKeyframe(BAGraphs* baGraphs, gtsam::Values::shared_ptr baValues, int keyframeId,
+                           const Sophus::SE3d& keyframePose, std::vector<dso::EFFrame*>& frames) override;
 
-  virtual void updateBAOrdering(std::vector<dso::EFFrame *> &frames,
-                                gtsam::Ordering *ordering,
-                                KeyDimMap &baDimMap) override;
+  virtual void updateBAOrdering(std::vector<dso::EFFrame*>& frames, gtsam::Ordering* ordering,
+                                KeyDimMap& baDimMap) override;
 
-  virtual void addKeysToMarginalize(
-      int fullId, gtsam::FastVector<gtsam::Key> &keysToMarginalize) override;
+  virtual void addKeysToMarginalize(int fullId, gtsam::FastVector<gtsam::Key>& keysToMarginalize) override;
 
-  virtual void preSolve(gtsam::Matrix &HFull, gtsam::Vector &bFull,
-                        int dimensionDSOH) override;
+  virtual void preSolve(gtsam::Matrix& HFull, gtsam::Vector& bFull, int dimensionDSOH) override;
 
-  virtual bool postSolve(gtsam::Values::shared_ptr values,
-                         gtsam::Values::shared_ptr newValues,
-                         const gtsam::Vector &inc,
-                         const gtsam::Ordering &ordering,
-                         const KeyDimMap &baDimMap) override;
+  virtual bool postSolve(gtsam::Values::shared_ptr values, gtsam::Values::shared_ptr newValues,
+                         const gtsam::Vector& inc, const gtsam::Ordering& ordering, const KeyDimMap& baDimMap) override;
 
-  virtual void acceptUpdate(gtsam::Values::shared_ptr values,
-                            gtsam::Values::shared_ptr newValues) override;
+  virtual void acceptUpdate(gtsam::Values::shared_ptr values, gtsam::Values::shared_ptr newValues) override;
 
   // --------------------------------------------------
 
@@ -115,8 +102,7 @@ public:
   // reinitialization, meaning that the IMU is being used already. If
   // willReplaceGraph the IMU initializer will replace the marginalization prior
   // (typically obtained by readvancing).
-  void initFromIMUInit(const gtsam::Values &values, bool reinit,
-                       bool willReplaceGraph);
+  void initFromIMUInit(const gtsam::Values& values, bool reinit, bool willReplaceGraph);
 
   // Methods called by IMUIntegration:
 
@@ -135,17 +121,16 @@ public:
   // Called just before the new KF will become the new coarse tracking
   // reference. (called from the BA thread but with mutex on
   // coarseTrackerSwapMutex.)
-  std::unique_ptr<InformationBAToCoarse>
-  finishKeyframeOptimization(int keyframeId);
+  std::unique_ptr<InformationBAToCoarse> finishKeyframeOptimization(int keyframeId);
 
   // Called to set the velocity of the next keyframe (to transfer the velocity
   // from the coarse tracking).
-  void setNextBAVel(const gtsam::Vector3 &velocity, int frameId);
+  void setNextBAVel(const gtsam::Vector3& velocity, int frameId);
 
   // Set groundtruth data if available (for printing result to file).
   // Should only be used in non-RT mode for now, because it keeps a reference
   // and the objected might be deleted otherwise.
-  void setCurrGtData(dmvio::GTData *currGtData, int frameId);
+  void setCurrGtData(dmvio::GTData* currGtData, int frameId);
 
   // Return the (optimized and regularly updated) transform from DSO to IMU.
   // Should only used inside the BA thread, otherwise there might be a race
@@ -154,18 +139,17 @@ public:
 
   bool isScaleFixed() const;
 
-  double computeDynamicDSOWeight(double lastDSOEnergy, double lastRMSE,
-                                 bool coarseTrackingWasGood);
+  double computeDynamicDSOWeight(double lastDSOEnergy, double lastRMSE, bool coarseTrackingWasGood);
 
-private:
+ private:
   bool addIMUVarsForKey(int keyframeId);
 
-  BAGTSAMIntegration *baIntegration;
-  PreintegrationProviderBA *preintegrationProvider;
+  BAGTSAMIntegration* baIntegration;
+  PreintegrationProviderBA* preintegrationProvider;
 
   // Shared with parent IMUIntegration.
-  IMUSettings &imuSettings;
-  const IMUCalibration &imuCalibration;
+  IMUSettings& imuSettings;
+  const IMUCalibration& imuCalibration;
 
   // Pose transformation used for the IMU factors.
   // Transforms from DSO frame to IMU (metric) frame.
@@ -174,19 +158,17 @@ private:
   // If set to a positive value, the IMU integration is disabled starting from
   // the KF with id (used for debug purposes):
   int disableFromKF = -1;
-  int noIMUInOrderingUntilKFId =
-      -1; // if set, we don't add IMU keys to the ordering for kfid <
-          // noIMUInOrderingUntilKFId
+  int noIMUInOrderingUntilKFId = -1;  // if set, we don't add IMU keys to the ordering for kfid <
+                                      // noIMUInOrderingUntilKFId
 
   // True if the variables inside the transformDSOToIMU are optimized at all.
   bool optimizeTransform;
   // Pointers are shared with transformDSOToIMUNew.
-  std::shared_ptr<bool> optimizeScalePtr, optimizeGravityPtr,
-      optimizedIMUExtrinsicsPtr;
+  std::shared_ptr<bool> optimizeScalePtr, optimizeGravityPtr, optimizedIMUExtrinsicsPtr;
   // For convenience: references to the pointers above.
-  bool &optimizeScale;
-  bool &optimizeGravity;
-  bool &optimizeIMUExtrinsics;
+  bool& optimizeScale;
+  bool& optimizeGravity;
+  bool& optimizeIMUExtrinsics;
 
   int previousKeyframeId{-1};
   int currKeyframeId{-1};
@@ -199,10 +181,9 @@ private:
   bool scaleFixed = false;
   // Maximum and minimum scale during this keyframe optimization.
   double maxScaleInterval = 0.0, minScaleInterval = 1000;
-  std::deque<std::pair<double, double>>
-      scaleQueue; // Saves maximum and minimum scale for the last keyframes.
+  std::deque<std::pair<double, double>> scaleQueue;  // Saves maximum and minimum scale for the last keyframes.
 
-  dmvio::GTData *currGTData = nullptr;
+  dmvio::GTData* currGTData = nullptr;
   int gtFrameId = -1;
 
   // Files to which results are saved.
@@ -215,8 +196,7 @@ private:
 
   // computes the factor. Also computes uncertainty for some more variables for
   // saving to file.
-  gtsam::LinearContainerFactor::shared_ptr
-  computeFactorForCoarseGraphAndMarginalCovariances();
+  gtsam::LinearContainerFactor::shared_ptr computeFactorForCoarseGraphAndMarginalCovariances();
 
   gtsam::Matrix biasCovariance;
   int biasCovForKF = -1;
@@ -226,6 +206,6 @@ private:
   int nextVelocityFrameId = -1;
 };
 
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_BAIMULOGIC_H
+#endif  // DMVIO_BAIMULOGIC_H

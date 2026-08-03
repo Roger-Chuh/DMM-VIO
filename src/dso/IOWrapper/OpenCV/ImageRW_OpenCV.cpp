@@ -31,11 +31,10 @@
 namespace dso {
 
 namespace IOWrap {
-MinimalImageB *readImageBW_8U(std::string filename) {
+MinimalImageB* readImageBW_8U(std::string filename) {
   cv::Mat m = cv::imread(filename, cv::IMREAD_GRAYSCALE);
   if (m.rows * m.cols == 0) {
-    printf("cv::imread could not read image %s! this may segfault. \n",
-           filename.c_str());
+    printf("cv::imread could not read image %s! this may segfault. \n", filename.c_str());
     return 0;
   }
   if (m.type() == CV_8UC3) {
@@ -43,17 +42,14 @@ MinimalImageB *readImageBW_8U(std::string filename) {
     cv::cvtColor(m, m, cv::COLOR_BGR2GRAY);
   }
   if (m.type() != CV_8U) {
-    printf("cv::imread did something strange! this may segfault. %i \n",
-           m.type());
+    printf("cv::imread did something strange! this may segfault. %i \n", m.type());
     return 0;
   }
-  MinimalImageB *img = new MinimalImageB(m.cols, m.rows);
+  MinimalImageB* img = new MinimalImageB(m.cols, m.rows);
   memcpy(img->data, m.data, m.rows * m.cols);
   return img;
 }
-void VigCorrection(
-    cv::Mat &image,
-    const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> &vig_mat) {
+void VigCorrection(cv::Mat& image, const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>& vig_mat) {
   uint8_t raw_val;
   float viged_val;
   cv::Mat img_cv_after_vig = cv::Mat(image.rows, image.cols, CV_8UC1);
@@ -80,16 +76,13 @@ void VigCorrection(
 
   image = img_cv_after_vig.clone();
 }
-MinimalImageB *readImageBW_8U2(
-    int fid, aligned_vector<dso::CalibFrame> *p_input_data,
-    std::array<std::pair<cv::Mat, cv::Mat>, kCameraNumUsed>
-        *p_cid_to_undist_map,
-    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> *p_vig_mat) {
+MinimalImageB* readImageBW_8U2(int fid, aligned_vector<dso::CalibFrame>* p_input_data,
+                               std::array<std::pair<cv::Mat, cv::Mat>, kCameraNumUsed>* p_cid_to_undist_map,
+                               Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>* p_vig_mat) {
   // cv::Mat m = cv::imread(filename, cv::IMREAD_GRAYSCALE);
   std::array<cv::Mat, 4> show_mat_vec;
   for (int cam_id = 0; cam_id < kCameraNumUsed; ++cam_id) {
-    std::string image_path =
-        (*p_input_data)[fid].cid_to_img_file_path.at(cam_id);
+    std::string image_path = (*p_input_data)[fid].cid_to_img_file_path.at(cam_id);
     // cerr << "Reading..." << image_path << endl;
     // if (files[i].back() == '.') continue;  // skip . and ..
     cv::Mat image = cv::imread(image_path, 0);
@@ -98,8 +91,8 @@ MinimalImageB *readImageBW_8U2(
 #ifdef USE_EDGE_ALIGN
     // cv::GaussianBlur(image, image, {5, 5}, 0);
 #endif
-    cv::remap(image, image, (*p_cid_to_undist_map)[cam_id].first,
-              (*p_cid_to_undist_map)[cam_id].second, cv::INTER_CUBIC);
+    cv::remap(image, image, (*p_cid_to_undist_map)[cam_id].first, (*p_cid_to_undist_map)[cam_id].second,
+              cv::INTER_CUBIC);
     // cv::cvtColor(image, image, cv::COLOR_GRAY2BGR);
     show_mat_vec[cam_id] = image.clone();
   }
@@ -137,91 +130,80 @@ MinimalImageB *readImageBW_8U2(
   //                colL = 255;
   //            img_target->at(i) = Vec3b(colL, colL, colL);
   //        }
-  MinimalImageB *img =
-      new MinimalImageB(show_mat_vec[0].cols, show_mat_vec[0].rows);
+  MinimalImageB* img = new MinimalImageB(show_mat_vec[0].cols, show_mat_vec[0].rows);
   for (int cid = 0; cid < kCameraNumUsed; ++cid) {
     ;
     for (int i = 0; i < show_mat_vec[0].cols * show_mat_vec[0].rows; i++) {
-      img->data[i + show_mat_vec[0].cols * show_mat_vec[0].rows * cid] =
-          show_mat_vec[cid].data[i];
+      img->data[i + show_mat_vec[0].cols * show_mat_vec[0].rows * cid] = show_mat_vec[cid].data[i];
     }
   }
   // memcpy(img->data, m.data, m.rows * m.cols);
   return img;
 }
 
-MinimalImageB3 *readImageRGB_8U(std::string filename) {
+MinimalImageB3* readImageRGB_8U(std::string filename) {
   cv::Mat m = cv::imread(filename, cv::IMREAD_COLOR);
   if (m.rows * m.cols == 0) {
-    printf("cv::imread could not read image %s! this may segfault. \n",
-           filename.c_str());
+    printf("cv::imread could not read image %s! this may segfault. \n", filename.c_str());
     return 0;
   }
   if (m.type() != CV_8UC3) {
     printf("cv::imread did something strange! this may segfault. \n");
     return 0;
   }
-  MinimalImageB3 *img = new MinimalImageB3(m.cols, m.rows);
+  MinimalImageB3* img = new MinimalImageB3(m.cols, m.rows);
   memcpy(img->data, m.data, 3 * m.rows * m.cols);
   return img;
 }
 
-MinimalImage<unsigned short> *readImageBW_16U(std::string filename) {
+MinimalImage<unsigned short>* readImageBW_16U(std::string filename) {
   cv::Mat m = cv::imread(filename, cv::IMREAD_UNCHANGED);
   if (m.rows * m.cols == 0) {
-    printf("cv::imread could not read image %s! this may segfault. \n",
-           filename.c_str());
+    printf("cv::imread could not read image %s! this may segfault. \n", filename.c_str());
     return 0;
   }
   if (m.type() != CV_16U) {
-    printf("readImageBW_16U called on image that is not a 16bit grayscale "
-           "image. this may segfault. \n");
+    printf(
+        "readImageBW_16U called on image that is not a 16bit grayscale "
+        "image. this may segfault. \n");
     return 0;
   }
-  MinimalImage<unsigned short> *img =
-      new MinimalImage<unsigned short>(m.cols, m.rows);
+  MinimalImage<unsigned short>* img = new MinimalImage<unsigned short>(m.cols, m.rows);
   memcpy(img->data, m.data, 2 * m.rows * m.cols * kCameraNumUsed);
   return img;
 }
 
-MinimalImageB *readStreamBW_8U(char *data, int numBytes) {
-  cv::Mat m =
-      cv::imdecode(cv::Mat(numBytes, 1, CV_8U, data), cv::IMREAD_GRAYSCALE);
+MinimalImageB* readStreamBW_8U(char* data, int numBytes) {
+  cv::Mat m = cv::imdecode(cv::Mat(numBytes, 1, CV_8U, data), cv::IMREAD_GRAYSCALE);
   if (m.rows * m.cols == 0) {
-    printf(
-        "cv::imdecode could not read stream (%d bytes)! this may segfault. \n",
-        numBytes);
+    printf("cv::imdecode could not read stream (%d bytes)! this may segfault. \n", numBytes);
     return 0;
   }
   if (m.type() != CV_8U) {
     printf("cv::imdecode did something strange! this may segfault. \n");
     return 0;
   }
-  MinimalImageB *img = new MinimalImageB(m.cols, m.rows);
+  MinimalImageB* img = new MinimalImageB(m.cols, m.rows);
   memcpy(img->data, m.data, m.rows * m.cols);
   return img;
 }
 
-void writeImage(std::string filename, MinimalImageB *img) {
-  cv::imwrite(filename,
-              cv::Mat(img->h * kCameraNumUsed, img->w, CV_8U, img->data));
+void writeImage(std::string filename, MinimalImageB* img) {
+  cv::imwrite(filename, cv::Mat(img->h * kCameraNumUsed, img->w, CV_8U, img->data));
 }
 
-void writeImage(std::string filename, MinimalImageB3 *img) {
-  cv::imwrite(filename,
-              cv::Mat(img->h * kCameraNumUsed, img->w, CV_8UC3, img->data));
+void writeImage(std::string filename, MinimalImageB3* img) {
+  cv::imwrite(filename, cv::Mat(img->h * kCameraNumUsed, img->w, CV_8UC3, img->data));
 }
 
-void writeImage(std::string filename, MinimalImageF *img) {
-  cv::imwrite(filename,
-              cv::Mat(img->h * kCameraNumUsed, img->w, CV_32F, img->data));
+void writeImage(std::string filename, MinimalImageF* img) {
+  cv::imwrite(filename, cv::Mat(img->h * kCameraNumUsed, img->w, CV_32F, img->data));
 }
 
-void writeImage(std::string filename, MinimalImageF3 *img) {
-  cv::imwrite(filename,
-              cv::Mat(img->h * kCameraNumUsed, img->w, CV_32FC3, img->data));
+void writeImage(std::string filename, MinimalImageF3* img) {
+  cv::imwrite(filename, cv::Mat(img->h * kCameraNumUsed, img->w, CV_32FC3, img->data));
 }
 
-} // namespace IOWrap
+}  // namespace IOWrap
 
-} // namespace dso
+}  // namespace dso

@@ -6,10 +6,10 @@
 namespace toml {
 
 struct exception : public std::exception {
-public:
+ public:
   virtual ~exception() noexcept override = default;
-  virtual const char *what() const noexcept override { return ""; }
+  virtual const char* what() const noexcept override { return ""; }
 };
 
-} // namespace toml
-#endif // TOMl11_EXCEPTION_HPP
+}  // namespace toml
+#endif  // TOMl11_EXCEPTION_HPP

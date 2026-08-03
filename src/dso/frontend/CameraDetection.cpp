@@ -28,16 +28,14 @@ namespace dso {
 // oneCamJson
 
 void CamCalib::CameraDetection::loadCameraData(bool skip_half_data) {
-  for (const auto &[cam_id, cam_json_path] : m_config.camJsonPaths) {
+  for (const auto& [cam_id, cam_json_path] : m_config.camJsonPaths) {
     CalibIO::CameraJsonData camJsonRes;
     bool loadSuccess = CalibIO::camJsonLoad(cam_json_path, cam_id, camJsonRes);
     if (loadSuccess) {
       m_multiCamJsonRes[cam_id] = camJsonRes;
-      YLOG_TRACE("cam_id is %d,cam_json_path is %s", cam_id,
-                 cam_json_path.c_str());
+      YLOG_TRACE("cam_id is %d,cam_json_path is %s", cam_id, cam_json_path.c_str());
     } else {
-      LOG_FRONT_ERROR("Failed to load cam json. cam: zu%, path: %s\n", cam_id,
-                      cam_json_path.c_str());
+      LOG_FRONT_ERROR("Failed to load cam json. cam: zu%, path: %s\n", cam_id, cam_json_path.c_str());
       std::exit(1);
     }
   }
@@ -45,8 +43,7 @@ void CamCalib::CameraDetection::loadCameraData(bool skip_half_data) {
     YLOG_ERROR("Camera align failed");
     exit(1);
   }
-  LOG_FRONT_INFO("Camera frame aligned size: %d\n",
-                 m_multiCamJsonRes.begin()->second.frames.size());
+  LOG_FRONT_INFO("Camera frame aligned size: %d\n", m_multiCamJsonRes.begin()->second.frames.size());
 
   if (skip_half_data) {
     for (const auto cid : m_config.calib_cid) {
@@ -61,26 +58,24 @@ void CamCalib::CameraDetection::loadCameraData(bool skip_half_data) {
   }
 }
 
-void CamCalib::CameraDetection::loadImuData(CalibIO::ImuJsonData *p_imuData) {
+void CamCalib::CameraDetection::loadImuData(CalibIO::ImuJsonData* p_imuData) {
   bool loadSuccess = CalibIO::imuJsonLoad(m_config.imuJsonPath, p_imuData);
   if (!loadSuccess) {
-    LOG_FRONT_ERROR("Failed to load imu json. path: %s\n",
-                    m_config.imuJsonPath.c_str());
+    LOG_FRONT_ERROR("Failed to load imu json. path: %s\n", m_config.imuJsonPath.c_str());
     std::exit(-1);
   }
 }
 
 void CamCalib::CameraDetection::dotDetection() {
-  const std::string &binFile = m_config.binFilePath;
-  const std::unordered_map<int, std::string> &camPicPath = m_config.camPaths;
+  const std::string& binFile = m_config.binFilePath;
+  const std::unordered_map<int, std::string>& camPicPath = m_config.camPaths;
 
-  for (const auto &[_, oneCam] : m_multiCamJsonRes) {
+  for (const auto& [_, oneCam] : m_multiCamJsonRes) {
     int camId = oneCam.camId;
-    const std::string &rootPath = camPicPath.at(camId);
+    const std::string& rootPath = camPicPath.at(camId);
     cv::Mat cvPic;
-    DotDetect::ImageProcessing image_processing(
-        m_config.dot_config.grid_spacing, m_config.dot_config.grid_size,
-        m_config.dot_config.grid_seed, m_config.plate_num);
+    DotDetect::ImageProcessing image_processing(m_config.dot_config.grid_spacing, m_config.dot_config.grid_size,
+                                                m_config.dot_config.grid_seed, m_config.plate_num);
     image_processing.verbose = m_config.dot_config.show_detect_picture;
 
     DotDetect::ParamsImageProcessing curParams(25, 480);
@@ -96,7 +91,7 @@ void CamCalib::CameraDetection::dotDetection() {
     curCam.camID = camId;
     curCam.filePath = rootPath;
     int allCount = 0;
-    for (const auto &frame : oneCam.frames) {
+    for (const auto& frame : oneCam.frames) {
       std::string curImgPath = rootPath + "/" + frame.filename;
       cvPic = cv::imread(curImgPath, 0);
       if (cvPic.empty()) {
@@ -112,18 +107,17 @@ void CamCalib::CameraDetection::dotDetection() {
       curRes.timestamp = double(frame.timestamp) * 1e-9;
       curRes.exposure = double(frame.exposure_time) * 1e-9;
       curRes.gain = frame.gain;
-      for (const auto &plateInfo : curRes.mImagePointSets) {
+      for (const auto& plateInfo : curRes.mImagePointSets) {
         curCam.obPlates.insert(plateInfo.first);
 
-        for (const auto &picPoint : curRes.mImagePointSets) {
+        for (const auto& picPoint : curRes.mImagePointSets) {
           framePointsCount += (int)picPoint.second.size();
         }
         //        cv::imshow("board:"+ to_string(plateInfo.first), rgbshow);
         //        cv::waitKey(0);
         //        cv::destroyAllWindows();
       }
-      LOG_FRONT_INFO("detect: %s, points: %d\n", curImgPath.c_str(),
-                     framePointsCount);
+      LOG_FRONT_INFO("detect: %s, points: %d\n", curImgPath.c_str(), framePointsCount);
       allCount += framePointsCount;
       curCam.eachFrameInfo.emplace_back(curRes);
     }
@@ -135,22 +129,21 @@ void CamCalib::CameraDetection::dotDetection() {
   LOG_FRONT_INFO("Save Dot detect result into bin: %s\n", binFile.c_str());
 }
 
-void CamCalib::CameraDetection::dotSingleThreadDetect(
-    const int &camId, const CalibIO::ConfigData &config,
-    const DotDetect::ParamsImageProcessing &curParams,
-    const DotDetect::ImageProcessing &image_processing,
-    std::vector<CalibIO::FrameData *> &picJson,
-    std::vector<CalibIO::CurFrameRes *> &picRes) {
+void CamCalib::CameraDetection::dotSingleThreadDetect(const int& camId, const CalibIO::ConfigData& config,
+                                                      const DotDetect::ParamsImageProcessing& curParams,
+                                                      const DotDetect::ImageProcessing& image_processing,
+                                                      std::vector<CalibIO::FrameData*>& picJson,
+                                                      std::vector<CalibIO::CurFrameRes*>& picRes) {
   // std::cout << "camId is " << camId << std::endl;
-  const std::string &rootPath = config.camPaths.at(camId);
+  const std::string& rootPath = config.camPaths.at(camId);
   cv::Mat cvPic;
 
   bool binaryPic_init = false;
-  cv::Mat binaryPic; // = cv::Mat::zeros(cvPic.rows, cvPic.cols, CV_8UC1);
+  cv::Mat binaryPic;  // = cv::Mat::zeros(cvPic.rows, cvPic.cols, CV_8UC1);
 
   for (int frameID = 0; frameID < picJson.size(); ++frameID) {
     //    std::cout << "process frame " << frameID << std::endl;
-    CalibIO::CurFrameRes *curRes = picRes[frameID];
+    CalibIO::CurFrameRes* curRes = picRes[frameID];
     if (!config.skip_detection) {
       std::string curImgPath = rootPath + "/" + picJson[frameID]->filename;
       cvPic = cv::imread(curImgPath, 0);
@@ -192,65 +185,50 @@ void CamCalib::CameraDetection::dotSingleThreadDetect(
  * |  0 - 1 -- 4 - 5
  * ------> x
  * */
-int CamCalib::CameraDetection::computeAprilTagPatternID(
-    int tagId, int pattern_num,
-    const std::vector<std::pair<int, int>> &startID_endIDs) {
+int CamCalib::CameraDetection::computeAprilTagPatternID(int tagId, int pattern_num,
+                                                        const std::vector<std::pair<int, int>>& startID_endIDs) {
   for (int i = 0; i < pattern_num; i++) {
-    if (tagId >= startID_endIDs[i].first && tagId <= startID_endIDs[i].second)
-      return i;
+    if (tagId >= startID_endIDs[i].first && tagId <= startID_endIDs[i].second) return i;
   }
   std::cerr << " tag ID " << tagId << " is out of range" << std::endl;
   exit(1);
 }
 
 void CamCalib::CameraDetection::aprilTagThreadDetection(
-    const int &camId, const CalibIO::ConfigData &config,
-    const AprilTags::TagDetector &detector,
-    std::vector<CalibIO::FrameData *> &picJson,
-    std::vector<CalibIO::CurFrameRes *> &picRes,
-    const std::vector<std::pair<int, int>> &startID_endIDs,
-    const Eigen::Matrix<number_t, Eigen::Dynamic, Eigen::Dynamic,
-                        Eigen::RowMajor> &grid_points) {
+    const int& camId, const CalibIO::ConfigData& config, const AprilTags::TagDetector& detector,
+    std::vector<CalibIO::FrameData*>& picJson, std::vector<CalibIO::CurFrameRes*>& picRes,
+    const std::vector<std::pair<int, int>>& startID_endIDs,
+    const Eigen::Matrix<number_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>& grid_points) {
   assert(picJson.size() == picRes.size());
   cv::Mat cvPic, cvPicColor;
   bool success = false;
   for (int i = 0; i < picJson.size(); ++i) {
-    std::string curImgPath =
-        config.camPaths.at(camId) + "/" + picJson[i]->filename;
+    std::string curImgPath = config.camPaths.at(camId) + "/" + picJson[i]->filename;
     cvPic = cv::imread(curImgPath, 0);
     if (cvPic.empty()) {
       LOG_FRONT_WARN("Pic can't load: %s\n", curImgPath.c_str());
       continue;
     }
 
-    CalibIO::CurFrameRes *curRes = picRes[i];
+    CalibIO::CurFrameRes* curRes = picRes[i];
     std::vector<AprilTags::TagDetection> detections;
     cv::Mat tagCorners;
     std::vector<int> tag_per_board;
     if (!config.skip_detection) {
       detections = detector.extractTags(cvPic);
 
-      if (config.apriltag_config.show_tag_detect)
-        cv::cvtColor(cvPic, cvPicColor, cv::COLOR_GRAY2RGB);
+      if (config.apriltag_config.show_tag_detect) cv::cvtColor(cvPic, cvPicColor, cv::COLOR_GRAY2RGB);
       std::vector<AprilTags::TagDetection>::iterator iter = detections.begin();
       for (iter = detections.begin(); iter != detections.end();) {
         bool remove = false;
         for (int j = 0; j < 4; j++) {
-          remove |=
-              iter->p[j].first < config.apriltag_config.min_border_distance;
-          remove |=
-              iter->p[j].first >
-              (float)(cvPic.cols) - config.apriltag_config.min_border_distance;
-          remove |=
-              iter->p[j].second < config.apriltag_config.min_border_distance;
-          remove |=
-              iter->p[j].second >
-              (float)(cvPic.rows) - config.apriltag_config.min_border_distance;
+          remove |= iter->p[j].first < config.apriltag_config.min_border_distance;
+          remove |= iter->p[j].first > (float)(cvPic.cols) - config.apriltag_config.min_border_distance;
+          remove |= iter->p[j].second < config.apriltag_config.min_border_distance;
+          remove |= iter->p[j].second > (float)(cvPic.rows) - config.apriltag_config.min_border_distance;
         }
-        if (iter->good != 1)
-          remove |= true;
-        if (iter->id >= (int)config.apriltag_config.one_board_tags *
-                                config.apriltag_config.pattern_num +
+        if (iter->good != 1) remove |= true;
+        if (iter->id >= (int)config.apriltag_config.one_board_tags * config.apriltag_config.pattern_num +
                             config.apriltag_config.board_offset)
           remove |= true;
         if (remove) {
@@ -262,24 +240,19 @@ void CamCalib::CameraDetection::aprilTagThreadDetection(
       // std::vector<int> tag_per_board;
       success = false;
       tag_per_board.resize(config.apriltag_config.pattern_num, 0);
-      for (const auto &detection : detections) {
-        int patternID = computeAprilTagPatternID(detection.id, config.plate_num,
-                                                 startID_endIDs);
+      for (const auto& detection : detections) {
+        int patternID = computeAprilTagPatternID(detection.id, config.plate_num, startID_endIDs);
         tag_per_board[patternID]++;
       }
-      for (int pattern_num = 0;
-           pattern_num < config.apriltag_config.pattern_num; pattern_num++) {
-        if (tag_per_board[pattern_num] >=
-            config.apriltag_config.min_tags_for_valid_obs)
-          success = true;
+      for (int pattern_num = 0; pattern_num < config.apriltag_config.pattern_num; pattern_num++) {
+        if (tag_per_board[pattern_num] >= config.apriltag_config.min_tags_for_valid_obs) success = true;
       }
-      std::sort(detections.begin(), detections.end(),
-                AprilTags::TagDetection::sortByIdCompare);
+      std::sort(detections.begin(), detections.end(), AprilTags::TagDetection::sortByIdCompare);
       if (detections.size() > 1) {
         for (int i = 0; i < detections.size() - 1; i++) {
           if (detections[i].id == detections[i + 1].id) {
-            success = false; //  duplicate apriltags are detected, if this
-                             //  happens, skip this frame;
+            success = false;  //  duplicate apriltags are detected, if this
+                              //  happens, skip this frame;
             break;
           }
         }
@@ -309,15 +282,13 @@ void CamCalib::CameraDetection::aprilTagThreadDetection(
       int iter_max = 2;
       int iter_count = 0;
       int count = 0;
-      int image_res = 70; // 50;  // 70;
-      int image_res_padd =
-          static_cast<int>(0.2 * static_cast<double>(image_res));
+      int image_res = 70;  // 50;  // 70;
+      int image_res_padd = static_cast<int>(0.2 * static_cast<double>(image_res));
       int sub_pix_window_size = 5;
 
       if (config.is_rgb) {
         image_res = 50;
-        image_res_padd =
-            static_cast<int>(0.15 * static_cast<double>(image_res));
+        image_res_padd = static_cast<int>(0.15 * static_cast<double>(image_res));
         sub_pix_window_size = 5;
       }
 
@@ -330,22 +301,19 @@ void CamCalib::CameraDetection::aprilTagThreadDetection(
       target_mat.resize(3, image_res * image_res);
       temp_mat.resize(3, image_res * image_res);
 
-      Eigen::Matrix<double, 3, 4> control_mat_corner, temp_mat_corner,
-          target_mat_corner, source_mat, control_mat2, control_mat3,
-          source_mat2;
+      Eigen::Matrix<double, 3, 4> control_mat_corner, temp_mat_corner, target_mat_corner, source_mat, control_mat2,
+          control_mat3, source_mat2;
       control_mat.row(2).setOnes();
       control_mat_corner.row(2).setOnes();
       source_mat.row(2).setOnes();
       control_mat3.row(2).setOnes();
       std::vector<std::set<int>> hori_set, vert_set;
-      std::vector<cv::Point2f> control_points = {
-          cv::Point2f(0, image_res), cv::Point2f(image_res, image_res),
-          cv::Point2f(image_res, 0), cv::Point2f(0, 0)};
+      std::vector<cv::Point2f> control_points = {cv::Point2f(0, image_res), cv::Point2f(image_res, image_res),
+                                                 cv::Point2f(image_res, 0), cv::Point2f(0, 0)};
       std::vector<cv::Point2f> control_points_pad = {
           cv::Point2f(-image_res_padd, image_res + image_res_padd),
           cv::Point2f(image_res + image_res_padd, image_res + image_res_padd),
-          cv::Point2f(image_res + image_res_padd, -image_res_padd),
-          cv::Point2f(-image_res_padd, -image_res_padd)};
+          cv::Point2f(image_res + image_res_padd, -image_res_padd), cv::Point2f(-image_res_padd, -image_res_padd)};
 
       cv::Mat tagCorners_homo(4, 2, CV_32F);
       for (int row = 0; row < image_res; row++) {
@@ -368,35 +336,27 @@ void CamCalib::CameraDetection::aprilTagThreadDetection(
           bool draw = false;
           for (int j = 0; j < 4; j++) {
             source_points1.emplace_back(
-                cv::Point2f(tagCorners.at<float>(4 * i + j, 0),
-                            tagCorners.at<float>(4 * i + j, 1)));
+                cv::Point2f(tagCorners.at<float>(4 * i + j, 0), tagCorners.at<float>(4 * i + j, 1)));
             source_mat.block(0, j, 2, 1) =
-                Eigen::Vector2d(tagCorners.at<float>(4 * i + j, 0),
-                                tagCorners.at<float>(4 * i + j, 1));
+                Eigen::Vector2d(tagCorners.at<float>(4 * i + j, 0), tagCorners.at<float>(4 * i + j, 1));
             //              std::cout << "source points1: " << source_points1[j]
             //              << std::endl;
           }
           cv::Mat h = cv::findHomography(control_points, source_points1);
           //          std::cout << "h1:\n" << h << std::endl;
           cv::cv2eigen(h, Homo);
-          control_mat_corner.block(0, 0, 2, 1) =
-              Eigen::Vector2d(control_points_pad[0].x, control_points_pad[0].y);
-          control_mat_corner.block(0, 1, 2, 1) =
-              Eigen::Vector2d(control_points_pad[1].x, control_points_pad[1].y);
-          control_mat_corner.block(0, 2, 2, 1) =
-              Eigen::Vector2d(control_points_pad[2].x, control_points_pad[2].y);
-          control_mat_corner.block(0, 3, 2, 1) =
-              Eigen::Vector2d(control_points_pad[3].x, control_points_pad[3].y);
+          control_mat_corner.block(0, 0, 2, 1) = Eigen::Vector2d(control_points_pad[0].x, control_points_pad[0].y);
+          control_mat_corner.block(0, 1, 2, 1) = Eigen::Vector2d(control_points_pad[1].x, control_points_pad[1].y);
+          control_mat_corner.block(0, 2, 2, 1) = Eigen::Vector2d(control_points_pad[2].x, control_points_pad[2].y);
+          control_mat_corner.block(0, 3, 2, 1) = Eigen::Vector2d(control_points_pad[3].x, control_points_pad[3].y);
           target_mat_corner = Homo * control_mat_corner;
           temp_mat_corner.row(0) = target_mat_corner.row(2);
           temp_mat_corner.row(1) = target_mat_corner.row(2);
           temp_mat_corner.row(2) = target_mat_corner.row(2);
-          target_mat_corner =
-              target_mat_corner.array() / temp_mat_corner.array();
+          target_mat_corner = target_mat_corner.array() / temp_mat_corner.array();
 
           for (int j = 0; j < 4; j++) {
-            source_points2.emplace_back(
-                cv::Point2f(target_mat_corner(0, j), target_mat_corner(1, j)));
+            source_points2.emplace_back(cv::Point2f(target_mat_corner(0, j), target_mat_corner(1, j)));
             //              std::cout << "source points2: " << source_points2[j]
             //              << std::endl;
           }
@@ -437,11 +397,9 @@ void CamCalib::CameraDetection::aprilTagThreadDetection(
             tagCorners_homo.at<float>(j, 0) = control_mat2(0, j);
             tagCorners_homo.at<float>(j, 1) = control_mat2(1, j);
           }
-          cv::cornerSubPix(
-              targetImage, tagCorners_homo,
-              cv::Size(sub_pix_window_size, sub_pix_window_size),
-              cv::Size(-1, -1), // 2,2
-              cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.05));
+          cv::cornerSubPix(targetImage, tagCorners_homo, cv::Size(sub_pix_window_size, sub_pix_window_size),
+                           cv::Size(-1, -1),  // 2,2
+                           cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.05));
 
           for (int j = 0; j < 4; j++) {
             control_mat3(0, j) = tagCorners_homo.at<float>(j, 0);
@@ -458,10 +416,8 @@ void CamCalib::CameraDetection::aprilTagThreadDetection(
             tagCorners.at<float>(4 * i + j, 0) = source_mat2(0, j);
             tagCorners.at<float>(4 * i + j, 1) = source_mat2(1, j);
             if (!draw) {
-              if (tagCorners.at<float>(4 * i + j, 0) < 0 ||
-                  tagCorners.at<float>(4 * i + j, 1) < 0 ||
-                  tagCorners.at<float>(4 * i + j, 0) > cvPic.cols ||
-                  tagCorners.at<float>(4 * i + j, 1) > cvPic.rows) {
+              if (tagCorners.at<float>(4 * i + j, 0) < 0 || tagCorners.at<float>(4 * i + j, 1) < 0 ||
+                  tagCorners.at<float>(4 * i + j, 0) > cvPic.cols || tagCorners.at<float>(4 * i + j, 1) > cvPic.rows) {
                 draw = true;
               }
             }
@@ -469,32 +425,28 @@ void CamCalib::CameraDetection::aprilTagThreadDetection(
           if (config.apriltag_config.show_tag_detect) {
             cv::cvtColor(targetImage, targetImage, cv::COLOR_GRAY2BGR);
             for (int jj = 0; jj < 4; jj++) {
-              cv::circle(image_temp1, source_points2[jj], 3, CV_RGB(0, 0, 255),
-                         cv::FILLED);
-              cv::circle(image_temp1, source_points1[jj], 2, CV_RGB(255, 0, 0),
-                         cv::FILLED);
+              cv::circle(image_temp1, source_points2[jj], 3, CV_RGB(0, 0, 255), cv::FILLED);
+              cv::circle(image_temp1, source_points1[jj], 2, CV_RGB(255, 0, 0), cv::FILLED);
               cv::circle(image_temp1,
-                         cv::Point2f(tagCorners.at<float>(4 * i + jj, 0),
-                                     tagCorners.at<float>(4 * i + jj, 1)),
-                         1, CV_RGB(0, 255, 0), cv::FILLED);
-              cv::circle(targetImage,
-                         cv::Point2f(control_mat2(0, jj), control_mat2(1, jj)),
-                         3, CV_RGB(0, 0, 255), cv::FILLED);
-              cv::circle(targetImage,
-                         cv::Point2f(tagCorners_homo.at<float>(jj, 0),
-                                     tagCorners_homo.at<float>(jj, 1)),
+                         cv::Point2f(tagCorners.at<float>(4 * i + jj, 0), tagCorners.at<float>(4 * i + jj, 1)), 1,
+                         CV_RGB(0, 255, 0), cv::FILLED);
+              cv::circle(targetImage, cv::Point2f(control_mat2(0, jj), control_mat2(1, jj)), 3, CV_RGB(0, 0, 255),
+                         cv::FILLED);
+              cv::circle(targetImage, cv::Point2f(tagCorners_homo.at<float>(jj, 0), tagCorners_homo.at<float>(jj, 1)),
                          2, CV_RGB(0, 255, 0), cv::FILLED);
             }
             if (/*true ||*/ draw || true) {
               std::cout << "cur_iter: " << iter_count << std::endl;
               cv::imshow("orig image", image_temp1);
               cv::imshow("warped image", targetImage);
-              cv::imwrite("/home/roger/work/smartgit/calib001/yvrcalibration/"
-                          "build/a.png",
-                          image_temp1);
-              cv::imwrite("/home/roger/work/smartgit/calib001/yvrcalibration/"
-                          "build/b.png",
-                          targetImage);
+              cv::imwrite(
+                  "/home/roger/work/smartgit/calib001/yvrcalibration/"
+                  "build/a.png",
+                  image_temp1);
+              cv::imwrite(
+                  "/home/roger/work/smartgit/calib001/yvrcalibration/"
+                  "build/b.png",
+                  targetImage);
               cv::waitKey(0);
             }
           }
@@ -505,20 +457,15 @@ void CamCalib::CameraDetection::aprilTagThreadDetection(
       }
 #else
       int ratio = std::max(cvPic.rows / 640, 1);
-      cv::cornerSubPix(
-          cvPic, tagCorners, cv::Size(2 * ratio, 2 * ratio),
-          cv::Size(-1, -1), // 2,2
-          cv::TermCriteria(cv::TermCriteria::EPS | cv::TermCriteria::COUNT, 30,
-                           0.1));
+      cv::cornerSubPix(cvPic, tagCorners, cv::Size(2 * ratio, 2 * ratio), cv::Size(-1, -1),  // 2,2
+                       cv::TermCriteria(cv::TermCriteria::EPS | cv::TermCriteria::COUNT, 30, 0.1));
 #endif
     }
     std::vector<std::vector<bool>> outCornerObserved;
     Eigen::MatrixXd outImagePoints;
-    outCornerObserved.resize(
-        config.apriltag_config.pattern_num,
-        std::vector<bool>(4 * config.apriltag_config.one_board_tags, false));
-    outImagePoints.resize(4 * config.apriltag_config.one_board_tags,
-                          2 * config.apriltag_config.pattern_num);
+    outCornerObserved.resize(config.apriltag_config.pattern_num,
+                             std::vector<bool>(4 * config.apriltag_config.one_board_tags, false));
+    outImagePoints.resize(4 * config.apriltag_config.one_board_tags, 2 * config.apriltag_config.pattern_num);
     std::map<int, std::vector<int>> gridIdMap;
     for (int i = 0; i < detections.size(); i++) {
       // get the tag id
@@ -526,11 +473,9 @@ void CamCalib::CameraDetection::aprilTagThreadDetection(
 
       // calculate the grid idx for all four tag corners given the tagId and
       // cols
-      int baseId = (int)(tagId / (config.apriltag_config.cols)) *
-                       config.apriltag_config.cols * 4 +
+      int baseId = (int)(tagId / (config.apriltag_config.cols)) * config.apriltag_config.cols * 4 +
                    (tagId % (config.apriltag_config.cols)) * 2;
-      int pIdx[] = {baseId, baseId + 1,
-                    baseId + (int)(2 * config.apriltag_config.cols) + 1,
+      int pIdx[] = {baseId, baseId + 1, baseId + (int)(2 * config.apriltag_config.cols) + 1,
                     baseId + (int)(2 * config.apriltag_config.cols)};
 
       // add four points per tag
@@ -546,8 +491,7 @@ void CamCalib::CameraDetection::aprilTagThreadDetection(
         // only add point if the displacement in the subpixel refinement is
         // below a given threshold
         double subpix_displacement_squarred =
-            (corner_x - cornerRaw_x) * (corner_x - cornerRaw_x) +
-            (corner_y - cornerRaw_y) * (corner_y - cornerRaw_y);
+            (corner_x - cornerRaw_x) * (corner_x - cornerRaw_x) + (corner_y - cornerRaw_y) * (corner_y - cornerRaw_y);
 
         // add all points, but only set active if the point has not moved to far
         // in the subpix refinement
@@ -560,19 +504,16 @@ void CamCalib::CameraDetection::aprilTagThreadDetection(
         ///      pattern0_id 5    |    pattern1_id 5    |
         ///             .                   .
         ///             .                   .
-        int patternID =
-            computeAprilTagPatternID(tagId, config.plate_num, startID_endIDs);
+        int patternID = computeAprilTagPatternID(tagId, config.plate_num, startID_endIDs);
         int row_position = pIdx[j] - startID_endIDs[patternID].first * 4;
         int col_position = patternID * 2;
         if (j == 0) {
           // gridIdMap.insert(std::make_pair());
         }
 
-        outImagePoints.block<1, 2>(row_position, col_position) =
-            Eigen::Matrix<number_t, 1, 2>(corner_x, corner_y);
+        outImagePoints.block<1, 2>(row_position, col_position) = Eigen::Matrix<number_t, 1, 2>(corner_x, corner_y);
 
-        if (subpix_displacement_squarred <=
-            config.apriltag_config.max_subpix_displacement2 * 5) {
+        if (subpix_displacement_squarred <= config.apriltag_config.max_subpix_displacement2 * 5) {
           outCornerObserved[patternID][row_position] = true;
         } else {
           outCornerObserved[patternID][row_position] = false;
@@ -580,52 +521,38 @@ void CamCalib::CameraDetection::aprilTagThreadDetection(
       }
     }
 
-    for (int pattern_id = 0; pattern_id < config.apriltag_config.pattern_num;
-         pattern_id++) {
-      if (tag_per_board[pattern_id] >
-          config.apriltag_config.min_points_obsetved) {
+    for (int pattern_id = 0; pattern_id < config.apriltag_config.pattern_num; pattern_id++) {
+      if (tag_per_board[pattern_id] > config.apriltag_config.min_points_obsetved) {
         if (curRes->mGridId.count(pattern_id) == 0) {
           curRes->mGridId.emplace(pattern_id, std::vector<int>{});
-          curRes->mImagePointSets.emplace(pattern_id,
-                                          std::vector<Eigen::Vector2d>{});
-          curRes->mObjectPointSets.emplace(pattern_id,
-                                           std::vector<Eigen::Vector3d>{});
+          curRes->mImagePointSets.emplace(pattern_id, std::vector<Eigen::Vector2d>{});
+          curRes->mObjectPointSets.emplace(pattern_id, std::vector<Eigen::Vector3d>{});
         }
 
-        for (int point_id = 0;
-             point_id < 4 * config.apriltag_config.one_board_tags; point_id++) {
+        for (int point_id = 0; point_id < 4 * config.apriltag_config.one_board_tags; point_id++) {
           if (outCornerObserved[pattern_id][point_id]) {
             curRes->mGridId.at(pattern_id)
-                .emplace_back(4 * config.apriltag_config.one_board_tags *
-                                  pattern_id +
-                              point_id);
-            curRes->mObjectPointSets.at(pattern_id)
-                .emplace_back(grid_points.row(point_id).transpose());
+                .emplace_back(4 * config.apriltag_config.one_board_tags * pattern_id + point_id);
+            curRes->mObjectPointSets.at(pattern_id).emplace_back(grid_points.row(point_id).transpose());
             curRes->mImagePointSets.at(pattern_id)
                 .emplace_back(
-                    Vec2(outImagePoints(point_id, pattern_id * 2),
-                         outImagePoints(point_id, pattern_id * 2 + 1)));
+                    Vec2(outImagePoints(point_id, pattern_id * 2), outImagePoints(point_id, pattern_id * 2 + 1)));
             if (config.apriltag_config.show_tag_detect) {
               cv::circle(
                   cvPicColor,
-                  cv::Point2f(outImagePoints(point_id, pattern_id * 2),
-                              outImagePoints(point_id, pattern_id * 2 + 1)),
+                  cv::Point2f(outImagePoints(point_id, pattern_id * 2), outImagePoints(point_id, pattern_id * 2 + 1)),
                   2, CV_RGB(255, 0, 0), 2, cv::FILLED);
-              cv::putText(
-                  cvPicColor,
-                  to_string(4 * config.apriltag_config.one_board_tags *
-                                pattern_id +
-                            point_id),
-                  cv::Point2f(outImagePoints(point_id, pattern_id * 2) + 2,
-                              outImagePoints(point_id, pattern_id * 2 + 1) - 2),
-                  cv::FONT_HERSHEY_SIMPLEX, 0.3, CV_RGB(255, 0, 255), 1);
+              cv::putText(cvPicColor, to_string(4 * config.apriltag_config.one_board_tags * pattern_id + point_id),
+                          cv::Point2f(outImagePoints(point_id, pattern_id * 2) + 2,
+                                      outImagePoints(point_id, pattern_id * 2 + 1) - 2),
+                          cv::FONT_HERSHEY_SIMPLEX, 0.3, CV_RGB(255, 0, 255), 1);
             }
           }
         }
       }
     }
     if (config.apriltag_config.show_tag_detect) {
-      cv::imshow("Aprilgrid: Tag detection", cvPicColor); // OpenCV call
+      cv::imshow("Aprilgrid: Tag detection", cvPicColor);  // OpenCV call
       cv::waitKey(0);
     }
 
@@ -638,37 +565,31 @@ void CamCalib::CameraDetection::aprilTagThreadDetection(
 }
 
 void CamCalib::CameraDetection::multiThreadDetect() {
-  for (auto &[_, oneCam] : m_multiCamJsonRes) {
+  for (auto& [_, oneCam] : m_multiCamJsonRes) {
     int camId = oneCam.camId;
     CalibIO::CamFrames curCam;
     curCam.eachFrameInfo.resize(oneCam.frames.size());
     int threadNum = m_config.detect_thread_num;
     std::vector<std::thread> multiThread;
-    std::vector<std::vector<CalibIO::FrameData *>> multiDataJson(
-        threadNum, std::vector<CalibIO::FrameData *>{});
-    std::vector<std::vector<CalibIO::CurFrameRes *>> multiFrameRes(
-        threadNum, std::vector<CalibIO::CurFrameRes *>{});
+    std::vector<std::vector<CalibIO::FrameData*>> multiDataJson(threadNum, std::vector<CalibIO::FrameData*>{});
+    std::vector<std::vector<CalibIO::CurFrameRes*>> multiFrameRes(threadNum, std::vector<CalibIO::CurFrameRes*>{});
     std::printf("Multi thread detect: camera_%d\n", camId);
 
-    std::chrono::steady_clock::time_point start =
-        std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 
     for (int frameId = 0; frameId < oneCam.frames.size(); ++frameId) {
       int threadId = frameId % threadNum;
       multiDataJson[threadId].emplace_back(&oneCam.frames[frameId]);
       multiFrameRes[threadId].emplace_back(&curCam.eachFrameInfo[frameId]);
     }
-    AprilTags::TagDetector detector(AprilTags::tagCodes36h11,
-                                    m_config.apriltag_config.black_board);
+    AprilTags::TagDetector detector(AprilTags::tagCodes36h11, m_config.apriltag_config.black_board);
 
-    DotDetect::ImageProcessing image_processing(
-        m_config.dot_config.grid_spacing, m_config.dot_config.grid_size,
-        m_config.dot_config.grid_seed, m_config.plate_num);
+    DotDetect::ImageProcessing image_processing(m_config.dot_config.grid_spacing, m_config.dot_config.grid_size,
+                                                m_config.dot_config.grid_seed, m_config.plate_num);
 
     if (m_config.board_type == CalibIO::DOT) {
       image_processing.verbose = m_config.dot_config.show_detect_picture;
-      DotDetect::ParamsImageProcessing curParams(
-          m_config.dot_config.min_area_point_num, oneCam.cameraInfo.width);
+      DotDetect::ParamsImageProcessing curParams(m_config.dot_config.min_area_point_num, oneCam.cameraInfo.width);
       curParams.black_on_white = m_config.dot_config.black_dot;
       curParams.at_threshold = m_config.dot_config.adaptive_thresh;
       curParams.at_window_ratio = m_config.dot_config.window_ratio;
@@ -679,28 +600,23 @@ void CamCalib::CameraDetection::multiThreadDetect() {
       curParams.skip_detection = m_config.skip_detection;
       if (threadNum > 1) {
         for (int i = 0; i < threadNum; ++i) {
-          multiThread.emplace_back(
-              dotSingleThreadDetect, camId, m_config, std::ref(curParams),
-              std::ref(image_processing), std::ref(multiDataJson[i]),
-              std::ref(multiFrameRes[i]));
+          multiThread.emplace_back(dotSingleThreadDetect, camId, m_config, std::ref(curParams),
+                                   std::ref(image_processing), std::ref(multiDataJson[i]), std::ref(multiFrameRes[i]));
           std::printf("thread_%d frames -> %zu\n", i, multiDataJson[i].size());
         }
       } else {
-        dotSingleThreadDetect(camId, m_config, curParams, image_processing,
-                              multiDataJson[0], multiFrameRes[0]);
+        dotSingleThreadDetect(camId, m_config, curParams, image_processing, multiDataJson[0], multiFrameRes[0]);
       }
     } else if (m_config.board_type == CalibIO::APRILTAG) {
       if (threadNum > 1) {
         for (int i = 0; i < threadNum; ++i) {
-          multiThread.emplace_back(
-              aprilTagThreadDetection, camId, m_config, std::ref(detector),
-              std::ref(multiDataJson[i]), std::ref(multiFrameRes[i]),
-              m_startID_endIDs, m_grid_points);
+          multiThread.emplace_back(aprilTagThreadDetection, camId, m_config, std::ref(detector),
+                                   std::ref(multiDataJson[i]), std::ref(multiFrameRes[i]), m_startID_endIDs,
+                                   m_grid_points);
           std::printf("thread_%d frames -> %zu\n", i, multiDataJson[i].size());
         }
       } else {
-        aprilTagThreadDetection(camId, m_config, std::ref(detector),
-                                multiDataJson[0], multiFrameRes[0],
+        aprilTagThreadDetection(camId, m_config, std::ref(detector), multiDataJson[0], multiFrameRes[0],
                                 m_startID_endIDs, m_grid_points);
       }
     } else {
@@ -708,18 +624,16 @@ void CamCalib::CameraDetection::multiThreadDetect() {
       std::exit(-1);
     }
 
-    for (auto &thread : multiThread) {
+    for (auto& thread : multiThread) {
       thread.join();
     }
-    std::chrono::steady_clock::time_point end =
-        std::chrono::steady_clock::now();
-    std::chrono::duration<double> duration =
-        std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> duration = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
     std::printf("detect time: %f s \n", duration.count());
     m_multiCamFrames.emplace(camId, curCam);
   }
 
-  const std::string &binFile = m_config.binFilePath;
+  const std::string& binFile = m_config.binFilePath;
   CalibIO::saveCamFrames(m_multiCamFrames, binFile);
   LOG_FRONT_INFO("Save detect result into bin: %s\n", binFile.c_str());
 }
@@ -731,8 +645,7 @@ bool CamCalib::CameraDetection::hasResBin() {
       file.close();
       return true;
     } else {
-      LOG_FRONT_ERROR("Bin File does not exist: %s.\n",
-                      m_config.binFilePath.c_str());
+      LOG_FRONT_ERROR("Bin File does not exist: %s.\n", m_config.binFilePath.c_str());
     }
     return false;
   } else {
@@ -743,8 +656,7 @@ bool CamCalib::CameraDetection::hasResBin() {
       file_rgb.close();
       return true;
     } else {
-      LOG_FRONT_ERROR("gray or rgb Bin File does not exist: %s, %s\n",
-                      m_config.binFilePath_gray.c_str(),
+      LOG_FRONT_ERROR("gray or rgb Bin File does not exist: %s, %s\n", m_config.binFilePath_gray.c_str(),
                       m_config.binFilePath_rgb.c_str());
     }
     return false;
@@ -767,26 +679,23 @@ bool CamCalib::CameraDetection::loadBinFile() {
 void CamCalib::CameraDetection::showDetection() {
   std::map<int, int> cid_to_index;
   int count = 0;
-  for (const int &id : m_config.calib_cid) {
+  for (const int& id : m_config.calib_cid) {
     cid_to_index.emplace(std::make_pair(id, count));
     count++;
   }
-  for (const auto &oneCam : m_multiCamFrames) {
+  for (const auto& oneCam : m_multiCamFrames) {
     // int camId = cid_to_index[oneCam.first];
-    const std::string &camPath = m_config.camPaths.at(oneCam.first);
-    for (const auto &curRes : oneCam.second.eachFrameInfo) {
-      LOG_FRONT_INFO("load file: %s\n",
-                     (camPath + "/" + curRes.frameName).c_str());
+    const std::string& camPath = m_config.camPaths.at(oneCam.first);
+    for (const auto& curRes : oneCam.second.eachFrameInfo) {
+      LOG_FRONT_INFO("load file: %s\n", (camPath + "/" + curRes.frameName).c_str());
       cv::Mat curPic = cv::imread(camPath + "/" + curRes.frameName, 1);
-      for (const auto &oneBoard : curRes.mGridId) {
+      for (const auto& oneBoard : curRes.mGridId) {
         int boardId = oneBoard.first;
         for (int idx = 0; idx < curRes.mGridId.at(boardId).size(); ++idx) {
-          cv::circle(curPic,
-                     cv::Point(curRes.mImagePointSets.at(boardId)[idx].x(),
-                               curRes.mImagePointSets.at(boardId)[idx].y()),
-                     2,
-                     cv::Scalar(boardId * 100, 255 - boardId * 100,
-                                255 - 10 * boardId));
+          cv::circle(
+              curPic,
+              cv::Point(curRes.mImagePointSets.at(boardId)[idx].x(), curRes.mImagePointSets.at(boardId)[idx].y()), 2,
+              cv::Scalar(boardId * 100, 255 - boardId * 100, 255 - 10 * boardId));
           //          cv::putText(back_pic,
           //          std::to_string(curRes.mGridId.at(boardId)[idx]),
           //                      cv::Point(curRes.mImagePointSets.at(boardId)[idx].x(),
@@ -801,8 +710,7 @@ void CamCalib::CameraDetection::showDetection() {
   }
 }
 
-void CamCalib::CameraDetection::transRes(
-    dso::aligned_vector<dso::CalibFrame> &res, bool is_rgb) {
+void CamCalib::CameraDetection::transRes(dso::aligned_vector<dso::CalibFrame>& res, bool is_rgb) {
   int pointNum = 0;
   // std::unordered_map<int/*camId*/, CalibIO::CamFrames> m_multiCamFrames;
   int camNum = (int)m_multiCamFrames.size();
@@ -823,32 +731,23 @@ void CamCalib::CameraDetection::transRes(
   //      count++;
   //    }
   //  }
-  for (const auto &oneCam : m_multiCamFrames) {
+  for (const auto& oneCam : m_multiCamFrames) {
     int curCamId = oneCam.first;
     std::cout << "curCamId: " << curCamId << std::endl;
-    const std::string &curCamPath = m_config.camPaths.at(curCamId);
+    const std::string& curCamPath = m_config.camPaths.at(curCamId);
 
     for (int frameId = 0; frameId < frameNum; ++frameId) {
       res[frameId].timestamp = oneCam.second.eachFrameInfo[frameId].timestamp;
-      res[frameId].cid_to_gain[curCamId] =
-          oneCam.second.eachFrameInfo[frameId].gain;
-      res[frameId].cid_to_exposure_time[curCamId] =
-          oneCam.second.eachFrameInfo[frameId].exposure;
-      res[frameId].cid_to_img_file_path[curCamId] =
-          curCamPath + "/" + oneCam.second.eachFrameInfo[frameId].frameName;
-      res[frameId].cid_pid_to_point_vm[curCamId] = {}; // create empty
-      for (const auto &oneBoard :
-           oneCam.second.eachFrameInfo[frameId].mGridId) {
+      res[frameId].cid_to_gain[curCamId] = oneCam.second.eachFrameInfo[frameId].gain;
+      res[frameId].cid_to_exposure_time[curCamId] = oneCam.second.eachFrameInfo[frameId].exposure;
+      res[frameId].cid_to_img_file_path[curCamId] = curCamPath + "/" + oneCam.second.eachFrameInfo[frameId].frameName;
+      res[frameId].cid_pid_to_point_vm[curCamId] = {};  // create empty
+      for (const auto& oneBoard : oneCam.second.eachFrameInfo[frameId].mGridId) {
         int curBoardId = oneBoard.first;
         for (int idx = 0; idx < oneBoard.second.size(); ++idx) {
-          const Eigen::Vector2d &curP2d =
-              oneCam.second.eachFrameInfo[frameId].mImagePointSets.at(
-                  curBoardId)[idx];
-          const Eigen::Vector3d &curP3d =
-              oneCam.second.eachFrameInfo[frameId].mObjectPointSets.at(
-                  curBoardId)[idx];
-          int curPid =
-              oneCam.second.eachFrameInfo[frameId].mGridId.at(curBoardId)[idx];
+          const Eigen::Vector2d& curP2d = oneCam.second.eachFrameInfo[frameId].mImagePointSets.at(curBoardId)[idx];
+          const Eigen::Vector3d& curP3d = oneCam.second.eachFrameInfo[frameId].mObjectPointSets.at(curBoardId)[idx];
+          int curPid = oneCam.second.eachFrameInfo[frameId].mGridId.at(curBoardId)[idx];
           pointNum++;
           dso::PointVM pVm;
           pVm.xyz = curP3d;
@@ -863,17 +762,14 @@ void CamCalib::CameraDetection::transRes(
   LOG_FRONT_INFO("Point num: d%", pointNum);
 }
 
-void CamCalib::CameraDetection::dotDetect(const string &imgFolder,
-                                          const std::string &saveFolder) {
+void CamCalib::CameraDetection::dotDetect(const string& imgFolder, const std::string& saveFolder) {
   std::vector<std::string> filenames;
   GetBmpNames(imgFolder, filenames);
-  DotDetect::ImageProcessing image_processing(
-      m_config.dot_config.grid_spacing, m_config.dot_config.grid_size,
-      m_config.dot_config.grid_seed, m_config.plate_num);
+  DotDetect::ImageProcessing image_processing(m_config.dot_config.grid_spacing, m_config.dot_config.grid_size,
+                                              m_config.dot_config.grid_seed, m_config.plate_num);
   image_processing.verbose = m_config.dot_config.show_detect_picture;
 
-  DotDetect::ParamsImageProcessing curParams(
-      m_config.dot_config.min_area_point_num, 480);
+  DotDetect::ParamsImageProcessing curParams(m_config.dot_config.min_area_point_num, 480);
   curParams.black_on_white = m_config.dot_config.black_dot;
   curParams.at_threshold = m_config.dot_config.adaptive_thresh;
   curParams.at_window_ratio = m_config.dot_config.window_ratio;
@@ -884,7 +780,7 @@ void CamCalib::CameraDetection::dotDetect(const string &imgFolder,
 
   CalibIO::CamFrames curCam;
   cv::Mat cvPic;
-  for (const auto &filename : filenames) {
+  for (const auto& filename : filenames) {
     std::string curImgPath = imgFolder + "/" + filename;
     std::cerr << "detect img: " << curImgPath << std::endl;
     cvPic = cv::imread(curImgPath, 0);
@@ -899,18 +795,15 @@ void CamCalib::CameraDetection::dotDetect(const string &imgFolder,
     cv::Mat showId;
     cv::cvtColor(cvPic, showId, cv::COLOR_GRAY2RGB);
 
-    for (const auto &oneData : curRes.mImagePointSets) {
+    for (const auto& oneData : curRes.mImagePointSets) {
       framePointsCount += oneData.second.size();
       int boardId = oneData.first;
       for (int i = 0; i < oneData.second.size(); ++i) {
         int curPointId = curRes.mGridId.at(boardId)[i];
-        cv::circle(showId,
-                   cv::Point(oneData.second[i].x(), oneData.second[i].y()), 3,
-                   cv::Scalar(0, 0, 255));
+        cv::circle(showId, cv::Point(oneData.second[i].x(), oneData.second[i].y()), 3, cv::Scalar(0, 0, 255));
         if (curPointId % 5 == 0) {
-          cv::putText(showId, std::to_string(curPointId),
-                      cv::Point(oneData.second[i].x(), oneData.second[i].y()),
-                      1, 1, cv::Scalar(255, 0, 0));
+          cv::putText(showId, std::to_string(curPointId), cv::Point(oneData.second[i].x(), oneData.second[i].y()), 1, 1,
+                      cv::Scalar(255, 0, 0));
         }
       }
     }
@@ -918,25 +811,21 @@ void CamCalib::CameraDetection::dotDetect(const string &imgFolder,
     //    cv::waitKey(0);
     //    cv::destroyWindow(filename);
 
-    LOG_FRONT_INFO("detect: %s, points: %d\n", curImgPath.c_str(),
-                   framePointsCount);
+    LOG_FRONT_INFO("detect: %s, points: %d\n", curImgPath.c_str(), framePointsCount);
   }
 }
 
-bool CamCalib::CameraDetection::FileEndsWith(const std::string &str,
-                                             const std::string &suffix) {
+bool CamCalib::CameraDetection::FileEndsWith(const std::string& str, const std::string& suffix) {
   if (str.length() >= suffix.length()) {
-    return (0 == str.compare(str.length() - suffix.length(), suffix.length(),
-                             suffix));
+    return (0 == str.compare(str.length() - suffix.length(), suffix.length(), suffix));
   } else {
     return false;
   }
 }
 
-void CamCalib::CameraDetection::GetBmpNames(
-    const std::string &path, std::vector<std::string> &filenames) {
-  DIR *pDir;
-  struct dirent *ptr;
+void CamCalib::CameraDetection::GetBmpNames(const std::string& path, std::vector<std::string>& filenames) {
+  DIR* pDir;
+  struct dirent* ptr;
   if (!(pDir = opendir(path.c_str()))) {
     std::cout << "Folder doesn't Exist!" << std::endl;
     return;
@@ -952,7 +841,7 @@ void CamCalib::CameraDetection::GetBmpNames(
 
 void CamCalib::CameraDetection::drawPointsRangePic() const {
   //  m_multiCamFrames
-  for (const auto &[_, oneCamData] : m_multiCamJsonRes) {
+  for (const auto& [_, oneCamData] : m_multiCamJsonRes) {
     int curCamId = oneCamData.camId;
     if (m_multiCamFrames.count(curCamId) == 0) {
       LOG_FRONT_ERROR("Camera %d did't get enough result", curCamId);
@@ -962,28 +851,23 @@ void CamCalib::CameraDetection::drawPointsRangePic() const {
     int gridWidth = oneCamData.cameraInfo.width / gridPixels;
     int gridHeight = oneCamData.cameraInfo.height / gridPixels;
 
-    int imageW = gridWidth + cvRound(static_cast<float>(gridWidth) *
-                                     (16.f / 9.f - 4.f / 3.f));
+    int imageW = gridWidth + cvRound(static_cast<float>(gridWidth) * (16.f / 9.f - 4.f / 3.f));
     cv::Mat image_gray(gridHeight, imageW, CV_8UC1, cv::Scalar(0));
 
-    std::string img_path = m_config.resultPath + "/Camera_" +
-                           std::to_string(curCamId) + "_point_range.bmp";
+    std::string img_path = m_config.resultPath + "/Camera_" + std::to_string(curCamId) + "_point_range.bmp";
 
     unsigned int observedPointsNum = 0;
     unsigned int coveragePointsNum = 0;
 
-    for (const CalibIO::CurFrameRes &oneFrame :
-         m_multiCamFrames.at(curCamId).eachFrameInfo) {
-      for (const std::pair<const int, std::vector<Eigen::Vector2d>> &oneData :
-           oneFrame.mImagePointSets) {
-        for (const auto &img_points : oneData.second) {
+    for (const CalibIO::CurFrameRes& oneFrame : m_multiCamFrames.at(curCamId).eachFrameInfo) {
+      for (const std::pair<const int, std::vector<Eigen::Vector2d>>& oneData : oneFrame.mImagePointSets) {
+        for (const auto& img_points : oneData.second) {
           int grid_col = floor(img_points.x() / static_cast<float>(gridPixels));
           int grid_row = floor(img_points.y() / static_cast<float>(gridPixels));
           assert(grid_col < gridWidth && grid_col >= 0);
           assert(grid_row < gridHeight && grid_row >= 0);
           // 出现一致，灰度值++
-          if (image_gray.at<uint8_t>(grid_row, grid_col) <= 255)
-            image_gray.at<uint8_t>(grid_row, grid_col)++;
+          if (image_gray.at<uint8_t>(grid_row, grid_col) <= 255) image_gray.at<uint8_t>(grid_row, grid_col)++;
           observedPointsNum++;
         }
       }
@@ -993,8 +877,7 @@ void CamCalib::CameraDetection::drawPointsRangePic() const {
       for (int col = 0; col < gridWidth; col++) {
         int observeTime = image_gray.at<uint8_t>(row, col);
         observeTime = observeTime * 255 / color_num;
-        if (observeTime > 255)
-          observeTime = (color_num - 1) * 255 / color_num;
+        if (observeTime > 255) observeTime = (color_num - 1) * 255 / color_num;
         image_gray.at<uint8_t>(row, col) = observeTime;
       }
     }
@@ -1005,13 +888,11 @@ void CamCalib::CameraDetection::drawPointsRangePic() const {
     for (int row = 0; row < gridHeight; row++) {
       for (int col = 0; col < gridWidth; col++) {
         int gray_num = image_dilate.at<uint8_t>(row, col);
-        if (gray_num > 0)
-          coveragePointsNum++;
+        if (gray_num > 0) coveragePointsNum++;
       }
     }
 
-    cv::rectangle(image_dilate, cv::Point(gridWidth - 1, 0),
-                  cv::Point(imageW - 1, gridHeight - 1),
+    cv::rectangle(image_dilate, cv::Point(gridWidth - 1, 0), cv::Point(imageW - 1, gridHeight - 1),
                   cv::Scalar(255, 255, 255), -1, 4);
     cv::Scalar color[color_num];
     for (int i = 0; i < color_num; i++) {
@@ -1021,32 +902,26 @@ void CamCalib::CameraDetection::drawPointsRangePic() const {
       int h = 20, w = 80;
       int y = 50 * (i + 1);
       int x = gridWidth - 1 + 20;
-      cv::rectangle(image_dilate, cv::Point(x, y), cv::Point(x + w, y + h),
-                    color[i], -1);
+      cv::rectangle(image_dilate, cv::Point(x, y), cv::Point(x + w, y + h), color[i], -1);
       std::ostringstream txt_stream;
       if (i < color_num - 1)
         txt_stream << i << " points";
       else
         txt_stream << ">=" << i << " points";
-      cv::putText(image_dilate, txt_stream.str(), cv::Point(x + w + 10, y + h),
-                  cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0));
+      cv::putText(image_dilate, txt_stream.str(), cv::Point(x + w + 10, y + h), cv::FONT_HERSHEY_SIMPLEX, 0.7,
+                  cv::Scalar(0));
     }
     std::ostringstream txt_stream1, txt_stream2;
-    txt_stream1 << std::to_string(curCamId) << " Coverage "
-                << std::setprecision(4)
-                << static_cast<float>(coveragePointsNum) /
-                       static_cast<float>(gridWidth * gridHeight) * 100.0
-                << "%";
-    cv::putText(image_dilate, txt_stream1.str(),
-                cv::Point(gridWidth - 1 + 20, gridHeight - 50),
+    txt_stream1 << std::to_string(curCamId) << " Coverage " << std::setprecision(4)
+                << static_cast<float>(coveragePointsNum) / static_cast<float>(gridWidth * gridHeight) * 100.0 << "%";
+    cv::putText(image_dilate, txt_stream1.str(), cv::Point(gridWidth - 1 + 20, gridHeight - 50),
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0), 1);
     txt_stream2 << "Points Number: " << observedPointsNum;
-    cv::putText(image_dilate, txt_stream2.str(),
-                cv::Point(gridWidth - 1 + 20, gridHeight - 100),
+    cv::putText(image_dilate, txt_stream2.str(), cv::Point(gridWidth - 1 + 20, gridHeight - 100),
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0), 1);
 
     cv::imwrite(img_path, image_dilate);
   }
 }
 
-} // namespace dso
+}  // namespace dso

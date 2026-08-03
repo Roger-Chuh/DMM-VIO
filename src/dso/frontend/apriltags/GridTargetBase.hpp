@@ -26,12 +26,12 @@ namespace dso {
  *
  */
 class GridCalibrationTargetBase {
-public:
+ public:
   /// \brief initialize base class
   GridCalibrationTargetBase(size_t rows, size_t cols);
   virtual ~GridCalibrationTargetBase(){};
 
-public:
+ public:
   typedef boost::shared_ptr<GridCalibrationTargetBase> Ptr;
   typedef boost::shared_ptr<const GridCalibrationTargetBase> ConstPtr;
 
@@ -63,17 +63,15 @@ public:
   /// \brief extract the calibration target points from an image
   ///        outCornerObserved flags wheter the corresponding point
   ///        in outImagePoints was observed
-  bool computeObservation(const cv::Mat & /*image*/,
-                          Eigen::MatrixXd & /*outImagePoints*/,
-                          std::vector<bool> & /*outCornerObserved*/) const;
+  bool computeObservation(const cv::Mat& /*image*/, Eigen::MatrixXd& /*outImagePoints*/,
+                          std::vector<bool>& /*outCornerObserved*/) const;
 
   /// \brief return pointer to the i-th grid point in target frame
-  double *getPointDataPointer(size_t i);
+  double* getPointDataPointer(size_t i);
 
-protected:
+ protected:
   /// \brief grid points stored in row-major order (idx = cols * r + c)
-  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
-      _points;
+  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> _points;
 
   /// \brief the number of point rows in the calibration target
   size_t _rows;
@@ -84,31 +82,31 @@ protected:
   ///////////////////////////////////////////////////
   // Serialization support
   ///////////////////////////////////////////////////
-public:
+ public:
   enum { CLASS_SERIALIZATION_VERSION = 1 };
   BOOST_SERIALIZATION_SPLIT_MEMBER()
 
   // serialization ctor
   GridCalibrationTargetBase(){};
 
-protected:
+ protected:
   friend class boost::serialization::access;
 
   template <class Archive>
-  void save(Archive &ar, const unsigned int /* version */) const {
+  void save(Archive& ar, const unsigned int /* version */) const {
     ar << BOOST_SERIALIZATION_NVP(_points);
     ar << BOOST_SERIALIZATION_NVP(_rows);
     ar << BOOST_SERIALIZATION_NVP(_cols);
   }
   template <class Archive>
-  void load(Archive &ar, const unsigned int /* version */) {
+  void load(Archive& ar, const unsigned int /* version */) {
     ar >> BOOST_SERIALIZATION_NVP(_points);
     ar >> BOOST_SERIALIZATION_NVP(_rows);
     ar >> BOOST_SERIALIZATION_NVP(_cols);
   }
 
-}; // class GridCalibrationTargetBase
+};  // class GridCalibrationTargetBase
 
-} // namespace dso
+}  // namespace dso
 
 #endif

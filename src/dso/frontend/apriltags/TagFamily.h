@@ -15,25 +15,25 @@ using namespace std;
 namespace AprilTags {
 
 class TagCodes {
-public:
+ public:
   int bits;
   int minHammingDistance;
   std::vector<unsigned long long> codes;
 
-public:
-  TagCodes(int bits, int minHammingDistance, const unsigned long long *codesA,
-           int num)
-      : bits(bits), minHammingDistance(minHammingDistance),
-        codes(codesA, codesA + num) // created vector for all entries of codesA
+ public:
+  TagCodes(int bits, int minHammingDistance, const unsigned long long* codesA, int num)
+      : bits(bits),
+        minHammingDistance(minHammingDistance),
+        codes(codesA, codesA + num)  // created vector for all entries of codesA
   {}
 };
 
 //! Generic class for all tag encoding families
 class TagFamily {
-public:
+ public:
   //! The codes array is not copied internally and so must not be modified
   //! externally.
-  TagFamily(const TagCodes &tagCodes, const size_t blackBorder);
+  TagFamily(const TagCodes& tagCodes, const size_t blackBorder);
 
   void setErrorRecoveryBits(int b);
 
@@ -59,8 +59,7 @@ public:
 
   //! Given an observed tag with code 'rCode', try to recover the id.
   /*  The corresponding fields of TagDetection will be filled in. */
-  void decode(TagDetection &det, unsigned long long rCode, double tagLen,
-              double tagVar, int &hamDist) const;
+  void decode(TagDetection& det, unsigned long long rCode, double tagLen, double tagVar, int& hamDist) const;
 
   //! Prints the hamming distances of the tag codes.
   void printHammingDistances() const;
@@ -98,7 +97,7 @@ public:
 
   //! Initializes the static popCountTable
   static class TableInitializer {
-  public:
+   public:
     TableInitializer() {
       for (unsigned int i = 0; i < TagFamily::popCountTableSize; i++)
         TagFamily::popCountTable[i] = TagFamily::popCountReal(i);
@@ -106,7 +105,7 @@ public:
   } initializer;
 };
 
-} // namespace AprilTags
+}  // namespace AprilTags
 
-} // namespace dso
+}  // namespace dso
 #endif

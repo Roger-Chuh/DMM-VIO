@@ -30,8 +30,7 @@
 dmvio::DatasetSaver::DatasetSaver(std::string saveFolder) {
   // Throw exception if folder exists!
   if (boost::filesystem::exists(saveFolder)) {
-    throw boost::filesystem::filesystem_error("Folder already exists.",
-                                              boost::system::error_code());
+    throw boost::filesystem::filesystem_error("Folder already exists.", boost::system::error_code());
   }
   boost::filesystem::create_directory(saveFolder);
   boost::filesystem::path savePath(saveFolder);
@@ -51,8 +50,7 @@ void dmvio::DatasetSaver::saveImagesWorker() {
     {
       std::unique_lock<std::mutex> lock(mutex);
       while (imageQueue.size() == 0) {
-        if (!running)
-          return;
+        if (!running) return;
         frameArrivedCond.wait(lock);
       }
 
@@ -60,8 +58,7 @@ void dmvio::DatasetSaver::saveImagesWorker() {
       imageQueue.pop_front();
 
       if (imageQueue.size() > 1) {
-        std::cout << "Save image queue size: " << imageQueue.size()
-                  << std::endl;
+        std::cout << "Save image queue size: " << imageQueue.size() << std::endl;
       }
     }
 
@@ -71,17 +68,14 @@ void dmvio::DatasetSaver::saveImagesWorker() {
     std::stringstream filename;
     filename << imgSaveFolder << "/" << id << ".jpg";
 
-    timesFile << id << " " << std::fixed << timestamp << " "
-              << std::get<2>(tuple) << "\n";
+    timesFile << id << " " << std::fixed << timestamp << " " << std::get<2>(tuple) << "\n";
 
-    std::vector<int> compression_params = {cv::IMWRITE_JPEG_QUALITY,
-                                           99}; // jpg quality.
+    std::vector<int> compression_params = {cv::IMWRITE_JPEG_QUALITY, 99};  // jpg quality.
     cv::imwrite(filename.str(), std::get<0>(tuple), compression_params);
   }
 }
 
-void dmvio::DatasetSaver::addImage(cv::Mat mat, double timestamp,
-                                   double exposure) {
+void dmvio::DatasetSaver::addImage(cv::Mat mat, double timestamp, double exposure) {
   {
     std::unique_lock<std::mutex> lock(mutex);
     imageQueue.emplace_back(mat, timestamp, exposure);
@@ -89,9 +83,7 @@ void dmvio::DatasetSaver::addImage(cv::Mat mat, double timestamp,
   frameArrivedCond.notify_all();
 }
 
-void dmvio::DatasetSaver::addIMUData(double timestamp,
-                                     std::vector<float> accData,
-                                     std::vector<float> gyrData) {
+void dmvio::DatasetSaver::addIMUData(double timestamp, std::vector<float> accData, std::vector<float> gyrData) {
   imuFile << static_cast<long long>(timestamp * 1e9);
   for (int i = 0; i < 3; ++i) {
     imuFile << " " << gyrData[i];

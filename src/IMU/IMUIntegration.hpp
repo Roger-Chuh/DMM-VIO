@@ -64,13 +64,12 @@ namespace dmvio {
 // interactions between CoarseIMULogic and BAIMULogic work correctly in realtime
 // mode (where they are in different threads).
 class IMUIntegration : public PreintegrationProviderBA {
-public:
+ public:
   // linearizeOperation is true in non-realtime mode (means that there is only a
   // single thread used). Note that a reference to imuSettings is kept, so it
   // needs to stay alive.
-  IMUIntegration(dso::CalibHessian *HCalib,
-                 const IMUCalibration &imuCalibrationPassed,
-                 IMUSettings &imuSettingsPassed, bool linearizeOperationPassed);
+  IMUIntegration(dso::CalibHessian* HCalib, const IMUCalibration& imuCalibrationPassed, IMUSettings& imuSettingsPassed,
+                 bool linearizeOperationPassed);
 
   ~IMUIntegration();
 
@@ -85,18 +84,17 @@ public:
   // Adds a new frame with IMU data to the coarse factor graph, marginalizes old
   // variables, and returns an estimate for the relative pose of the newly added
   // frame.
-  Sophus::SE3 addIMUData(const IMUData &imuData, int frameId,
-                         double frameTimestamp, bool firstFrameAfterKFChange,
+  Sophus::SE3 addIMUData(const IMUData& imuData, int frameId, double frameTimestamp, bool firstFrameAfterKFChange,
                          int lastFrameId, bool onlyForHint = false);
 
   // Add IMU data for the bundle adjustment
-  void addIMUDataToBA(const IMUData &imuData);
+  void addIMUDataToBA(const IMUData& imuData);
 
   // Called when the first initializer frame changes.
   void resetBAPreintegration();
 
   // Passes the new coarse tracking pose.
-  void updateCoarsePose(const Sophus::SE3 &pose);
+  void updateCoarsePose(const Sophus::SE3& pose);
 
   // This method integrates the CoarseTracker optimization with GTSAM. It is
   // called in each iteration, and will compute the increment for the
@@ -106,32 +104,28 @@ public:
   // the increment. b contains the following parameters: 3 for the rotation
   // ref_to_frame, 3 for the translation ref_to_frame, and 2 for affine
   // lightning parameters.
-  Sophus::SE3 computeCoarseUpdate(dso::Vec8 &inc_gtsam, const dso::Mat88 &H,
-                                  const dso::Vec8 &b, float extrapFac,
-                                  float lambda, double &incA, double &incB,
-                                  double &incNorm, bool force_zero_inc = false);
+  Sophus::SE3 computeCoarseUpdate(dso::Vec8& inc_gtsam, const dso::Mat88& H, const dso::Vec8& b, float extrapFac,
+                                  float lambda, double& incA, double& incB, double& incNorm,
+                                  bool force_zero_inc = false);
 
   // Apply the update computed by the last call of computeCoarseUpdate.
   void acceptCoarseUpdate();
 
-  void addVisualToCoarseGraph(const dso::Mat88 &H, const dso::Vec8 &b,
-                              bool trackingIsGood);
+  void addVisualToCoarseGraph(const dso::Mat88& H, const dso::Vec8& b, bool trackingIsGood);
 
   // Returns the pose of the current keyframe as computed by the coarse tracking
   // as a gtsam Pose (imu to world)
   Sophus::SE3d getCoarseKFPose();
 
   // Called when DSO finishes coarse tracking.
-  void finishCoarseTracking(const dso::FrameShell &frameShell,
-                            bool willBecomeKeyframe);
+  void finishCoarseTracking(const dso::FrameShell& frameShell, bool willBecomeKeyframe);
 
   // prepareKeyframe tells the IMU-Integration that this frame will probably
   // become a keyframe. (-> don' marginalize it during addIMUData...) Also
   // resets the IMU preintegration for the BA.
   void prepareKeyframe(int frameId);
 
-  virtual const gtsam::PreintegratedImuMeasurements &
-  getPreintegratedMeasurements(int keyframeId) override;
+  virtual const gtsam::PreintegratedImuMeasurements& getPreintegratedMeasurements(int keyframeId) override;
 
   bool isPreparedKFCreated() const;
 
@@ -167,36 +161,36 @@ public:
   // Sets groundtruth data for a frame for printing out information. Should only
   // be used in non-rt mode as it currently does not handle multiple threads
   // correctly.
-  void setGTData(dmvio::GTData *gtData, int frameId);
+  void setGTData(dmvio::GTData* gtData, int frameId);
 
-  IMUSettings &getImuSettings() const;
+  IMUSettings& getImuSettings() const;
 
   // Called when a new energy threshold is computed by DSO. Can optionally
   // update the threshold. We use this to make sure the energy threshold cannot
   // get arbitrarily high (and allow extremely bad points into the
   // optimization).
-  void newFrameEnergyTH(float &energyThreshold);
+  void newFrameEnergyTH(float& energyThreshold);
 
-  const std::unique_ptr<BAGTSAMIntegration> &getBAGTSAMIntegration() const;
+  const std::unique_ptr<BAGTSAMIntegration>& getBAGTSAMIntegration() const;
 
   // Return current transform between IMU and DSO frame (updated during the BA).
   // Should only be called from BA thread.
-  TransformDSOToIMU &getTransformDSOToIMU();
+  TransformDSOToIMU& getTransformDSOToIMU();
 
   // Get the scale of TransformDSOToIMU used for the coarse tracking currently
   // (can be called from any thread).
   double getCoarseScale();
 
-private:
+ private:
   IMUCalibration imuCalibration;
-  IMUSettings &imuSettings;
+  IMUSettings& imuSettings;
 
   bool linearizeOperation;
 
   boost::shared_ptr<gtsam::PreintegrationParams> preintegrationParams;
 
-  boost::shared_ptr<gtsam::PreintegratedImuMeasurements> preintegratedBA,
-      preintegratedBACurr, preintegratedForNextCoarse;
+  boost::shared_ptr<gtsam::PreintegratedImuMeasurements> preintegratedBA, preintegratedBACurr,
+      preintegratedForNextCoarse;
 
   int preparedKeyframe;
   gtsam::Vector3 preparedCoarseVel;
@@ -225,6 +219,6 @@ private:
   float lastDSOEnergyTH;
 };
 
-} // namespace dmvio
+}  // namespace dmvio
 
 #endif /* IMUIntegration_hpp */

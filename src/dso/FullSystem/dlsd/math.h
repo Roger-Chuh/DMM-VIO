@@ -49,7 +49,8 @@
 
 namespace dso {
 // Return 1 if number is positive, -1 if negative, and 0 if the number is 0.
-template <typename T> int SignOfNumber(const T val);
+template <typename T>
+int SignOfNumber(const T val);
 
 // Check if the given floating point number is a not-a-number (NaN) value.
 // inline bool IsNaN(const float x);
@@ -61,7 +62,7 @@ inline bool IsInf(const number_t x);
 
 // Clip the given value to a low and maximum value.
 template <typename T>
-inline T Clip(const T &value, const T &low, const T &high);
+inline T Clip(const T& value, const T& low, const T& high);
 
 // Convert angle in degree to radians.
 // inline float DegToRad(const float deg);
@@ -72,25 +73,32 @@ inline number_t DegToRad(const number_t deg);
 inline number_t RadToDeg(const number_t rad);
 
 // Determine median value in vector. Returns NaN for empty vectors.
-template <typename T> number_t Median(const std::vector<T> &elems);
+template <typename T>
+number_t Median(const std::vector<T>& elems);
 
 // Determine range in a vector.
-template <typename T> number_t Range(const std::vector<T> &elems);
+template <typename T>
+number_t Range(const std::vector<T>& elems);
 
 // Determine mean value in a vector.
-template <typename T> number_t Mean(const std::vector<T> &elems);
+template <typename T>
+number_t Mean(const std::vector<T>& elems);
 
 // Determine sample variance in a vector.
-template <typename T> number_t Variance(const std::vector<T> &elems);
+template <typename T>
+number_t Variance(const std::vector<T>& elems);
 
 // Determine sample standard deviation in a vector.
-template <typename T> number_t StdDev(const std::vector<T> &elems);
+template <typename T>
+number_t StdDev(const std::vector<T>& elems);
 
 // Check if any of the values in the vector is less than the given threshold.
-template <typename T> bool AnyLessThan(std::vector<T> elems, T threshold);
+template <typename T>
+bool AnyLessThan(std::vector<T> elems, T threshold);
 
 // Check if any of the values in the vector is greater than the given threshold.
-template <typename T> bool AnyGreaterThan(std::vector<T> elems, T threshold);
+template <typename T>
+bool AnyGreaterThan(std::vector<T> elems, T threshold);
 
 // Generate N-choose-K combinations.
 //
@@ -100,7 +108,8 @@ template <class Iterator>
 bool NextCombination(Iterator first, Iterator middle, Iterator last);
 
 // Sigmoid function.
-template <typename T> T Sigmoid(const T x, const T alpha = 1);
+template <typename T>
+T Sigmoid(const T x, const T alpha = 1);
 
 // Scale values according to sigmoid transform.
 //
@@ -111,18 +120,20 @@ template <typename T> T Sigmoid(const T x, const T alpha = 1);
 // @param alpha    Exponential sigmoid factor.
 //
 // @return         The scaled value in the range [0, 1].
-template <typename T> T ScaleSigmoid(T x, const T alpha = 1, const T x0 = 10);
+template <typename T>
+T ScaleSigmoid(T x, const T alpha = 1, const T x0 = 10);
 
 // Binomial coefficient or all combinations, defined as n! / ((n - k)! k!).
 size_t NChooseK(const size_t n, const size_t k);
 
 // Cast value from one type to another and truncate instead of overflow, if the
 // input value is out of range of the output data type.
-template <typename T1, typename T2> T2 TruncateCast(const T1 value);
+template <typename T1, typename T2>
+T2 TruncateCast(const T1 value);
 
 // Compute the n-th percentile in the given sequence.
 template <typename T>
-T Percentile(const std::vector<T> &elems, const number_t p);
+T Percentile(const std::vector<T>& elems, const number_t p);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation
@@ -131,8 +142,7 @@ T Percentile(const std::vector<T> &elems, const number_t p);
 namespace internal {
 
 template <class Iterator>
-bool NextCombination(Iterator first1, Iterator last1, Iterator first2,
-                     Iterator last2) {
+bool NextCombination(Iterator first1, Iterator last1, Iterator first2, Iterator last2) {
   if ((first1 == last1) || (first2 == last2)) {
     return false;
   }
@@ -166,9 +176,10 @@ bool NextCombination(Iterator first1, Iterator last1, Iterator first2,
   return !result;
 }
 
-} // namespace internal
+}  // namespace internal
 
-template <typename T> int SignOfNumber(const T val) {
+template <typename T>
+int SignOfNumber(const T val) {
   return (T(0) < val) - (val < T(0));
 }
 
@@ -178,26 +189,24 @@ bool IsNaN(const number_t x) { return x != x; }
 // bool IsInf(const float x) { return !IsNaN(x) && IsNaN(x - x); }
 bool IsInf(const number_t x) { return !IsNaN(x) && IsNaN(x - x); }
 
-template <typename T> T Clip(const T &value, const T &low, const T &high) {
+template <typename T>
+T Clip(const T& value, const T& low, const T& high) {
   return std::max(low, std::min(value, high));
 }
 
 // float DegToRad(const float deg) { return deg *
 // 0.0174532925199432954743716805978692718781530857086181640625f; }
 
-number_t DegToRad(const number_t deg) {
-  return deg * 0.0174532925199432954743716805978692718781530857086181640625;
-}
+number_t DegToRad(const number_t deg) { return deg * 0.0174532925199432954743716805978692718781530857086181640625; }
 
 // Convert angle in radians to degree.
 // float RadToDeg(const float rad) { return rad
 // * 57.29577951308232286464772187173366546630859375f; }
 
-number_t RadToDeg(const number_t rad) {
-  return rad * 57.29577951308232286464772187173366546630859375;
-}
+number_t RadToDeg(const number_t rad) { return rad * 57.29577951308232286464772187173366546630859375; }
 
-template <typename T> number_t Median(const std::vector<T> &elems) {
+template <typename T>
+number_t Median(const std::vector<T>& elems) {
   // CHECK(!elems.empty());
   if (elems.empty()) {
     printf("check empty fail\n");
@@ -206,34 +215,31 @@ template <typename T> number_t Median(const std::vector<T> &elems) {
   const size_t mid_idx = elems.size() / 2;
 
   std::vector<T> ordered_elems = elems;
-  std::nth_element(ordered_elems.begin(), ordered_elems.begin() + mid_idx,
-                   ordered_elems.end());
+  std::nth_element(ordered_elems.begin(), ordered_elems.begin() + mid_idx, ordered_elems.end());
 
   if (elems.size() % 2 == 0) {
     const T mid_element1 = ordered_elems[mid_idx];
-    const T mid_element2 = *std::max_element(ordered_elems.begin(),
-                                             ordered_elems.begin() + mid_idx);
+    const T mid_element2 = *std::max_element(ordered_elems.begin(), ordered_elems.begin() + mid_idx);
     return (mid_element1 + mid_element2) / 2.0;
   } else {
     return ordered_elems[mid_idx];
   }
 }
 
-template <typename T> number_t Range(const std::vector<T> &elems) {
+template <typename T>
+number_t Range(const std::vector<T>& elems) {
   // CHECK(!elems.empty());
   if (elems.empty()) {
     printf("check empty fail\n");
     std::exit(-1);
   }
-  std::pair<typename std::vector<T>::const_iterator,
-            typename std::vector<T>::const_iterator>
-      minmax;
+  std::pair<typename std::vector<T>::const_iterator, typename std::vector<T>::const_iterator> minmax;
   minmax = std::minmax_element(elems.cbegin(), elems.cend());
   return *minmax.second - *minmax.first;
 }
 
 template <typename T>
-T Percentile(const std::vector<T> &elems, const number_t p) {
+T Percentile(const std::vector<T>& elems, const number_t p) {
   //  CHECK(!elems.empty());
   //  CHECK_GE(p, 0);
   //  CHECK_LE(p, 100);
@@ -251,17 +257,16 @@ T Percentile(const std::vector<T> &elems, const number_t p) {
   }
 
   const int idx = static_cast<int>(std::round(p / 100 * (elems.size() - 1)));
-  const size_t percentile_idx =
-      std::max(0, std::min(static_cast<int>(elems.size() - 1), idx));
+  const size_t percentile_idx = std::max(0, std::min(static_cast<int>(elems.size() - 1), idx));
 
   std::vector<T> ordered_elems = elems;
-  std::nth_element(ordered_elems.begin(),
-                   ordered_elems.begin() + percentile_idx, ordered_elems.end());
+  std::nth_element(ordered_elems.begin(), ordered_elems.begin() + percentile_idx, ordered_elems.end());
 
   return ordered_elems.at(percentile_idx);
 }
 
-template <typename T> number_t Mean(const std::vector<T> &elems) {
+template <typename T>
+number_t Mean(const std::vector<T>& elems) {
   // CHECK(!elems.empty());
   if (elems.empty()) {
     printf("check empty fail\n");
@@ -274,7 +279,8 @@ template <typename T> number_t Mean(const std::vector<T> &elems) {
   return sum / elems.size();
 }
 
-template <typename T> number_t Variance(const std::vector<T> &elems) {
+template <typename T>
+number_t Variance(const std::vector<T>& elems) {
   const number_t mean = Mean(elems);
   number_t var = 0;
   for (const auto el : elems) {
@@ -284,12 +290,14 @@ template <typename T> number_t Variance(const std::vector<T> &elems) {
   return var / (elems.size() - 1);
 }
 
-template <typename T> number_t StdDev(const std::vector<T> &elems) {
+template <typename T>
+number_t StdDev(const std::vector<T>& elems) {
   return std::sqrt(Variance(elems));
 }
 
-template <typename T> bool AnyLessThan(std::vector<T> elems, T threshold) {
-  for (const auto &el : elems) {
+template <typename T>
+bool AnyLessThan(std::vector<T> elems, T threshold) {
+  for (const auto& el : elems) {
     if (el < threshold) {
       return true;
     }
@@ -297,8 +305,9 @@ template <typename T> bool AnyLessThan(std::vector<T> elems, T threshold) {
   return false;
 }
 
-template <typename T> bool AnyGreaterThan(std::vector<T> elems, T threshold) {
-  for (const auto &el : elems) {
+template <typename T>
+bool AnyGreaterThan(std::vector<T> elems, T threshold) {
+  for (const auto& el : elems) {
     if (el > threshold) {
       return true;
     }
@@ -311,21 +320,23 @@ bool NextCombination(Iterator first, Iterator middle, Iterator last) {
   return internal::NextCombination(first, middle, middle, last);
 }
 
-template <typename T> T Sigmoid(const T x, const T alpha) {
+template <typename T>
+T Sigmoid(const T x, const T alpha) {
   return T(1) / (T(1) + exp(-x * alpha));
 }
 
-template <typename T> T ScaleSigmoid(T x, const T alpha, const T x0) {
+template <typename T>
+T ScaleSigmoid(T x, const T alpha, const T x0) {
   const T t0 = Sigmoid(-x0, alpha);
   const T t1 = Sigmoid(x0, alpha);
   x = (Sigmoid(2 * x0 * x - x0, alpha) - t0) / (t1 - t0);
   return x;
 }
 
-template <typename T1, typename T2> T2 TruncateCast(const T1 value) {
-  return std::min(
-      static_cast<T1>(std::numeric_limits<T2>::max()),
-      std::max(static_cast<T1>(std::numeric_limits<T2>::min()), value));
+template <typename T1, typename T2>
+T2 TruncateCast(const T1 value) {
+  return std::min(static_cast<T1>(std::numeric_limits<T2>::max()),
+                  std::max(static_cast<T1>(std::numeric_limits<T2>::min()), value));
 }
-} // namespace dso
-#endif // UTIL_MATH_H_
+}  // namespace dso
+#endif  // UTIL_MATH_H_

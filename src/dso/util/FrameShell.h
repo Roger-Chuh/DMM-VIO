@@ -33,28 +33,28 @@
 namespace dso {
 
 class FrameShell {
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  int id;                    // INTERNAL ID, starting at zero.
-  int incoming_id;           // ID passed into DSO
-  double timestamp;          // timestamp passed into DSO.
-  double timestamp_eval = 0; // timestamp passed into DSO.
+  int id;                     // INTERNAL ID, starting at zero.
+  int incoming_id;            // ID passed into DSO
+  double timestamp;           // timestamp passed into DSO.
+  double timestamp_eval = 0;  // timestamp passed into DSO.
 
   // set once after tracking
   SE3 camToTrackingRef;
-  FrameShell *trackingRef;
+  FrameShell* trackingRef;
   float mean_gray_val = 0;
   std::array<float, kCameraNumUsed> mean_gray_val_each = {0};
 
   // constantly adapted.
-  SE3 camToWorld; // Write: TRACKING, while frame is still fresh; MAPPING: only
-                  // when locked [shellPoseMutex].
+  SE3 camToWorld;  // Write: TRACKING, while frame is still fresh; MAPPING: only
+                   // when locked [shellPoseMutex].
   AffLight aff_g2l;
   //  std::array<AffLight, kCameraNumUsed> cid_to_aff_g2l;
   bool poseValid;
   bool trackingWasGood;
 
-  int keyframeId = -1; // Id of the KF or -1 for non-KFs.
+  int keyframeId = -1;  // Id of the KF or -1 for non-KFs.
 
   // statisitcs
   int statistics_outlierResOnThis;
@@ -78,4 +78,4 @@ public:
   }
 };
 
-} // namespace dso
+}  // namespace dso

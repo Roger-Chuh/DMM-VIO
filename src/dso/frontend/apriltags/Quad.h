@@ -20,18 +20,15 @@ using std::min;
 
 //! Represents four segments that form a loop, and might be a tag.
 class Quad {
-public:
-  static const int minimumEdgeLength =
-      6; //!< Minimum size of a tag (in pixels) as measured along edges and
-         //!< diagonals
-  static float const
-      maxQuadAspectRatio; //!< Early pruning of quads with insane ratios.
+ public:
+  static const int minimumEdgeLength = 6;  //!< Minimum size of a tag (in pixels) as measured along edges and
+                                           //!< diagonals
+  static float const maxQuadAspectRatio;   //!< Early pruning of quads with insane ratios.
 
   //! Constructor
   /*! (x,y) are the optical center of the camera, which is
    *   needed to correctly compute the homography. */
-  Quad(const std::vector<std::pair<float, float>> &p,
-       const std::pair<float, float> &opticalCenter);
+  Quad(const std::vector<std::pair<float, float>>& p, const std::pair<float, float>& opticalCenter);
 
   //! Interpolate given that the lower left corner of the lower left cell is at
   //! (-1,-1) and the upper right corner of the upper right cell is at (1,1).
@@ -46,7 +43,7 @@ public:
   std::vector<std::pair<float, float>> quadPoints;
 
   //! Segments composing this quad
-  std::vector<Segment *> segments;
+  std::vector<Segment*> segments;
 
   //! Total length (in pixels) of the actual perimeter observed for the quad.
   /*! This is in contrast to the geometric perimeter, some of which
@@ -67,18 +64,17 @@ public:
    *  @param parent the first segment in the quad
    *  @param depth how deep in the search are we?
    */
-  static void search(const FloatImage &fImage, std::vector<Segment *> &path,
-                     Segment &parent, int depth, std::vector<Quad> &quads,
-                     const std::pair<float, float> &opticalCenter);
+  static void search(const FloatImage& fImage, std::vector<Segment*>& path, Segment& parent, int depth,
+                     std::vector<Quad>& quads, const std::pair<float, float>& opticalCenter);
 
 #ifdef INTERPOLATE
-private:
+ private:
   Eigen::Vector2f p0, p3, p01, p32;
 #endif
 };
 
-} // namespace AprilTags
+}  // namespace AprilTags
 
-} // namespace dso
+}  // namespace dso
 
 #endif

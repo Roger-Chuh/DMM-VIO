@@ -32,18 +32,17 @@ class IMUInitializerState;
 
 // Provides methods to change the state.
 class IMUInitStateChanger {
-public:
+ public:
   // Can directly be called to change the state.
-  virtual void
-  lockAndSetState(std::unique_ptr<IMUInitializerState> &&newState) = 0;
+  virtual void lockAndSetState(std::unique_ptr<IMUInitializerState>&& newState) = 0;
 
   // Aquire lock for calling setState.
   virtual std::unique_lock<std::shared_timed_mutex> acquireSetStateLock() = 0;
 
   // Before calling setState a lock must be acquired with the previous method!
-  virtual void setState(std::unique_ptr<IMUInitializerState> &&newState) = 0;
+  virtual void setState(std::unique_ptr<IMUInitializerState>&& newState) = 0;
 };
 
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_IMUINITSTATECHANGER_H
+#endif  // DMVIO_IMUINITSTATECHANGER_H

@@ -23,7 +23,7 @@ namespace ED {
 // namespace ximgproc {
 
 struct ComputeGradientBody : ParallelLoopBody {
-  void operator()(const Range &range) const CV_OVERRIDE;
+  void operator()(const Range& range) const CV_OVERRIDE;
 
   Mat_<uchar> src;
   mutable Mat_<ushort> gradImage;
@@ -31,51 +31,50 @@ struct ComputeGradientBody : ParallelLoopBody {
   int gradThresh;
   int op;
   bool SumFlag;
-  int *grads;
+  int* grads;
   bool PFmode;
 };
 
-void ComputeGradientBody::operator()(const Range &range) const {
+void ComputeGradientBody::operator()(const Range& range) const {
   const int last_col = src.cols - 1;
   int gx = 0;
   int gy = 0;
   int sum;
 
   for (int y = range.start; y < range.end; ++y) {
-    const uchar *srcPrevRow = src[y - 1];
-    const uchar *srcCurRow = src[y];
-    const uchar *srcNextRow = src[y + 1];
+    const uchar* srcPrevRow = src[y - 1];
+    const uchar* srcCurRow = src[y];
+    const uchar* srcNextRow = src[y + 1];
 
-    ushort *gradRow = gradImage[y];
-    uchar *dirRow = dirImage[y];
+    ushort* gradRow = gradImage[y];
+    uchar* dirRow = dirImage[y];
 
     for (int x = 1; x < last_col; ++x) {
       int com1 = srcNextRow[x + 1] - srcPrevRow[x - 1];
       int com2 = srcPrevRow[x + 1] - srcNextRow[x - 1];
 
       switch (op) {
-      case EdgeDrawing::PREWITT:
-        gx = abs(com1 + com2 + srcCurRow[x + 1] - srcCurRow[x - 1]);
-        gy = abs(com1 - com2 + srcNextRow[x] - srcPrevRow[x]);
-        break;
-      case EdgeDrawing::SOBEL:
-        gx = abs(com1 + com2 + 2 * (srcCurRow[x + 1] - srcCurRow[x - 1]));
-        gy = abs(com1 - com2 + 2 * (srcNextRow[x] - srcPrevRow[x]));
-        break;
-      case EdgeDrawing::SCHARR:
-        gx =
-            abs(3 * (com1 + com2) + 10 * (srcCurRow[x + 1] - srcCurRow[x - 1]));
-        gy = abs(3 * (com1 - com2) + 10 * (srcNextRow[x] - srcPrevRow[x]));
-        break;
-      case EdgeDrawing::LSD:
-        // com1 and com2 differs from previous operators, because LSD has 2x2
-        // kernel
-        com1 = srcNextRow[x + 1] - srcCurRow[x];
-        com2 = srcCurRow[x + 1] - srcNextRow[x];
+        case EdgeDrawing::PREWITT:
+          gx = abs(com1 + com2 + srcCurRow[x + 1] - srcCurRow[x - 1]);
+          gy = abs(com1 - com2 + srcNextRow[x] - srcPrevRow[x]);
+          break;
+        case EdgeDrawing::SOBEL:
+          gx = abs(com1 + com2 + 2 * (srcCurRow[x + 1] - srcCurRow[x - 1]));
+          gy = abs(com1 - com2 + 2 * (srcNextRow[x] - srcPrevRow[x]));
+          break;
+        case EdgeDrawing::SCHARR:
+          gx = abs(3 * (com1 + com2) + 10 * (srcCurRow[x + 1] - srcCurRow[x - 1]));
+          gy = abs(3 * (com1 - com2) + 10 * (srcNextRow[x] - srcPrevRow[x]));
+          break;
+        case EdgeDrawing::LSD:
+          // com1 and com2 differs from previous operators, because LSD has 2x2
+          // kernel
+          com1 = srcNextRow[x + 1] - srcCurRow[x];
+          com2 = srcCurRow[x + 1] - srcNextRow[x];
 
-        gx = abs(com1 + com2);
-        gy = abs(com1 - com2);
-        break;
+          gx = abs(com1 + com2);
+          gy = abs(com1 - com2);
+          break;
       }
 
       if (SumFlag)
@@ -85,8 +84,7 @@ void ComputeGradientBody::operator()(const Range &range) const {
 
       gradRow[x] = (ushort)sum;
 
-      if (PFmode)
-        grads[sum]++;
+      if (PFmode) grads[sum]++;
 
       if (sum >= gradThresh) {
         if (gx >= gy)
@@ -99,7 +97,7 @@ void ComputeGradientBody::operator()(const Range &range) const {
 }
 
 class EdgeDrawingImpl : public EdgeDrawing {
-public:
+ public:
   enum EllipseFittingMethods { BOOKSTEIN = 0, FPF = 1 };
 
   EdgeDrawingImpl();
@@ -114,34 +112,34 @@ public:
   void detectEllipses(OutputArray ellipses) CV_OVERRIDE;
 
   virtual String getDefaultName() const CV_OVERRIDE;
-  virtual void read(const FileNode &fn) CV_OVERRIDE;
-  virtual void write(FileStorage &fs) const CV_OVERRIDE;
+  virtual void read(const FileNode& fn) CV_OVERRIDE;
+  virtual void write(FileStorage& fs) const CV_OVERRIDE;
 
-protected:
-  int width;  // width of source image
-  int height; // height of source image
-  uchar *srcImg;
+ protected:
+  int width;   // width of source image
+  int height;  // height of source image
+  uchar* srcImg;
   vector<vector<Point>> segmentPoints;
   vector<int> segmentIndicesOfLines;
   Mat smoothImage;
-  uchar *edgeImg;   // pointer to edge image data
-  uchar *smoothImg; // pointer to smoothed image data
+  uchar* edgeImg;    // pointer to edge image data
+  uchar* smoothImg;  // pointer to smoothed image data
   int segmentNos;
   Mat srcImage;
 
   double divForTestSegment;
-  double *dH;
-  int *grads;
+  double* dH;
+  int* grads;
   int np;
 
-private:
+ private:
   void ComputeGradient();
   void ComputeAnchorPoints();
   void JoinAnchorPointsUsingSortedAnchors();
-  int *sortAnchorsByGradValue1();
+  int* sortAnchorsByGradValue1();
 
-  static int LongestChain(Chain *chains, int root);
-  static int RetrieveChainNos(Chain *chains, int root, int chainNos[]);
+  static int LongestChain(Chain* chains, int root);
+  static int RetrieveChainNos(Chain* chains, int root, int chainNos[]);
 
   int anchorNos;
   vector<Point> anchorPoints;
@@ -150,12 +148,12 @@ private:
   Mat edgeImage;
   Mat gradImage;
   Mat dirImage;
-  uchar *dirImg;   // pointer to direction image data
-  ushort *gradImg; // pointer to gradient image data
+  uchar* dirImg;    // pointer to direction image data
+  ushort* gradImg;  // pointer to gradient image data
 
-  int op;           // edge detection operator
-  int gradThresh;   // gradient threshold
-  int anchorThresh; // anchor point threshold
+  int op;            // edge detection operator
+  int gradThresh;    // gradient threshold
+  int anchorThresh;  // anchor point threshold
 
   std::vector<EDLineSegment> lines;
   int linesNo;
@@ -164,31 +162,23 @@ private:
   double max_distance_between_two_lines;
   double max_error;
   double precision;
-  EdgeDrawingNFALUT *nfa;
+  EdgeDrawingNFALUT* nfa;
 
   int ComputeMinLineLength();
-  void SplitSegment2Lines(double *x, double *y, int noPixels, int segmentNo);
+  void SplitSegment2Lines(double* x, double* y, int noPixels, int segmentNo);
   void JoinCollinearLines();
 
   void ValidateLineSegments();
-  bool ValidateLineSegmentRect(int *x, int *y, EDLineSegment *ls);
-  bool TryToJoinTwoLineSegments(EDLineSegment *ls1, EDLineSegment *ls2,
-                                int changeIndex);
+  bool ValidateLineSegmentRect(int* x, int* y, EDLineSegment* ls);
+  bool TryToJoinTwoLineSegments(EDLineSegment* ls1, EDLineSegment* ls2, int changeIndex);
 
-  static double ComputeMinDistance(double x1, double y1, double a, double b,
-                                   int invert);
-  static void ComputeClosestPoint(double x1, double y1, double a, double b,
-                                  int invert, double &xOut, double &yOut);
-  static void LineFit(double *x, double *y, int count, double &a, double &b,
-                      int invert);
-  static void LineFit(double *x, double *y, int count, double &a, double &b,
-                      double &e, int &invert);
-  static double ComputeMinDistanceBetweenTwoLines(EDLineSegment *ls1,
-                                                  EDLineSegment *ls2,
-                                                  int *pwhich);
-  static void UpdateLineParameters(EDLineSegment *ls);
-  static void EnumerateRectPoints(double sx, double sy, double ex, double ey,
-                                  int ptsx[], int ptsy[], int *pNoPoints);
+  static double ComputeMinDistance(double x1, double y1, double a, double b, int invert);
+  static void ComputeClosestPoint(double x1, double y1, double a, double b, int invert, double& xOut, double& yOut);
+  static void LineFit(double* x, double* y, int count, double& a, double& b, int invert);
+  static void LineFit(double* x, double* y, int count, double& a, double& b, double& e, int& invert);
+  static double ComputeMinDistanceBetweenTwoLines(EDLineSegment* ls1, EDLineSegment* ls2, int* pwhich);
+  static void UpdateLineParameters(EDLineSegment* ls);
+  static void EnumerateRectPoints(double sx, double sy, double ex, double ey, int ptsx[], int ptsy[], int* pNoPoints);
 
   void TestSegment(int i, int index1, int index2);
   void ExtractNewSegments();
@@ -199,21 +189,21 @@ private:
   std::vector<mCircle> Circles;
   std::vector<mEllipse> Ellipses;
 
-  Circle *circles1;
-  Circle *circles2;
-  Circle *circles3;
+  Circle* circles1;
+  Circle* circles2;
+  Circle* circles3;
   int noCircles1;
   int noCircles2;
   int noCircles3;
 
-  EDArcs *edarcs1;
-  EDArcs *edarcs2;
-  EDArcs *edarcs3;
-  EDArcs *edarcs4;
+  EDArcs* edarcs1;
+  EDArcs* edarcs2;
+  EDArcs* edarcs3;
+  EDArcs* edarcs4;
 
-  int *segmentStartLines;
-  BufferManager *bm;
-  Info *info;
+  int* segmentStartLines;
+  BufferManager* bm;
+  Info* info;
 
   void GenerateCandidateCircles();
   void DetectArcs();
@@ -224,64 +214,47 @@ private:
   void JoinArcs3();
 
   // circle utility functions
-  static void addCircle(Circle *circles, int &noCircles, double xc, double yc,
-                        double r, double circleFitError, double *x, double *y,
-                        int noPixels);
-  static void addCircle(Circle *circles, int &noCircles, double xc, double yc,
-                        double r, double circleFitError, EllipseEquation *pEq,
-                        double ellipseFitError, double *x, double *y,
-                        int noPixels);
-  static void sortCircles(Circle *circles, int noCircles);
-  static bool CircleFit(double *x, double *y, int N, double *pxc, double *pyc,
-                        double *pr, double *pe);
-  static void ComputeCirclePoints(double xc, double yc, double r, double *px,
-                                  double *py, int *noPoints);
+  static void addCircle(Circle* circles, int& noCircles, double xc, double yc, double r, double circleFitError,
+                        double* x, double* y, int noPixels);
+  static void addCircle(Circle* circles, int& noCircles, double xc, double yc, double r, double circleFitError,
+                        EllipseEquation* pEq, double ellipseFitError, double* x, double* y, int noPixels);
+  static void sortCircles(Circle* circles, int noCircles);
+  static bool CircleFit(double* x, double* y, int N, double* pxc, double* pyc, double* pr, double* pe);
+  static void ComputeCirclePoints(double xc, double yc, double r, double* px, double* py, int* noPoints);
 
   // ellipse utility functions
-  static bool EllipseFit(double *x, double *y, int noPoints,
-                         EllipseEquation *pResult, int mode = FPF);
-  static double **AllocateMatrix(int noRows, int noColumns);
-  static void A_TperB(double **A_, double **B_, double **_res, int _righA,
-                      int _colA, int _righB, int _colB);
-  static void choldc(double **a, int n, double **l);
-  static int inverse(double **TB, double **InvB, int N);
-  static void DeallocateMatrix(double **m, int noRows);
-  static void AperB_T(double **A_, double **B_, double **_res, int _righA,
-                      int _colA, int _righB, int _colB);
-  static void AperB(double **A_, double **B_, double **_res, int _righA,
-                    int _colA, int _righB, int _colB);
-  static void jacobi(double **a, int n, double d[], double **v);
-  static void ROTATE(double **a, int i, int j, int k, int l, double tau,
-                     double s);
-  static double computeEllipsePerimeter(EllipseEquation *eq);
-  static double ComputeEllipseError(EllipseEquation *eq, double *px, double *py,
-                                    int noPoints);
-  static double ComputeEllipseCenterAndAxisLengths(EllipseEquation *eq,
-                                                   double *pxc, double *pyc,
-                                                   double *pmajorAxisLength,
-                                                   double *pminorAxisLength);
-  static void ComputeEllipsePoints(double *pvec, double *px, double *py,
-                                   int noPoints);
+  static bool EllipseFit(double* x, double* y, int noPoints, EllipseEquation* pResult, int mode = FPF);
+  static double** AllocateMatrix(int noRows, int noColumns);
+  static void A_TperB(double** A_, double** B_, double** _res, int _righA, int _colA, int _righB, int _colB);
+  static void choldc(double** a, int n, double** l);
+  static int inverse(double** TB, double** InvB, int N);
+  static void DeallocateMatrix(double** m, int noRows);
+  static void AperB_T(double** A_, double** B_, double** _res, int _righA, int _colA, int _righB, int _colB);
+  static void AperB(double** A_, double** B_, double** _res, int _righA, int _colA, int _righB, int _colB);
+  static void jacobi(double** a, int n, double d[], double** v);
+  static void ROTATE(double** a, int i, int j, int k, int l, double tau, double s);
+  static double computeEllipsePerimeter(EllipseEquation* eq);
+  static double ComputeEllipseError(EllipseEquation* eq, double* px, double* py, int noPoints);
+  static double ComputeEllipseCenterAndAxisLengths(EllipseEquation* eq, double* pxc, double* pyc,
+                                                   double* pmajorAxisLength, double* pminorAxisLength);
+  static void ComputeEllipsePoints(double* pvec, double* px, double* py, int noPoints);
 
   // arc utility functions
-  static void joinLastTwoArcs(MyArc *arcs, int &noArcs);
-  static void addArc(MyArc *arcs, int &noArchs, double xc, double yc, double r,
-                     double circleFitError, // Circular arc
-                     double sTheta, double eTheta, int turn, int segmentNo,
-                     int sx, int sy, int ex, int ey, double *x, double *y,
-                     int noPixels, double overlapRatio = 0.0);
-  static void addArc(MyArc *arcs, int &noArchs, double xc, double yc, double r,
-                     double circleFitError, // Elliptic arc
-                     double sTheta, double eTheta, int turn, int segmentNo,
-                     EllipseEquation *pEq, double ellipseFitError, int sx,
-                     int sy, int ex, int ey, double *x, double *y, int noPixels,
+  static void joinLastTwoArcs(MyArc* arcs, int& noArcs);
+  static void addArc(MyArc* arcs, int& noArchs, double xc, double yc, double r,
+                     double circleFitError,  // Circular arc
+                     double sTheta, double eTheta, int turn, int segmentNo, int sx, int sy, int ex, int ey, double* x,
+                     double* y, int noPixels, double overlapRatio = 0.0);
+  static void addArc(MyArc* arcs, int& noArchs, double xc, double yc, double r,
+                     double circleFitError,  // Elliptic arc
+                     double sTheta, double eTheta, int turn, int segmentNo, EllipseEquation* pEq,
+                     double ellipseFitError, int sx, int sy, int ex, int ey, double* x, double* y, int noPixels,
                      double overlapRatio = 0.0);
 
-  static void ComputeStartAndEndAngles(double xc, double yc, double r,
-                                       double *x, double *y, int len,
-                                       double *psTheta, double *peTheta);
+  static void ComputeStartAndEndAngles(double xc, double yc, double r, double* x, double* y, int len, double* psTheta,
+                                       double* peTheta);
 
-  static void sortArc(MyArc *arcs, int noArcs);
+  static void sortArc(MyArc* arcs, int noArcs);
 };
 
 Ptr<EdgeDrawing> createEdgeDrawing() { return makePtr<EdgeDrawingImpl>(); }
@@ -302,11 +275,9 @@ EdgeDrawing::Params::Params() {
   MaxErrorThreshold = 1.3;
 }
 
-void EdgeDrawing::setParams(const EdgeDrawing::Params &parameters) {
-  params = parameters;
-}
+void EdgeDrawing::setParams(const EdgeDrawing::Params& parameters) { params = parameters; }
 
-void EdgeDrawing::Params::read(const cv::FileNode &fn) {
+void EdgeDrawing::Params::read(const cv::FileNode& fn) {
   PFmode = (int)fn["PFmode"] != 0 ? true : false;
   EdgeDetectionOperator = fn["EdgeDetectionOperator"];
   GradientThresholdValue = fn["GradientThresholdValue"];
@@ -322,7 +293,7 @@ void EdgeDrawing::Params::read(const cv::FileNode &fn) {
   MaxErrorThreshold = fn["MaxErrorThreshold"];
 }
 
-void EdgeDrawing::Params::write(cv::FileStorage &fs) const {
+void EdgeDrawing::Params::write(cv::FileStorage& fs) const {
   fs << "PFmode" << PFmode;
   fs << "EdgeDetectionOperator" << EdgeDetectionOperator;
   fs << "GradientThresholdValue" << GradientThresholdValue;
@@ -340,9 +311,9 @@ void EdgeDrawing::Params::write(cv::FileStorage &fs) const {
 
 String EdgeDrawingImpl::getDefaultName() const { return String("EdgeDrawing"); }
 
-void EdgeDrawingImpl::read(const cv::FileNode &fn) { params.read(fn); }
+void EdgeDrawingImpl::read(const cv::FileNode& fn) { params.read(fn); }
 
-void EdgeDrawingImpl::write(cv::FileStorage &fs) const {
+void EdgeDrawingImpl::write(cv::FileStorage& fs) const {
   writeFormat(fs);
   params.write(fs);
 }
@@ -373,29 +344,25 @@ void EdgeDrawingImpl::detectEdges(InputArray src) {
   op = params.EdgeDetectionOperator;
 
   // Check parameters for sanity
-  if (op < 0 || op > 3)
-    op = 0;
+  if (op < 0 || op > 3) op = 0;
 
-  if (gradThresh < 1)
-    gradThresh = 1;
+  if (gradThresh < 1) gradThresh = 1;
 
-  if (anchorThresh < 0)
-    anchorThresh = 0;
+  if (anchorThresh < 0) anchorThresh = 0;
 
   segmentNos = 0;
   anchorNos = 0;
   anchorPoints.clear();
   lines.clear();
   segmentPoints.clear();
-  segmentPoints.push_back(
-      vector<Point>()); // create empty vector of points for segments
+  segmentPoints.push_back(vector<Point>());  // create empty vector of points for segments
   srcImage = src.getMat();
   srcImg = srcImage.data;
   height = srcImage.rows;
   width = srcImage.cols;
 
-  edgeImage = Mat(height, width, CV_8UC1, Scalar(0)); // initialize edge Image
-  gradImage = Mat(height, width, CV_16UC1); // gradImage contains short values
+  edgeImage = Mat(height, width, CV_8UC1, Scalar(0));  // initialize edge Image
+  gradImage = Mat(height, width, CV_16UC1);            // gradImage contains short values
   dirImage = Mat(height, width, CV_8UC1);
 
   if (params.Sigma < 1.0)
@@ -404,11 +371,11 @@ void EdgeDrawingImpl::detectEdges(InputArray src) {
     GaussianBlur(srcImage, smoothImage, Size(5, 5), params.Sigma);
   else
     GaussianBlur(srcImage, smoothImage, Size(),
-                 params.Sigma); // calculate kernel from sigma
+                 params.Sigma);  // calculate kernel from sigma
 
   // Assign Pointers from Mat's data
   smoothImg = smoothImage.data;
-  gradImg = (ushort *)gradImage.data;
+  gradImg = (ushort*)gradImage.data;
   edgeImg = edgeImage.data;
   dirImg = dirImage.data;
 
@@ -417,22 +384,20 @@ void EdgeDrawingImpl::detectEdges(InputArray src) {
     memset(grads, 0, sizeof(int) * MAX_GRAD_VALUE);
   }
 
-  ComputeGradient();     // COMPUTE GRADIENT & EDGE DIRECTION MAPS
-  ComputeAnchorPoints(); // COMPUTE ANCHORS
-  JoinAnchorPointsUsingSortedAnchors(); // JOIN ANCHORS
+  ComputeGradient();                     // COMPUTE GRADIENT & EDGE DIRECTION MAPS
+  ComputeAnchorPoints();                 // COMPUTE ANCHORS
+  JoinAnchorPointsUsingSortedAnchors();  // JOIN ANCHORS
 
   if (params.PFmode) {
     // Compute probability function H
     int size = (width - 2) * (height - 2);
 
-    for (int i = MAX_GRAD_VALUE - 1; i > 0; i--)
-      grads[i - 1] += grads[i];
+    for (int i = MAX_GRAD_VALUE - 1; i > 0; i--) grads[i - 1] += grads[i];
 
-    for (int i = 0; i < MAX_GRAD_VALUE; i++)
-      dH[i] = (double)grads[i] / ((double)size);
+    for (int i = 0; i < MAX_GRAD_VALUE; i++) dH[i] = (double)grads[i] / ((double)size);
 
-    divForTestSegment = 2.25;           // Some magic number :-)
-    memset(edgeImg, 0, width * height); // clear edge image
+    divForTestSegment = 2.25;            // Some magic number :-)
+    memset(edgeImg, 0, width * height);  // clear edge image
     np = 0;
     for (int i = 0; i < segmentNos; i++) {
       int len = (int)segmentPoints[i].size();
@@ -440,30 +405,23 @@ void EdgeDrawingImpl::detectEdges(InputArray src) {
     }
 
     // Validate segments
-    for (int i = 0; i < segmentNos; i++)
-      TestSegment(i, 0, (int)segmentPoints[i].size() - 1);
+    for (int i = 0; i < segmentNos; i++) TestSegment(i, 0, (int)segmentPoints[i].size() - 1);
 
     ExtractNewSegments();
   }
 }
 
 void EdgeDrawingImpl::getEdgeImage(OutputArray _dst) {
-  if (!edgeImage.empty())
-    edgeImage.copyTo(_dst);
+  if (!edgeImage.empty()) edgeImage.copyTo(_dst);
 }
 
 void EdgeDrawingImpl::getGradientImage(OutputArray _dst) {
-  if (!gradImage.empty())
-    gradImage.copyTo(_dst);
+  if (!gradImage.empty()) gradImage.copyTo(_dst);
 }
 
-std::vector<std::vector<Point>> EdgeDrawingImpl::getSegments() {
-  return segmentPoints;
-}
+std::vector<std::vector<Point>> EdgeDrawingImpl::getSegments() { return segmentPoints; }
 
-std::vector<int> EdgeDrawingImpl::getSegmentIndicesOfLines() const {
-  return segmentIndicesOfLines;
-}
+std::vector<int> EdgeDrawingImpl::getSegmentIndicesOfLines() const { return segmentIndicesOfLines; }
 
 void EdgeDrawingImpl::ComputeGradient() {
   for (int j = 0; j < width; j++) {
@@ -497,8 +455,7 @@ void EdgeDrawingImpl::ComputeAnchorPoints() {
     }
 
     for (int j = start; j < width - 2; j += inc) {
-      if (gradImg[i * width + j] < gradThresh)
-        continue;
+      if (gradImg[i * width + j] < gradThresh) continue;
 
       if (dirImg[i * width + j] == EDGE_VERTICAL) {
         // vertical edge
@@ -520,18 +477,18 @@ void EdgeDrawingImpl::ComputeAnchorPoints() {
     }
   }
 
-  anchorNos = (int)anchorPoints.size(); // get the total number of anchor points
+  anchorNos = (int)anchorPoints.size();  // get the total number of anchor points
 }
 
 void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
-  int *chainNos = new int[(width + height) * 8];
+  int* chainNos = new int[(width + height) * 8];
 
-  Point *pixels = new Point[width * height];
-  StackNode *stack = new StackNode[width * height];
-  Chain *chains = new Chain[width * height];
+  Point* pixels = new Point[width * height];
+  StackNode* stack = new StackNode[width * height];
+  Chain* chains = new Chain[width * height];
 
   // sort the anchor points by their gradient value in decreasing order
-  int *pAnchors = sortAnchorsByGradValue1();
+  int* pAnchors = sortAnchorsByGradValue1();
 
   // Now join the anchors starting with the anchor having the greatest gradient
   // value
@@ -542,8 +499,7 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
     int i = pixelOffset / width;
     int j = pixelOffset % width;
 
-    if (edgeImg[i * width + j] != ANCHOR_PIXEL)
-      continue;
+    if (edgeImg[i * width + j] != ANCHOR_PIXEL) continue;
 
     chains[0].len = 0;
     chains[0].parent = -1;
@@ -554,7 +510,7 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
     int noChains = 1;
     int len = 0;
     int duplicatePixelCount = 0;
-    int top = -1; // top of the stack
+    int top = -1;  // top of the stack
 
     if (dirImg[i * width + j] == EDGE_VERTICAL) {
       stack[++top].r = i;
@@ -587,10 +543,9 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
       int parent = stack[top].parent;
       top--;
 
-      if (edgeImg[r * width + c] != EDGE_PIXEL)
-        duplicatePixelCount++;
+      if (edgeImg[r * width + c] != EDGE_PIXEL) duplicatePixelCount++;
 
-      chains[noChains].dir = dir; // traversal direction
+      chains[noChains].dir = dir;  // traversal direction
       chains[noChains].parent = parent;
       chains[noChains].children[0] = chains[noChains].children[1] = -1;
 
@@ -614,10 +569,8 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
           //   C
           //
           // cleanup up & down pixels
-          if (edgeImg[(r - 1) * width + c] == ANCHOR_PIXEL)
-            edgeImg[(r - 1) * width + c] = 0;
-          if (edgeImg[(r + 1) * width + c] == ANCHOR_PIXEL)
-            edgeImg[(r + 1) * width + c] = 0;
+          if (edgeImg[(r - 1) * width + c] == ANCHOR_PIXEL) edgeImg[(r - 1) * width + c] = 0;
+          if (edgeImg[(r + 1) * width + c] == ANCHOR_PIXEL) edgeImg[(r + 1) * width + c] = 0;
 
           // Look if there is an edge pixel in the neighbors
           if (edgeImg[r * width + c - 1] >= ANCHOR_PIXEL) {
@@ -644,8 +597,7 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
             c--;
           }
 
-          if (edgeImg[r * width + c] == EDGE_PIXEL ||
-              gradImg[r * width + c] < gradThresh) {
+          if (edgeImg[r * width + c] == EDGE_PIXEL || gradImg[r * width + c] < gradThresh) {
             if (chainLen > 0) {
               chains[noChains].len = chainLen;
               chains[parent].children[0] = noChains;
@@ -687,10 +639,8 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
           //     C
           //
           // cleanup up&down pixels
-          if (edgeImg[(r + 1) * width + c] == ANCHOR_PIXEL)
-            edgeImg[(r + 1) * width + c] = 0;
-          if (edgeImg[(r - 1) * width + c] == ANCHOR_PIXEL)
-            edgeImg[(r - 1) * width + c] = 0;
+          if (edgeImg[(r + 1) * width + c] == ANCHOR_PIXEL) edgeImg[(r + 1) * width + c] = 0;
+          if (edgeImg[(r - 1) * width + c] == ANCHOR_PIXEL) edgeImg[(r - 1) * width + c] = 0;
 
           // Look if there is an edge pixel in the neighbors
           if (edgeImg[r * width + c + 1] >= ANCHOR_PIXEL) {
@@ -709,16 +659,15 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
 
             if (A > B) {
               if (A > C)
-                r--; // A
+                r--;  // A
               else
-                r++; // C
+                r++;  // C
             } else if (C > B)
-              r++; // C
+              r++;  // C
             c++;
           }
 
-          if (edgeImg[r * width + c] == EDGE_PIXEL ||
-              gradImg[r * width + c] < gradThresh) {
+          if (edgeImg[r * width + c] == EDGE_PIXEL || gradImg[r * width + c] < gradThresh) {
             if (chainLen > 0) {
               chains[noChains].len = chainLen;
               chains[parent].children[1] = noChains;
@@ -735,12 +684,12 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
 
         stack[++top].r = r;
         stack[top].c = c;
-        stack[top].dir = DOWN; // Go down
+        stack[top].dir = DOWN;  // Go down
         stack[top].parent = noChains;
 
         stack[++top].r = r;
         stack[top].c = c;
-        stack[top].dir = UP; // Go up
+        stack[top].dir = UP;  // Go up
         stack[top].parent = noChains;
 
         len--;
@@ -760,10 +709,8 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
           //     x
           //
           // Cleanup left & right pixels
-          if (edgeImg[r * width + c - 1] == ANCHOR_PIXEL)
-            edgeImg[r * width + c - 1] = 0;
-          if (edgeImg[r * width + c + 1] == ANCHOR_PIXEL)
-            edgeImg[r * width + c + 1] = 0;
+          if (edgeImg[r * width + c - 1] == ANCHOR_PIXEL) edgeImg[r * width + c - 1] = 0;
+          if (edgeImg[r * width + c + 1] == ANCHOR_PIXEL) edgeImg[r * width + c + 1] = 0;
 
           // Look if there is an edge pixel in the neighbors
           if (edgeImg[(r - 1) * width + c] >= ANCHOR_PIXEL) {
@@ -790,8 +737,7 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
             r--;
           }
 
-          if (edgeImg[r * width + c] == EDGE_PIXEL ||
-              gradImg[r * width + c] < gradThresh) {
+          if (edgeImg[r * width + c] == EDGE_PIXEL || gradImg[r * width + c] < gradThresh) {
             if (chainLen > 0) {
               chains[noChains].len = chainLen;
               chains[parent].children[0] = noChains;
@@ -823,7 +769,7 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
         chains[noChains].len = chainLen;
         chains[parent].children[0] = noChains;
         noChains++;
-      } else // dir == DOWN
+      } else  // dir == DOWN
       {
         while (dirImg[r * width + c] == EDGE_VERTICAL) {
           edgeImg[r * width + c] = EDGE_PIXEL;
@@ -834,10 +780,8 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
           //   A B C
           //
           // cleanup side pixels
-          if (edgeImg[r * width + c + 1] == ANCHOR_PIXEL)
-            edgeImg[r * width + c + 1] = 0;
-          if (edgeImg[r * width + c - 1] == ANCHOR_PIXEL)
-            edgeImg[r * width + c - 1] = 0;
+          if (edgeImg[r * width + c + 1] == ANCHOR_PIXEL) edgeImg[r * width + c + 1] = 0;
+          if (edgeImg[r * width + c - 1] == ANCHOR_PIXEL) edgeImg[r * width + c - 1] = 0;
 
           // Look if there is an edge pixel in the neighbors
           if (edgeImg[(r + 1) * width + c] >= ANCHOR_PIXEL) {
@@ -856,16 +800,15 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
 
             if (A > B) {
               if (A > C)
-                c--; // A
+                c--;  // A
               else
-                c++; // C
+                c++;  // C
             } else if (C > B)
-              c++; // C
+              c++;  // C
             r++;
           }
 
-          if (edgeImg[r * width + c] == EDGE_PIXEL ||
-              gradImg[r * width + c] < gradThresh) {
+          if (edgeImg[r * width + c] == EDGE_PIXEL || gradImg[r * width + c] < gradThresh) {
             if (chainLen > 0) {
               chains[noChains].len = chainLen;
               chains[parent].children[1] = noChains;
@@ -944,8 +887,7 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
             int dr = abs(fr - segmentPoints[segmentNos][noSegmentPixels - 1].y);
             int dc = abs(fc - segmentPoints[segmentNos][noSegmentPixels - 1].x);
 
-            if (dr <= 1 && dc <= 1)
-              chains[chainNo].len--;
+            if (dr <= 1 && dc <= 1) chains[chainNo].len--;
           }
 
           for (int l = chains[chainNo].len - 1; l >= 0; l--) {
@@ -953,7 +895,7 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
             noSegmentPixels++;
           }
 
-          chains[chainNo].len = 0; // Mark as copied
+          chains[chainNo].len = 0;  // Mark as copied
         }
       }
 
@@ -1011,7 +953,7 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
             noSegmentPixels++;
           }
 
-          chains[chainNo].len = 0; // Mark as copied
+          chains[chainNo].len = 0;  // Mark as copied
         }
       }
 
@@ -1028,13 +970,11 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
       }
 
       segmentNos++;
-      segmentPoints.push_back(
-          vector<Point>()); // create empty vector of points for segments
+      segmentPoints.push_back(vector<Point>());  // create empty vector of points for segments
 
       // Copy the rest of the long chains here
       for (int k4 = 2; k4 < noChains; k4++) {
-        if (chains[k4].len < 2)
-          continue;
+        if (chains[k4].len < 2) continue;
 
         totalLen = LongestChain(chains, k4);
 
@@ -1086,10 +1026,9 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
               noSegmentPixels++;
             }
 
-            chains[chainNo].len = 0; // Mark as copied
+            chains[chainNo].len = 0;  // Mark as copied
           }
-          segmentPoints.push_back(
-              vector<Point>()); // create empty vector of points for segments
+          segmentPoints.push_back(vector<Point>());  // create empty vector of points for segments
           segmentNos++;
         }
       }
@@ -1108,16 +1047,15 @@ void EdgeDrawingImpl::JoinAnchorPointsUsingSortedAnchors() {
   delete[] pixels;
 }
 
-int *EdgeDrawingImpl::sortAnchorsByGradValue1() {
+int* EdgeDrawingImpl::sortAnchorsByGradValue1() {
   int SIZE = 128 * 256;
-  int *C = new int[SIZE];
+  int* C = new int[SIZE];
   memset(C, 0, sizeof(int) * SIZE);
 
   // Count the number of grad values
   for (int i = 1; i < height - 1; i++) {
     for (int j = 1; j < width - 1; j++) {
-      if (edgeImg[i * width + j] != ANCHOR_PIXEL)
-        continue;
+      if (edgeImg[i * width + j] != ANCHOR_PIXEL) continue;
 
       int grad = gradImg[i * width + j];
       C[grad]++;
@@ -1125,20 +1063,18 @@ int *EdgeDrawingImpl::sortAnchorsByGradValue1() {
   }
 
   // Compute indices
-  for (int i = 1; i < SIZE; i++)
-    C[i] += C[i - 1];
+  for (int i = 1; i < SIZE; i++) C[i] += C[i - 1];
 
   int noAnchors = C[SIZE - 1];
-  int *A = new int[noAnchors];
+  int* A = new int[noAnchors];
 
   for (int i = 1; i < height - 1; i++) {
     for (int j = 1; j < width - 1; j++) {
-      if (edgeImg[i * width + j] != ANCHOR_PIXEL)
-        continue;
+      if (edgeImg[i * width + j] != ANCHOR_PIXEL) continue;
 
       int grad = gradImg[i * width + j];
       int index = --C[grad];
-      A[index] = i * width + j; // anchor's offset
+      A[index] = i * width + j;  // anchor's offset
     }
   }
 
@@ -1146,17 +1082,14 @@ int *EdgeDrawingImpl::sortAnchorsByGradValue1() {
   return A;
 }
 
-int EdgeDrawingImpl::LongestChain(Chain *chains, int root) {
-  if (root == -1 || chains[root].len == 0)
-    return 0;
+int EdgeDrawingImpl::LongestChain(Chain* chains, int root) {
+  if (root == -1 || chains[root].len == 0) return 0;
 
   int len0 = 0;
-  if (chains[root].children[0] != -1)
-    len0 = LongestChain(chains, chains[root].children[0]);
+  if (chains[root].children[0] != -1) len0 = LongestChain(chains, chains[root].children[0]);
 
   int len1 = 0;
-  if (chains[root].children[1] != -1)
-    len1 = LongestChain(chains, chains[root].children[1]);
+  if (chains[root].children[1] != -1) len1 = LongestChain(chains, chains[root].children[1]);
 
   int max = 0;
 
@@ -1171,7 +1104,7 @@ int EdgeDrawingImpl::LongestChain(Chain *chains, int root) {
   return chains[root].len + max;
 }
 
-int EdgeDrawingImpl::RetrieveChainNos(Chain *chains, int root, int chainNos[]) {
+int EdgeDrawingImpl::RetrieveChainNos(Chain* chains, int root, int chainNos[]) {
   int count = 0;
 
   while (root != -1) {
@@ -1199,23 +1132,21 @@ void EdgeDrawingImpl::detectLines(OutputArray _lines) {
   max_distance_between_two_lines = params.MaxDistanceBetweenTwoLines;
   max_error = params.MaxErrorThreshold;
 
-  if (min_line_len == -1) // If no initial value given, compute it
+  if (min_line_len == -1)  // If no initial value given, compute it
     min_line_len = ComputeMinLineLength();
 
-  if (min_line_len <
-      9) // avoids small line segments in the result. Might be deleted!
+  if (min_line_len < 9)  // avoids small line segments in the result. Might be deleted!
     min_line_len = 9;
 
   // Temporary buffers used during line fitting
-  double *x = new double[(width + height) * 8];
-  double *y = new double[(width + height) * 8];
+  double* x = new double[(width + height) * 8];
+  double* y = new double[(width + height) * 8];
 
   lines.clear();
   linesNo = 0;
 
   // Use the whole segment
-  for (size_t segmentNumber = 0; segmentNumber < segmentPoints.size();
-       segmentNumber++) {
+  for (size_t segmentNumber = 0; segmentNumber < segmentPoints.size(); segmentNumber++) {
     std::vector<Point> segment = segmentPoints[segmentNumber];
     for (int k = 0; k < (int)segment.size(); k++) {
       x[k] = segment[k].x;
@@ -1226,19 +1157,16 @@ void EdgeDrawingImpl::detectLines(OutputArray _lines) {
 
   JoinCollinearLines();
 
-  if (params.NFAValidation)
-    ValidateLineSegments();
+  if (params.NFAValidation) ValidateLineSegments();
 
   // Delete redundant space from lines
   // Pop them back
   int size = (int)lines.size();
-  for (int i = 1; i <= size - linesNo; i++)
-    lines.pop_back();
+  for (int i = 1; i <= size - linesNo; i++) lines.pop_back();
 
   segmentIndicesOfLines.clear();
   for (int i = 0; i < linesNo; i++) {
-    Vec4f line((float)lines[i].sx, (float)lines[i].sy, (float)lines[i].ex,
-               (float)lines[i].ey);
+    Vec4f line((float)lines[i].sx, (float)lines[i].sy, (float)lines[i].ex, (float)lines[i].ey);
     linePoints.push_back(line);
     segmentIndicesOfLines.push_back(lines[i].segmentNo);
   }
@@ -1265,8 +1193,7 @@ int EdgeDrawingImpl::ComputeMinLineLength() {
 // Given a full segment of pixels, splits the chain to lines
 // This code is used when we use the whole segment of pixels
 //
-void EdgeDrawingImpl::SplitSegment2Lines(double *x, double *y, int noPixels,
-                                         int segmentNo) {
+void EdgeDrawingImpl::SplitSegment2Lines(double* x, double* y, int noPixels, int segmentNo) {
   // First pixel of the line segment within the segment of points
   int firstPixelIndex = 0;
 
@@ -1283,14 +1210,13 @@ void EdgeDrawingImpl::SplitSegment2Lines(double *x, double *y, int noPixels,
         break;
       }
 
-      noPixels -= 1; // Go slowly
+      noPixels -= 1;  // Go slowly
       x += 1;
       y += 1;
       firstPixelIndex += 1;
     }
 
-    if (valid == false)
-      return;
+    if (valid == false) return;
 
     // Now try to extend this line
     int index = min_line_len;
@@ -1303,8 +1229,7 @@ void EdgeDrawingImpl::SplitSegment2Lines(double *x, double *y, int noPixels,
       int badPixelCount = 0;
 
       while (index < noPixels) {
-        double d =
-            ComputeMinDistance(x[index], y[index], lastA, lastB, lastInvert);
+        double d = ComputeMinDistance(x[index], y[index], lastA, lastB, lastInvert);
 
         if (d <= line_error) {
           lastGoodIndex = index;
@@ -1312,15 +1237,14 @@ void EdgeDrawingImpl::SplitSegment2Lines(double *x, double *y, int noPixels,
           badPixelCount = 0;
         } else {
           badPixelCount++;
-          if (badPixelCount >= 5)
-            break;
+          if (badPixelCount >= 5) break;
         }
         index++;
       }
 
       if (goodPixelCount >= 2) {
         len += lastGoodIndex - startIndex + 1;
-        LineFit(x, y, len, lastA, lastB, lastInvert); // faster LineFit
+        LineFit(x, y, len, lastA, lastB, lastInvert);  // faster LineFit
         index = lastGoodIndex + 1;
       }
 
@@ -1329,27 +1253,19 @@ void EdgeDrawingImpl::SplitSegment2Lines(double *x, double *y, int noPixels,
         double sx, sy, ex, ey;
 
         index = 0;
-        while (ComputeMinDistance(x[index], y[index], lastA, lastB,
-                                  lastInvert) > line_error)
-          index++;
-        ComputeClosestPoint(x[index], y[index], lastA, lastB, lastInvert, sx,
-                            sy);
+        while (ComputeMinDistance(x[index], y[index], lastA, lastB, lastInvert) > line_error) index++;
+        ComputeClosestPoint(x[index], y[index], lastA, lastB, lastInvert, sx, sy);
         int noSkippedPixels = index;
 
         index = lastGoodIndex;
-        while (ComputeMinDistance(x[index], y[index], lastA, lastB,
-                                  lastInvert) > line_error)
-          index--;
-        ComputeClosestPoint(x[index], y[index], lastA, lastB, lastInvert, ex,
-                            ey);
+        while (ComputeMinDistance(x[index], y[index], lastA, lastB, lastInvert) > line_error) index--;
+        ComputeClosestPoint(x[index], y[index], lastA, lastB, lastInvert, ex, ey);
 
-        if ((sx == ex) & (sy == ey))
-          break;
+        if ((sx == ex) & (sy == ey)) break;
 
         // Add the line segment to lines
-        lines.push_back(EDLineSegment(
-            lastA, lastB, lastInvert, sx, sy, ex, ey, segmentNo,
-            firstPixelIndex + noSkippedPixels, index - noSkippedPixels + 1));
+        lines.push_back(EDLineSegment(lastA, lastB, lastInvert, sx, sy, ex, ey, segmentNo,
+                                      firstPixelIndex + noSkippedPixels, index - noSkippedPixels + 1));
         linesNo++;
         len = index + 1;
 
@@ -1369,37 +1285,31 @@ void EdgeDrawingImpl::SplitSegment2Lines(double *x, double *y, int noPixels,
 // to the same segment
 //
 void EdgeDrawingImpl::JoinCollinearLines() {
-  int lastLineIndex = -1; // Index of the last line in the joined lines
+  int lastLineIndex = -1;  // Index of the last line in the joined lines
   int i = 0;
   while (i < linesNo) {
     int segmentNo = lines[i].segmentNo;
 
     lastLineIndex++;
-    if (lastLineIndex != i)
-      lines[lastLineIndex] = lines[i];
+    if (lastLineIndex != i) lines[lastLineIndex] = lines[i];
 
-    int firstLineIndex =
-        lastLineIndex; // Index of the first line in this segment
+    int firstLineIndex = lastLineIndex;  // Index of the first line in this segment
 
     int count = 1;
     for (int j = i + 1; j < linesNo; j++) {
-      if (lines[j].segmentNo != segmentNo)
-        break;
+      if (lines[j].segmentNo != segmentNo) break;
 
       // Try to combine this line with the previous line in this segment
-      if (TryToJoinTwoLineSegments(&lines[lastLineIndex], &lines[j],
-                                   lastLineIndex) == false) {
+      if (TryToJoinTwoLineSegments(&lines[lastLineIndex], &lines[j], lastLineIndex) == false) {
         lastLineIndex++;
-        if (lastLineIndex != j)
-          lines[lastLineIndex] = lines[j];
+        if (lastLineIndex != j) lines[lastLineIndex] = lines[j];
       }
       count++;
     }
 
     // Try to join the first & last line of this segment
     if (firstLineIndex != lastLineIndex) {
-      if (TryToJoinTwoLineSegments(&lines[firstLineIndex],
-                                   &lines[lastLineIndex], firstLineIndex)) {
+      if (TryToJoinTwoLineSegments(&lines[firstLineIndex], &lines[lastLineIndex], firstLineIndex)) {
         lastLineIndex--;
       }
     }
@@ -1415,17 +1325,17 @@ void EdgeDrawingImpl::ValidateLineSegments() {
 
   if (nfa->LUTSize == 1) {
     int lutSize = (width + height) / 8;
-    double prob = 1.0 / 8; // probability of alignment
+    double prob = 1.0 / 8;  // probability of alignment
     nfa = new EdgeDrawingNFALUT(lutSize, prob, width, height);
   }
 
-  int *x = new int[(width + height) * 4];
-  int *y = new int[(width + height) * 4];
+  int* x = new int[(width + height) * 4];
+  int* y = new int[(width + height) * 4];
 
   int noValidLines = 0;
 
   for (int i = 0; i < linesNo; i++) {
-    EDLineSegment *ls = &lines[i];
+    EDLineSegment* ls = &lines[i];
 
     // Compute Line's angle
     double lineAngle;
@@ -1438,10 +1348,9 @@ void EdgeDrawingImpl::ValidateLineSegments() {
       lineAngle = atan(1.0 / ls->b);
     }
 
-    if (lineAngle < 0)
-      lineAngle += CV_PI;
+    if (lineAngle < 0) lineAngle += CV_PI;
 
-    Point *pixels = &(segmentPoints[ls->segmentNo][0]);
+    Point* pixels = &(segmentPoints[ls->segmentNo][0]);
     int noPixels = ls->len;
 
     bool valid = false;
@@ -1465,8 +1374,7 @@ void EdgeDrawingImpl::ValidateLineSegments() {
         int r = pixels[j].x;
         int c = pixels[j].y;
 
-        if (r <= 0 || r >= height - 1 || c <= 0 || c >= width - 1)
-          continue;
+        if (r <= 0 || r >= height - 1 || c <= 0 || c >= width - 1) continue;
 
         count++;
 
@@ -1488,31 +1396,24 @@ void EdgeDrawingImpl::ValidateLineSegments() {
         //       gy = com2 - com1 + (G-B) = (H-A) - (C-F) + (G-B) = (F-A) +
         //       (G-B) + (H-C)
         //
-        int com1 =
-            srcImg[(r + 1) * width + c + 1] - srcImg[(r - 1) * width + c - 1];
-        int com2 =
-            srcImg[(r - 1) * width + c + 1] - srcImg[(r + 1) * width + c - 1];
+        int com1 = srcImg[(r + 1) * width + c + 1] - srcImg[(r - 1) * width + c - 1];
+        int com2 = srcImg[(r - 1) * width + c + 1] - srcImg[(r + 1) * width + c - 1];
 
-        int gx =
-            com1 + com2 + srcImg[r * width + c + 1] - srcImg[r * width + c - 1];
-        int gy = com1 - com2 + srcImg[(r + 1) * width + c] -
-                 srcImg[(r - 1) * width + c];
+        int gx = com1 + com2 + srcImg[r * width + c + 1] - srcImg[r * width + c - 1];
+        int gy = com1 - com2 + srcImg[(r + 1) * width + c] - srcImg[(r - 1) * width + c];
 
         double pixelAngle = nfa->myAtan2((double)gx, (double)-gy);
         double diff = fabs(lineAngle - pixelAngle);
 
-        if (diff <= precision || diff >= CV_PI - precision)
-          aligned++;
+        if (diff <= precision || diff >= CV_PI - precision) aligned++;
       }
 
       // Check validation by NFA computation (fast due to LUT)
-      valid = nfa->checkValidationByNFA(count, aligned) ||
-              ValidateLineSegmentRect(x, y, ls);
+      valid = nfa->checkValidationByNFA(count, aligned) || ValidateLineSegmentRect(x, y, ls);
     }
 
     if (valid) {
-      if (i != noValidLines)
-        lines[noValidLines] = lines[i];
+      if (i != noValidLines) lines[noValidLines] = lines[i];
       noValidLines++;
     }
   }
@@ -1523,8 +1424,7 @@ void EdgeDrawingImpl::ValidateLineSegments() {
   delete[] y;
 }
 
-bool EdgeDrawingImpl::ValidateLineSegmentRect(int *x, int *y,
-                                              EDLineSegment *ls) {
+bool EdgeDrawingImpl::ValidateLineSegmentRect(int* x, int* y, EDLineSegment* ls) {
   // Compute Line's angle
   double lineAngle;
 
@@ -1536,8 +1436,7 @@ bool EdgeDrawingImpl::ValidateLineSegmentRect(int *x, int *y,
     lineAngle = atan(1.0 / ls->b);
   }
 
-  if (lineAngle < 0)
-    lineAngle += CV_PI;
+  if (lineAngle < 0) lineAngle += CV_PI;
 
   int noPoints = 0;
 
@@ -1551,8 +1450,7 @@ bool EdgeDrawingImpl::ValidateLineSegmentRect(int *x, int *y,
     int r = y[i];
     int c = x[i];
 
-    if (r <= 0 || r >= height - 1 || c <= 0 || c >= width - 1)
-      continue;
+    if (r <= 0 || r >= height - 1 || c <= 0 || c >= width - 1) continue;
 
     count++;
 
@@ -1573,27 +1471,21 @@ bool EdgeDrawingImpl::ValidateLineSegmentRect(int *x, int *y,
     //       gy = com2 - com1 + (G-B) = (H-A) - (C-F) + (G-B) = (F-A) + (G-B) +
     //       (H-C)
     //
-    int com1 =
-        srcImg[(r + 1) * width + c + 1] - srcImg[(r - 1) * width + c - 1];
-    int com2 =
-        srcImg[(r - 1) * width + c + 1] - srcImg[(r + 1) * width + c - 1];
+    int com1 = srcImg[(r + 1) * width + c + 1] - srcImg[(r - 1) * width + c - 1];
+    int com2 = srcImg[(r - 1) * width + c + 1] - srcImg[(r + 1) * width + c - 1];
 
-    int gx =
-        com1 + com2 + srcImg[r * width + c + 1] - srcImg[r * width + c - 1];
-    int gy =
-        com1 - com2 + srcImg[(r + 1) * width + c] - srcImg[(r - 1) * width + c];
+    int gx = com1 + com2 + srcImg[r * width + c + 1] - srcImg[r * width + c - 1];
+    int gy = com1 - com2 + srcImg[(r + 1) * width + c] - srcImg[(r - 1) * width + c];
     double pixelAngle = nfa->myAtan2((double)gx, (double)-gy);
 
     double diff = fabs(lineAngle - pixelAngle);
 
-    if (diff <= precision || diff >= CV_PI - precision)
-      aligned++;
+    if (diff <= precision || diff >= CV_PI - precision) aligned++;
   }
   return nfa->checkValidationByNFA(count, aligned);
 }
 
-double EdgeDrawingImpl::ComputeMinDistance(double x1, double y1, double a,
-                                           double b, int invert) {
+double EdgeDrawingImpl::ComputeMinDistance(double x1, double y1, double a, double b, int invert) {
   double x2, y2;
 
   if (invert == 0) {
@@ -1632,9 +1524,8 @@ double EdgeDrawingImpl::ComputeMinDistance(double x1, double y1, double a,
 // Given a point (x1, y1) and a line equation y=a+bx (invert=0) OR x=a+by
 // (invert=1) Computes the (x2, y2) on the line that is closest to (x1, y1)
 //
-void EdgeDrawingImpl::ComputeClosestPoint(double x1, double y1, double a,
-                                          double b, int invert, double &xOut,
-                                          double &yOut) {
+void EdgeDrawingImpl::ComputeClosestPoint(double x1, double y1, double a, double b, int invert, double& xOut,
+                                          double& yOut) {
   double x2, y2;
 
   if (invert == 0) {
@@ -1674,10 +1565,8 @@ void EdgeDrawingImpl::ComputeClosestPoint(double x1, double y1, double a,
 // Fits a line of the form y=a+bx (invert == 0) OR x=a+by (invert == 1)
 // Assumes that the direction of the line is known by a previous computation
 //
-void EdgeDrawingImpl::LineFit(double *x, double *y, int count, double &a,
-                              double &b, int invert) {
-  if (count < 2)
-    return;
+void EdgeDrawingImpl::LineFit(double* x, double* y, int count, double& a, double& b, int invert) {
+  if (count < 2) return;
 
   double S = count, Sx = 0.0, Sy = 0.0, Sxx = 0.0, Sxy = 0.0;
   for (int i = 0; i < count; i++) {
@@ -1687,7 +1576,7 @@ void EdgeDrawingImpl::LineFit(double *x, double *y, int count, double &a,
 
   if (invert) {
     // Vertical line. Swap x & y, Sx & Sy
-    double *t = x;
+    double* t = x;
     x = y;
     y = t;
 
@@ -1710,10 +1599,8 @@ void EdgeDrawingImpl::LineFit(double *x, double *y, int count, double &a,
 //-----------------------------------------------------------------------------------
 // Fits a line of the form y=a+bx (invert == 0) OR x=a+by (invert == 1)
 //
-void EdgeDrawingImpl::LineFit(double *x, double *y, int count, double &a,
-                              double &b, double &e, int &invert) {
-  if (count < 2)
-    return;
+void EdgeDrawingImpl::LineFit(double* x, double* y, int count, double& a, double& b, double& e, int& invert) {
+  if (count < 2) return;
 
   double S = count, Sx = 0.0, Sy = 0.0, Sxx = 0.0, Sxy = 0.0;
   for (int i = 0; i < count; i++) {
@@ -1735,7 +1622,7 @@ void EdgeDrawingImpl::LineFit(double *x, double *y, int count, double &a,
   if (dx < dy) {
     // Vertical line. Swap x & y, Sx & Sy
     invert = 1;
-    double *t = x;
+    double* t = x;
     x = y;
     y = t;
 
@@ -1785,13 +1672,10 @@ void EdgeDrawingImpl::LineFit(double *x, double *y, int count, double &a,
 // In case of a join, ls1 is updated. ls2 is NOT changed
 // Returns true if join is successful, false otherwise
 //
-bool EdgeDrawingImpl::TryToJoinTwoLineSegments(EDLineSegment *ls1,
-                                               EDLineSegment *ls2,
-                                               int changeIndex) {
+bool EdgeDrawingImpl::TryToJoinTwoLineSegments(EDLineSegment* ls1, EDLineSegment* ls2, int changeIndex) {
   int which;
   double dist = ComputeMinDistanceBetweenTwoLines(ls1, ls2, &which);
-  if (dist > max_distance_between_two_lines)
-    return false;
+  if (dist > max_distance_between_two_lines) return false;
 
   // Compute line lengths. Use the longer one as the ground truth
   double dx = ls1->sx - ls1->ex;
@@ -1803,8 +1687,8 @@ bool EdgeDrawingImpl::TryToJoinTwoLineSegments(EDLineSegment *ls1,
   double nextLen = sqrt(dx * dx + dy * dy);
 
   // Use the longer line as the ground truth
-  EDLineSegment *shorter = ls1;
-  EDLineSegment *longer = ls2;
+  EDLineSegment* shorter = ls1;
+  EDLineSegment* longer = ls2;
 
   if (prevLen > nextLen) {
     shorter = ls2;
@@ -1812,18 +1696,14 @@ bool EdgeDrawingImpl::TryToJoinTwoLineSegments(EDLineSegment *ls1,
   }
 
   // Just use 3 points to check for collinearity
-  dist = ComputeMinDistance(shorter->sx, shorter->sy, longer->a, longer->b,
-                            longer->invert);
-  dist += ComputeMinDistance((shorter->sx + shorter->ex) / 2.0,
-                             (shorter->sy + shorter->ey) / 2.0, longer->a,
-                             longer->b, longer->invert);
-  dist += ComputeMinDistance(shorter->ex, shorter->ey, longer->a, longer->b,
+  dist = ComputeMinDistance(shorter->sx, shorter->sy, longer->a, longer->b, longer->invert);
+  dist += ComputeMinDistance((shorter->sx + shorter->ex) / 2.0, (shorter->sy + shorter->ey) / 2.0, longer->a, longer->b,
                              longer->invert);
+  dist += ComputeMinDistance(shorter->ex, shorter->ey, longer->a, longer->b, longer->invert);
 
   dist /= 3.0;
 
-  if (dist > max_error)
-    return false;
+  if (dist > max_error) return false;
 
   /// 4 cases: 1:(s1, s2), 2:(s1, e2), 3:(e1, s2), 4:(e1, e2)
 
@@ -1899,9 +1779,7 @@ bool EdgeDrawingImpl::TryToJoinTwoLineSegments(EDLineSegment *ls1,
 //-------------------------------------------------------------------------------
 // Computes the minimum distance between the end points of two lines
 //
-double EdgeDrawingImpl::ComputeMinDistanceBetweenTwoLines(EDLineSegment *ls1,
-                                                          EDLineSegment *ls2,
-                                                          int *pwhich) {
+double EdgeDrawingImpl::ComputeMinDistanceBetweenTwoLines(EDLineSegment* ls1, EDLineSegment* ls2, int* pwhich) {
   double dx = ls1->sx - ls2->sx;
   double dy = ls1->sy - ls2->sy;
   double d = sqrt(dx * dx + dy * dy);
@@ -1932,8 +1810,7 @@ double EdgeDrawingImpl::ComputeMinDistanceBetweenTwoLines(EDLineSegment *ls1,
     which = EAST_EAST;
   }
 
-  if (pwhich)
-    *pwhich = which;
+  if (pwhich) *pwhich = which;
   return min;
 }
 
@@ -1941,7 +1818,7 @@ double EdgeDrawingImpl::ComputeMinDistanceBetweenTwoLines(EDLineSegment *ls1,
 // Uses the two end points (sx, sy)----(ex, ey) of the line segment
 // and computes the line that passes through these points (a, b, invert)
 //
-void EdgeDrawingImpl::UpdateLineParameters(EDLineSegment *ls) {
+void EdgeDrawingImpl::UpdateLineParameters(EDLineSegment* ls) {
   double dx = ls->ex - ls->sx;
   double dy = ls->ey - ls->sy;
 
@@ -1968,9 +1845,8 @@ void EdgeDrawingImpl::UpdateLineParameters(EDLineSegment *ls) {
   }
 }
 
-void EdgeDrawingImpl::EnumerateRectPoints(double sx, double sy, double ex,
-                                          double ey, int ptsx[], int ptsy[],
-                                          int *pNoPoints) {
+void EdgeDrawingImpl::EnumerateRectPoints(double sx, double sy, double ex, double ey, int ptsx[], int ptsy[],
+                                          int* pNoPoints) {
   double vxTmp[4], vyTmp[4];
   double vx[4], vy[4];
   int n, offset;
@@ -2055,8 +1931,7 @@ void EdgeDrawingImpl::EnumerateRectPoints(double sx, double sy, double ex,
       x++;
 
       /* if end of exploration, return */
-      if (x > vx[2])
-        break;
+      if (x > vx[2]) break;
 
       /* update lower y limit (start) for the new 'column'.
 
@@ -2140,8 +2015,7 @@ void EdgeDrawingImpl::EnumerateRectPoints(double sx, double sy, double ex,
     }
 
     // Are we done?
-    if (x > vx[2])
-      break;
+    if (x > vx[2]) break;
 
     ptsx[noPoints] = x;
     ptsy[noPoints] = y;
@@ -2158,8 +2032,7 @@ void EdgeDrawingImpl::EnumerateRectPoints(double sx, double sy, double ex,
 //
 void EdgeDrawingImpl::TestSegment(int i, int index1, int index2) {
   int chainLen = index2 - index1 + 1;
-  if (chainLen < params.MinPathLength)
-    return;
+  if (chainLen < params.MinPathLength) return;
 
   // Test from index1 to index2. If OK, then we are done. Otherwise, split into
   // two and recursively test the left & right halves
@@ -2231,8 +2104,7 @@ void EdgeDrawingImpl::ExtractNewSegments() {
         int r = segmentPoints[i][start].y;
         int c = segmentPoints[i][start].x;
 
-        if (edgeImg[r * width + c])
-          break;
+        if (edgeImg[r * width + c]) break;
         start++;
       }
 
@@ -2241,8 +2113,7 @@ void EdgeDrawingImpl::ExtractNewSegments() {
         int r = segmentPoints[i][end].y;
         int c = segmentPoints[i][end].x;
 
-        if (edgeImg[r * width + c] == 0)
-          break;
+        if (edgeImg[r * width + c] == 0) break;
         end++;
       }
 
@@ -2252,8 +2123,7 @@ void EdgeDrawingImpl::ExtractNewSegments() {
         // segments[noSegments].pixels = &map->segments[i].pixels[start];
         // segments[noSegments].noPixels = len;
         validSegments.push_back(vector<Point>());
-        vector<Point> subVec(&segmentPoints[i][start],
-                             &segmentPoints[i][end - 1]);
+        vector<Point> subVec(&segmentPoints[i][start], &segmentPoints[i][end - 1]);
         validSegments[noSegments] = subVec;
         noSegments++;
       }
@@ -2267,8 +2137,7 @@ void EdgeDrawingImpl::ExtractNewSegments() {
 
 double EdgeDrawingImpl::NFA(double prob, int len) {
   double nfa0 = np;
-  for (int i = 0; i < len && nfa0 > 1.0; i++)
-    nfa0 *= prob;
+  for (int i = 0; i < len && nfa0 > 1.0; i++) nfa0 *= prob;
 
   return nfa0;
 }
@@ -2294,8 +2163,7 @@ void EdgeDrawingImpl::detectEllipses(OutputArray ellipses) {
   circles1 = new Circle[(width + height) * 8];
 
   int bufferSize = 0;
-  for (int i = 0; i < (int)segmentPoints.size(); i++)
-    bufferSize += (int)segmentPoints[i].size();
+  for (int i = 0; i < (int)segmentPoints.size(); i++) bufferSize += (int)segmentPoints[i].size();
 
   // Compute the starting line number for each segment
   segmentStartLines = new int[segmentNos + 1];
@@ -2310,11 +2178,10 @@ void EdgeDrawingImpl::detectEllipses(OutputArray ellipses) {
 
     int noPixels = (int)segmentPoints[i].size();
 
-    if (noPixels < 2 * CIRCLE_MIN_LINE_LEN)
-      continue;
+    if (noPixels < 2 * CIRCLE_MIN_LINE_LEN) continue;
 
-    double *x = bm->getX();
-    double *y = bm->getY();
+    double* x = bm->getX();
+    double* y = bm->getY();
 
     for (int j = 0; j < noPixels; j++) {
       x[j] = segmentPoints[i][j].x;
@@ -2329,7 +2196,7 @@ void EdgeDrawingImpl::detectEllipses(OutputArray ellipses) {
       double dx = x[0] - x[noPixels - 1];
       double dy = y[0] - y[noPixels - 1];
       double d = sqrt(dx * dx + dy * dy);
-      double r = noPixels / CV_2PI; // Assume a complete circle
+      double r = noPixels / CV_2PI;  // Assume a complete circle
 
       double maxDistanceBetweenEndPoints = std::max(3.0, r / 4.0);
 
@@ -2344,13 +2211,11 @@ void EdgeDrawingImpl::detectEllipses(OutputArray ellipses) {
 
         if (circleFitError > LONG_ARC_ERROR) {
           // Try fitting an ellipse
-          if (EllipseFit(x, y, noPixels, &eq))
-            ellipseFitError = ComputeEllipseError(&eq, x, y, noPixels);
+          if (EllipseFit(x, y, noPixels, &eq)) ellipseFitError = ComputeEllipseError(&eq, x, y, noPixels);
         }
 
         if (circleFitError <= LONG_ARC_ERROR) {
-          addCircle(circles1, noCircles1, xc, yc, r, circleFitError, x, y,
-                    noPixels);
+          addCircle(circles1, noCircles1, xc, yc, r, circleFitError, x, y, noPixels);
           bm->move(noPixels);
           continue;
         } else if (ellipseFitError <= ELLIPSE_ERROR) {
@@ -2365,8 +2230,7 @@ void EdgeDrawingImpl::detectEllipses(OutputArray ellipses) {
           }
 
           if (major < 8 * minor) {
-            addCircle(circles1, noCircles1, xc, yc, r, circleFitError, &eq,
-                      ellipseFitError, x, y, noPixels);
+            addCircle(circles1, noCircles1, xc, yc, r, circleFitError, &eq, ellipseFitError, x, y, noPixels);
             bm->move(noPixels);
           }
           continue;
@@ -2388,8 +2252,8 @@ void EdgeDrawingImpl::detectEllipses(OutputArray ellipses) {
   // Compute the angle information for each line segment
   for (int i = 0; i < segmentNos; i++) {
     for (int j = segmentStartLines[i]; j < segmentStartLines[i + 1]; j++) {
-      EDLineSegment *l1 = &lines[j];
-      EDLineSegment *l2;
+      EDLineSegment* l1 = &lines[j];
+      EDLineSegment* l2;
 
       if (j == segmentStartLines[i + 1] - 1)
         l2 = &lines[segmentStartLines[i]];
@@ -2424,8 +2288,7 @@ void EdgeDrawingImpl::detectEllipses(OutputArray ellipses) {
         dotProduct = -1.0;
 
       info[j].angle = acos(dotProduct);
-      info[j].sign =
-          (v1x * v2y - v2x * v1y) >= 0 ? 1 : -1; // compute cross product
+      info[j].sign = (v1x * v2y - v2x * v1y) >= 0 ? 1 : -1;  // compute cross product
       info[j].taken = false;
     }
   }
@@ -2434,7 +2297,7 @@ void EdgeDrawingImpl::detectEllipses(OutputArray ellipses) {
   int maxNoOfCircles = (int)lines.size() / 3 + noCircles1 * 2;
 
   edarcs1 = new EDArcs(maxNoOfCircles);
-  DetectArcs(); // Detect all arcs
+  DetectArcs();  // Detect all arcs
 
   // Try to join arcs that are almost perfectly circular.
   // Use the distance between the arc end-points as a metric in choosing in
@@ -2447,7 +2310,7 @@ void EdgeDrawingImpl::detectEllipses(OutputArray ellipses) {
   JoinArcs2();
 
   // Try to combine arcs that belong to different segments
-  edarcs4 = new EDArcs(maxNoOfCircles); // The remaining arcs
+  edarcs4 = new EDArcs(maxNoOfCircles);  // The remaining arcs
   JoinArcs3();
 
   // Finally, go over the arcs & circles, and generate candidate circles
@@ -2457,7 +2320,7 @@ void EdgeDrawingImpl::detectEllipses(OutputArray ellipses) {
   noCircles2 = 0;
   circles2 = new Circle[maxNoOfCircles];
   GaussianBlur(srcImage, smoothImage, Size(),
-               0.50); // calculate kernel from sigma;
+               0.50);  // calculate kernel from sigma;
 
   ValidateCircles(params.NFAValidation);
 
@@ -2513,52 +2376,38 @@ void EdgeDrawingImpl::detectEllipses(OutputArray ellipses) {
 
 void EdgeDrawingImpl::GenerateCandidateCircles() {
   // Now, go over the circular arcs & add them to circles1
-  MyArc *arcs = edarcs4->arcs;
+  MyArc* arcs = edarcs4->arcs;
   for (int i = 0; i < edarcs4->noArcs; i++) {
     if (arcs[i].isEllipse) {
       // Ellipse
-      if (arcs[i].coverRatio >= CANDIDATE_ELLIPSE_RATIO &&
-          arcs[i].ellipseFitError <= ELLIPSE_ERROR) {
-        addCircle(circles1, noCircles1, arcs[i].xc, arcs[i].yc, arcs[i].r,
-                  arcs[i].circleFitError, &arcs[i].eq, arcs[i].ellipseFitError,
-                  arcs[i].x, arcs[i].y, arcs[i].noPixels);
+      if (arcs[i].coverRatio >= CANDIDATE_ELLIPSE_RATIO && arcs[i].ellipseFitError <= ELLIPSE_ERROR) {
+        addCircle(circles1, noCircles1, arcs[i].xc, arcs[i].yc, arcs[i].r, arcs[i].circleFitError, &arcs[i].eq,
+                  arcs[i].ellipseFitError, arcs[i].x, arcs[i].y, arcs[i].noPixels);
       } else {
-        double coverRatio =
-            MAX(ArcLength(arcs[i].sTheta, arcs[i].eTheta) / CV_2PI,
-                arcs[i].coverRatio);
-        if ((coverRatio >= FULL_CIRCLE_RATIO &&
-             arcs[i].circleFitError <= LONG_ARC_ERROR) ||
-            (coverRatio >= HALF_CIRCLE_RATIO &&
-             arcs[i].circleFitError <= HALF_ARC_ERROR) ||
-            (coverRatio >= CANDIDATE_CIRCLE_RATIO2 &&
-             arcs[i].circleFitError <= SHORT_ARC_ERROR)) {
-          addCircle(circles1, noCircles1, arcs[i].xc, arcs[i].yc, arcs[i].r,
-                    arcs[i].circleFitError, arcs[i].x, arcs[i].y,
-                    arcs[i].noPixels);
+        double coverRatio = MAX(ArcLength(arcs[i].sTheta, arcs[i].eTheta) / CV_2PI, arcs[i].coverRatio);
+        if ((coverRatio >= FULL_CIRCLE_RATIO && arcs[i].circleFitError <= LONG_ARC_ERROR) ||
+            (coverRatio >= HALF_CIRCLE_RATIO && arcs[i].circleFitError <= HALF_ARC_ERROR) ||
+            (coverRatio >= CANDIDATE_CIRCLE_RATIO2 && arcs[i].circleFitError <= SHORT_ARC_ERROR)) {
+          addCircle(circles1, noCircles1, arcs[i].xc, arcs[i].yc, arcs[i].r, arcs[i].circleFitError, arcs[i].x,
+                    arcs[i].y, arcs[i].noPixels);
         }
       }
     } else {
       // If a very short arc, ignore
-      if (arcs[i].coverRatio < CANDIDATE_CIRCLE_RATIO1)
-        continue;
+      if (arcs[i].coverRatio < CANDIDATE_CIRCLE_RATIO1) continue;
 
       // If the arc is long enough and the circleFitError is small enough,
       // assume a circle
-      if ((arcs[i].coverRatio >= FULL_CIRCLE_RATIO &&
-           arcs[i].circleFitError <= LONG_ARC_ERROR) ||
-          (arcs[i].coverRatio >= HALF_CIRCLE_RATIO &&
-           arcs[i].circleFitError <= HALF_ARC_ERROR) ||
-          (arcs[i].coverRatio >= CANDIDATE_CIRCLE_RATIO2 &&
-           arcs[i].circleFitError <= SHORT_ARC_ERROR)) {
-        addCircle(circles1, noCircles1, arcs[i].xc, arcs[i].yc, arcs[i].r,
-                  arcs[i].circleFitError, arcs[i].x, arcs[i].y,
+      if ((arcs[i].coverRatio >= FULL_CIRCLE_RATIO && arcs[i].circleFitError <= LONG_ARC_ERROR) ||
+          (arcs[i].coverRatio >= HALF_CIRCLE_RATIO && arcs[i].circleFitError <= HALF_ARC_ERROR) ||
+          (arcs[i].coverRatio >= CANDIDATE_CIRCLE_RATIO2 && arcs[i].circleFitError <= SHORT_ARC_ERROR)) {
+        addCircle(circles1, noCircles1, arcs[i].xc, arcs[i].yc, arcs[i].r, arcs[i].circleFitError, arcs[i].x, arcs[i].y,
                   arcs[i].noPixels);
 
         continue;
       }
 
-      if (arcs[i].coverRatio < CANDIDATE_CIRCLE_RATIO2)
-        continue;
+      if (arcs[i].coverRatio < CANDIDATE_CIRCLE_RATIO2) continue;
 
       // Circle is not possible. Try an ellipse
       EllipseEquation eq;
@@ -2567,19 +2416,15 @@ void EdgeDrawingImpl::GenerateCandidateCircles() {
 
       int noPixels = arcs[i].noPixels;
       if (EllipseFit(arcs[i].x, arcs[i].y, noPixels, &eq)) {
-        ellipseFitError =
-            ComputeEllipseError(&eq, arcs[i].x, arcs[i].y, noPixels);
+        ellipseFitError = ComputeEllipseError(&eq, arcs[i].x, arcs[i].y, noPixels);
         coverRatio = noPixels / computeEllipsePerimeter(&eq);
       }
 
-      if (arcs[i].coverRatio > coverRatio)
-        coverRatio = arcs[i].coverRatio;
+      if (arcs[i].coverRatio > coverRatio) coverRatio = arcs[i].coverRatio;
 
-      if (coverRatio >= CANDIDATE_ELLIPSE_RATIO &&
-          ellipseFitError <= ELLIPSE_ERROR) {
-        addCircle(circles1, noCircles1, arcs[i].xc, arcs[i].yc, arcs[i].r,
-                  arcs[i].circleFitError, &eq, ellipseFitError, arcs[i].x,
-                  arcs[i].y, arcs[i].noPixels);
+      if (coverRatio >= CANDIDATE_ELLIPSE_RATIO && ellipseFitError <= ELLIPSE_ERROR) {
+        addCircle(circles1, noCircles1, arcs[i].xc, arcs[i].yc, arcs[i].r, arcs[i].circleFitError, &eq, ellipseFitError,
+                  arcs[i].x, arcs[i].y, arcs[i].noPixels);
       }
     }
   }
@@ -2588,20 +2433,18 @@ void EdgeDrawingImpl::GenerateCandidateCircles() {
 void EdgeDrawingImpl::DetectArcs() {
   double maxLineLengthThreshold = MAX(width, height) / 5;
 
-  double MIN_ANGLE = CV_PI / 30; // 6 degrees
-  double MAX_ANGLE = CV_PI / 3;  // 60 degrees
+  double MIN_ANGLE = CV_PI / 30;  // 6 degrees
+  double MAX_ANGLE = CV_PI / 3;   // 60 degrees
 
   for (int iter = 1; iter <= 2; iter++) {
-    if (iter == 2)
-      MAX_ANGLE = CV_PI / 1.9; // 95 degrees
+    if (iter == 2) MAX_ANGLE = CV_PI / 1.9;  // 95 degrees
 
     for (int curSegmentNo = 0; curSegmentNo < segmentNos; curSegmentNo++) {
       int firstLine = segmentStartLines[curSegmentNo];
       int stopLine = segmentStartLines[curSegmentNo + 1];
 
       // We need at least 2 line segments
-      if (stopLine - firstLine <= 1)
-        continue;
+      if (stopLine - firstLine <= 1) continue;
 
       // Process the info for the lines of this segment
       while (firstLine < stopLine - 1) {
@@ -2618,8 +2461,7 @@ void EdgeDrawingImpl::DetectArcs() {
         }
 
         // Skip lines that cannot be part of an arc
-        if (info[firstLine].angle < MIN_ANGLE ||
-            info[firstLine].angle > MAX_ANGLE) {
+        if (info[firstLine].angle < MIN_ANGLE || info[firstLine].angle > MAX_ANGLE) {
           firstLine++;
           continue;
         }
@@ -2628,24 +2470,19 @@ void EdgeDrawingImpl::DetectArcs() {
         // MAX_ANGLE degrees
         int lastLine = firstLine + 1;
         while (lastLine < stopLine - 1) {
-          if (info[lastLine].taken)
-            break;
-          if (info[lastLine].sign != info[firstLine].sign)
-            break;
+          if (info[lastLine].taken) break;
+          if (info[lastLine].sign != info[firstLine].sign) break;
 
-          if (lines[lastLine].len >= maxLineLengthThreshold)
-            break; // very long lines cannot be part of an arc
-          if (info[lastLine].angle < MIN_ANGLE)
-            break;
-          if (info[lastLine].angle > MAX_ANGLE)
-            break;
+          if (lines[lastLine].len >= maxLineLengthThreshold) break;  // very long lines cannot be part of an arc
+          if (info[lastLine].angle < MIN_ANGLE) break;
+          if (info[lastLine].angle > MAX_ANGLE) break;
 
           lastLine++;
         }
 
         bool specialCase = false;
-        int wrapCase = -1; // 1: wrap the first two lines with the last line, 2:
-                           // wrap the last two lines with the first line
+        int wrapCase = -1;  // 1: wrap the first two lines with the last line, 2:
+                            // wrap the last two lines with the first line
 
         if (lastLine - firstLine == 1) {
           // Just 2 lines. If long enough, then try to combine. Angle between 15
@@ -2659,8 +2496,7 @@ void EdgeDrawingImpl::DetectArcs() {
             longerLen = lines[firstLine].len;
           }
 
-          if (info[firstLine].angle >= CV_PI / 12 &&
-              info[firstLine].angle <= CV_PI / 4 && totalLineLength >= 40 &&
+          if (info[firstLine].angle >= CV_PI / 12 && info[firstLine].angle <= CV_PI / 4 && totalLineLength >= 40 &&
               shorterLen * 2 >= longerLen) {
             specialCase = true;
           }
@@ -2671,8 +2507,7 @@ void EdgeDrawingImpl::DetectArcs() {
           if (specialCase == false) {
             // Case 1: Combine the first two lines with the last line of the
             // segment
-            if (firstLine == segmentStartLines[curSegmentNo] &&
-                info[stopLine - 1].angle >= MIN_ANGLE &&
+            if (firstLine == segmentStartLines[curSegmentNo] && info[stopLine - 1].angle >= MIN_ANGLE &&
                 info[stopLine - 1].angle <= MAX_ANGLE) {
               wrapCase = 1;
               specialCase = true;
@@ -2680,8 +2515,7 @@ void EdgeDrawingImpl::DetectArcs() {
 
             // Case 2: Combine the last two lines with the first line of the
             // segment
-            else if (lastLine == stopLine - 1 &&
-                     info[lastLine].angle >= MIN_ANGLE &&
+            else if (lastLine == stopLine - 1 && info[lastLine].angle >= MIN_ANGLE &&
                      info[lastLine].angle <= MAX_ANGLE) {
               wrapCase = 2;
               specialCase = true;
@@ -2697,8 +2531,8 @@ void EdgeDrawingImpl::DetectArcs() {
 
         // Copy the pixels of this segment to an array
         int noPixels = 0;
-        double *x = bm->getX();
-        double *y = bm->getY();
+        double* x = bm->getX();
+        double* y = bm->getY();
 
         // wrapCase 1: Combine the first two lines with the last line of the
         // segment
@@ -2753,8 +2587,7 @@ void EdgeDrawingImpl::DetectArcs() {
 
         // If only 3 lines, use the SHORT_ARC_ERROR
         double MYERROR = SHORT_ARC_ERROR;
-        if (lastLine - firstLine >= 3)
-          MYERROR = LONG_ARC_ERROR;
+        if (lastLine - firstLine >= 3) MYERROR = LONG_ARC_ERROR;
         if (circleFitError <= MYERROR) {
           // Add this to the list of arcs
           if (wrapCase == 1) {
@@ -2765,23 +2598,17 @@ void EdgeDrawingImpl::DetectArcs() {
             noPixels -= lines[segmentStartLines[curSegmentNo]].len;
           }
 
-          if ((coverage >= FULL_CIRCLE_RATIO &&
-               circleFitError <= LONG_ARC_ERROR)) {
-            addCircle(circles1, noCircles1, xc, yc, radius, circleFitError, x,
-                      y, noPixels);
+          if ((coverage >= FULL_CIRCLE_RATIO && circleFitError <= LONG_ARC_ERROR)) {
+            addCircle(circles1, noCircles1, xc, yc, radius, circleFitError, x, y, noPixels);
           } else {
             double sTheta, eTheta;
-            ComputeStartAndEndAngles(xc, yc, radius, x, y, noPixels, &sTheta,
-                                     &eTheta);
+            ComputeStartAndEndAngles(xc, yc, radius, x, y, noPixels, &sTheta, &eTheta);
 
-            addArc(edarcs1->arcs, edarcs1->noArcs, xc, yc, radius,
-                   circleFitError, sTheta, eTheta, info[firstLine].sign,
-                   curSegmentNo, (int)x[0], (int)y[0], (int)x[noPixels - 1],
-                   (int)y[noPixels - 1], x, y, noPixels);
+            addArc(edarcs1->arcs, edarcs1->noArcs, xc, yc, radius, circleFitError, sTheta, eTheta, info[firstLine].sign,
+                   curSegmentNo, (int)x[0], (int)y[0], (int)x[noPixels - 1], (int)y[noPixels - 1], x, y, noPixels);
           }
 
-          for (int m = firstLine; m < lastLine; m++)
-            info[m].taken = true;
+          for (int m = firstLine; m < lastLine; m++) info[m].taken = true;
           firstLine = lastLine;
           continue;
         }
@@ -2792,22 +2619,17 @@ void EdgeDrawingImpl::DetectArcs() {
         double dy = y[0] - y[noPixels - 1];
         double distanceBetweenEndPoints = sqrt(dx * dx + dy * dy);
 
-        bool isAlmostClosedLoop = (distanceBetweenEndPoints <= 1.72 * radius &&
-                                   coverage >= FULL_CIRCLE_RATIO);
-        if (isAlmostClosedLoop ||
-            (iter == 1 &&
-             coverage >= 0.25)) // an arc covering at least 90 degrees
+        bool isAlmostClosedLoop = (distanceBetweenEndPoints <= 1.72 * radius && coverage >= FULL_CIRCLE_RATIO);
+        if (isAlmostClosedLoop || (iter == 1 && coverage >= 0.25))  // an arc covering at least 90 degrees
         {
           EllipseEquation eq;
           double ellipseFitError = 1e10;
 
           bool valid = EllipseFit(x, y, noPixels, &eq);
-          if (valid)
-            ellipseFitError = ComputeEllipseError(&eq, x, y, noPixels);
+          if (valid) ellipseFitError = ComputeEllipseError(&eq, x, y, noPixels);
 
           MYERROR = ELLIPSE_ERROR;
-          if (isAlmostClosedLoop == false)
-            MYERROR = 0.75;
+          if (isAlmostClosedLoop == false) MYERROR = 0.75;
 
           if (ellipseFitError <= MYERROR) {
             // Add this to the list of arcs
@@ -2820,23 +2642,18 @@ void EdgeDrawingImpl::DetectArcs() {
             }
 
             if (isAlmostClosedLoop) {
-              addCircle(circles1, noCircles1, xc, yc, radius, circleFitError,
-                        &eq, ellipseFitError, x, y,
-                        noPixels); // Add an ellipse for validation
+              addCircle(circles1, noCircles1, xc, yc, radius, circleFitError, &eq, ellipseFitError, x, y,
+                        noPixels);  // Add an ellipse for validation
             } else {
               double sTheta, eTheta;
-              ComputeStartAndEndAngles(xc, yc, radius, x, y, noPixels, &sTheta,
-                                       &eTheta);
+              ComputeStartAndEndAngles(xc, yc, radius, x, y, noPixels, &sTheta, &eTheta);
 
-              addArc(edarcs1->arcs, edarcs1->noArcs, xc, yc, radius,
-                     circleFitError, sTheta, eTheta, info[firstLine].sign,
-                     curSegmentNo, &eq, ellipseFitError, (int)x[0], (int)y[0],
-                     (int)x[noPixels - 1], (int)y[noPixels - 1], x, y,
-                     noPixels);
+              addArc(edarcs1->arcs, edarcs1->noArcs, xc, yc, radius, circleFitError, sTheta, eTheta,
+                     info[firstLine].sign, curSegmentNo, &eq, ellipseFitError, (int)x[0], (int)y[0],
+                     (int)x[noPixels - 1], (int)y[noPixels - 1], x, y, noPixels);
             }
 
-            for (int m = firstLine; m < lastLine; m++)
-              info[m].taken = true;
+            for (int m = firstLine; m < lastLine; m++) info[m].taken = true;
             firstLine = lastLine;
             continue;
           }
@@ -2861,13 +2678,12 @@ void EdgeDrawingImpl::DetectArcs() {
           noPixels = 0;
           while (curLine <= lastLine) {
             noPixels = 0;
-            for (int m = firstLine; m <= curLine; m++)
-              noPixels += lines[m].len;
+            for (int m = firstLine; m <= curLine; m++) noPixels += lines[m].len;
 
             // Fit circle
             CircleFit(x, y, noPixels, &XC, &YC, &R, &Error);
             if (Error <= SHORT_ARC_ERROR) {
-              found = true; // found if the error is smaller than the threshold
+              found = true;  // found if the error is smaller than the threshold
               break;
             }
 
@@ -2880,12 +2696,10 @@ void EdgeDrawingImpl::DetectArcs() {
           }
 
           // If no initial arc found, then we are done with this arc of lines
-          if (!found)
-            break;
+          if (!found) break;
 
           // If we found an initial arc, then extend it
-          for (int m = curLine - 2; m <= curLine; m++)
-            info[m].taken = true;
+          for (int m = curLine - 2; m <= curLine; m++) info[m].taken = true;
           curLine++;
 
           while (curLine <= lastLine) {
@@ -2896,8 +2710,8 @@ void EdgeDrawingImpl::DetectArcs() {
             double r, error;
             CircleFit(x, y, noPixels, &xc, &yc, &r, &error);
             if (error > LONG_ARC_ERROR) {
-              noPixels = noPixelsSave; // Adding this line made the error big.
-                                       // So, we do not use this line
+              noPixels = noPixelsSave;  // Adding this line made the error big.
+                                        // So, we do not use this line
               break;
             }
 
@@ -2912,19 +2726,15 @@ void EdgeDrawingImpl::DetectArcs() {
           }
 
           coverage = noPixels / (CV_2PI * radius);
-          if ((coverage >= FULL_CIRCLE_RATIO &&
-               circleFitError <= LONG_ARC_ERROR)) {
+          if ((coverage >= FULL_CIRCLE_RATIO && circleFitError <= LONG_ARC_ERROR)) {
             addCircle(circles1, noCircles1, XC, YC, R, Error, x, y, noPixels);
           } else {
             // Add this to the list of arcs
             double sTheta, eTheta;
-            ComputeStartAndEndAngles(XC, YC, R, x, y, noPixels, &sTheta,
-                                     &eTheta);
+            ComputeStartAndEndAngles(XC, YC, R, x, y, noPixels, &sTheta, &eTheta);
 
-            addArc(edarcs1->arcs, edarcs1->noArcs, XC, YC, R, Error, sTheta,
-                   eTheta, info[firstLine].sign, curSegmentNo, (int)x[0],
-                   (int)y[0], (int)x[noPixels - 1], (int)y[noPixels - 1], x, y,
-                   noPixels);
+            addArc(edarcs1->arcs, edarcs1->noArcs, XC, YC, R, Error, sTheta, eTheta, info[firstLine].sign, curSegmentNo,
+                   (int)x[0], (int)y[0], (int)x[noPixels - 1], (int)y[noPixels - 1], x, y, noPixels);
           }
 
           x += noPixels;
@@ -2942,24 +2752,24 @@ void EdgeDrawingImpl::DetectArcs() {
 // The idea here is to look at all pixels of a circle/ellipse
 // rather than only the pixels of the lines making up the circle/ellipse
 void EdgeDrawingImpl::ValidateCircles(bool validate) {
-  precision = CV_PI / 16; // Alignment precision
+  precision = CV_PI / 16;  // Alignment precision
 
   int points_buffer_size = 8 * (width + height);
-  double *px = new double[points_buffer_size];
-  double *py = new double[points_buffer_size];
+  double* px = new double[points_buffer_size];
+  double* py = new double[points_buffer_size];
 
   if (nfa->LUTSize == 1 && params.NFAValidation) {
     int lutSize = (width + height) / 8;
-    double prob = 1.0 / 8; // probability of alignment
+    double prob = 1.0 / 8;  // probability of alignment
     nfa = new EdgeDrawingNFALUT(lutSize, prob, width,
-                                height); // create look up table
+                                height);  // create look up table
   }
 
   // Validate circles & ellipses
   bool validateAgain;
   int count = 0;
   for (int i = 0; i < noCircles1;) {
-    Circle *circle = &circles1[i];
+    Circle* circle = &circles1[i];
     double xc = circle->xc;
     double yc = circle->yc;
     double radius = circle->r;
@@ -2986,8 +2796,8 @@ void EdgeDrawingImpl::ValidateCircles(bool validate) {
       ComputeCirclePoints(xc, yc, radius, px, py, &noPoints);
     }
 
-    int pr = -1; // previous row
-    int pc = -1; // previous column
+    int pr = -1;  // previous row
+    int pc = -1;  // previous column
 
     int tr = -100;
     int tc = -100;
@@ -3000,14 +2810,11 @@ void EdgeDrawingImpl::ValidateCircles(bool validate) {
       int r = (int)(py[j] + 0.5);
       int c = (int)(px[j] + 0.5);
 
-      if (r == pr && c == pc)
-        continue;
+      if (r == pr && c == pc) continue;
       noPeripheryPixels++;
 
-      if (r <= 0 || r >= height - 1)
-        continue;
-      if (c <= 0 || c >= width - 1)
-        continue;
+      if (r <= 0 || r >= height - 1) continue;
+      if (c <= 0 || c >= width - 1) continue;
 
       pr = r;
       pc = c;
@@ -3048,88 +2855,67 @@ void EdgeDrawingImpl::ValidateCircles(bool validate) {
           if (diff2 > 0) {
             // I. quadrant
             c = x - 1;
-            if (c >= 1 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (c >= 1 && edgeImg[r * width + c] == 255) goto out;
             c = x + 1;
-            if (c < width - 1 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (c < width - 1 && edgeImg[r * width + c] == 255) goto out;
 
             c = x - 2;
-            if (c >= 2 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (c >= 2 && edgeImg[r * width + c] == 255) goto out;
             c = x + 2;
-            if (c < width - 2 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (c < width - 2 && edgeImg[r * width + c] == 255) goto out;
           } else {
             // IV. quadrant
             r = y - 1;
-            if (r >= 1 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (r >= 1 && edgeImg[r * width + c] == 255) goto out;
             r = y + 1;
-            if (r < height - 1 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (r < height - 1 && edgeImg[r * width + c] == 255) goto out;
 
             r = y - 2;
-            if (r >= 2 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (r >= 2 && edgeImg[r * width + c] == 255) goto out;
             r = y + 2;
-            if (r < height - 2 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (r < height - 2 && edgeImg[r * width + c] == 255) goto out;
           }
         } else {
           if (diff2 > 0) {
             // II. quadrant
             r = y - 1;
-            if (r >= 1 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (r >= 1 && edgeImg[r * width + c] == 255) goto out;
             r = y + 1;
-            if (r < height - 1 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (r < height - 1 && edgeImg[r * width + c] == 255) goto out;
 
             r = y - 2;
-            if (r >= 2 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (r >= 2 && edgeImg[r * width + c] == 255) goto out;
             r = y + 2;
-            if (r < height - 2 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (r < height - 2 && edgeImg[r * width + c] == 255) goto out;
           } else {
             // III. quadrant
             c = x - 1;
-            if (c >= 1 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (c >= 1 && edgeImg[r * width + c] == 255) goto out;
             c = x + 1;
-            if (c < width - 1 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (c < width - 1 && edgeImg[r * width + c] == 255) goto out;
 
             c = x - 2;
-            if (c >= 2 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (c >= 2 && edgeImg[r * width + c] == 255) goto out;
             c = x + 2;
-            if (c < width - 2 && edgeImg[r * width + c] == 255)
-              goto out;
+            if (c < width - 2 && edgeImg[r * width + c] == 255) goto out;
           }
         }
 
         r = pr;
         c = pc;
-        continue; // Ignore non-edge pixels.
+        continue;  // Ignore non-edge pixels.
         // This produces less false positives, but occationally misses on some
         // valid circles
       }
     out:
-      if (edgeImg[r * width + c] == 255)
-        noEdgePixels++;
+      if (edgeImg[r * width + c] == 255) noEdgePixels++;
 
       // compute gx & gy
-      int com1 = smoothImg[(r + 1) * width + c + 1] -
-                 smoothImg[(r - 1) * width + c - 1];
-      int com2 = smoothImg[(r - 1) * width + c + 1] -
-                 smoothImg[(r + 1) * width + c - 1];
+      int com1 = smoothImg[(r + 1) * width + c + 1] - smoothImg[(r - 1) * width + c - 1];
+      int com2 = smoothImg[(r - 1) * width + c + 1] - smoothImg[(r + 1) * width + c - 1];
 
-      int gx = com1 + com2 + smoothImg[r * width + c + 1] -
-               smoothImg[r * width + c - 1];
-      int gy = com1 - com2 + smoothImg[(r + 1) * width + c] -
-               smoothImg[(r - 1) * width + c];
+      int gx = com1 + com2 + smoothImg[r * width + c + 1] - smoothImg[r * width + c - 1];
+      int gy = com1 - com2 + smoothImg[(r + 1) * width + c] - smoothImg[(r - 1) * width + c];
       double pixelAngle = nfa->myAtan2((double)gx, (double)-gy);
 
       double derivX, derivY;
@@ -3145,24 +2931,20 @@ void EdgeDrawingImpl::ValidateCircles(bool validate) {
 
       double idealPixelAngle = nfa->myAtan2(derivX, -derivY);
       double diff = fabs(pixelAngle - idealPixelAngle);
-      if (diff <= precision || diff >= CV_PI - precision)
-        aligned++;
+      if (diff <= precision || diff >= CV_PI - precision) aligned++;
     }
 
-    bool isValid =
-        !validate || nfa->checkValidationByNFA(noPeripheryPixels, aligned);
+    bool isValid = !validate || nfa->checkValidationByNFA(noPeripheryPixels, aligned);
 
     if (isValid) {
       circles2[count++] = circles1[i];
-    } else if (circle->isEllipse == false &&
-               circle->coverRatio >= CANDIDATE_ELLIPSE_RATIO) {
+    } else if (circle->isEllipse == false && circle->coverRatio >= CANDIDATE_ELLIPSE_RATIO) {
       // Fit an ellipse to this circle, and try to revalidate
       double ellipseFitError = 1e10;
       EllipseEquation eq;
 
       if (EllipseFit(circle->x, circle->y, circle->noPixels, &eq)) {
-        ellipseFitError =
-            ComputeEllipseError(&eq, circle->x, circle->y, circle->noPixels);
+        ellipseFitError = ComputeEllipseError(&eq, circle->x, circle->y, circle->noPixels);
       }
 
       if (ellipseFitError <= ELLIPSE_ERROR) {
@@ -3174,8 +2956,7 @@ void EdgeDrawingImpl::ValidateCircles(bool validate) {
       }
     }
 
-    if (validateAgain == false)
-      i++;
+    if (validateAgain == false) i++;
   }
 
   noCircles2 = count;
@@ -3189,7 +2970,7 @@ void EdgeDrawingImpl::JoinCircles() {
   sortCircles(circles2, noCircles2);
 
   noCircles = noCircles2;
-  Circle *circles = circles2;
+  Circle* circles = circles2;
 
   vector<bool> taken;
   vector<int> candidateCircles;
@@ -3200,15 +2981,13 @@ void EdgeDrawingImpl::JoinCircles() {
     candidateCircles.push_back(0);
 
     if (circles[i].isEllipse) {
-      ComputeEllipseCenterAndAxisLengths(
-          &circles[i].eq, &circles[i].xc, &circles[i].yc,
-          &circles[i].majorAxisLength, &circles[i].minorAxisLength);
+      ComputeEllipseCenterAndAxisLengths(&circles[i].eq, &circles[i].xc, &circles[i].yc, &circles[i].majorAxisLength,
+                                         &circles[i].minorAxisLength);
     }
   }
 
   for (int i = 0; i < noCircles; i++) {
-    if (taken[i])
-      continue;
+    if (taken[i]) continue;
 
     // Current arc
     double majorAxisLength, minorAxisLength;
@@ -3225,18 +3004,16 @@ void EdgeDrawingImpl::JoinCircles() {
     noCandidateCircles = 0;
 
     for (int j = i + 1; j < noCircles; j++) {
-      if (taken[j])
-        continue;
+      if (taken[j]) continue;
 
 #define JOINED_SHORT_ARC_ERROR_THRESHOLD 2
-#define AXIS_LENGTH_DIFF_THRESHOLD 6 //(JOINED_SHORT_ARC_ERROR_THRESHOLD*2+1)
-#define CENTER_DISTANCE_THRESHOLD 12 //(AXIS_LENGTH_DIFF_THRESHOLD*2)
+#define AXIS_LENGTH_DIFF_THRESHOLD 6  //(JOINED_SHORT_ARC_ERROR_THRESHOLD*2+1)
+#define CENTER_DISTANCE_THRESHOLD 12  //(AXIS_LENGTH_DIFF_THRESHOLD*2)
 
       double dx = circles[i].xc - circles[j].xc;
       double dy = circles[i].yc - circles[j].yc;
       double centerDistance = sqrt(dx * dx + dy * dy);
-      if (centerDistance > CENTER_DISTANCE_THRESHOLD)
-        continue;
+      if (centerDistance > CENTER_DISTANCE_THRESHOLD) continue;
 
       double diff1, diff2;
       if (circles[j].isEllipse) {
@@ -3247,10 +3024,8 @@ void EdgeDrawingImpl::JoinCircles() {
         diff2 = fabs(minorAxisLength - circles[j].r);
       }
 
-      if (diff1 > AXIS_LENGTH_DIFF_THRESHOLD)
-        continue;
-      if (diff2 > AXIS_LENGTH_DIFF_THRESHOLD)
-        continue;
+      if (diff1 > AXIS_LENGTH_DIFF_THRESHOLD) continue;
+      if (diff2 > AXIS_LENGTH_DIFF_THRESHOLD) continue;
 
       // Add to candidates
       candidateCircles[noCandidateCircles] = j;
@@ -3271,8 +3046,8 @@ void EdgeDrawingImpl::JoinCircles() {
 
     if (noCandidateCircles > 0) {
       int noPixels = circles[i].noPixels;
-      double *x = bm->getX();
-      double *y = bm->getY();
+      double* x = bm->getX();
+      double* y = bm->getY();
       memcpy(x, circles[i].x, noPixels * sizeof(double));
       memcpy(y, circles[i].y, noPixels * sizeof(double));
 
@@ -3280,15 +3055,12 @@ void EdgeDrawingImpl::JoinCircles() {
         int CandidateArcNo = candidateCircles[j];
 
         int noPixelsSave = noPixels;
-        memcpy(x + noPixels, circles[CandidateArcNo].x,
-               circles[CandidateArcNo].noPixels * sizeof(double));
-        memcpy(y + noPixels, circles[CandidateArcNo].y,
-               circles[CandidateArcNo].noPixels * sizeof(double));
+        memcpy(x + noPixels, circles[CandidateArcNo].x, circles[CandidateArcNo].noPixels * sizeof(double));
+        memcpy(y + noPixels, circles[CandidateArcNo].y, circles[CandidateArcNo].noPixels * sizeof(double));
         noPixels += circles[CandidateArcNo].noPixels;
 
         bool circleFitOK = false;
-        if (EllipseFitValid == false && circles[i].isEllipse == false &&
-            circles[CandidateArcNo].isEllipse == false) {
+        if (EllipseFitValid == false && circles[i].isEllipse == false && circles[CandidateArcNo].isEllipse == false) {
           double xc, yc, r, error = 1e10;
           CircleFit(x, y, noPixels, &xc, &yc, &r, &error);
 
@@ -3336,8 +3108,7 @@ void EdgeDrawingImpl::JoinCircles() {
     if (CircleFitValid) {
       addCircle(circles3, noCircles3, XC, YC, R, CircleFitError, NULL, NULL, 0);
     } else if (EllipseFitValid) {
-      addCircle(circles3, noCircles3, XC, YC, R, CircleFitError, &Eq,
-                EllipseFitError, NULL, NULL, 0);
+      addCircle(circles3, noCircles3, XC, YC, R, CircleFitError, &Eq, EllipseFitError, NULL, NULL, 0);
     } else {
       circles3[noCircles3] = circles[i];
       noCircles3++;
@@ -3353,25 +3124,23 @@ void EdgeDrawingImpl::JoinArcs1() {
   sortArc(edarcs1->arcs, edarcs1->noArcs);
 
   int noArcs = edarcs1->noArcs;
-  MyArc *arcs = edarcs1->arcs;
+  MyArc* arcs = edarcs1->arcs;
 
-  bool *taken = new bool[noArcs];
-  for (int i = 0; i < noArcs; i++)
-    taken[i] = false;
+  bool* taken = new bool[noArcs];
+  for (int i = 0; i < noArcs; i++) taken[i] = false;
 
   struct CandidateArc {
     int arcNo;
-    int which;   // 1: (SX, SY)-(sx, sy), 2: (SX, SY)-(ex, ey), 3: (EX, EY)-(sx,
-                 // sy), 4: (EX, EY)-(ex, ey)
-    double dist; // min distance between the end points
+    int which;    // 1: (SX, SY)-(sx, sy), 2: (SX, SY)-(ex, ey), 3: (EX, EY)-(sx,
+                  // sy), 4: (EX, EY)-(ex, ey)
+    double dist;  // min distance between the end points
   };
 
-  CandidateArc *candidateArcs = new CandidateArc[noArcs];
+  CandidateArc* candidateArcs = new CandidateArc[noArcs];
   int noCandidateArcs;
 
   for (int i = 0; i < noArcs; i++) {
-    if (taken[i])
-      continue;
+    if (taken[i]) continue;
     if (arcs[i].isEllipse) {
       edarcs2->arcs[edarcs2->noArcs++] = arcs[i];
       continue;
@@ -3394,8 +3163,8 @@ void EdgeDrawingImpl::JoinArcs1() {
     // Take the pixels making up this arc
     int noPixels = arcs[i].noPixels;
 
-    double *x = bm->getX();
-    double *y = bm->getY();
+    double* x = bm->getX();
+    double* y = bm->getY();
     memcpy(x, arcs[i].x, noPixels * sizeof(double));
     memcpy(y, arcs[i].y, noPixels * sizeof(double));
 
@@ -3409,22 +3178,18 @@ void EdgeDrawingImpl::JoinArcs1() {
       noCandidateArcs = 0;
 
       for (int j = i + 1; j < noArcs; j++) {
-        if (taken[j])
-          continue;
-        if (arcs[j].isEllipse)
-          continue;
+        if (taken[j]) continue;
+        if (arcs[j].isEllipse) continue;
 
         double minR = MIN(R, arcs[j].r);
         double radiusDiffThreshold = minR * 0.25;
 
         double diff = fabs(R - arcs[j].r);
-        if (diff > radiusDiffThreshold)
-          continue;
+        if (diff > radiusDiffThreshold) continue;
 
         // If 50% of the current arc overlaps with the existing arc, then ignore
         // this arc
-        if (angles.overlap(arcs[j].sTheta, arcs[j].eTheta) >= 0.50)
-          continue;
+        if (angles.overlap(arcs[j].sTheta, arcs[j].eTheta) >= 0.50) continue;
 
         // Compute the distances
         // 1: (SX, SY)-(sx, sy)
@@ -3464,28 +3229,24 @@ void EdgeDrawingImpl::JoinArcs1() {
         }
 
         // Endpoints must be very close
-        double maxDistanceBetweenEndpoints = minR * 1.75; // 1.5;
-        if (d > maxDistanceBetweenEndpoints)
-          continue;
+        double maxDistanceBetweenEndpoints = minR * 1.75;  // 1.5;
+        if (d > maxDistanceBetweenEndpoints) continue;
 
         // This is to give precedence to better matching arc
         d += diff;
 
         // They have to turn in the same direction
         if (which == 2 || which == 3) {
-          if (Turn != arcs[j].turn)
-            continue;
+          if (Turn != arcs[j].turn) continue;
         } else {
-          if (Turn == arcs[j].turn)
-            continue;
+          if (Turn == arcs[j].turn) continue;
         }
 
         // Add to candidate arcs in sorted order. User insertion sort
         int index = noCandidateArcs - 1;
 
         while (index >= 0) {
-          if (candidateArcs[index].dist < d)
-            break;
+          if (candidateArcs[index].dist < d) break;
 
           candidateArcs[index + 1] = candidateArcs[index];
           index--;
@@ -3506,10 +3267,8 @@ void EdgeDrawingImpl::JoinArcs1() {
           int Which = candidateArcs[j].which;
 
           int noPixelsSave = noPixels;
-          memcpy(x + noPixels, arcs[CandidateArcNo].x,
-                 arcs[CandidateArcNo].noPixels * sizeof(double));
-          memcpy(y + noPixels, arcs[CandidateArcNo].y,
-                 arcs[CandidateArcNo].noPixels * sizeof(double));
+          memcpy(x + noPixels, arcs[CandidateArcNo].x, arcs[CandidateArcNo].noPixels * sizeof(double));
+          memcpy(y + noPixels, arcs[CandidateArcNo].y, arcs[CandidateArcNo].noPixels * sizeof(double));
           noPixels += arcs[CandidateArcNo].noPixels;
 
           double xc, yc, r, circleFitError;
@@ -3531,53 +3290,51 @@ void EdgeDrawingImpl::JoinArcs1() {
             taken[CandidateArcNo] = true;
             taken[i] = true;
 
-            angles.set(arcs[CandidateArcNo].sTheta,
-                       arcs[CandidateArcNo].eTheta);
+            angles.set(arcs[CandidateArcNo].sTheta, arcs[CandidateArcNo].eTheta);
 
             // Update the end points of the new arc
             switch (Which) {
-              // (SX, SY)-(sy, sy)
-            case 1:
-              SX = EX, SY = EY;
-              EX = arcs[CandidateArcNo].ex;
-              EY = arcs[CandidateArcNo].ey;
-              if (Turn == 1)
-                Turn = -1;
-              else
-                Turn = 1; // reverse the turn direction
-              break;
+                // (SX, SY)-(sy, sy)
+              case 1:
+                SX = EX, SY = EY;
+                EX = arcs[CandidateArcNo].ex;
+                EY = arcs[CandidateArcNo].ey;
+                if (Turn == 1)
+                  Turn = -1;
+                else
+                  Turn = 1;  // reverse the turn direction
+                break;
 
-              // (SX, SY)-(ex, ey)
-            case 2:
-              SX = EX, SY = EY;
-              EX = arcs[CandidateArcNo].sx;
-              EY = arcs[CandidateArcNo].sy;
-              if (Turn == 1)
-                Turn = -1;
-              else
-                Turn = 1; // reverse the turn direction
-              break;
+                // (SX, SY)-(ex, ey)
+              case 2:
+                SX = EX, SY = EY;
+                EX = arcs[CandidateArcNo].sx;
+                EY = arcs[CandidateArcNo].sy;
+                if (Turn == 1)
+                  Turn = -1;
+                else
+                  Turn = 1;  // reverse the turn direction
+                break;
 
-              // (EX, EY)-(sx, sy)
-            case 3:
-              EX = arcs[CandidateArcNo].ex;
-              EY = arcs[CandidateArcNo].ey;
-              break;
+                // (EX, EY)-(sx, sy)
+              case 3:
+                EX = arcs[CandidateArcNo].ex;
+                EY = arcs[CandidateArcNo].ey;
+                break;
 
-              // (EX, EY)-(ex, ey)
-            case 4:
-              EX = arcs[CandidateArcNo].sx;
-              EY = arcs[CandidateArcNo].sy;
-              break;
-            } // end-switch
+                // (EX, EY)-(ex, ey)
+              case 4:
+                EX = arcs[CandidateArcNo].sx;
+                EY = arcs[CandidateArcNo].sy;
+                break;
+            }  // end-switch
 
-            break; // Do not look at the other candidates
+            break;  // Do not look at the other candidates
           }
         }
       }
 
-      if (extendedArc == false)
-        break;
+      if (extendedArc == false) break;
     }
 
     if (CircleEqValid == false) {
@@ -3590,12 +3347,10 @@ void EdgeDrawingImpl::JoinArcs1() {
 
       double coverage = ArcLength(sTheta, eTheta) / CV_2PI;
       if ((coverage >= FULL_CIRCLE_RATIO && CircleFitError <= LONG_ARC_ERROR))
-        addCircle(circles1, noCircles1, XC, YC, R, CircleFitError, x, y,
-                  NoPixels);
+        addCircle(circles1, noCircles1, XC, YC, R, CircleFitError, x, y, NoPixels);
       else
-        addArc(edarcs2->arcs, edarcs2->noArcs, XC, YC, R, CircleFitError,
-               sTheta, eTheta, Turn, arcs[i].segmentNo, SX, SY, EX, EY, x, y,
-               NoPixels, angles.overlapRatio());
+        addArc(edarcs2->arcs, edarcs2->noArcs, XC, YC, R, CircleFitError, sTheta, eTheta, Turn, arcs[i].segmentNo, SX,
+               SY, EX, EY, x, y, NoPixels, angles.overlapRatio());
 
       bm->move(NoPixels);
     }
@@ -3613,25 +3368,23 @@ void EdgeDrawingImpl::JoinArcs2() {
   sortArc(edarcs2->arcs, edarcs2->noArcs);
 
   int noArcs = edarcs2->noArcs;
-  MyArc *arcs = edarcs2->arcs;
+  MyArc* arcs = edarcs2->arcs;
 
-  bool *taken = new bool[noArcs];
-  for (int i = 0; i < noArcs; i++)
-    taken[i] = false;
+  bool* taken = new bool[noArcs];
+  for (int i = 0; i < noArcs; i++) taken[i] = false;
 
   struct CandidateArc {
     int arcNo;
-    int which;   // 1: (SX, SY)-(sx, sy), 2: (SX, SY)-(ex, ey), 3: (EX, EY)-(sx,
-                 // sy), 4: (EX, EY)-(ex, ey)
-    double dist; // min distance between the end points
+    int which;    // 1: (SX, SY)-(sx, sy), 2: (SX, SY)-(ex, ey), 3: (EX, EY)-(sx,
+                  // sy), 4: (EX, EY)-(ex, ey)
+    double dist;  // min distance between the end points
   };
 
-  CandidateArc *candidateArcs = new CandidateArc[noArcs];
+  CandidateArc* candidateArcs = new CandidateArc[noArcs];
   int noCandidateArcs;
 
   for (int i = 0; i < noArcs; i++) {
-    if (taken[i])
-      continue;
+    if (taken[i]) continue;
 
     // Current arc
     bool EllipseEqValid = false;
@@ -3650,8 +3403,8 @@ void EdgeDrawingImpl::JoinArcs2() {
     // Take the pixels making up this arc
     int noPixels = arcs[i].noPixels;
 
-    double *x = bm->getX();
-    double *y = bm->getY();
+    double* x = bm->getX();
+    double* y = bm->getY();
     memcpy(x, arcs[i].x, noPixels * sizeof(double));
     memcpy(y, arcs[i].y, noPixels * sizeof(double));
 
@@ -3665,24 +3418,19 @@ void EdgeDrawingImpl::JoinArcs2() {
       noCandidateArcs = 0;
 
       for (int j = i + 1; j < noArcs; j++) {
-        if (taken[j])
-          continue;
-        if (arcs[j].segmentNo != arcs[i].segmentNo)
-          continue;
-        if (arcs[j].turn != Turn)
-          continue;
+        if (taken[j]) continue;
+        if (arcs[j].segmentNo != arcs[i].segmentNo) continue;
+        if (arcs[j].turn != Turn) continue;
 
         double minR = MIN(R, arcs[j].r);
         double radiusDiffThreshold = minR * 2.5;
 
         double diff = fabs(R - arcs[j].r);
-        if (diff > radiusDiffThreshold)
-          continue;
+        if (diff > radiusDiffThreshold) continue;
 
         // If 75% of the current arc overlaps with the existing arc, then ignore
         // this arc
-        if (angles.overlap(arcs[j].sTheta, arcs[j].eTheta) >= 0.75)
-          continue;
+        if (angles.overlap(arcs[j].sTheta, arcs[j].eTheta) >= 0.75) continue;
 
         // Compute the distances
         // 1: (SX, SY)-(sx, sy)
@@ -3723,14 +3471,12 @@ void EdgeDrawingImpl::JoinArcs2() {
 
         // Endpoints must be very close
         double maxDistanceBetweenEndpoints = 5;
-        if (d > maxDistanceBetweenEndpoints)
-          continue;
+        if (d > maxDistanceBetweenEndpoints) continue;
 
         // Add to candidate arcs in sorted order. User insertion sort
         int index = noCandidateArcs - 1;
         while (index >= 0) {
-          if (candidateArcs[index].dist < d)
-            break;
+          if (candidateArcs[index].dist < d) break;
 
           candidateArcs[index + 1] = candidateArcs[index];
           index--;
@@ -3751,17 +3497,14 @@ void EdgeDrawingImpl::JoinArcs2() {
           int Which = candidateArcs[j].which;
 
           int noPixelsSave = noPixels;
-          memcpy(x + noPixels, arcs[CandidateArcNo].x,
-                 arcs[CandidateArcNo].noPixels * sizeof(double));
-          memcpy(y + noPixels, arcs[CandidateArcNo].y,
-                 arcs[CandidateArcNo].noPixels * sizeof(double));
+          memcpy(x + noPixels, arcs[CandidateArcNo].x, arcs[CandidateArcNo].noPixels * sizeof(double));
+          memcpy(y + noPixels, arcs[CandidateArcNo].y, arcs[CandidateArcNo].noPixels * sizeof(double));
           noPixels += arcs[CandidateArcNo].noPixels;
 
           // Directly fit an ellipse
           EllipseEquation eq;
           double ellipseFitError = 1e10;
-          if (EllipseFit(x, y, noPixels, &eq))
-            ellipseFitError = ComputeEllipseError(&eq, x, y, noPixels);
+          if (EllipseFit(x, y, noPixels, &eq)) ellipseFitError = ComputeEllipseError(&eq, x, y, noPixels);
 
           if (ellipseFitError > ELLIPSE_ERROR) {
             // No match. Continue with the next candidate
@@ -3779,53 +3522,51 @@ void EdgeDrawingImpl::JoinArcs2() {
 
             R = (R + arcs[CandidateArcNo].r) / 2.0;
 
-            angles.set(arcs[CandidateArcNo].sTheta,
-                       arcs[CandidateArcNo].eTheta);
+            angles.set(arcs[CandidateArcNo].sTheta, arcs[CandidateArcNo].eTheta);
 
             // Update the end points of the new arc
             switch (Which) {
-              // (SX, SY)-(sy, sy)
-            case 1:
-              SX = EX, SY = EY;
-              EX = arcs[CandidateArcNo].ex;
-              EY = arcs[CandidateArcNo].ey;
-              if (Turn == 1)
-                Turn = -1;
-              else
-                Turn = 1; // reverse the turn direction
-              break;
+                // (SX, SY)-(sy, sy)
+              case 1:
+                SX = EX, SY = EY;
+                EX = arcs[CandidateArcNo].ex;
+                EY = arcs[CandidateArcNo].ey;
+                if (Turn == 1)
+                  Turn = -1;
+                else
+                  Turn = 1;  // reverse the turn direction
+                break;
 
-              // (SX, SY)-(ex, ey)
-            case 2:
-              SX = EX, SY = EY;
-              EX = arcs[CandidateArcNo].sx;
-              EY = arcs[CandidateArcNo].sy;
-              if (Turn == 1)
-                Turn = -1;
-              else
-                Turn = 1; // reverse the turn direction
-              break;
+                // (SX, SY)-(ex, ey)
+              case 2:
+                SX = EX, SY = EY;
+                EX = arcs[CandidateArcNo].sx;
+                EY = arcs[CandidateArcNo].sy;
+                if (Turn == 1)
+                  Turn = -1;
+                else
+                  Turn = 1;  // reverse the turn direction
+                break;
 
-              // (EX, EY)-(sx, sy)
-            case 3:
-              EX = arcs[CandidateArcNo].ex;
-              EY = arcs[CandidateArcNo].ey;
-              break;
+                // (EX, EY)-(sx, sy)
+              case 3:
+                EX = arcs[CandidateArcNo].ex;
+                EY = arcs[CandidateArcNo].ey;
+                break;
 
-              // (EX, EY)-(ex, ey)
-            case 4:
-              EX = arcs[CandidateArcNo].sx;
-              EY = arcs[CandidateArcNo].sy;
-              break;
+                // (EX, EY)-(ex, ey)
+              case 4:
+                EX = arcs[CandidateArcNo].sx;
+                EY = arcs[CandidateArcNo].sy;
+                break;
             }
 
-            break; // Do not look at the other candidates
+            break;  // Do not look at the other candidates
           }
         }
       }
 
-      if (extendedArc == false)
-        break;
+      if (extendedArc == false) break;
     }
 
     if (EllipseEqValid == false) {
@@ -3841,12 +3582,10 @@ void EdgeDrawingImpl::JoinArcs2() {
 
       double coverage = ArcLength(sTheta, eTheta) / CV_2PI;
       if ((coverage >= FULL_CIRCLE_RATIO && CircleFitError <= LONG_ARC_ERROR))
-        addCircle(circles1, noCircles1, XC, YC, R, CircleFitError, x, y,
-                  NoPixels);
+        addCircle(circles1, noCircles1, XC, YC, R, CircleFitError, x, y, NoPixels);
       else
-        addArc(edarcs3->arcs, edarcs3->noArcs, XC, YC, R, CircleFitError,
-               sTheta, eTheta, Turn, arcs[i].segmentNo, &Eq, EllipseFitError,
-               SX, SY, EX, EY, x, y, NoPixels, angles.overlapRatio());
+        addArc(edarcs3->arcs, edarcs3->noArcs, XC, YC, R, CircleFitError, sTheta, eTheta, Turn, arcs[i].segmentNo, &Eq,
+               EllipseFitError, SX, SY, EX, EY, x, y, NoPixels, angles.overlapRatio());
 
       // Move buffer pointers
       bm->move(NoPixels);
@@ -3865,25 +3604,23 @@ void EdgeDrawingImpl::JoinArcs3() {
   sortArc(edarcs3->arcs, edarcs3->noArcs);
 
   int noArcs = edarcs3->noArcs;
-  MyArc *arcs = edarcs3->arcs;
+  MyArc* arcs = edarcs3->arcs;
 
-  bool *taken = new bool[noArcs];
-  for (int i = 0; i < noArcs; i++)
-    taken[i] = false;
+  bool* taken = new bool[noArcs];
+  for (int i = 0; i < noArcs; i++) taken[i] = false;
 
   struct CandidateArc {
     int arcNo;
-    int which;   // 1: (SX, SY)-(sx, sy), 2: (SX, SY)-(ex, ey), 3: (EX, EY)-(sx,
-                 // sy), 4: (EX, EY)-(ex, ey)
-    double dist; // min distance between the end points
+    int which;    // 1: (SX, SY)-(sx, sy), 2: (SX, SY)-(ex, ey), 3: (EX, EY)-(sx,
+                  // sy), 4: (EX, EY)-(ex, ey)
+    double dist;  // min distance between the end points
   };
 
-  CandidateArc *candidateArcs = new CandidateArc[noArcs];
+  CandidateArc* candidateArcs = new CandidateArc[noArcs];
   int noCandidateArcs;
 
   for (int i = 0; i < noArcs; i++) {
-    if (taken[i])
-      continue;
+    if (taken[i]) continue;
 
     // Current arc
     bool EllipseEqValid = false;
@@ -3902,8 +3639,8 @@ void EdgeDrawingImpl::JoinArcs3() {
     // Take the pixels making up this arc
     int noPixels = arcs[i].noPixels;
 
-    double *x = bm->getX();
-    double *y = bm->getY();
+    double* x = bm->getX();
+    double* y = bm->getY();
     memcpy(x, arcs[i].x, noPixels * sizeof(double));
     memcpy(y, arcs[i].y, noPixels * sizeof(double));
 
@@ -3917,8 +3654,7 @@ void EdgeDrawingImpl::JoinArcs3() {
       noCandidateArcs = 0;
 
       for (int j = i + 1; j < noArcs; j++) {
-        if (taken[j])
-          continue;
+        if (taken[j]) continue;
 
         /******************************************************************
          * It seems that for minimum false detections,
@@ -3928,13 +3664,11 @@ void EdgeDrawingImpl::JoinArcs3() {
 
         double minR = MIN(R, arcs[j].r);
         double diff = fabs(R - arcs[j].r);
-        if (diff > minR)
-          continue;
+        if (diff > minR) continue;
 
         // If 50% of the current arc overlaps with the existing arc, then ignore
         // this arc
-        if (angles.overlap(arcs[j].sTheta, arcs[j].eTheta) >= 0.50)
-          continue;
+        if (angles.overlap(arcs[j].sTheta, arcs[j].eTheta) >= 0.50) continue;
 
         // Compute the distances
         // 1: (SX, SY)-(sx, sy)
@@ -3975,14 +3709,11 @@ void EdgeDrawingImpl::JoinArcs3() {
 
         // Endpoints must be very close
         if (diff <= 0.50 * minR) {
-          if (d > minR * 0.75)
-            continue;
+          if (d > minR * 0.75) continue;
         } else if (diff <= 0.75 * minR) {
-          if (d > minR * 0.50)
-            continue;
+          if (d > minR * 0.50) continue;
         } else if (diff <= 1.00 * minR) {
-          if (d > minR * 0.25)
-            continue;
+          if (d > minR * 0.25) continue;
         } else
           continue;
 
@@ -3991,18 +3722,15 @@ void EdgeDrawingImpl::JoinArcs3() {
 
         // They have to turn in the same direction
         if (which == 2 || which == 3) {
-          if (Turn != arcs[j].turn)
-            continue;
+          if (Turn != arcs[j].turn) continue;
         } else {
-          if (Turn == arcs[j].turn)
-            continue;
+          if (Turn == arcs[j].turn) continue;
         }
 
         // Add to candidate arcs in sorted order. User insertion sort
         int index = noCandidateArcs - 1;
         while (index >= 0) {
-          if (candidateArcs[index].dist < d)
-            break;
+          if (candidateArcs[index].dist < d) break;
 
           candidateArcs[index + 1] = candidateArcs[index];
           index--;
@@ -4023,17 +3751,14 @@ void EdgeDrawingImpl::JoinArcs3() {
           int Which = candidateArcs[j].which;
 
           int noPixelsSave = noPixels;
-          memcpy(x + noPixels, arcs[CandidateArcNo].x,
-                 arcs[CandidateArcNo].noPixels * sizeof(double));
-          memcpy(y + noPixels, arcs[CandidateArcNo].y,
-                 arcs[CandidateArcNo].noPixels * sizeof(double));
+          memcpy(x + noPixels, arcs[CandidateArcNo].x, arcs[CandidateArcNo].noPixels * sizeof(double));
+          memcpy(y + noPixels, arcs[CandidateArcNo].y, arcs[CandidateArcNo].noPixels * sizeof(double));
           noPixels += arcs[CandidateArcNo].noPixels;
 
           // Directly fit an ellipse
           EllipseEquation eq;
           double ellipseFitError = 1e10;
-          if (EllipseFit(x, y, noPixels, &eq))
-            ellipseFitError = ComputeEllipseError(&eq, x, y, noPixels);
+          if (EllipseFit(x, y, noPixels, &eq)) ellipseFitError = ComputeEllipseError(&eq, x, y, noPixels);
 
           if (ellipseFitError > ELLIPSE_ERROR) {
             // No match. Continue with the next candidate
@@ -4051,52 +3776,50 @@ void EdgeDrawingImpl::JoinArcs3() {
 
             R = (R + arcs[CandidateArcNo].r) / 2.0;
 
-            angles.set(arcs[CandidateArcNo].sTheta,
-                       arcs[CandidateArcNo].eTheta);
+            angles.set(arcs[CandidateArcNo].sTheta, arcs[CandidateArcNo].eTheta);
 
             // Update the end points of the new arc
             switch (Which) {
-              // (SX, SY)-(sy, sy)
-            case 1:
-              SX = EX, SY = EY;
-              EX = arcs[CandidateArcNo].ex;
-              EY = arcs[CandidateArcNo].ey;
-              if (Turn == 1)
-                Turn = -1;
-              else
-                Turn = 1; // reverse the turn direction
-              break;
+                // (SX, SY)-(sy, sy)
+              case 1:
+                SX = EX, SY = EY;
+                EX = arcs[CandidateArcNo].ex;
+                EY = arcs[CandidateArcNo].ey;
+                if (Turn == 1)
+                  Turn = -1;
+                else
+                  Turn = 1;  // reverse the turn direction
+                break;
 
-              // (SX, SY)-(ex, ey)
-            case 2:
-              SX = EX, SY = EY;
-              EX = arcs[CandidateArcNo].sx;
-              EY = arcs[CandidateArcNo].sy;
-              if (Turn == 1)
-                Turn = -1;
-              else
-                Turn = 1; // reverse the turn direction
-              break;
+                // (SX, SY)-(ex, ey)
+              case 2:
+                SX = EX, SY = EY;
+                EX = arcs[CandidateArcNo].sx;
+                EY = arcs[CandidateArcNo].sy;
+                if (Turn == 1)
+                  Turn = -1;
+                else
+                  Turn = 1;  // reverse the turn direction
+                break;
 
-              // (EX, EY)-(sx, sy)
-            case 3:
-              EX = arcs[CandidateArcNo].ex;
-              EY = arcs[CandidateArcNo].ey;
-              break;
+                // (EX, EY)-(sx, sy)
+              case 3:
+                EX = arcs[CandidateArcNo].ex;
+                EY = arcs[CandidateArcNo].ey;
+                break;
 
-              // (EX, EY)-(ex, ey)
-            case 4:
-              EX = arcs[CandidateArcNo].sx;
-              EY = arcs[CandidateArcNo].sy;
-              break;
+                // (EX, EY)-(ex, ey)
+              case 4:
+                EX = arcs[CandidateArcNo].sx;
+                EY = arcs[CandidateArcNo].sy;
+                break;
             }
-            break; // Do not look at the other candidates
+            break;  // Do not look at the other candidates
           }
         }
       }
 
-      if (extendedArc == false)
-        break;
+      if (extendedArc == false) break;
     }
 
     if (EllipseEqValid == false) {
@@ -4112,12 +3835,10 @@ void EdgeDrawingImpl::JoinArcs3() {
 
       double coverage = ArcLength(sTheta, eTheta) / CV_2PI;
       if ((coverage >= FULL_CIRCLE_RATIO && CircleFitError <= LONG_ARC_ERROR))
-        addCircle(circles1, noCircles1, XC, YC, R, CircleFitError, x, y,
-                  NoPixels);
+        addCircle(circles1, noCircles1, XC, YC, R, CircleFitError, x, y, NoPixels);
       else
-        addArc(edarcs4->arcs, edarcs4->noArcs, XC, YC, R, CircleFitError,
-               sTheta, eTheta, Turn, arcs[i].segmentNo, &Eq, EllipseFitError,
-               SX, SY, EX, EY, x, y, NoPixels, angles.overlapRatio());
+        addArc(edarcs4->arcs, edarcs4->noArcs, XC, YC, R, CircleFitError, sTheta, eTheta, Turn, arcs[i].segmentNo, &Eq,
+               EllipseFitError, SX, SY, EX, EY, x, y, NoPixels, angles.overlapRatio());
 
       bm->move(NoPixels);
     }
@@ -4127,9 +3848,8 @@ void EdgeDrawingImpl::JoinArcs3() {
   delete[] candidateArcs;
 }
 
-void EdgeDrawingImpl::addCircle(Circle *circles, int &noCircles, double xc,
-                                double yc, double r, double circleFitError,
-                                double *x, double *y, int noPixels) {
+void EdgeDrawingImpl::addCircle(Circle* circles, int& noCircles, double xc, double yc, double r, double circleFitError,
+                                double* x, double* y, int noPixels) {
   circles[noCircles].xc = xc;
   circles[noCircles].yc = yc;
   circles[noCircles].r = r;
@@ -4145,10 +3865,8 @@ void EdgeDrawingImpl::addCircle(Circle *circles, int &noCircles, double xc,
   noCircles++;
 }
 
-void EdgeDrawingImpl::addCircle(Circle *circles, int &noCircles, double xc,
-                                double yc, double r, double circleFitError,
-                                EllipseEquation *pEq, double ellipseFitError,
-                                double *x, double *y, int noPixels) {
+void EdgeDrawingImpl::addCircle(Circle* circles, int& noCircles, double xc, double yc, double r, double circleFitError,
+                                EllipseEquation* pEq, double ellipseFitError, double* x, double* y, int noPixels) {
   circles[noCircles].xc = xc;
   circles[noCircles].yc = yc;
   circles[noCircles].r = r;
@@ -4166,12 +3884,11 @@ void EdgeDrawingImpl::addCircle(Circle *circles, int &noCircles, double xc,
   noCircles++;
 }
 
-void EdgeDrawingImpl::sortCircles(Circle *circles, int noCircles) {
+void EdgeDrawingImpl::sortCircles(Circle* circles, int noCircles) {
   for (int i = 0; i < noCircles - 1; i++) {
     int max = i;
     for (int j = i + 1; j < noCircles; j++) {
-      if (circles[j].r > circles[max].r)
-        max = j;
+      if (circles[j].r > circles[max].r) max = j;
     }
 
     if (max != i) {
@@ -4186,7 +3903,7 @@ void EdgeDrawingImpl::sortCircles(Circle *circles, int noCircles) {
 // Given an ellipse equation, computes the length of the perimeter of the
 // ellipse Calculates the ellipse perimeter wrt the Ramajunan II formula
 //
-double EdgeDrawingImpl::computeEllipsePerimeter(EllipseEquation *eq) {
+double EdgeDrawingImpl::computeEllipsePerimeter(EllipseEquation* eq) {
   double mult = 1;
 
   double A = eq->A() * mult;
@@ -4196,10 +3913,10 @@ double EdgeDrawingImpl::computeEllipsePerimeter(EllipseEquation *eq) {
   double E = eq->E() * mult;
   double F = eq->F() * mult;
 
-  double A2(0), C2(0), D2(0), E2(0), F2(0), theta(0); // rotated coefficients
-  double D3, E3, F3;   // ellipse form coefficients
-  double cX, cY, a, b; //(cX,cY) center, a & b: semimajor & semiminor axes
-  double h;            // h = (a-b)^2 / (a+b)^2
+  double A2(0), C2(0), D2(0), E2(0), F2(0), theta(0);  // rotated coefficients
+  double D3, E3, F3;                                   // ellipse form coefficients
+  double cX, cY, a, b;                                 //(cX,cY) center, a & b: semimajor & semiminor axes
+  double h;                                            // h = (a-b)^2 / (a+b)^2
   bool rotation = false;
 
   // Normalize coefficients
@@ -4210,7 +3927,7 @@ double EdgeDrawingImpl::computeEllipsePerimeter(EllipseEquation *eq) {
   F /= A;
   A /= A;
 
-  if (B == 0) // Then not need to rotate the axes
+  if (B == 0)  // Then not need to rotate the axes
   {
     A2 = A;
     C2 = C;
@@ -4219,7 +3936,7 @@ double EdgeDrawingImpl::computeEllipsePerimeter(EllipseEquation *eq) {
     F2 = F;
   }
 
-  else if (B != 0) // Rotate the axes
+  else if (B != 0)  // Rotate the axes
   {
     rotation = true;
 
@@ -4227,11 +3944,9 @@ double EdgeDrawingImpl::computeEllipsePerimeter(EllipseEquation *eq) {
     theta = atan(B / (A - C)) / 2;
 
     // Compute the coefficients wrt the new coordinate system
-    A2 = 0.5 * (A * (1 + cos(2 * theta) + B * sin(2 * theta) +
-                     C * (1 - cos(2 * theta))));
+    A2 = 0.5 * (A * (1 + cos(2 * theta) + B * sin(2 * theta) + C * (1 - cos(2 * theta))));
 
-    C2 = 0.5 * (A * (1 - cos(2 * theta) - B * sin(2 * theta) +
-                     C * (1 + cos(2 * theta))));
+    C2 = 0.5 * (A * (1 - cos(2 * theta) - B * sin(2 * theta) + C * (1 + cos(2 * theta))));
 
     D2 = D * cos(theta) + E * sin(theta);
 
@@ -4241,12 +3956,12 @@ double EdgeDrawingImpl::computeEllipsePerimeter(EllipseEquation *eq) {
   }
 
   // Transform the conic equation into the ellipse form
-  D3 = D2 / A2; // normalize x term's coef
+  D3 = D2 / A2;  // normalize x term's coef
 
-  E3 = E2 / C2; // normalize y term's coef
+  E3 = E2 / C2;  // normalize y term's coef
 
-  cX = -(D3 / 2); // center X
-  cY = -(E3 / 2); // center Y
+  cX = -(D3 / 2);  // center X
+  cY = -(E3 / 2);  // center Y
 
   F3 = A2 * pow(cX, 2.0) + C2 * pow(cY, 2.0) - F2;
 
@@ -4271,8 +3986,7 @@ double EdgeDrawingImpl::computeEllipsePerimeter(EllipseEquation *eq) {
   return P2;
 }
 
-double EdgeDrawingImpl::ComputeEllipseError(EllipseEquation *eq, double *px,
-                                            double *py, int noPoints) {
+double EdgeDrawingImpl::ComputeEllipseError(EllipseEquation* eq, double* px, double* py, int noPoints) {
   double error = 0;
 
   double A = eq->A();
@@ -4302,8 +4016,7 @@ double EdgeDrawingImpl::ComputeEllipseError(EllipseEquation *eq, double *px,
       double b = B * n + 2 * C * m * n + D + E * m;
       double c = C * n * n + E * n + F;
       double det = b * b - 4 * a * c;
-      if (det < 0)
-        det = 0;
+      if (det < 0) det = 0;
       double x1 = -(b + sqrt(det)) / (2 * a);
       double x2 = -(b - sqrt(det)) / (2 * a);
 
@@ -4335,8 +4048,7 @@ double EdgeDrawingImpl::ComputeEllipseError(EllipseEquation *eq, double *px,
       double b = 2 * A * m * n + B * n + D * m + E;
       double c = A * n * n + D * n + F;
       double det = b * b - 4 * a * c;
-      if (det < 0)
-        det = 0;
+      if (det < 0) det = 0;
       double y1 = -(b + sqrt(det)) / (2 * a);
       double y2 = -(b - sqrt(det)) / (2 * a);
 
@@ -4370,8 +4082,7 @@ double EdgeDrawingImpl::ComputeEllipseError(EllipseEquation *eq, double *px,
       double b = B * x + E;
       double c = A * x * x + D * x + F;
       double det = b * b - 4 * a * c;
-      if (det < 0)
-        det = 0;
+      if (det < 0) det = 0;
 
       double y1 = -(b + sqrt(det)) / (2 * a);
       double y2 = -(b - sqrt(det)) / (2 * a);
@@ -4399,8 +4110,7 @@ double EdgeDrawingImpl::ComputeEllipseError(EllipseEquation *eq, double *px,
       double b = B * x + E;
       double c = A * x * x + D * x + F;
       double det = b * b - 4 * a * c;
-      if (det < 0)
-        det = 0;
+      if (det < 0) det = 0;
 
       double y1 = -(b + sqrt(det)) / (2 * a);
       double y2 = -(b - sqrt(det)) / (2 * a);
@@ -4428,9 +4138,8 @@ double EdgeDrawingImpl::ComputeEllipseError(EllipseEquation *eq, double *px,
 }
 
 // also returns rotate angle theta
-double EdgeDrawingImpl::ComputeEllipseCenterAndAxisLengths(
-    EllipseEquation *eq, double *pxc, double *pyc, double *pmajorAxisLength,
-    double *pminorAxisLength) {
+double EdgeDrawingImpl::ComputeEllipseCenterAndAxisLengths(EllipseEquation* eq, double* pxc, double* pyc,
+                                                           double* pmajorAxisLength, double* pminorAxisLength) {
   double mult = 1;
 
   double A = eq->A() * mult;
@@ -4440,9 +4149,9 @@ double EdgeDrawingImpl::ComputeEllipseCenterAndAxisLengths(
   double E = eq->E() * mult;
   double F = eq->F() * mult;
 
-  double A2(0), C2(0), D2(0), E2(0), F2(0), theta(0); // rotated coefficients
-  double D3, E3, F3;   // ellipse form coefficients
-  double cX, cY, a, b; //(cX,cY) center, a & b: semimajor & semiminor axes
+  double A2(0), C2(0), D2(0), E2(0), F2(0), theta(0);  // rotated coefficients
+  double D3, E3, F3;                                   // ellipse form coefficients
+  double cX, cY, a, b;                                 //(cX,cY) center, a & b: semimajor & semiminor axes
   bool rotation = false;
 
   // Normalize coefficients
@@ -4453,14 +4162,14 @@ double EdgeDrawingImpl::ComputeEllipseCenterAndAxisLengths(
   F /= A;
   A /= A;
 
-  if (B == 0) // Then not need to rotate the axes
+  if (B == 0)  // Then not need to rotate the axes
   {
     A2 = A;
     C2 = C;
     D2 = D;
     E2 = E;
     F2 = F;
-  } else if (B != 0) // Rotate the axes
+  } else if (B != 0)  // Rotate the axes
   {
     rotation = true;
 
@@ -4468,11 +4177,9 @@ double EdgeDrawingImpl::ComputeEllipseCenterAndAxisLengths(
     theta = atan(B / (A - C)) / 2;
 
     // Compute the coefficients wrt the new coordinate system
-    A2 = 0.5 * (A * (1 + cos(2 * theta) + B * sin(2 * theta) +
-                     C * (1 - cos(2 * theta))));
+    A2 = 0.5 * (A * (1 + cos(2 * theta) + B * sin(2 * theta) + C * (1 - cos(2 * theta))));
 
-    C2 = 0.5 * (A * (1 - cos(2 * theta) - B * sin(2 * theta) +
-                     C * (1 + cos(2 * theta))));
+    C2 = 0.5 * (A * (1 - cos(2 * theta) - B * sin(2 * theta) + C * (1 + cos(2 * theta))));
 
     D2 = D * cos(theta) + E * sin(theta);
 
@@ -4482,12 +4189,12 @@ double EdgeDrawingImpl::ComputeEllipseCenterAndAxisLengths(
   }
 
   // Transform the conic equation into the ellipse form
-  D3 = D2 / A2; // normalize x term's coef
+  D3 = D2 / A2;  // normalize x term's coef
 
-  E3 = E2 / C2; // normalize y term's coef
+  E3 = E2 / C2;  // normalize y term's coef
 
-  cX = -(D3 / 2); // center X
-  cY = -(E3 / 2); // center Y
+  cX = -(D3 / 2);  // center X
+  cY = -(E3 / 2);  // center Y
 
   F3 = A2 * pow(cX, 2.0) + C2 * pow(cY, 2.0) - F2;
 
@@ -4516,25 +4223,24 @@ double EdgeDrawingImpl::ComputeEllipseCenterAndAxisLengths(
 // Given an ellipse equation, computes "noPoints" many consecutive points
 // on the ellipse periferi. These points can be used to draw the ellipse
 //
-void EdgeDrawingImpl::ComputeEllipsePoints(double *pvec, double *px, double *py,
-                                           int noPoints) {
+void EdgeDrawingImpl::ComputeEllipsePoints(double* pvec, double* px, double* py, int noPoints) {
   int npts = noPoints / 2;
 
-  double **u = AllocateMatrix(3, npts + 1);
-  double **Aiu = AllocateMatrix(3, npts + 1);
-  double **L = AllocateMatrix(3, npts + 1);
-  double **B = AllocateMatrix(3, npts + 1);
-  double **Xpos = AllocateMatrix(3, npts + 1);
-  double **Xneg = AllocateMatrix(3, npts + 1);
-  double **ss1 = AllocateMatrix(3, npts + 1);
-  double **ss2 = AllocateMatrix(3, npts + 1);
-  double *lambda = new double[npts + 1];
-  double **uAiu = AllocateMatrix(3, npts + 1);
-  double **A = AllocateMatrix(3, 3);
-  double **Ai = AllocateMatrix(3, 3);
-  double **Aib = AllocateMatrix(3, 2);
-  double **b = AllocateMatrix(3, 2);
-  double **r1 = AllocateMatrix(2, 2);
+  double** u = AllocateMatrix(3, npts + 1);
+  double** Aiu = AllocateMatrix(3, npts + 1);
+  double** L = AllocateMatrix(3, npts + 1);
+  double** B = AllocateMatrix(3, npts + 1);
+  double** Xpos = AllocateMatrix(3, npts + 1);
+  double** Xneg = AllocateMatrix(3, npts + 1);
+  double** ss1 = AllocateMatrix(3, npts + 1);
+  double** ss2 = AllocateMatrix(3, npts + 1);
+  double* lambda = new double[npts + 1];
+  double** uAiu = AllocateMatrix(3, npts + 1);
+  double** A = AllocateMatrix(3, 3);
+  double** Ai = AllocateMatrix(3, 3);
+  double** Aib = AllocateMatrix(3, 2);
+  double** b = AllocateMatrix(3, 2);
+  double** r1 = AllocateMatrix(2, 2);
   double Ao, Ax, Ay, Axx, Ayy, Axy;
   double theta;
   int i;
@@ -4571,8 +4277,7 @@ void EdgeDrawingImpl::ComputeEllipsePoints(double *pvec, double *px, double *py,
 
   AperB(Ai, u, Aiu, 2, 2, 2, npts);
   for (i = 1; i <= 2; i++)
-    for (j = 1; j <= npts; j++)
-      uAiu[i][j] = u[i][j] * Aiu[i][j];
+    for (j = 1; j <= npts; j++) uAiu[i][j] = u[i][j] * Aiu[i][j];
 
   for (j = 1; j <= npts; j++) {
     if ((kk = (r1[1][1] / (uAiu[1][j] + uAiu[2][j]))) >= 0.0)
@@ -4582,8 +4287,7 @@ void EdgeDrawingImpl::ComputeEllipsePoints(double *pvec, double *px, double *py,
   }
 
   // Builds up B and L
-  for (j = 1; j <= npts; j++)
-    L[1][j] = L[2][j] = lambda[j];
+  for (j = 1; j <= npts; j++) L[1][j] = L[2][j] = lambda[j];
   for (j = 1; j <= npts; j++) {
     B[1][j] = b[1][1];
     B[2][j] = b[2][1];
@@ -4636,27 +4340,22 @@ void EdgeDrawingImpl::ComputeEllipsePoints(double *pvec, double *px, double *py,
 // long arc is broken into two or more arcs. This function will join such broken
 // arcs
 //
-void EdgeDrawingImpl::joinLastTwoArcs(MyArc *arcs, int &noArcs) {
-  if (noArcs < 2)
-    return;
+void EdgeDrawingImpl::joinLastTwoArcs(MyArc* arcs, int& noArcs) {
+  if (noArcs < 2) return;
 
   int prev = noArcs - 2;
   int last = noArcs - 1;
 
-  if (arcs[prev].segmentNo != arcs[last].segmentNo)
-    return;
-  if (arcs[prev].turn != arcs[last].turn)
-    return;
-  if (arcs[prev].isEllipse || arcs[last].isEllipse)
-    return;
+  if (arcs[prev].segmentNo != arcs[last].segmentNo) return;
+  if (arcs[prev].turn != arcs[last].turn) return;
+  if (arcs[prev].isEllipse || arcs[last].isEllipse) return;
 
   // The radius difference between the arcs must be very small
   double minR = MIN(arcs[prev].r, arcs[last].r);
   double radiusDiffThreshold = minR * 0.25;
 
   double diff = fabs(arcs[prev].r - arcs[last].r);
-  if (diff > radiusDiffThreshold)
-    return;
+  if (diff > radiusDiffThreshold) return;
 
   // End-point distance
   double dx = arcs[prev].ex - arcs[last].sx;
@@ -4664,15 +4363,13 @@ void EdgeDrawingImpl::joinLastTwoArcs(MyArc *arcs, int &noArcs) {
   double d = sqrt(dx * dx + dy * dy);
 
   double endPointDiffThreshold = 10;
-  if (d > endPointDiffThreshold)
-    return;
+  if (d > endPointDiffThreshold) return;
 
   // Try join
   int noPixels = arcs[prev].noPixels + arcs[last].noPixels;
 
   double xc, yc, r, circleFitError;
-  CircleFit(arcs[prev].x, arcs[prev].y, noPixels, &xc, &yc, &r,
-            &circleFitError);
+  CircleFit(arcs[prev].x, arcs[prev].y, noPixels, &xc, &yc, &r, &circleFitError);
 
   if (circleFitError <= LONG_ARC_ERROR) {
     arcs[prev].noPixels = noPixels;
@@ -4689,8 +4386,7 @@ void EdgeDrawingImpl::joinLastTwoArcs(MyArc *arcs, int &noArcs) {
     angles.set(arcs[last].sTheta, arcs[last].eTheta);
     angles.computeStartEndTheta(arcs[prev].sTheta, arcs[prev].eTheta);
 
-    arcs[prev].coverRatio =
-        ArcLength(arcs[prev].sTheta, arcs[prev].eTheta) / (CV_2PI);
+    arcs[prev].coverRatio = ArcLength(arcs[prev].sTheta, arcs[prev].eTheta) / (CV_2PI);
 
     noArcs--;
   }
@@ -4699,11 +4395,9 @@ void EdgeDrawingImpl::joinLastTwoArcs(MyArc *arcs, int &noArcs) {
 //-----------------------------------------------------------------------
 // Add a new arc to arcs
 //
-void EdgeDrawingImpl::addArc(MyArc *arcs, int &noArcs, double xc, double yc,
-                             double r, double circleFitError, double sTheta,
-                             double eTheta, int turn, int segmentNo, int sx,
-                             int sy, int ex, int ey, double *x, double *y,
-                             int noPixels, double overlapRatio) {
+void EdgeDrawingImpl::addArc(MyArc* arcs, int& noArcs, double xc, double yc, double r, double circleFitError,
+                             double sTheta, double eTheta, int turn, int segmentNo, int sx, int sy, int ex, int ey,
+                             double* x, double* y, int noPixels, double overlapRatio) {
   CV_UNUSED(overlapRatio);
   arcs[noArcs].xc = xc;
   arcs[noArcs].yc = yc;
@@ -4738,12 +4432,10 @@ void EdgeDrawingImpl::addArc(MyArc *arcs, int &noArcs, double xc, double yc,
 //-------------------------------------------------------------------------
 // Add an elliptic arc to the list of arcs
 //
-void EdgeDrawingImpl::addArc(MyArc *arcs, int &noArcs, double xc, double yc,
-                             double r, double circleFitError, double sTheta,
-                             double eTheta, int turn, int segmentNo,
-                             EllipseEquation *pEq, double ellipseFitError,
-                             int sx, int sy, int ex, int ey, double *x,
-                             double *y, int noPixels, double overlapRatio) {
+void EdgeDrawingImpl::addArc(MyArc* arcs, int& noArcs, double xc, double yc, double r, double circleFitError,
+                             double sTheta, double eTheta, int turn, int segmentNo, EllipseEquation* pEq,
+                             double ellipseFitError, int sx, int sy, int ex, int ey, double* x, double* y, int noPixels,
+                             double overlapRatio) {
   arcs[noArcs].xc = xc;
   arcs[noArcs].yc = yc;
   arcs[noArcs].r = r;
@@ -4751,8 +4443,7 @@ void EdgeDrawingImpl::addArc(MyArc *arcs, int &noArcs, double xc, double yc,
 
   arcs[noArcs].sTheta = sTheta;
   arcs[noArcs].eTheta = eTheta;
-  arcs[noArcs].coverRatio =
-      (double)((1.0 - overlapRatio) * noPixels) / computeEllipsePerimeter(pEq);
+  arcs[noArcs].coverRatio = (double)((1.0 - overlapRatio) * noPixels) / computeEllipsePerimeter(pEq);
   arcs[noArcs].turn = turn;
 
   arcs[noArcs].segmentNo = segmentNo;
@@ -4776,10 +4467,8 @@ void EdgeDrawingImpl::addArc(MyArc *arcs, int &noArcs, double xc, double yc,
 //--------------------------------------------------------------
 // Given a circular arc, computes the start & end angles of the arc in radians
 //
-void EdgeDrawingImpl::ComputeStartAndEndAngles(double xc, double yc, double r,
-                                               double *x, double *y, int len,
-                                               double *psTheta,
-                                               double *peTheta) {
+void EdgeDrawingImpl::ComputeStartAndEndAngles(double xc, double yc, double r, double* x, double* y, int len,
+                                               double* psTheta, double* peTheta) {
   double sx = x[0];
   double sy = y[0];
   double ex = x[len - 1];
@@ -4896,25 +4585,22 @@ void EdgeDrawingImpl::ComputeStartAndEndAngles(double xc, double yc, double r,
   double diff = fabs(sTheta - eTheta);
   if (diff < (CV_2PI / 120)) {
     sTheta = 0;
-    eTheta = 6.26; // 359 degrees
+    eTheta = 6.26;  // 359 degrees
   }
 
   // Round the start & etheta to 0 if very close to 6.28 or 0
-  if (sTheta >= 6.26)
-    sTheta = 0;
-  if (eTheta < 1.0 / CV_2PI)
-    eTheta = 6.28; // if less than 1 degrees, then round to 6.28
+  if (sTheta >= 6.26) sTheta = 0;
+  if (eTheta < 1.0 / CV_2PI) eTheta = 6.28;  // if less than 1 degrees, then round to 6.28
 
   *psTheta = sTheta;
   *peTheta = eTheta;
 }
 
-void EdgeDrawingImpl::sortArc(MyArc *arcs, int noArcs) {
+void EdgeDrawingImpl::sortArc(MyArc* arcs, int noArcs) {
   for (int i = 0; i < noArcs - 1; i++) {
     int max = i;
     for (int j = i + 1; j < noArcs; j++) {
-      if (arcs[j].coverRatio > arcs[max].coverRatio)
-        max = j;
+      if (arcs[j].coverRatio > arcs[max].coverRatio) max = j;
     }
 
     if (max != i) {
@@ -4930,11 +4616,9 @@ void EdgeDrawingImpl::sortArc(MyArc *arcs, int noArcs) {
 // The circle equation is of the form: (x-xc)^2 + (y-yc)^2 = r^2
 // Returns true if there is a fit, false in case no circles can be fit
 //
-bool EdgeDrawingImpl::CircleFit(double *x, double *y, int N, double *pxc,
-                                double *pyc, double *pr, double *pe) {
+bool EdgeDrawingImpl::CircleFit(double* x, double* y, int N, double* pxc, double* pyc, double* pr, double* pe) {
   *pe = 1e20;
-  if (N < 3)
-    return false;
+  if (N < 3) return false;
 
   double xAvg = 0;
   double yAvg = 0;
@@ -4977,8 +4661,7 @@ bool EdgeDrawingImpl::CircleFit(double *x, double *y, int N, double *pxc,
   // where b1 = 0.5*(Suuu+Suvv) and b2 = 0.5*(Svvv+Svuu)
   //
   double detA = Suu * Svv - Suv * Suv;
-  if (detA == 0)
-    return false;
+  if (detA == 0) return false;
 
   double b1 = 0.5 * (Suuu + Suvv);
   double b2 = 0.5 * (Svvv + Svuu);
@@ -5009,9 +4692,7 @@ bool EdgeDrawingImpl::CircleFit(double *x, double *y, int N, double *pxc,
 //------------------------------------------------------------------------------------
 // Computes the points making up a circle
 //
-void EdgeDrawingImpl::ComputeCirclePoints(double xc, double yc, double r,
-                                          double *px, double *py,
-                                          int *noPoints) {
+void EdgeDrawingImpl::ComputeCirclePoints(double xc, double yc, double r, double* px, double* py, int* noPoints) {
   int len = (int)(CV_2PI * r + 0.5);
   double angleInc = CV_2PI / len;
   double angle = 0;
@@ -5032,37 +4713,35 @@ void EdgeDrawingImpl::ComputeCirclePoints(double xc, double yc, double r,
   *noPoints = count;
 }
 
-bool EdgeDrawingImpl::EllipseFit(double *x, double *y, int noPoints,
-                                 EllipseEquation *pResult, int mode) {
-  double **D = AllocateMatrix(noPoints + 1, 7);
-  double **S = AllocateMatrix(7, 7);
-  double **Const = AllocateMatrix(7, 7);
-  double **temp = AllocateMatrix(7, 7);
-  double **L = AllocateMatrix(7, 7);
-  double **C = AllocateMatrix(7, 7);
+bool EdgeDrawingImpl::EllipseFit(double* x, double* y, int noPoints, EllipseEquation* pResult, int mode) {
+  double** D = AllocateMatrix(noPoints + 1, 7);
+  double** S = AllocateMatrix(7, 7);
+  double** Const = AllocateMatrix(7, 7);
+  double** temp = AllocateMatrix(7, 7);
+  double** L = AllocateMatrix(7, 7);
+  double** C = AllocateMatrix(7, 7);
 
-  double **invL = AllocateMatrix(7, 7);
-  double *d = new double[7];
-  double **V = AllocateMatrix(7, 7);
-  double **sol = AllocateMatrix(7, 7);
+  double** invL = AllocateMatrix(7, 7);
+  double* d = new double[7];
+  double** V = AllocateMatrix(7, 7);
+  double** sol = AllocateMatrix(7, 7);
   double tx, ty;
 
   memset(d, 0, sizeof(double) * 7);
 
   switch (mode) {
-  case (FPF):
-    Const[1][3] = -2;
-    Const[2][2] = 1;
-    Const[3][1] = -2;
-    break;
-  case (BOOKSTEIN):
-    Const[1][1] = 2;
-    Const[2][2] = 1;
-    Const[3][3] = 2;
+    case (FPF):
+      Const[1][3] = -2;
+      Const[2][2] = 1;
+      Const[3][1] = -2;
+      break;
+    case (BOOKSTEIN):
+      Const[1][1] = 2;
+      Const[2][2] = 1;
+      Const[3][3] = 2;
   }
 
-  if (noPoints < 6)
-    return false;
+  if (noPoints < 6) return false;
 
   // Now first fill design matrix
   for (int i = 1; i <= noPoints; i++) {
@@ -5095,10 +4774,8 @@ bool EdgeDrawingImpl::EllipseFit(double *x, double *y, int noPoints,
   for (int j = 1; j <= 6; j++) /* Scan columns */
   {
     double mod = 0.0;
-    for (int i = 1; i <= 6; i++)
-      mod += sol[i][j] * sol[i][j];
-    for (int i = 1; i <= 6; i++)
-      sol[i][j] /= sqrt(mod);
+    for (int i = 1; i <= 6; i++) mod += sol[i][j] * sol[i][j];
+    for (int i = 1; i <= 6; i++) sol[i][j] /= sqrt(mod);
   }
 
   double zero = 10e-20;
@@ -5106,20 +4783,17 @@ bool EdgeDrawingImpl::EllipseFit(double *x, double *y, int noPoints,
   int solind = 0;
   int i;
   switch (mode) {
-  case (BOOKSTEIN): // smallest eigenvalue
-    for (i = 1; i <= 6; i++)
-      if (d[i] < minev && fabs(d[i]) > zero)
-        solind = i;
-    break;
-  case (FPF):
-    for (i = 1; i <= 6; i++)
-      if (d[i] < 0 && fabs(d[i]) > zero)
-        solind = i;
+    case (BOOKSTEIN):  // smallest eigenvalue
+      for (i = 1; i <= 6; i++)
+        if (d[i] < minev && fabs(d[i]) > zero) solind = i;
+      break;
+    case (FPF):
+      for (i = 1; i <= 6; i++)
+        if (d[i] < 0 && fabs(d[i]) > zero) solind = i;
   }
 
   bool valid = true;
-  if (solind == 0)
-    valid = false;
+  if (solind == 0) valid = false;
 
   if (valid) {
     // Now fetch the right solution
@@ -5141,15 +4815,14 @@ bool EdgeDrawingImpl::EllipseFit(double *x, double *y, int noPoints,
 
   if (valid) {
     int len = (int)computeEllipsePerimeter(pResult);
-    if (len <= 0 || len > 50000)
-      valid = false;
+    if (len <= 0 || len > 50000) valid = false;
   }
 
   return valid;
 }
 
-double **EdgeDrawingImpl::AllocateMatrix(int noRows, int noColumns) {
-  double **m = new double *[noRows];
+double** EdgeDrawingImpl::AllocateMatrix(int noRows, int noColumns) {
+  double** m = new double*[noRows];
 
   for (int i = 0; i < noRows; i++) {
     m[i] = new double[noColumns];
@@ -5159,15 +4832,13 @@ double **EdgeDrawingImpl::AllocateMatrix(int noRows, int noColumns) {
   return m;
 }
 
-void EdgeDrawingImpl::A_TperB(double **A_, double **B_, double **_res,
-                              int _righA, int _colA, int _righB, int _colB) {
+void EdgeDrawingImpl::A_TperB(double** A_, double** B_, double** _res, int _righA, int _colA, int _righB, int _colB) {
   CV_UNUSED(_righB);
   int p, q, l;
   for (p = 1; p <= _colA; p++)
     for (q = 1; q <= _colB; q++) {
       _res[p][q] = 0.0;
-      for (l = 1; l <= _righA; l++)
-        _res[p][q] = _res[p][q] + A_[l][p] * B_[l][q];
+      for (l = 1; l <= _righA; l++) _res[p][q] = _res[p][q] + A_[l][p] * B_[l][q];
     }
 }
 
@@ -5175,16 +4846,15 @@ void EdgeDrawingImpl::A_TperB(double **A_, double **B_, double **_res,
 // Perform the Cholesky decomposition
 // Return the lower triangular L  such that L*L'=A
 //
-void EdgeDrawingImpl::choldc(double **a, int n, double **l) {
+void EdgeDrawingImpl::choldc(double** a, int n, double** l) {
   int i, j, k;
   double sum;
-  double *p = new double[n + 1];
+  double* p = new double[n + 1];
   memset(p, 0, sizeof(double) * (n + 1));
 
   for (i = 1; i <= n; i++) {
     for (j = i; j <= n; j++) {
-      for (sum = a[i][j], k = i - 1; k >= 1; k--)
-        sum -= a[i][k] * a[j][k];
+      for (sum = a[i][j], k = i - 1; k >= 1; k--) sum -= a[i][k] * a[j][k];
       if (i == j) {
         if (sum <= 0.0) {
         } else
@@ -5209,26 +4879,23 @@ void EdgeDrawingImpl::choldc(double **a, int n, double **l) {
   delete[] p;
 }
 
-int EdgeDrawingImpl::inverse(double **TB, double **InvB, int N) {
+int EdgeDrawingImpl::inverse(double** TB, double** InvB, int N) {
   int k, i, j, p, q;
   double mult;
   double D, temp;
   double maxpivot;
   int npivot;
-  double **B = AllocateMatrix(N + 1, N + 2);
-  double **A = AllocateMatrix(N + 1, 2 * N + 2);
-  double **C = AllocateMatrix(N + 1, N + 1);
+  double** B = AllocateMatrix(N + 1, N + 2);
+  double** A = AllocateMatrix(N + 1, 2 * N + 2);
+  double** C = AllocateMatrix(N + 1, N + 1);
   double eps = 10e-20;
 
   for (k = 1; k <= N; k++)
-    for (j = 1; j <= N; j++)
-      B[k][j] = TB[k][j];
+    for (j = 1; j <= N; j++) B[k][j] = TB[k][j];
 
   for (k = 1; k <= N; k++) {
-    for (j = 1; j <= N + 1; j++)
-      A[k][j] = B[k][j];
-    for (j = N + 2; j <= 2 * N + 1; j++)
-      A[k][j] = (double)0;
+    for (j = 1; j <= N + 1; j++) A[k][j] = B[k][j];
+    for (j = N + 2; j <= 2 * N + 1; j++) A[k][j] = (double)0;
     A[k][k - 1 + N + 2] = (double)1;
   }
   for (k = 1; k <= N; k++) {
@@ -5247,13 +4914,11 @@ int EdgeDrawingImpl::inverse(double **TB, double **InvB, int N) {
           A[k][j] = temp;
         };
       D = A[k][k];
-      for (j = 2 * N + 1; j >= k; j--)
-        A[k][j] = A[k][j] / D;
+      for (j = 2 * N + 1; j >= k; j--) A[k][j] = A[k][j] / D;
       for (i = 1; i <= N; i++) {
         if (i != k) {
           mult = A[i][k];
-          for (j = 2 * N + 1; j >= k; j--)
-            A[i][j] = A[i][j] - mult * A[k][j];
+          for (j = 2 * N + 1; j >= k; j--) A[i][j] = A[i][j] - mult * A[k][j];
         }
       }
     } else {
@@ -5266,8 +4931,7 @@ int EdgeDrawingImpl::inverse(double **TB, double **InvB, int N) {
   }
 
   for (k = 1, p = 1; k <= N; k++, p++)
-    for (j = N + 2, q = 1; j <= 2 * N + 1; j++, q++)
-      InvB[p][q] = A[k][j];
+    for (j = N + 2, q = 1; j <= 2 * N + 1; j++, q++) InvB[p][q] = A[k][j];
 
   DeallocateMatrix(B, N + 1);
   DeallocateMatrix(A, N + 1);
@@ -5276,48 +4940,42 @@ int EdgeDrawingImpl::inverse(double **TB, double **InvB, int N) {
   return (0);
 }
 
-void EdgeDrawingImpl::DeallocateMatrix(double **m, int noRows) {
-  for (int i = 0; i < noRows; i++)
-    delete[] m[i];
+void EdgeDrawingImpl::DeallocateMatrix(double** m, int noRows) {
+  for (int i = 0; i < noRows; i++) delete[] m[i];
   delete[] m;
 }
 
-void EdgeDrawingImpl::AperB_T(double **A_, double **B_, double **_res,
-                              int _righA, int _colA, int _righB, int _colB) {
+void EdgeDrawingImpl::AperB_T(double** A_, double** B_, double** _res, int _righA, int _colA, int _righB, int _colB) {
   CV_UNUSED(_righB);
   int p, q, l;
   for (p = 1; p <= _colA; p++)
     for (q = 1; q <= _colB; q++) {
       _res[p][q] = 0.0;
-      for (l = 1; l <= _righA; l++)
-        _res[p][q] = _res[p][q] + A_[p][l] * B_[q][l];
+      for (l = 1; l <= _righA; l++) _res[p][q] = _res[p][q] + A_[p][l] * B_[q][l];
     }
 }
 
-void EdgeDrawingImpl::AperB(double **A_, double **B_, double **_res, int _righA,
-                            int _colA, int _righB, int _colB) {
+void EdgeDrawingImpl::AperB(double** A_, double** B_, double** _res, int _righA, int _colA, int _righB, int _colB) {
   CV_UNUSED(_righB);
   int p, q, l;
   for (p = 1; p <= _righA; p++)
     for (q = 1; q <= _colB; q++) {
       _res[p][q] = 0.0;
-      for (l = 1; l <= _colA; l++)
-        _res[p][q] = _res[p][q] + A_[p][l] * B_[l][q];
+      for (l = 1; l <= _colA; l++) _res[p][q] = _res[p][q] + A_[p][l] * B_[l][q];
     }
 }
 
-void EdgeDrawingImpl::jacobi(double **a, int n, double d[], double **v) {
+void EdgeDrawingImpl::jacobi(double** a, int n, double d[], double** v) {
   int j, iq, ip, i;
   double tresh, theta, tau, t, sm, s, h, g, c;
 
-  double *b = new double[n + 1];
-  double *z = new double[n + 1];
+  double* b = new double[n + 1];
+  double* z = new double[n + 1];
   memset(b, 0, sizeof(double) * (n + 1));
   memset(z, 0, sizeof(double) * (n + 1));
 
   for (ip = 1; ip <= n; ip++) {
-    for (iq = 1; iq <= n; iq++)
-      v[ip][iq] = 0.0;
+    for (iq = 1; iq <= n; iq++) v[ip][iq] = 0.0;
     v[ip][ip] = 1.0;
   }
   for (ip = 1; ip <= n; ip++) {
@@ -5327,8 +4985,7 @@ void EdgeDrawingImpl::jacobi(double **a, int n, double d[], double **v) {
   for (i = 1; i <= 50; i++) {
     sm = 0.0;
     for (ip = 1; ip <= n - 1; ip++) {
-      for (iq = ip + 1; iq <= n; iq++)
-        sm += fabs(a[ip][iq]);
+      for (iq = ip + 1; iq <= n; iq++) sm += fabs(a[ip][iq]);
     }
     if (sm == 0.0) {
       delete[] b;
@@ -5352,8 +5009,7 @@ void EdgeDrawingImpl::jacobi(double **a, int n, double d[], double **v) {
           else {
             theta = 0.5 * h / (a[ip][iq]);
             t = 1.0 / (fabs(theta) + sqrt(1.0 + theta * theta));
-            if (theta < 0.0)
-              t = -t;
+            if (theta < 0.0) t = -t;
           }
           c = 1.0 / sqrt(1 + t * t);
           s = t * c;
@@ -5390,8 +5046,7 @@ void EdgeDrawingImpl::jacobi(double **a, int n, double d[], double **v) {
   delete[] z;
 }
 
-void EdgeDrawingImpl::ROTATE(double **a, int i, int j, int k, int l, double tau,
-                             double s) {
+void EdgeDrawingImpl::ROTATE(double** a, int i, int j, int k, int l, double tau, double s) {
   double g, h;
   g = a[i][j];
   h = a[k][l];
@@ -5401,5 +5056,5 @@ void EdgeDrawingImpl::ROTATE(double **a, int i, int j, int k, int l, double tau,
 
 //   }  // namespace ximgproc
 // }  // namespace cv
-} // namespace ED
-} // namespace dso
+}  // namespace ED
+}  // namespace dso

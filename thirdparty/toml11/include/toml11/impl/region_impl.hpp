@@ -16,20 +16,29 @@ namespace detail {
 
 // a value defined in [first, last).
 // Those source must be the same. Instread, `region` does not make sense.
-TOML11_INLINE region::region(const location &first, const location &last)
-    : source_(first.source()), source_name_(first.source_name()),
+TOML11_INLINE region::region(const location& first, const location& last)
+    : source_(first.source()),
+      source_name_(first.source_name()),
       length_(last.get_location() - first.get_location()),
-      first_(first.get_location()), first_line_(first.line_number()),
-      first_column_(first.column_number()), last_(last.get_location()),
-      last_line_(last.line_number()), last_column_(last.column_number()) {
+      first_(first.get_location()),
+      first_line_(first.line_number()),
+      first_column_(first.column_number()),
+      last_(last.get_location()),
+      last_line_(last.line_number()),
+      last_column_(last.column_number()) {
   assert(first.source() == last.source());
   assert(first.source_name() == last.source_name());
 }
 
 // shorthand of [loc, loc+1)
-TOML11_INLINE region::region(const location &loc)
-    : source_(loc.source()), source_name_(loc.source_name()), length_(0),
-      first_line_(0), first_column_(0), last_line_(0), last_column_(0) {
+TOML11_INLINE region::region(const location& loc)
+    : source_(loc.source()),
+      source_name_(loc.source_name()),
+      length_(0),
+      first_line_(0),
+      first_column_(0),
+      last_line_(0),
+      last_column_(0) {
   // if the file ends with LF, the resulting region points no char.
   if (loc.eof()) {
     if (loc.get_location() == 0) {
@@ -63,37 +72,30 @@ TOML11_INLINE region::region(const location &loc)
 
 TOML11_INLINE region::char_type region::at(std::size_t i) const {
   if (this->last_ <= this->first_ + i) {
-    throw std::out_of_range("range::at: index " + std::to_string(i) +
-                            " exceeds length " + std::to_string(this->length_));
+    throw std::out_of_range("range::at: index " + std::to_string(i) + " exceeds length " +
+                            std::to_string(this->length_));
   }
-  const auto iter = std::next(this->source_->cbegin(),
-                              static_cast<difference_type>(this->first_ + i));
+  const auto iter = std::next(this->source_->cbegin(), static_cast<difference_type>(this->first_ + i));
   return *iter;
 }
 
 TOML11_INLINE region::const_iterator region::begin() const noexcept {
-  return std::next(this->source_->cbegin(),
-                   static_cast<difference_type>(this->first_));
+  return std::next(this->source_->cbegin(), static_cast<difference_type>(this->first_));
 }
 TOML11_INLINE region::const_iterator region::end() const noexcept {
-  return std::next(this->source_->cbegin(),
-                   static_cast<difference_type>(this->last_));
+  return std::next(this->source_->cbegin(), static_cast<difference_type>(this->last_));
 }
 TOML11_INLINE region::const_iterator region::cbegin() const noexcept {
-  return std::next(this->source_->cbegin(),
-                   static_cast<difference_type>(this->first_));
+  return std::next(this->source_->cbegin(), static_cast<difference_type>(this->first_));
 }
 TOML11_INLINE region::const_iterator region::cend() const noexcept {
-  return std::next(this->source_->cbegin(),
-                   static_cast<difference_type>(this->last_));
+  return std::next(this->source_->cbegin(), static_cast<difference_type>(this->last_));
 }
 
 TOML11_INLINE std::string region::as_string() const {
   if (this->is_ok()) {
-    const auto begin = std::next(this->source_->cbegin(),
-                                 static_cast<difference_type>(this->first_));
-    const auto end = std::next(this->source_->cbegin(),
-                               static_cast<difference_type>(this->last_));
+    const auto begin = std::next(this->source_->cbegin(), static_cast<difference_type>(this->first_));
+    const auto end = std::next(this->source_->cbegin(), static_cast<difference_type>(this->last_));
     return ::toml::detail::make_string(begin, end);
   } else {
     return std::string("");
@@ -139,14 +141,12 @@ TOML11_INLINE std::vector<std::string> region::as_lines() const {
   const auto begin = std::next(this->source_->cbegin(), begin_idx);
   const auto end = std::next(this->source_->cbegin(), end_idx);
 
-  const auto line_begin = std::find(cxx::make_reverse_iterator(begin),
-                                    this->source_->crend(), char_type('\n'))
-                              .base();
+  const auto line_begin = std::find(cxx::make_reverse_iterator(begin), this->source_->crend(), char_type('\n')).base();
   const auto line_end = std::find(end, this->source_->cend(), char_type('\n'));
 
   const auto reg_lines = make_string(line_begin, line_end);
 
-  if (reg_lines == "") // the region is an empty line that only contains LF
+  if (reg_lines == "")  // the region is an empty line that only contains LF
   {
     return std::vector<std::string>{""};
   }
@@ -161,6 +161,6 @@ TOML11_INLINE std::vector<std::string> region::as_lines() const {
   return lines;
 }
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_REGION_IMPL_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_REGION_IMPL_HPP

@@ -70,11 +70,10 @@ namespace dso {
 //  efPoint = 0; // 指针=0
 //}
 
-PointHessian::PointHessian(const ImmaturePoint *const rawPoint,
-                           CalibHessian *Hcalib, int &host_cid_) {
+PointHessian::PointHessian(const ImmaturePoint* const rawPoint, CalibHessian* Hcalib, int& host_cid_) {
   host_cid = host_cid_;
   instanceCounter++;
-  host = rawPoint->host; // 主帧
+  host = rawPoint->host;  // 主帧
   hasDepthPrior = false;
 
   idepth_hessian = 0;
@@ -87,34 +86,30 @@ PointHessian::PointHessian(const ImmaturePoint *const rawPoint,
   assert(std::isfinite(rawPoint->idepth_max));
   // idepth_init = rawPoint->idepth_GT;
 
-  my_type = rawPoint->my_type; //似乎是显示用的
+  my_type = rawPoint->my_type;  //似乎是显示用的
 
-  setIdepthScaled((rawPoint->idepth_max + rawPoint->idepth_min) *
-                  0.5); //深度均值
+  setIdepthScaled((rawPoint->idepth_max + rawPoint->idepth_min) * 0.5);  //深度均值
   setPointStatus(PointHessian::INACTIVE);
 
   int n = patternNum;
   memcpy(color, rawPoint->color_converged,
-         sizeof(float) * n); // 一个点对应8个像素
+         sizeof(float) * n);  // 一个点对应8个像素
   memcpy(weights, rawPoint->weights_converged, sizeof(float) * n);
   memcpy(weights_gray, rawPoint->weights_converged_gray, sizeof(float) * n);
-  energyTH =
-      rawPoint->energyTH_converged; // 只被用来判断是不是finite，没用具体数值
+  energyTH = rawPoint->energyTH_converged;  // 只被用来判断是不是finite，没用具体数值
 
-  efPoint = 0; // 指针=0
+  efPoint = 0;  // 指针=0
 }
 
 //@ 释放residual
 void PointHessian::release() {
-  for (unsigned int i = 0; i < residuals.size(); i++)
-    delete residuals[i];
+  for (unsigned int i = 0; i < residuals.size(); i++) delete residuals[i];
   residuals.clear();
 }
 
 //@ 设置固定线性化点位置的状态
 // TODO 后面求nullspaces地方没看懂, 回头再看<2019.09.18> 数学原理是啥?
-void FrameHessian::setStateZero(
-    const VecState &state_zero) { //! 前六维位姿必须是0
+void FrameHessian::setStateZero(const VecState& state_zero) {  //! 前六维位姿必须是0
   assert(state_zero.head<6>().squaredNorm() < 1e-20);
 
   this->state_zero = state_zero;
@@ -124,20 +119,16 @@ void FrameHessian::setStateZero(
   // 全局转为局部的，左乘边右乘
   //! T_c_w * delta_T_g * T_c_w_inv = delta_T_l
   // TODO 这个是数值求导的方法么???
-  for (int i = 0; i < 6;
-       i++) { // TODO 一个整扰动，一个负扰动，然后把它变换到local系下, w.r.t.
+  for (int i = 0; i < 6; i++) {  // TODO 一个整扰动，一个负扰动，然后把它变换到local系下, w.r.t.
     // pose
     Vec6 eps;
     eps.setZero();
     eps[i] = 1e-3;
     SE3 EepsP = Sophus::SE3::exp(eps);
     SE3 EepsM = Sophus::SE3::exp(-eps);
-    SE3 w2c_leftEps_P_x0 =
-        (get_worldToCam_evalPT() * EepsP) * get_worldToCam_evalPT().inverse();
-    SE3 w2c_leftEps_M_x0 =
-        (get_worldToCam_evalPT() * EepsM) * get_worldToCam_evalPT().inverse();
-    nullspaces_pose.col(i) =
-        (w2c_leftEps_P_x0.log() - w2c_leftEps_M_x0.log()) / (2e-3);
+    SE3 w2c_leftEps_P_x0 = (get_worldToCam_evalPT() * EepsP) * get_worldToCam_evalPT().inverse();
+    SE3 w2c_leftEps_M_x0 = (get_worldToCam_evalPT() * EepsM) * get_worldToCam_evalPT().inverse();
+    nullspaces_pose.col(i) = (w2c_leftEps_P_x0.log() - w2c_leftEps_M_x0.log()) / (2e-3);
   }
   // nullspaces_pose.topRows<3>() *= SCALE_XI_TRANS_INVERSE;
   // nullspaces_pose.bottomRows<3>() *= SCALE_XI_ROT_INVERSE;
@@ -159,8 +150,7 @@ void FrameHessian::setStateZero(
   for (int cid = 0; cid < 1 /*kCameraNumUsed*/; ++cid) {
     // assert(ab_exposure_vec(cid) > 0);
     nullspaces_affine.topLeftCorner<2, 1>() = Vec2(1, 0);
-    nullspaces_affine.topRightCorner<2, 1>() =
-        Vec2(0, expf(aff_g2l_0().a) * ab_exposure);
+    nullspaces_affine.topRightCorner<2, 1>() = Vec2(0, expf(aff_g2l_0().a) * ab_exposure);
     //    nullspaces_affine.topRightCorner<2, 1>() =
     //        Vec2(0, expf(aff_g2l_0(cid).a) * ab_exposure_vec(cid));
     //    nullspaces_affine.block<2, 1>(0 + cid * 2, 0) = Vec2(1, 0);
@@ -172,21 +162,17 @@ void FrameHessian::setStateZero(
 void FrameHessian::release() {
   // DELETE POINT
   // DELETE RESIDUAL
-  for (unsigned int i = 0; i < pointHessians.size(); i++)
-    delete pointHessians[i];
-  for (unsigned int i = 0; i < pointHessiansMarginalized.size(); i++)
-    delete pointHessiansMarginalized[i];
-  for (unsigned int i = 0; i < pointHessiansOut.size(); i++)
-    delete pointHessiansOut[i];
-  for (unsigned int i = 0; i < immaturePoints.size(); i++)
-    delete immaturePoints[i];
+  for (unsigned int i = 0; i < pointHessians.size(); i++) delete pointHessians[i];
+  for (unsigned int i = 0; i < pointHessiansMarginalized.size(); i++) delete pointHessiansMarginalized[i];
+  for (unsigned int i = 0; i < pointHessiansOut.size(); i++) delete pointHessiansOut[i];
+  for (unsigned int i = 0; i < immaturePoints.size(); i++) delete immaturePoints[i];
 
   pointHessians.clear();
   pointHessiansMarginalized.clear();
   pointHessiansOut.clear();
   immaturePoints.clear();
 }
-static float FindMedian(const std::vector<float> &numbers) {
+static float FindMedian(const std::vector<float>& numbers) {
   std::vector<float> sortedNumbers = numbers;
   std::sort(sortedNumbers.begin(), sortedNumbers.end());
 
@@ -199,8 +185,7 @@ static float FindMedian(const std::vector<float> &numbers) {
     return (float)sortedNumbers[size / 2];
   }
 }
-cv::Mat GetCleanEdges(const cv::Mat &src_gray, double low_thresh,
-                      double high_thresh, int min_area_threshold = 50) {
+cv::Mat GetCleanEdges(const cv::Mat& src_gray, double low_thresh, double high_thresh, int min_area_threshold = 50) {
   if (src_gray.empty()) {
     std::cerr << "Error: Input image is empty!" << std::endl;
     return cv::Mat();
@@ -238,8 +223,7 @@ cv::Mat GetCleanEdges(const cv::Mat &src_gray, double low_thresh,
   // ------------------------------------------------------------------------
   cv::Mat labels, stats, centroids;
   // 8 连通域分割
-  int num_labels = cv::connectedComponentsWithStats(closed_edges, labels, stats,
-                                                    centroids, 8, CV_32S);
+  int num_labels = cv::connectedComponentsWithStats(closed_edges, labels, stats, centroids, 8, CV_32S);
 
   // 创建一张全黑的目标边缘图
   cv::Mat clean_edges = cv::Mat::zeros(closed_edges.size(), CV_8UC1);
@@ -271,10 +255,9 @@ cv::Mat GetCleanEdges(const cv::Mat &src_gray, double low_thresh,
  * @param morphKsize    形态学核大小
  * @return              过滤后的干净边缘图 (CV_8UC1, 0/255)
  */
-cv::Mat CleanCannyEdges(const cv::Mat &src, int blurKsize = 9,
-                        double blurSigma = 3.0, bool useBilateral = false,
-                        double cannySigma = 0.33, int minEdgeLength = 30,
-                        bool doMorphClose = true, int morphKsize = 3) {
+cv::Mat CleanCannyEdges(const cv::Mat& src, int blurKsize = 9, double blurSigma = 3.0, bool useBilateral = false,
+                        double cannySigma = 0.33, int minEdgeLength = 30, bool doMorphClose = true,
+                        int morphKsize = 3) {
   CV_Assert(!src.empty());
 
   // ---------- 1. 转灰度 ----------
@@ -299,8 +282,7 @@ cv::Mat CleanCannyEdges(const cv::Mat &src, int blurKsize = 9,
   // 参考 Adrian Rosebrock 的自动 Canny 阈值估计方法
   std::vector<uchar> pixels;
   pixels.assign(blurred.datastart, blurred.dataend);
-  std::nth_element(pixels.begin(), pixels.begin() + pixels.size() / 2,
-                   pixels.end());
+  std::nth_element(pixels.begin(), pixels.begin() + pixels.size() / 2, pixels.end());
   double medianVal = pixels[pixels.size() / 2];
 
   double lowThresh = std::max(0.0, (1.0 - cannySigma) * medianVal);
@@ -312,18 +294,16 @@ cv::Mat CleanCannyEdges(const cv::Mat &src, int blurKsize = 9,
 
   // ---------- 5. 形态学处理：先闭运算，连接主体边缘的小断裂 ----------
   if (doMorphClose) {
-    cv::Mat kernel = cv::getStructuringElement(
-        cv::MORPH_ELLIPSE, cv::Size(morphKsize, morphKsize));
+    cv::Mat kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(morphKsize, morphKsize));
     cv::morphologyEx(edges, edges, cv::MORPH_CLOSE, kernel);
   }
 
   // ---------- 6. 连通域过滤：清除长度过短的琐碎边缘 ----------
   cv::Mat labels, stats, centroids;
-  int numLabels = cv::connectedComponentsWithStats(edges, labels, stats,
-                                                   centroids, 8, CV_32S);
+  int numLabels = cv::connectedComponentsWithStats(edges, labels, stats, centroids, 8, CV_32S);
 
   cv::Mat cleanEdges = cv::Mat::zeros(edges.size(), CV_8UC1);
-  for (int i = 1; i < numLabels; ++i) { // 0 是背景，跳过
+  for (int i = 1; i < numLabels; ++i) {  // 0 是背景，跳过
     int area = stats.at<int>(i, cv::CC_STAT_AREA);
     // 用面积近似代表"边缘长度"，细长的边缘 area 通常等于像素点数
     if (area >= minEdgeLength) {
@@ -335,12 +315,11 @@ cv::Mat CleanCannyEdges(const cv::Mat &src, int blurKsize = 9,
 }
 //* 计算各层金字塔图像的像素值和梯度
 #define USE_EDGE_DRAWING
-void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
+void FrameHessian::makeImages(float* color, CalibHessian* HCalib) {
   // 每一层创建图像值, 和图像梯度的存储空间
   for (int i = 0; i < pyrLevelsUsed; i++) {
     ///* 图像导数[0]:辐照度  [1]:x方向导数  [2]:y方向导数, （指针表示图像）
-    dIp[i] = new Eigen::Vector3f
-        [wG[i] * hG[i] * kCameraNumUsed]; // TODO image size at each pyr level
+    dIp[i] = new Eigen::Vector3f[wG[i] * hG[i] * kCameraNumUsed];  // TODO image size at each pyr level
     absSquaredGrad[i] = new float[wG[i] * hG[i] * kCameraNumUsed];
     edge_label_image[i] = new Eigen::Vector2i[wG[i] * hG[i] * kCameraNumUsed];
     dt_dx_dy[i] = new Eigen::Vector3f[wG[i] * hG[i] * kCameraNumUsed];
@@ -355,11 +334,11 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
   //      dI[cid * kCameraNumUsed] = dIp[0]; // TODO assign pointer //
   //      原来他们指向同一个地方
   //  }
-  dI = dIp[0]; // TODO assign pointer // 原来他们指向同一个地方
-  dt_dx_dy_0 = dt_dx_dy[0]; // TODO assign pointer // 原来他们指向同一个地方
+  dI = dIp[0];               // TODO assign pointer // 原来他们指向同一个地方
+  dt_dx_dy_0 = dt_dx_dy[0];  // TODO assign pointer // 原来他们指向同一个地方
   // make d0
-  int w = wG[0]; // 零层weight
-  int h = hG[0]; // 零层height
+  int w = wG[0];  // 零层weight
+  int h = hG[0];  // 零层height
   int minLabelNum[] = {-500, -200, -100, -50, -50, -50, -50, -50};
   mean_gray_val = 0;
   std::vector<float> gray_val;
@@ -381,26 +360,24 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
     mean_gray_val_each[cid] = FindMedian(gray_val);
 
     for (int lvl = 0; lvl < pyrLevelsUsed; lvl++) {
-      int wl = wG[lvl], hl = hG[lvl]; // 该层图像大小
-      Eigen::Vector3f *dI_l = dIp[lvl] + wl * hl * cid;
+      int wl = wG[lvl], hl = hG[lvl];  // 该层图像大小
+      Eigen::Vector3f* dI_l = dIp[lvl] + wl * hl * cid;
 
-      float *dabs_l = absSquaredGrad[lvl] + wl * hl * cid;
+      float* dabs_l = absSquaredGrad[lvl] + wl * hl * cid;
       if (lvl > 0) {
         int lvlm1 = lvl - 1;
-        int wlm1 = wG[lvlm1]; // 列数
-        int hlm1 = hG[lvlm1]; // 列数
-        Eigen::Vector3f *dI_lm = dIp[lvlm1] + wlm1 * hlm1 * cid;
+        int wlm1 = wG[lvlm1];  // 列数
+        int hlm1 = hG[lvlm1];  // 列数
+        Eigen::Vector3f* dI_lm = dIp[lvlm1] + wlm1 * hlm1 * cid;
 
         // 像素4合1, 生成金字塔
         // row major
         for (int y = 0; y < hl; y++)
           for (int x = 0; x < wl; x++) {
             dI_l[x + y * wl][0] =
-                0.25f * (dI_lm[2 * x + 2 * y * wlm1][0] +
-                         dI_lm[2 * x + 1 + 2 * y * wlm1][0] +
+                0.25f * (dI_lm[2 * x + 2 * y * wlm1][0] + dI_lm[2 * x + 1 + 2 * y * wlm1][0] +
                          dI_lm[2 * x + 2 * y * wlm1 + wlm1][0] +
-                         dI_lm[2 * x + 1 + 2 * y * wlm1 + wlm1]
-                              [0]); // TODO filter image noise?[scratch that],
+                         dI_lm[2 * x + 1 + 2 * y * wlm1 + wlm1][0]);  // TODO filter image noise?[scratch that],
             // generate pyramid
           }
       }
@@ -419,7 +396,7 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
       bool use_edge_drawing_impl = false;
       int labelNum = 0;
       float threshold;
-      int min_label_num = 1; // 10;
+      int min_label_num = 1;  // 10;
       if (adaptiveCannyThreshold) {
 #if 1
         cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(8.0, cv::Size(16, 16));
@@ -427,22 +404,19 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
         img_enhanced = cv_img.clone();
 #ifndef USE_EDGE_DRAWING
         cv::GaussianBlur(img_enhanced, img_enhanced, {9, 9}, 0);
-        threshold =
-            cv::threshold(img_enhanced, output, 0, 255, cv::THRESH_OTSU);
+        threshold = cv::threshold(img_enhanced, output, 0, 255, cv::THRESH_OTSU);
         printf("canny_threshold: %f\n", threshold);
-        cv::Canny(img_enhanced, edge, std::max(3, (int)(0.2 * threshold)),
-                  std::min(250, (int)(0.3 * threshold)), 3, true);
+        cv::Canny(img_enhanced, edge, std::max(3, (int)(0.2 * threshold)), std::min(250, (int)(0.3 * threshold)), 3,
+                  true);
 #else
         cv::GaussianBlur(img_enhanced, img_enhanced, {3, 3}, 0);
-        double cv_threshold =
-            cv::threshold(cv_img, output, 0, 255, cv::THRESH_OTSU);
+        double cv_threshold = cv::threshold(cv_img, output, 0, 255, cv::THRESH_OTSU);
         printf("cv_threshold: %f\n", cv_threshold);
-        threshold =
-            cv::threshold(img_enhanced, output, 0, 255, cv::THRESH_OTSU);
+        threshold = cv::threshold(img_enhanced, output, 0, 255, cv::THRESH_OTSU);
         printf("canny_threshold: %f\n", threshold);
         edlines::boundingbox_t bbox_ed = {0, 0, w, h};
-        float scaleX = 0.5; // detect_level_ == 0 ? 0.5 : 1.0;
-        float scaleY = 0.5; // detect_level_ == 0 ? 0.5 : 1.0;
+        float scaleX = 0.5;  // detect_level_ == 0 ? 0.5 : 1.0;
+        float scaleY = 0.5;  // detect_level_ == 0 ? 0.5 : 1.0;
         std::vector<edlines::line_float_t> lines_ed;
 #if 0
         std::vector<DistortedLineSegment> distortedLineSegments;
@@ -456,17 +430,14 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
         LBD::ScaleLines linesInGood;
         lineDesc.GetLineDescriptor(image, linesInLeft);
 #elif 0
-        int ret = EdgeDrawingLineDetector(image.data, w, h, scaleX, scaleY,
-                                          bbox, lines);
+        int ret = EdgeDrawingLineDetector(image.data, w, h, scaleX, scaleY, bbox, lines);
 #elif 1
-        edge_bad = ed::detectEdges(
-            img_enhanced, 10 /*std::max(3, (int)(0.2 * threshold))*/, 4, 8);
+        edge_bad = ed::detectEdges(img_enhanced, 10 /*std::max(3, (int)(0.2 * threshold))*/, 4, 8);
 #if 0
         edge = edge_bad;
 #else
         dso::ED::ED testED =
-            dso::ED::ED(img_enhanced, dso::ED::SOBEL_OPERATOR, 30, 8, 1,
-                        MIN_PATH_LENGTH_IN_ED, 1.0, true);
+            dso::ED::ED(img_enhanced, dso::ED::SOBEL_OPERATOR, 30, 8, 1, MIN_PATH_LENGTH_IN_ED, 1.0, true);
         edge = testED.getEdgeImage();
         use_edge_drawing_impl = true;
 #endif
@@ -475,8 +446,7 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
 #endif
 #else
         threshold = cv::threshold(cv_img, output, 0, 255, cv::THRESH_OTSU);
-        cv::Canny(cv_img, edge, std::max(3, (int)(0.1 * threshold)),
-                  std::min(245, (int)(0.2 * threshold)), 3, false);
+        cv::Canny(cv_img, edge, std::max(3, (int)(0.1 * threshold)), std::min(245, (int)(0.2 * threshold)), 3, false);
 #endif
         labelNum = cv::countNonZero(edge);
         printf("labelNUm: %d\n", labelNum);
@@ -484,15 +454,13 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
         while (labelNum < minLabelNum[lvl] && count < 2) {
           threshold *= 0.5;
 #if 1
-          cv::Canny(img_enhanced, edge, std::max(3, (int)(0.2 * threshold)),
-                    std::min(245, (int)(0.6 * threshold)), 3, true);
+          cv::Canny(img_enhanced, edge, std::max(3, (int)(0.2 * threshold)), std::min(245, (int)(0.6 * threshold)), 3,
+                    true);
 #else
-          cv::Canny(cv_img, edge, std::max(3, (int)(0.1 * threshold)),
-                    std::min(245, (int)(0.2 * threshold)), 3, false);
+          cv::Canny(cv_img, edge, std::max(3, (int)(0.1 * threshold)), std::min(245, (int)(0.2 * threshold)), 3, false);
 #endif
           labelNum = cv::countNonZero(edge);
-          printf("count: %d, canny_threshold: %f, labelNum: %d\n", count,
-                 threshold, labelNum);
+          printf("count: %d, canny_threshold: %f, labelNum: %d\n", count, threshold, labelNum);
           count++;
         }
       } else {
@@ -505,8 +473,7 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
         edge = cv::Mat(hl, wl, CV_8UC1, cv::Scalar(255));
         labelNum = cv::countNonZero(edge);
         if (labelNum != wl * hl) {
-          std::cerr << "label != wl * hl, sth wrong, labelNum: " << labelNum
-                    << std::endl;
+          std::cerr << "label != wl * hl, sth wrong, labelNum: " << labelNum << std::endl;
           std::exit(1);
         }
       }
@@ -516,12 +483,10 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
       for (size_t col = 0; col < img_enhanced.cols; ++col) {
         for (size_t row = 0; row < img_enhanced.rows; ++row) {
           if (edge.at<uchar>(row, col) == 255) {
-            cv::circle(image_draw, cv::Point2f(col, row), 4,
-                       cv::Scalar(0, 255, 0), -1);
+            cv::circle(image_draw, cv::Point2f(col, row), 4, cv::Scalar(0, 255, 0), -1);
           }
           if (edge_bad.at<uchar>(row, col) == 255 && use_edge_drawing_impl) {
-            cv::circle(image_draw, cv::Point2f(col, row), 3,
-                       cv::Scalar(0, 0, 255), -1);
+            cv::circle(image_draw, cv::Point2f(col, row), 3, cv::Scalar(0, 0, 255), -1);
           }
         }
       }
@@ -533,8 +498,8 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
       cv::Mat labels = cv::Mat::zeros(edge.size(), CV_32SC1);
       cv::Mat distanceTransformMap;
       // inverted 中的 0 表示 edge 像素
-      cv::distanceTransform(inverted, distanceTransformMap, labels, cv::DIST_L2,
-                            cv::DIST_MASK_PRECISE, cv::DIST_LABEL_PIXEL);
+      cv::distanceTransform(inverted, distanceTransformMap, labels, cv::DIST_L2, cv::DIST_MASK_PRECISE,
+                            cv::DIST_LABEL_PIXEL);
       distanceTransformMap *= setting_variableScale_edge;
       // cv::imwrite("img_small.png", cv_img);
       // cv::imwrite("edge.png", edge);
@@ -544,11 +509,10 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
 
       edge_pixel_num[lvl][cid] = labelNum;
       label_num[lvl][cid] = labelNum;
-      Eigen::Vector2i *label2xy_start = label2xy[lvl] + wl * hl * cid;
-      Eigen::Vector2i *edge_pixels_start = edge_pixels[lvl] + wl * hl * cid;
-      Eigen::Vector2i *edge_label_image_start =
-          edge_label_image[lvl] + wl * hl * cid;
-      Eigen::Vector3f *dt_dx_dy_start = dt_dx_dy[lvl] + wl * hl * cid;
+      Eigen::Vector2i* label2xy_start = label2xy[lvl] + wl * hl * cid;
+      Eigen::Vector2i* edge_pixels_start = edge_pixels[lvl] + wl * hl * cid;
+      Eigen::Vector2i* edge_label_image_start = edge_label_image[lvl] + wl * hl * cid;
+      Eigen::Vector3f* dt_dx_dy_start = dt_dx_dy[lvl] + wl * hl * cid;
 
       int labelNumCheck = 0;
       max_dt_dx_dy[lvl][cid] = -99999 * Vec3f::Ones();
@@ -559,8 +523,8 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
             std::cerr << "label < 1, sth wrong" << std::endl;
             std::exit(1);
           }
-          edge_label_image_start[c + r * wl] = Eigen::Vector2i(
-              (int)edge.at<uchar>(r, c), (int)labels.at<int>(r, c) - 1);
+          edge_label_image_start[c + r * wl] =
+              Eigen::Vector2i((int)edge.at<uchar>(r, c), (int)labels.at<int>(r, c) - 1);
           float dist = (float)distanceTransformMap.at<float>(r, c);
           dt_dx_dy_start[c + r * wl][0] = dist;
           if (dist > max_dt_dx_dy[lvl][cid][0]) {
@@ -580,28 +544,22 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
         std::cerr << "labelNumCheck != labelNum, sth wrong" << std::endl;
         std::exit(1);
       }
-      for (int c = 1; c < wl - 1; ++c) {   // 第二行开始
-        for (int r = 1; r < hl - 1; ++r) { // 第二行开始
+      for (int c = 1; c < wl - 1; ++c) {    // 第二行开始
+        for (int r = 1; r < hl - 1; ++r) {  // 第二行开始
           int idx = c + r * wl;
           // for (int idx = wl; idx < wl * (hl - 1); idx++) {// 第二行开始
           float dx = 0.5f * (dI_l[idx + 1][0] - dI_l[idx - 1][0]);
           float dy = 0.5f * (dI_l[idx + wl][0] - dI_l[idx - wl][0]);
 
-          float dx_dt =
-              0.5f * (dt_dx_dy_start[idx + 1][0] - dt_dx_dy_start[idx - 1][0]);
-          float dy_dt = 0.5f * (dt_dx_dy_start[idx + wl][0] -
-                                dt_dx_dy_start[idx - wl][0]);
+          float dx_dt = 0.5f * (dt_dx_dy_start[idx + 1][0] - dt_dx_dy_start[idx - 1][0]);
+          float dy_dt = 0.5f * (dt_dx_dy_start[idx + wl][0] - dt_dx_dy_start[idx - wl][0]);
 
-          if (!std::isfinite(dx))
-            dx = 0;
-          if (!std::isfinite(dy))
-            dy = 0;
-          if (!std::isfinite(dx_dt))
-            dx_dt = 0;
-          if (!std::isfinite(dy_dt))
-            dy_dt = 0;
+          if (!std::isfinite(dx)) dx = 0;
+          if (!std::isfinite(dy)) dy = 0;
+          if (!std::isfinite(dx_dt)) dx_dt = 0;
+          if (!std::isfinite(dy_dt)) dy_dt = 0;
 
-          dI_l[idx][1] = dx; // 梯度
+          dI_l[idx][1] = dx;  // 梯度
           dI_l[idx][2] = dy;
           dt_dx_dy_start[idx][1] = dx_dt;
           dt_dx_dy_start[idx][2] = dy_dt;
@@ -620,15 +578,13 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
             min_dt_dx_dy[lvl][cid][2] = dy_dt;
           }
 
-          dabs_l[idx] = dx * dx + dy * dy; // 梯度平方
+          dabs_l[idx] = dx * dx + dy * dy;  // 梯度平方
 
           if (setting_gammaWeightsPixelSelect == 1 && HCalib != 0) {
             //! 乘上响应函数, 变换回正常的颜色, 因为光度矫正时 I = G^-1(I) /
             //! V(x)
             float gw = HCalib->getBGradOnly((float)(dI_l[idx][0]));
-            dabs_l[idx] *=
-                gw *
-                gw; // TODO convert to gradient of original color space (before
+            dabs_l[idx] *= gw * gw;  // TODO convert to gradient of original color space (before
             // removing response, i.e. before compensate affine param a b).
           }
           // }
@@ -660,9 +616,8 @@ void FrameHessian::makeImages(float *color, CalibHessian *HCalib) {
 }
 
 //@ 计算优化前和优化后的相对位姿, 相对光度变化, 及中间变量
-void FrameFramePrecalc::set(FrameHessian *host, FrameHessian *target,
-                            CalibHessian *HCalib) {
-  this->host = host; // 这个是赋值, 计数会增加, 不是拷贝
+void FrameFramePrecalc::set(FrameHessian* host, FrameHessian* target, CalibHessian* HCalib) {
+  this->host = host;  // 这个是赋值, 计数会增加, 不是拷贝
   this->target = target;
   if (host->frameID == target->frameID) {
     printf(" host and target has the same frameID\n");
@@ -670,8 +625,7 @@ void FrameFramePrecalc::set(FrameHessian *host, FrameHessian *target,
   //? 实在不懂leftToleft_0这个名字怎么个含义
   // 优化前host target间位姿变换
   // TODO also known as "Tth"
-  SE3 leftToLeft_0 =
-      target->get_worldToCam_evalPT() * host->get_worldToCam_evalPT().inverse();
+  SE3 leftToLeft_0 = target->get_worldToCam_evalPT() * host->get_worldToCam_evalPT().inverse();
   PRE_RTll_0 = (leftToLeft_0.rotationMatrix()).cast<float>();
   PRE_tTll_0 = (leftToLeft_0.translation()).cast<float>();
   // std::cout<<"PRE_tTll_0: "<<PRE_tTll_0.transpose()<<std::endl;
@@ -694,24 +648,17 @@ void FrameFramePrecalc::set(FrameHessian *host, FrameHessian *target,
   PRE_KtTll = K * PRE_tTll;
   for (int host_cid = 0; host_cid < kCameraNumUsed; ++host_cid) {
     for (int target_cid = 0; target_cid < kCameraNumUsed; ++target_cid) {
-      SE3 Tcjci = target->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() *
-                  leftToLeft * host->p_multi_camera->cid_to_T01_SE3[host_cid];
-      SE3 Tcjci_0 =
-          target->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() *
-          leftToLeft_0 * host->p_multi_camera->cid_to_T01_SE3[host_cid];
-      a_PRE_RTll[host_cid * kCameraNumUsed + target_cid] =
-          Tcjci.rotationMatrix().cast<float>();
-      a_PRE_tTll[host_cid * kCameraNumUsed + target_cid] =
-          Tcjci.translation().cast<float>();
-      a_PRE_RTll_0[host_cid * kCameraNumUsed + target_cid] =
-          Tcjci_0.rotationMatrix().cast<float>();
-      a_PRE_tTll_0[host_cid * kCameraNumUsed + target_cid] =
-          Tcjci_0.translation().cast<float>();
+      SE3 Tcjci = target->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() * leftToLeft *
+                  host->p_multi_camera->cid_to_T01_SE3[host_cid];
+      SE3 Tcjci_0 = target->p_multi_camera->cid_to_T01_SE3[target_cid].inverse() * leftToLeft_0 *
+                    host->p_multi_camera->cid_to_T01_SE3[host_cid];
+      a_PRE_RTll[host_cid * kCameraNumUsed + target_cid] = Tcjci.rotationMatrix().cast<float>();
+      a_PRE_tTll[host_cid * kCameraNumUsed + target_cid] = Tcjci.translation().cast<float>();
+      a_PRE_RTll_0[host_cid * kCameraNumUsed + target_cid] = Tcjci_0.rotationMatrix().cast<float>();
+      a_PRE_tTll_0[host_cid * kCameraNumUsed + target_cid] = Tcjci_0.translation().cast<float>();
       // std::cout << "Tcjci:\n" << Tcjci.matrix3x4() << std::endl;
-      a_PRE_KRKiTll[host_cid * kCameraNumUsed + target_cid] =
-          K * Tcjci.rotationMatrix().cast<float>() * K.inverse();
-      a_PRE_KtTll[host_cid * kCameraNumUsed + target_cid] =
-          K * Tcjci.translation().cast<float>();
+      a_PRE_KRKiTll[host_cid * kCameraNumUsed + target_cid] = K * Tcjci.rotationMatrix().cast<float>() * K.inverse();
+      a_PRE_KtTll[host_cid * kCameraNumUsed + target_cid] = K * Tcjci.translation().cast<float>();
     }
   }
 
@@ -731,12 +678,10 @@ void FrameFramePrecalc::set(FrameHessian *host, FrameHessian *target,
   //  }
   // 光度仿射值
   // TODO 这是两帧相对的a和b，
-  PRE_aff_mode =
-      AffLight::fromToVecExposure(host->ab_exposure, target->ab_exposure,
-                                  host->aff_g2l(), target->aff_g2l())
-          .cast<float>();
+  PRE_aff_mode = AffLight::fromToVecExposure(host->ab_exposure, target->ab_exposure, host->aff_g2l(), target->aff_g2l())
+                     .cast<float>();
   // TODO 这是host帧绝对的b
-  PRE_b0_mode = host->aff_g2l_0().b; // TODO host帧的相对于第一帧的绝对的b
+  PRE_b0_mode = host->aff_g2l_0().b;  // TODO host帧的相对于第一帧的绝对的b
 }
 
-} // namespace dso
+}  // namespace dso

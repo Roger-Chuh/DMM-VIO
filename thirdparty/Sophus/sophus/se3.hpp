@@ -31,7 +31,8 @@
 ////////////////////////////////////////////////////////////////////////////
 
 namespace Sophus {
-template <typename _Scalar, int _Options = 0> class SE3Group;
+template <typename _Scalar, int _Options = 0>
+class SE3Group;
 
 typedef SE3Group<double> SE3 EIGEN_DEPRECATED;
 typedef SE3Group<double> SE3d; /**< double precision SE3 */
@@ -40,7 +41,7 @@ typedef Matrix<double, 6, 1> Vector6d;
 typedef Matrix<double, 6, 6> Matrix6d;
 typedef Matrix<float, 6, 1> Vector6f;
 typedef Matrix<float, 6, 6> Matrix6f;
-} // namespace Sophus
+}  // namespace Sophus
 
 ////////////////////////////////////////////////////////////////////////////
 // Eigen Traits (For querying derived types in CRTP hierarchy)
@@ -57,23 +58,21 @@ struct traits<Sophus::SE3Group<_Scalar, _Options>> {
 };
 
 template <typename _Scalar, int _Options>
-struct traits<Map<Sophus::SE3Group<_Scalar>, _Options>>
-    : traits<Sophus::SE3Group<_Scalar, _Options>> {
+struct traits<Map<Sophus::SE3Group<_Scalar>, _Options>> : traits<Sophus::SE3Group<_Scalar, _Options>> {
   typedef _Scalar Scalar;
   typedef Map<Matrix<Scalar, 3, 1>, _Options> TranslationType;
   typedef Map<Sophus::SO3Group<Scalar>, _Options> SO3Type;
 };
 
 template <typename _Scalar, int _Options>
-struct traits<Map<const Sophus::SE3Group<_Scalar>, _Options>>
-    : traits<const Sophus::SE3Group<_Scalar, _Options>> {
+struct traits<Map<const Sophus::SE3Group<_Scalar>, _Options>> : traits<const Sophus::SE3Group<_Scalar, _Options>> {
   typedef _Scalar Scalar;
   typedef Map<const Matrix<Scalar, 3, 1>, _Options> TranslationType;
   typedef Map<const Sophus::SO3Group<Scalar>, _Options> SO3Type;
 };
 
-} // namespace internal
-} // namespace Eigen
+}  // namespace internal
+}  // namespace Eigen
 
 namespace Sophus {
 using namespace Eigen;
@@ -84,20 +83,19 @@ using namespace std;
  *
  * [add more detailed description/tutorial]
  */
-template <typename Derived> class SE3GroupBase {
-public:
+template <typename Derived>
+class SE3GroupBase {
+ public:
   /** \brief scalar type */
   typedef typename internal::traits<Derived>::Scalar Scalar;
   /** \brief translation reference type */
-  typedef
-      typename internal::traits<Derived>::TranslationType &TranslationReference;
+  typedef typename internal::traits<Derived>::TranslationType& TranslationReference;
   /** \brief translation const reference type */
-  typedef const typename internal::traits<Derived>::TranslationType
-      &ConstTranslationReference;
+  typedef const typename internal::traits<Derived>::TranslationType& ConstTranslationReference;
   /** \brief SO3 reference type */
-  typedef typename internal::traits<Derived>::SO3Type &SO3Reference;
+  typedef typename internal::traits<Derived>::SO3Type& SO3Reference;
   /** \brief SO3 const reference type */
-  typedef const typename internal::traits<Derived>::SO3Type &ConstSO3Reference;
+  typedef const typename internal::traits<Derived>::SO3Type& ConstSO3Reference;
 
   /** \brief degree of freedom of group
    *        (three for translation, three for rotation) */
@@ -125,7 +123,7 @@ public:
    * with \f$\ \widehat{\cdot} \f$ being the hat()-operator.
    */
   inline const Adjoint Adj() const {
-    const Matrix<Scalar, 3, 3> &R = so3().matrix();
+    const Matrix<Scalar, 3, 3>& R = so3().matrix();
     Adjoint res;
     res.block(0, 0, 3, 3) = R;
     res.block(3, 3, 3, 3) = R;
@@ -139,9 +137,7 @@ public:
    */
   template <typename NewScalarType>
   inline SE3Group<NewScalarType> cast() const {
-    return SE3Group<NewScalarType>(
-        so3().template cast<NewScalarType>(),
-        translation().template cast<NewScalarType>());
+    return SE3Group<NewScalarType>(so3().template cast<NewScalarType>(), translation().template cast<NewScalarType>());
   }
 
   /**
@@ -152,7 +148,7 @@ public:
    *
    * \see operator*=()
    */
-  inline void fastMultiply(const SE3Group<Scalar> &other) {
+  inline void fastMultiply(const SE3Group<Scalar>& other) {
     translation() += so3() * (other.translation());
     so3().fastMultiply(other.so3());
   }
@@ -162,8 +158,7 @@ public:
    */
   inline const SE3Group<Scalar> inverse() const {
     const SO3Group<Scalar> invR = so3().inverse();
-    return SE3Group<Scalar>(invR,
-                            invR * (translation() * static_cast<Scalar>(-1)));
+    return SE3Group<Scalar>(invR, invR * (translation() * static_cast<Scalar>(-1)));
   }
 
   /**
@@ -211,8 +206,7 @@ public:
    * \brief Assignment operator
    */
   template <typename OtherDerived>
-  inline SE3GroupBase<Derived> &
-  operator=(const SE3GroupBase<OtherDerived> &other) {
+  inline SE3GroupBase<Derived>& operator=(const SE3GroupBase<OtherDerived>& other) {
     so3() = other.so3();
     translation() = other.translation();
     return *this;
@@ -222,7 +216,7 @@ public:
    * \brief Group multiplication
    * \see operator*=()
    */
-  inline const SE3Group<Scalar> operator*(const SE3Group<Scalar> &other) const {
+  inline const SE3Group<Scalar> operator*(const SE3Group<Scalar>& other) const {
     SE3Group<Scalar> result(*this);
     result *= other;
     return result;
@@ -239,9 +233,7 @@ public:
    * in \f$ \mathbf{R}^3 \f$ by the SE3 transformation \f$R,t\f$
    * (=rotation matrix, translation vector): \f$ p' = R\cdot p + t \f$.
    */
-  inline const Point operator*(const Point &p) const {
-    return so3() * p + translation();
-  }
+  inline const Point operator*(const Point& p) const { return so3() * p + translation(); }
 
   /**
    * \brief In-place group multiplication
@@ -249,7 +241,7 @@ public:
    * \see fastMultiply()
    * \see operator*()
    */
-  inline void operator*=(const SE3Group<Scalar> &other) {
+  inline void operator*=(const SE3Group<Scalar>& other) {
     fastMultiply(other);
     normalize();
   }
@@ -261,31 +253,24 @@ public:
    */
   typedef Transformation M3_marcos_dont_like_commas;
 
-  inline EIGEN_DEPRECATED const M3_marcos_dont_like_commas
-  rotation_matrix() const {
-    return so3().matrix();
-  }
+  inline EIGEN_DEPRECATED const M3_marcos_dont_like_commas rotation_matrix() const { return so3().matrix(); }
 
   /**
    * \returns Rotation matrix
    */
-  inline const Matrix<Scalar, 3, 3> rotationMatrix() const {
-    return so3().matrix();
-  }
+  inline const Matrix<Scalar, 3, 3> rotationMatrix() const { return so3().matrix(); }
 
   /**
    * \brief Mutator of SO3 group
    */
   EIGEN_STRONG_INLINE
-  SO3Reference so3() { return static_cast<Derived *>(this)->so3(); }
+  SO3Reference so3() { return static_cast<Derived*>(this)->so3(); }
 
   /**
    * \brief Accessor of SO3 group
    */
   EIGEN_STRONG_INLINE
-  ConstSO3Reference so3() const {
-    return static_cast<const Derived *>(this)->so3();
-  }
+  ConstSO3Reference so3() const { return static_cast<const Derived*>(this)->so3(); }
 
   /**
    * \brief Setter of internal unit quaternion representation
@@ -295,9 +280,7 @@ public:
    *
    * The quaternion is normalized to unit length.
    */
-  inline void setQuaternion(const Quaternion<Scalar> &quat) {
-    return so3().setQuaternion(quat);
-  }
+  inline void setQuaternion(const Quaternion<Scalar>& quat) { return so3().setQuaternion(quat); }
 
   /**
    * \brief Setter of unit quaternion using rotation matrix
@@ -305,7 +288,7 @@ public:
    * \param rotation_matrix a 3x3 rotation matrix
    * \pre   the 3x3 matrix should be orthogonal and have a determinant of 1
    */
-  inline void setRotationMatrix(const Matrix<Scalar, 3, 3> &rotation_matrix) {
+  inline void setRotationMatrix(const Matrix<Scalar, 3, 3>& rotation_matrix) {
     so3().setQuaternion(Quaternion<Scalar>(rotation_matrix));
   }
 
@@ -313,25 +296,20 @@ public:
    * \brief Mutator of translation vector
    */
   EIGEN_STRONG_INLINE
-  TranslationReference translation() {
-    return static_cast<Derived *>(this)->translation();
-  }
+  TranslationReference translation() { return static_cast<Derived*>(this)->translation(); }
 
   /**
    * \brief Accessor of translation vector
    */
   EIGEN_STRONG_INLINE
-  ConstTranslationReference translation() const {
-    return static_cast<const Derived *>(this)->translation();
-  }
+  ConstTranslationReference translation() const { return static_cast<const Derived*>(this)->translation(); }
 
   /**
    * \brief Accessor of unit quaternion
    *
    * No direct write access is given to ensure the quaternion stays normalized.
    */
-  inline typename internal::traits<Derived>::SO3Type::ConstQuaternionReference
-  unit_quaternion() const {
+  inline typename internal::traits<Derived>::SO3Type::ConstQuaternionReference unit_quaternion() const {
     return so3().unit_quaternion();
   }
 
@@ -348,12 +326,12 @@ public:
    *
    * \see lieBracket()
    */
-  inline static const Adjoint d_lieBracketab_by_d_a(const Tangent &b) {
+  inline static const Adjoint d_lieBracketab_by_d_a(const Tangent& b) {
     Adjoint res;
     res.setZero();
 
-    const Matrix<Scalar, 3, 1> &upsilon2 = b.template head<3>();
-    const Matrix<Scalar, 3, 1> &omega2 = b.template tail<3>();
+    const Matrix<Scalar, 3, 1>& upsilon2 = b.template head<3>();
+    const Matrix<Scalar, 3, 1>& omega2 = b.template tail<3>();
 
     res.template topLeftCorner<3, 3>() = -SO3Group<Scalar>::hat(omega2);
     res.template topRightCorner<3, 3>() = -SO3Group<Scalar>::hat(upsilon2);
@@ -378,14 +356,14 @@ public:
    * \see hat()
    * \see log()
    */
-  inline static const SE3Group<Scalar> exp(const Tangent &a) {
-    const Matrix<Scalar, 3, 1> &omega = a.template tail<3>();
+  inline static const SE3Group<Scalar> exp(const Tangent& a) {
+    const Matrix<Scalar, 3, 1>& omega = a.template tail<3>();
 
     Scalar theta;
-    const SO3Group<Scalar> &so3 = SO3Group<Scalar>::expAndTheta(omega, &theta);
+    const SO3Group<Scalar>& so3 = SO3Group<Scalar>::expAndTheta(omega, &theta);
 
-    const Matrix<Scalar, 3, 3> &Omega = SO3Group<Scalar>::hat(omega);
-    const Matrix<Scalar, 3, 3> &Omega_sq = Omega * Omega;
+    const Matrix<Scalar, 3, 3>& Omega = SO3Group<Scalar>::hat(omega);
+    const Matrix<Scalar, 3, 3>& Omega_sq = Omega * Omega;
     Matrix<Scalar, 3, 3> V;
 
     if (theta < SophusConstants<Scalar>::epsilon()) {
@@ -393,8 +371,7 @@ public:
       // Note: That is an accurate expansion!
     } else {
       Scalar theta_sq = theta * theta;
-      V = (Matrix<Scalar, 3, 3>::Identity() +
-           (static_cast<Scalar>(1) - std::cos(theta)) / (theta_sq)*Omega +
+      V = (Matrix<Scalar, 3, 3>::Identity() + (static_cast<Scalar>(1) - std::cos(theta)) / (theta_sq)*Omega +
            (theta - std::sin(theta)) / (theta_sq * theta) * Omega_sq);
     }
     return SE3Group<Scalar>(so3, V * a.template head<3>());
@@ -470,11 +447,10 @@ public:
    * \see generator()
    * \see vee()
    */
-  inline static const Transformation hat(const Tangent &v) {
+  inline static const Transformation hat(const Tangent& v) {
     Transformation Omega;
     Omega.setZero();
-    Omega.template topLeftCorner<3, 3>() =
-        SO3Group<Scalar>::hat(v.template tail<3>());
+    Omega.template topLeftCorner<3, 3>() = SO3Group<Scalar>::hat(v.template tail<3>());
     Omega.col(3).template head<3>() = v.template head<3>();
     return Omega;
   }
@@ -496,7 +472,7 @@ public:
    * \see hat()
    * \see vee()
    */
-  inline static const Tangent lieBracket(const Tangent &a, const Tangent &b) {
+  inline static const Tangent lieBracket(const Tangent& a, const Tangent& b) {
     Matrix<Scalar, 3, 1> upsilon1 = a.template head<3>();
     Matrix<Scalar, 3, 1> upsilon2 = b.template head<3>();
     Matrix<Scalar, 3, 1> omega1 = a.template tail<3>();
@@ -525,28 +501,23 @@ public:
    * \see exp()
    * \see vee()
    */
-  inline static const Tangent log(const SE3Group<Scalar> &se3) {
+  inline static const Tangent log(const SE3Group<Scalar>& se3) {
     Tangent upsilon_omega;
     Scalar theta;
-    upsilon_omega.template tail<3>() =
-        SO3Group<Scalar>::logAndTheta(se3.so3(), &theta);
+    upsilon_omega.template tail<3>() = SO3Group<Scalar>::logAndTheta(se3.so3(), &theta);
 
     if (std::abs(theta) < SophusConstants<Scalar>::epsilon()) {
-      const Matrix<Scalar, 3, 3> &Omega =
-          SO3Group<Scalar>::hat(upsilon_omega.template tail<3>());
-      const Matrix<Scalar, 3, 3> &V_inv =
-          Matrix<Scalar, 3, 3>::Identity() - static_cast<Scalar>(0.5) * Omega +
-          static_cast<Scalar>(1. / 12.) * (Omega * Omega);
+      const Matrix<Scalar, 3, 3>& Omega = SO3Group<Scalar>::hat(upsilon_omega.template tail<3>());
+      const Matrix<Scalar, 3, 3>& V_inv = Matrix<Scalar, 3, 3>::Identity() - static_cast<Scalar>(0.5) * Omega +
+                                          static_cast<Scalar>(1. / 12.) * (Omega * Omega);
 
       upsilon_omega.template head<3>() = V_inv * se3.translation();
     } else {
-      const Matrix<Scalar, 3, 3> &Omega =
-          SO3Group<Scalar>::hat(upsilon_omega.template tail<3>());
-      const Matrix<Scalar, 3, 3> &V_inv =
+      const Matrix<Scalar, 3, 3>& Omega = SO3Group<Scalar>::hat(upsilon_omega.template tail<3>());
+      const Matrix<Scalar, 3, 3>& V_inv =
           (Matrix<Scalar, 3, 3>::Identity() - static_cast<Scalar>(0.5) * Omega +
-           (static_cast<Scalar>(1) -
-            theta / (static_cast<Scalar>(2) * tan(theta / Scalar(2)))) /
-               (theta * theta) * (Omega * Omega));
+           (static_cast<Scalar>(1) - theta / (static_cast<Scalar>(2) * tan(theta / Scalar(2)))) / (theta * theta) *
+               (Omega * Omega));
       upsilon_omega.template head<3>() = V_inv * se3.translation();
     }
     return upsilon_omega;
@@ -562,11 +533,10 @@ public:
    *
    * \see hat()
    */
-  inline static const Tangent vee(const Transformation &Omega) {
+  inline static const Tangent vee(const Transformation& Omega) {
     Tangent upsilon_omega;
     upsilon_omega.template head<3>() = Omega.col(3).template head<3>();
-    upsilon_omega.template tail<3>() =
-        SO3Group<Scalar>::vee(Omega.template topLeftCorner<3, 3>());
+    upsilon_omega.template tail<3>() = SO3Group<Scalar>::vee(Omega.template topLeftCorner<3, 3>());
     return upsilon_omega;
   }
 };
@@ -578,22 +548,17 @@ template <typename _Scalar, int _Options>
 class SE3Group : public SE3GroupBase<SE3Group<_Scalar, _Options>> {
   typedef SE3GroupBase<SE3Group<_Scalar, _Options>> Base;
 
-public:
+ public:
   /** \brief scalar type */
   typedef typename internal::traits<SE3Group<_Scalar, _Options>>::Scalar Scalar;
   /** \brief SO3 reference type */
-  typedef typename internal::traits<SE3Group<_Scalar, _Options>>::SO3Type
-      &SO3Reference;
+  typedef typename internal::traits<SE3Group<_Scalar, _Options>>::SO3Type& SO3Reference;
   /** \brief SO3 const reference type */
-  typedef const typename internal::traits<SE3Group<_Scalar, _Options>>::SO3Type
-      &ConstSO3Reference;
+  typedef const typename internal::traits<SE3Group<_Scalar, _Options>>::SO3Type& ConstSO3Reference;
   /** \brief translation reference type */
-  typedef
-      typename internal::traits<SE3Group<_Scalar, _Options>>::TranslationType
-          &TranslationReference;
+  typedef typename internal::traits<SE3Group<_Scalar, _Options>>::TranslationType& TranslationReference;
   /** \brief translation const reference type */
-  typedef const typename internal::traits<
-      SE3Group<_Scalar, _Options>>::TranslationType &ConstTranslationReference;
+  typedef const typename internal::traits<SE3Group<_Scalar, _Options>>::TranslationType& ConstTranslationReference;
 
   /** \brief degree of freedom of group */
   static const int DoF = Base::DoF;
@@ -623,15 +588,13 @@ public:
    * \brief Copy constructor
    */
   template <typename OtherDerived>
-  inline SE3Group(const SE3GroupBase<OtherDerived> &other)
-      : so3_(other.so3()), translation_(other.translation()) {}
+  inline SE3Group(const SE3GroupBase<OtherDerived>& other) : so3_(other.so3()), translation_(other.translation()) {}
 
   /**
    * \brief Constructor from SO3 and translation vector
    */
   template <typename OtherDerived>
-  inline SE3Group(const SO3GroupBase<OtherDerived> &so3,
-                  const Point &translation)
+  inline SE3Group(const SO3GroupBase<OtherDerived>& so3, const Point& translation)
       : so3_(so3), translation_(translation) {}
 
   /**
@@ -639,8 +602,7 @@ public:
    *
    * \pre rotation matrix need to be orthogonal with determinant of 1
    */
-  inline SE3Group(const Matrix<Scalar, 3, 3> &rotation_matrix,
-                  const Point &translation)
+  inline SE3Group(const Matrix<Scalar, 3, 3>& rotation_matrix, const Point& translation)
       : so3_(rotation_matrix), translation_(translation) {}
 
   /**
@@ -648,8 +610,7 @@ public:
    *
    * \pre quaternion must not be zero
    */
-  inline SE3Group(const Quaternion<Scalar> &quaternion,
-                  const Point &translation)
+  inline SE3Group(const Quaternion<Scalar>& quaternion, const Point& translation)
       : so3_(quaternion), translation_(translation) {}
 
   /**
@@ -657,9 +618,8 @@ public:
    *
    * \pre top-left 3x3 sub-matrix need to be orthogonal with determinant of 1
    */
-  inline explicit SE3Group(const Eigen::Matrix<Scalar, 4, 4> &T)
-      : so3_(T.template topLeftCorner<3, 3>()),
-        translation_(T.template block<3, 1>(0, 3)) {}
+  inline explicit SE3Group(const Eigen::Matrix<Scalar, 4, 4>& T)
+      : so3_(T.template topLeftCorner<3, 3>()), translation_(T.template block<3, 1>(0, 3)) {}
 
   /**
    * \returns pointer to internal data
@@ -675,7 +635,7 @@ public:
    * /see normalize()
    */
   EIGEN_STRONG_INLINE
-  Scalar *data() {
+  Scalar* data() {
     // so3_ and translation_ are layed out sequentially with no padding
     return so3_.data();
   }
@@ -686,7 +646,7 @@ public:
    * Const version of data().
    */
   EIGEN_STRONG_INLINE
-  const Scalar *data() const {
+  const Scalar* data() const {
     // so3_ and translation_ are layed out sequentially with no padding
     return so3_.data();
   }
@@ -715,12 +675,12 @@ public:
   EIGEN_STRONG_INLINE
   ConstTranslationReference translation() const { return translation_; }
 
-protected:
+ protected:
   Sophus::SO3Group<Scalar> so3_;
   Matrix<Scalar, 3, 1> translation_;
 };
 
-} // namespace Sophus
+}  // namespace Sophus
 
 namespace Eigen {
 /**
@@ -730,22 +690,20 @@ namespace Eigen {
  * (e.g. external c style quaternion)
  */
 template <typename _Scalar, int _Options>
-class Map<Sophus::SE3Group<_Scalar>, _Options>
-    : public Sophus::SE3GroupBase<Map<Sophus::SE3Group<_Scalar>, _Options>> {
+class Map<Sophus::SE3Group<_Scalar>, _Options> : public Sophus::SE3GroupBase<Map<Sophus::SE3Group<_Scalar>, _Options>> {
   typedef Sophus::SE3GroupBase<Map<Sophus::SE3Group<_Scalar>, _Options>> Base;
 
-public:
+ public:
   /** \brief scalar type */
   typedef typename internal::traits<Map>::Scalar Scalar;
   /** \brief translation reference type */
-  typedef typename internal::traits<Map>::TranslationType &TranslationReference;
+  typedef typename internal::traits<Map>::TranslationType& TranslationReference;
   /** \brief translation const reference type */
-  typedef const typename internal::traits<Map>::TranslationType
-      &ConstTranslationReference;
+  typedef const typename internal::traits<Map>::TranslationType& ConstTranslationReference;
   /** \brief SO3 reference type */
-  typedef typename internal::traits<Map>::SO3Type &SO3Reference;
+  typedef typename internal::traits<Map>::SO3Type& SO3Reference;
   /** \brief SO3 const reference type */
-  typedef const typename internal::traits<Map>::SO3Type &ConstSO3Reference;
+  typedef const typename internal::traits<Map>::SO3Type& ConstSO3Reference;
 
   /** \brief degree of freedom of group */
   static const int DoF = Base::DoF;
@@ -768,9 +726,7 @@ public:
   using Base::operator*;
 
   EIGEN_STRONG_INLINE
-  Map(Scalar *coeffs)
-      : so3_(coeffs),
-        translation_(coeffs + Sophus::SO3Group<Scalar>::num_parameters) {}
+  Map(Scalar* coeffs) : so3_(coeffs), translation_(coeffs + Sophus::SO3Group<Scalar>::num_parameters) {}
 
   /**
    * \brief Mutator of SO3
@@ -796,7 +752,7 @@ public:
   EIGEN_STRONG_INLINE
   ConstTranslationReference translation() const { return translation_; }
 
-protected:
+ protected:
   Map<Sophus::SO3Group<Scalar>, _Options> so3_;
   Map<Matrix<Scalar, 3, 1>, _Options> translation_;
 };
@@ -809,19 +765,16 @@ protected:
  */
 template <typename _Scalar, int _Options>
 class Map<const Sophus::SE3Group<_Scalar>, _Options>
-    : public Sophus::SE3GroupBase<
-          Map<const Sophus::SE3Group<_Scalar>, _Options>> {
-  typedef Sophus::SE3GroupBase<Map<const Sophus::SE3Group<_Scalar>, _Options>>
-      Base;
+    : public Sophus::SE3GroupBase<Map<const Sophus::SE3Group<_Scalar>, _Options>> {
+  typedef Sophus::SE3GroupBase<Map<const Sophus::SE3Group<_Scalar>, _Options>> Base;
 
-public:
+ public:
   /** \brief scalar type */
   typedef typename internal::traits<Map>::Scalar Scalar;
   /** \brief translation const reference type */
-  typedef const typename internal::traits<Map>::TranslationType
-      &ConstTranslationReference;
+  typedef const typename internal::traits<Map>::TranslationType& ConstTranslationReference;
   /** \brief SO3 const reference type */
-  typedef const typename internal::traits<Map>::SO3Type &ConstSO3Reference;
+  typedef const typename internal::traits<Map>::SO3Type& ConstSO3Reference;
 
   /** \brief degree of freedom of group */
   static const int DoF = Base::DoF;
@@ -844,13 +797,10 @@ public:
   using Base::operator*;
 
   EIGEN_STRONG_INLINE
-  Map(const Scalar *coeffs)
-      : so3_(coeffs),
-        translation_(coeffs + Sophus::SO3Group<Scalar>::num_parameters) {}
+  Map(const Scalar* coeffs) : so3_(coeffs), translation_(coeffs + Sophus::SO3Group<Scalar>::num_parameters) {}
 
   EIGEN_STRONG_INLINE
-  Map(const Scalar *trans_coeffs, const Scalar *rot_coeffs)
-      : translation_(trans_coeffs), so3_(rot_coeffs) {}
+  Map(const Scalar* trans_coeffs, const Scalar* rot_coeffs) : translation_(trans_coeffs), so3_(rot_coeffs) {}
 
   /**
    * \brief Accessor of SO3
@@ -864,11 +814,11 @@ public:
   EIGEN_STRONG_INLINE
   ConstTranslationReference translation() const { return translation_; }
 
-protected:
+ protected:
   const Map<const Sophus::SO3Group<Scalar>, _Options> so3_;
   const Map<const Matrix<Scalar, 3, 1>, _Options> translation_;
 };
 
-} // namespace Eigen
+}  // namespace Eigen
 
 #endif

@@ -5,9 +5,8 @@
 #include "RandomGrid.h"
 namespace dso::DotDetect {
 
-bool isFixAreaUnique(const std::array<Eigen::MatrixXi, 4> &PG, int min_r,
-                     int min_c) {
-  const Eigen::MatrixXi &M = PG[0];
+bool isFixAreaUnique(const std::array<Eigen::MatrixXi, 4>& PG, int min_r, int min_c) {
+  const Eigen::MatrixXi& M = PG[0];
   //  std::cerr<<M<<std::endl;
   for (int idr_a = 0; idr_a + min_r < M.rows(); ++idr_a) {
     for (int idc_a = 0; idc_a + min_c < M.cols(); ++idc_a) {
@@ -21,8 +20,7 @@ bool isFixAreaUnique(const std::array<Eigen::MatrixXi, 4> &PG, int min_r,
           Eigen::MatrixXi rotated_90 = m_b.transpose().colwise().reverse();
 
           // 旋转180度
-          Eigen::MatrixXi rotated_180 =
-              m_b.colwise().reverse().rowwise().reverse();
+          Eigen::MatrixXi rotated_180 = m_b.colwise().reverse().rowwise().reverse();
 
           // 旋转270度
           Eigen::MatrixXi rotated_270 = m_b.colwise().reverse().transpose();
@@ -38,8 +36,7 @@ bool isFixAreaUnique(const std::array<Eigen::MatrixXi, 4> &PG, int min_r,
           //          std::cerr<<"b_90:\n"<<rotated_90<<"\ndelta:"<<abs_sum1<<std::endl;
           //          std::cerr<<"b_180:\n"<<rotated_180<<"\ndelta:"<<abs_sum2<<std::endl;
           //          std::cerr<<"b_270:\n"<<rotated_270<<"\ndelta:"<<abs_sum3<<std::endl;
-          if (min_sum < 2.5)
-            return false;
+          if (min_sum < 2.5) return false;
         }
       }
     }
@@ -47,12 +44,10 @@ bool isFixAreaUnique(const std::array<Eigen::MatrixXi, 4> &PG, int min_r,
   return true;
 }
 
-bool Area9Same(const Eigen::MatrixXi &mat) {
+bool Area9Same(const Eigen::MatrixXi& mat) {
   for (int row = 0; row < mat.rows() - 3; ++row) {
     for (int col = 0; col < mat.cols() - 3; ++col) {
-      if (mat.block<3, 3>(row, col).norm() == 0 ||
-          mat.block<3, 3>(row, col).cwiseAbs().sum() == 9)
-        return false;
+      if (mat.block<3, 3>(row, col).norm() == 0 || mat.block<3, 3>(row, col).cwiseAbs().sum() == 9) return false;
     }
   }
   return true;
@@ -66,8 +61,7 @@ int FindBestSeed(int r, int c, int uniquesize) {
 
   for (int seed = 0; seed < seedMax; ++seed) {
     std::array<Eigen::MatrixXi, 4> pattern = MakePatternGroup(r, c, seed);
-    if (!Area9Same(pattern[0]))
-      continue;
+    if (!Area9Same(pattern[0])) continue;
     bool curres = isFixAreaUnique(pattern, uniquesize, uniquesize);
     if (curres) {
       areaUniqueSeed.emplace_back(seed);
@@ -80,12 +74,11 @@ int FindBestSeed(int r, int c, int uniquesize) {
   }
   std::cerr << std::endl;
 
-  if (!areaUniqueSeed.empty())
-    return areaUniqueSeed[0];
+  if (!areaUniqueSeed.empty()) return areaUniqueSeed[0];
   return -1;
 }
 
-void PrintPattern(const Eigen::MatrixXi &M) {
+void PrintPattern(const Eigen::MatrixXi& M) {
   std::cerr << "rows: " << M.rows() << " cols:" << M.cols() << std::endl;
   for (int r = 0; r < M.rows(); ++r) {
     for (int c = 0; c < M.cols(); ++c) {
@@ -96,4 +89,4 @@ void PrintPattern(const Eigen::MatrixXi &M) {
     std::cerr << std::endl;
   }
 }
-} // namespace dso::DotDetect
+}  // namespace dso::DotDetect

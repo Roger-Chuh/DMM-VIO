@@ -46,121 +46,104 @@ namespace dmvio {
 // Initialization is either performed in addPose (for the CoarseIMUInit) or in
 // postBAInit (for the PGBA).
 class IMUInitializerState {
-public:
+ public:
   virtual ~IMUInitializerState() = default;
 
   // Add coarse pose for use in initialization.
   // Potentially run coarse IMU init.
-  virtual std::unique_ptr<IMUInitializerState>
-  addPose(const dso::FrameShell &shell, bool willBecomeKeyframe,
-          const IMUData *imuData) = 0;
+  virtual std::unique_ptr<IMUInitializerState> addPose(const dso::FrameShell& shell, bool willBecomeKeyframe,
+                                                       const IMUData* imuData) = 0;
 
   // Called after the Bundle Adjustment (BA), used by some states to run PGBA.
-  virtual std::unique_ptr<IMUInitializerState>
-  postBAInit(int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor,
-             const gtsam::Values &baValues, double timestamp,
-             const gtsam::PreintegratedImuMeasurements &imuMeasurements) = 0;
+  virtual std::unique_ptr<IMUInitializerState> postBAInit(
+      int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor, const gtsam::Values& baValues,
+      double timestamp, const gtsam::PreintegratedImuMeasurements& imuMeasurements) = 0;
 
   // Called after all keyframe operations are finished. This is when the IMU in
   // the main system should be initialized (if the initialized values are
   // ready). Returns true if an initialization is performed.
-  virtual std::pair<std::unique_ptr<IMUInitializerState>, bool>
-  initializeIfReady() = 0;
+  virtual std::pair<std::unique_ptr<IMUInitializerState>, bool> initializeIfReady() = 0;
 
-  friend std::ostream &operator<<(std::ostream &str,
-                                  IMUInitializerState const &data) {
+  friend std::ostream& operator<<(std::ostream& str, IMUInitializerState const& data) {
     data.print(str);
     return str;
   }
 
   using unique_ptr = std::unique_ptr<IMUInitializerState>;
 
-protected:
+ protected:
   // print state name.
-  virtual void print(std::ostream &str) const = 0;
+  virtual void print(std::ostream& str) const = 0;
 };
 
 // State for doing no initialization anymore.
 class InactiveIMUInitializerState : public IMUInitializerState {
-public:
-  std::unique_ptr<IMUInitializerState>
-  addPose(const dso::FrameShell &shell, bool willBecomeKeyframe,
-          const IMUData *imuData) override {
+ public:
+  std::unique_ptr<IMUInitializerState> addPose(const dso::FrameShell& shell, bool willBecomeKeyframe,
+                                               const IMUData* imuData) override {
     return nullptr;
   }
 
-  std::unique_ptr<IMUInitializerState> postBAInit(
-      int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor,
-      const gtsam::Values &baValues, double timestamp,
-      const gtsam::PreintegratedImuMeasurements &imuMeasurements) override {
+  std::unique_ptr<IMUInitializerState> postBAInit(int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor,
+                                                  const gtsam::Values& baValues, double timestamp,
+                                                  const gtsam::PreintegratedImuMeasurements& imuMeasurements) override {
     return nullptr;
   }
 
-  std::pair<std::unique_ptr<IMUInitializerState>, bool>
-  initializeIfReady() override {
+  std::pair<std::unique_ptr<IMUInitializerState>, bool> initializeIfReady() override {
     return std::make_pair(nullptr, false);
   }
 
-  void print(std::ostream &str) const override {
-    str << "InactiveIMUInitializerState";
-  }
+  void print(std::ostream& str) const override { str << "InactiveIMUInitializerState"; }
 };
 
 // Default state which forwards poses and keyframes to the
 // CoarseIMUInitOptimizer and PoseGraphBundleAdjustment respectively, but
 // doesn't do anything else.
 class DefaultActiveIMUInitializerState : public IMUInitializerState {
-public:
+ public:
   // We keep a reference to IMUInitializerLogic and transitionModel without
   // using shared_ptr, as the parent IMUInitializer is responsible for handling
   // memory.
-  DefaultActiveIMUInitializerState(IMUInitializerLogic &imuInitLogic,
-                                   StateTransitionModel &transitionModel);
+  DefaultActiveIMUInitializerState(IMUInitializerLogic& imuInitLogic, StateTransitionModel& transitionModel);
 
-  std::unique_ptr<IMUInitializerState> addPose(const dso::FrameShell &shell,
-                                               bool willBecomeKeyframe,
-                                               const IMUData *imuData) override;
+  std::unique_ptr<IMUInitializerState> addPose(const dso::FrameShell& shell, bool willBecomeKeyframe,
+                                               const IMUData* imuData) override;
 
-  std::unique_ptr<IMUInitializerState> postBAInit(
-      int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor,
-      const gtsam::Values &baValues, double timestamp,
-      const gtsam::PreintegratedImuMeasurements &imuMeasurements) override;
+  std::unique_ptr<IMUInitializerState> postBAInit(int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor,
+                                                  const gtsam::Values& baValues, double timestamp,
+                                                  const gtsam::PreintegratedImuMeasurements& imuMeasurements) override;
 
-  std::pair<std::unique_ptr<IMUInitializerState>, bool>
-  initializeIfReady() override;
+  std::pair<std::unique_ptr<IMUInitializerState>, bool> initializeIfReady() override;
 
-protected:
-  IMUInitializerLogic &logic;
-  StateTransitionModel &transitionModel;
+ protected:
+  IMUInitializerLogic& logic;
+  StateTransitionModel& transitionModel;
 };
 
 // State when the CoarseIMUInitOptimizer is the next step.
 class CoarseIMUInitState : public DefaultActiveIMUInitializerState {
-public:
-  CoarseIMUInitState(IMUInitializerLogic &imuInitLogic,
-                     StateTransitionModel &transitionModel);
+ public:
+  CoarseIMUInitState(IMUInitializerLogic& imuInitLogic, StateTransitionModel& transitionModel);
 
-  std::unique_ptr<IMUInitializerState> addPose(const dso::FrameShell &shell,
-                                               bool willBecomeKeyframe,
-                                               const IMUData *imuData) override;
+  std::unique_ptr<IMUInitializerState> addPose(const dso::FrameShell& shell, bool willBecomeKeyframe,
+                                               const IMUData* imuData) override;
 
-  void print(std::ostream &str) const override;
+  void print(std::ostream& str) const override;
 };
 
 // Realtime version of the CoarseIMUInitState: Performs optimization in a
 // separate thread.
 class RealtimeCoarseIMUInitState : public DefaultActiveIMUInitializerState {
-public:
-  RealtimeCoarseIMUInitState(IMUInitializerLogic &imuInitLogic,
-                             StateTransitionModel &transitionModel);
+ public:
+  RealtimeCoarseIMUInitState(IMUInitializerLogic& imuInitLogic, StateTransitionModel& transitionModel);
 
-  std::unique_ptr<IMUInitializerState> addPose(const dso::FrameShell &shell,
-                                               bool willBecomeKeyframe,
-                                               const IMUData *imuData) override;
+  std::unique_ptr<IMUInitializerState> addPose(const dso::FrameShell& shell, bool willBecomeKeyframe,
+                                               const IMUData* imuData) override;
 
-  void print(std::ostream &str) const override;
+  void print(std::ostream& str) const override;
 
-private:
+ private:
   void threadRun();
 
   enum ThreadStatus { NOT_RUNNING, RUNNING };
@@ -168,63 +151,55 @@ private:
   std::thread runthread;
 
   double optimizingTimestamp;
-  using AddPoseData =
-      std::tuple<const dso::FrameShell *, bool,
-                 IMUData>; // We need to save the pointers because
+  using AddPoseData = std::tuple<const dso::FrameShell*, bool,
+                                 IMUData>;  // We need to save the pointers because
   // CoarseIMUInitOptimizer will use them to get the updated poses later.
   std::vector<AddPoseData> cachedData;
 };
 
 // depending on the value of imuInitLogic.realtimeCoaresIMUInit this creates
 // either a CoarseIMUInitState or a RealtimeCoarseIMUInitState
-std::unique_ptr<IMUInitializerState>
-createCoarseIMUInitState(IMUInitializerLogic &imuInitLogic,
-                         StateTransitionModel &transitionModel);
+std::unique_ptr<IMUInitializerState> createCoarseIMUInitState(IMUInitializerLogic& imuInitLogic,
+                                                              StateTransitionModel& transitionModel);
 
 // same as last method, but for PGBA.
-std::unique_ptr<IMUInitializerState>
-createPGBAState(IMUInitializerLogic &imuInitLogic,
-                StateTransitionModel &transitionModel,
-                std::unique_ptr<gtsam::Values> &&initValues);
+std::unique_ptr<IMUInitializerState> createPGBAState(IMUInitializerLogic& imuInitLogic,
+                                                     StateTransitionModel& transitionModel,
+                                                     std::unique_ptr<gtsam::Values>&& initValues);
 
 class PGBAState : public DefaultActiveIMUInitializerState {
-public:
-  PGBAState(IMUInitializerLogic &imuInitLogic,
-            StateTransitionModel &transitionModel,
-            std::unique_ptr<gtsam::Values> &&initValues);
+ public:
+  PGBAState(IMUInitializerLogic& imuInitLogic, StateTransitionModel& transitionModel,
+            std::unique_ptr<gtsam::Values>&& initValues);
 
-  std::unique_ptr<IMUInitializerState> postBAInit(
-      int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor,
-      const gtsam::Values &baValues, double timestamp,
-      const gtsam::PreintegratedImuMeasurements &imuMeasurements) override;
+  std::unique_ptr<IMUInitializerState> postBAInit(int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor,
+                                                  const gtsam::Values& baValues, double timestamp,
+                                                  const gtsam::PreintegratedImuMeasurements& imuMeasurements) override;
 
-  void print(std::ostream &str) const override;
+  void print(std::ostream& str) const override;
 
-private:
+ private:
   std::unique_ptr<gtsam::Values> initValues;
 };
 
 class RealtimePGBAState : public DefaultActiveIMUInitializerState {
-public:
-  RealtimePGBAState(IMUInitializerLogic &imuInitLogic,
-                    StateTransitionModel &transitionModel,
-                    std::unique_ptr<gtsam::Values> &&initValues);
+ public:
+  RealtimePGBAState(IMUInitializerLogic& imuInitLogic, StateTransitionModel& transitionModel,
+                    std::unique_ptr<gtsam::Values>&& initValues);
 
-  std::unique_ptr<IMUInitializerState> postBAInit(
-      int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor,
-      const gtsam::Values &baValues, double timestamp,
-      const gtsam::PreintegratedImuMeasurements &imuMeasurements) override;
+  std::unique_ptr<IMUInitializerState> postBAInit(int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor,
+                                                  const gtsam::Values& baValues, double timestamp,
+                                                  const gtsam::PreintegratedImuMeasurements& imuMeasurements) override;
 
-  void print(std::ostream &str) const override;
+  void print(std::ostream& str) const override;
 
   void threadRun();
 
-private:
+ private:
   // Variables for the optimization
   std::unique_ptr<gtsam::Values> initValues;
-  std::unique_ptr<gtsam::Values>
-      initValuesNew; // this one is deleted after every optimization.
-  gtsam::Values *initValuesUsed = nullptr; // points to one of the above vars.
+  std::unique_ptr<gtsam::Values> initValuesNew;  // this one is deleted after every optimization.
+  gtsam::Values* initValuesUsed = nullptr;       // points to one of the above vars.
   gtsam::NonlinearFactor::shared_ptr activeHBFactor;
   gtsam::Values baValues;
 
@@ -234,90 +209,76 @@ private:
 };
 
 class InitializedFromPGBAState : public DefaultActiveIMUInitializerState {
-public:
-  InitializedFromPGBAState(IMUInitializerLogic &imuInitLogic,
-                           StateTransitionModel &transitionModel,
-                           std::unique_ptr<gtsam::Values> &&optimizedValues);
+ public:
+  InitializedFromPGBAState(IMUInitializerLogic& imuInitLogic, StateTransitionModel& transitionModel,
+                           std::unique_ptr<gtsam::Values>&& optimizedValues);
 
-  std::pair<std::unique_ptr<IMUInitializerState>, bool>
-  initializeIfReady() override;
+  std::pair<std::unique_ptr<IMUInitializerState>, bool> initializeIfReady() override;
 
-  void print(std::ostream &str) const override;
+  void print(std::ostream& str) const override;
 
-private:
+ private:
   std::unique_ptr<gtsam::Values> optimizedValues;
 };
 
-class InitializedFromRealtimePGBAState
-    : public DefaultActiveIMUInitializerState {
-public:
-  InitializedFromRealtimePGBAState(
-      IMUInitializerLogic &imuInitLogic, StateTransitionModel &transitionModel,
-      std::unique_ptr<gtsam::Values> &&optimizedValues,
-      PoseGraphBundleAdjustment::KeyframeDataContainer &&cachedData);
+class InitializedFromRealtimePGBAState : public DefaultActiveIMUInitializerState {
+ public:
+  InitializedFromRealtimePGBAState(IMUInitializerLogic& imuInitLogic, StateTransitionModel& transitionModel,
+                                   std::unique_ptr<gtsam::Values>&& optimizedValues,
+                                   PoseGraphBundleAdjustment::KeyframeDataContainer&& cachedData);
 
-  std::unique_ptr<IMUInitializerState> postBAInit(
-      int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor,
-      const gtsam::Values &baValues, double timestamp,
-      const gtsam::PreintegratedImuMeasurements &imuMeasurements) override;
+  std::unique_ptr<IMUInitializerState> postBAInit(int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor,
+                                                  const gtsam::Values& baValues, double timestamp,
+                                                  const gtsam::PreintegratedImuMeasurements& imuMeasurements) override;
 
-  std::pair<std::unique_ptr<IMUInitializerState>, bool>
-  initializeIfReady() override;
+  std::pair<std::unique_ptr<IMUInitializerState>, bool> initializeIfReady() override;
 
-  void print(std::ostream &str) const override;
+  void print(std::ostream& str) const override;
 
-private:
+ private:
   std::unique_ptr<gtsam::Values> optimizedValues;
   PoseGraphBundleAdjustment::KeyframeDataContainer cachedData;
   bool prepared = false;
 };
 
 // For ablations: do not perform the initial marginalization replacement.
-class NoMarginalizationReplacementInitializedFromPGBAState
-    : public DefaultActiveIMUInitializerState {
-public:
-  NoMarginalizationReplacementInitializedFromPGBAState(
-      IMUInitializerLogic &imuInitLogic, StateTransitionModel &transitionModel,
-      std::unique_ptr<gtsam::Values> &&optimizedValues);
+class NoMarginalizationReplacementInitializedFromPGBAState : public DefaultActiveIMUInitializerState {
+ public:
+  NoMarginalizationReplacementInitializedFromPGBAState(IMUInitializerLogic& imuInitLogic,
+                                                       StateTransitionModel& transitionModel,
+                                                       std::unique_ptr<gtsam::Values>&& optimizedValues);
 
-  std::pair<std::unique_ptr<IMUInitializerState>, bool>
-  initializeIfReady() override;
+  std::pair<std::unique_ptr<IMUInitializerState>, bool> initializeIfReady() override;
 
-  void print(std::ostream &str) const override;
+  void print(std::ostream& str) const override;
 
-private:
+ private:
   std::unique_ptr<gtsam::Values> optimizedValues;
 };
 
-class InitializedFromCoarseIMUInitState
-    : public DefaultActiveIMUInitializerState {
-public:
-  InitializedFromCoarseIMUInitState(IMUInitializerLogic &imuInitLogic,
-                                    StateTransitionModel &transitionModel);
+class InitializedFromCoarseIMUInitState : public DefaultActiveIMUInitializerState {
+ public:
+  InitializedFromCoarseIMUInitState(IMUInitializerLogic& imuInitLogic, StateTransitionModel& transitionModel);
 
-  std::pair<std::unique_ptr<IMUInitializerState>, bool>
-  initializeIfReady() override;
+  std::pair<std::unique_ptr<IMUInitializerState>, bool> initializeIfReady() override;
 
-  void print(std::ostream &str) const override;
+  void print(std::ostream& str) const override;
 };
 
 // State where the marginalization factor is replaced if the (scale) diff is
 // larger than a threshold.
-class PotentialMarginalizationReplacementState
-    : public DefaultActiveIMUInitializerState {
-public:
-  PotentialMarginalizationReplacementState(
-      IMUInitializerLogic &imuInitLogic, StateTransitionModel &transitionModel,
-      int startIdForSecondTh);
+class PotentialMarginalizationReplacementState : public DefaultActiveIMUInitializerState {
+ public:
+  PotentialMarginalizationReplacementState(IMUInitializerLogic& imuInitLogic, StateTransitionModel& transitionModel,
+                                           int startIdForSecondTh);
 
-  std::unique_ptr<IMUInitializerState> postBAInit(
-      int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor,
-      const gtsam::Values &baValues, double timestamp,
-      const gtsam::PreintegratedImuMeasurements &imuMeasurements) override;
+  std::unique_ptr<IMUInitializerState> postBAInit(int keyframeId, gtsam::NonlinearFactor::shared_ptr activeHBFactor,
+                                                  const gtsam::Values& baValues, double timestamp,
+                                                  const gtsam::PreintegratedImuMeasurements& imuMeasurements) override;
 
-  void print(std::ostream &str) const override;
+  void print(std::ostream& str) const override;
 
-protected:
+ protected:
   int startIdForSecondTH;
   bool useSecondTH = false;
 };
@@ -325,22 +286,19 @@ protected:
 // Replaces the marginalization prior of the main graph, but doesn't call
 // callOnInit as the values shall not be replaced (in contrast to a normal
 // init).
-class MarginalizationReplacementReadyState
-    : public DefaultActiveIMUInitializerState {
-public:
-  MarginalizationReplacementReadyState(
-      IMUInitializerLogic &imuInitLogic, StateTransitionModel &transitionModel,
-      std::unique_ptr<gtsam::Values> &&optimizedValues);
+class MarginalizationReplacementReadyState : public DefaultActiveIMUInitializerState {
+ public:
+  MarginalizationReplacementReadyState(IMUInitializerLogic& imuInitLogic, StateTransitionModel& transitionModel,
+                                       std::unique_ptr<gtsam::Values>&& optimizedValues);
 
-  std::pair<std::unique_ptr<IMUInitializerState>, bool>
-  initializeIfReady() override;
+  std::pair<std::unique_ptr<IMUInitializerState>, bool> initializeIfReady() override;
 
-  void print(std::ostream &str) const override;
+  void print(std::ostream& str) const override;
 
-private:
+ private:
   std::unique_ptr<gtsam::Values> optimizedValues;
 };
 
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_IMUINITIALIZERSTATES_H
+#endif  // DMVIO_IMUINITIALIZERSTATES_H

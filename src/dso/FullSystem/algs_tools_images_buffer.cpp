@@ -2,6 +2,6 @@
 
 namespace dso {
 
-BufferContainer<dso::AlgsImage> *ImagesBuffer::global_buffer_ = nullptr;
+BufferContainer<dso::AlgsImage>* ImagesBuffer::global_buffer_ = nullptr;
 
 }

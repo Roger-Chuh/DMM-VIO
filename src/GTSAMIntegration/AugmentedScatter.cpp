@@ -57,9 +57,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace gtsam;
 
-dmvio::AugmentedScatter::AugmentedScatter(
-    const GaussianFactorGraph &gfg, boost::optional<const Ordering &> ordering,
-    const std::map<gtsam::Key, size_t> &keyDimMap) {
+dmvio::AugmentedScatter::AugmentedScatter(const GaussianFactorGraph& gfg, boost::optional<const Ordering&> ordering,
+                                          const std::map<gtsam::Key, size_t>& keyDimMap) {
   // If we have an ordering, pre-fill the ordered variables first
   if (ordering) {
     for (Key key : *ordering) {
@@ -73,22 +72,18 @@ dmvio::AugmentedScatter::AugmentedScatter(
   }
 
   // Now, find dimensions of variables and/or extend
-  for (const auto &factor : gfg) {
-    if (!factor)
-      continue;
+  for (const auto& factor : gfg) {
+    if (!factor) continue;
 
     // TODO: Fix this hack to cope with zero-row Jacobians that come from
     // BayesTreeOrphanWrappers
-    const JacobianFactor *asJacobian =
-        dynamic_cast<const JacobianFactor *>(factor.get());
-    if (asJacobian && asJacobian->cols() <= 1)
-      continue;
+    const JacobianFactor* asJacobian = dynamic_cast<const JacobianFactor*>(factor.get());
+    if (asJacobian && asJacobian->cols() <= 1) continue;
 
     // loop over variables
-    for (GaussianFactor::const_iterator variable = factor->begin();
-         variable != factor->end(); ++variable) {
+    for (GaussianFactor::const_iterator variable = factor->begin(); variable != factor->end(); ++variable) {
       const Key key = *variable;
-      iterator it = findNew(key); // theoretically expensive, yet cache friendly
+      iterator it = findNew(key);  // theoretically expensive, yet cache friendly
       if (it != end())
         it->dimension = factor->getDim(variable);
       else
@@ -98,10 +93,8 @@ dmvio::AugmentedScatter::AugmentedScatter(
 
   // To keep the same behavior as before, sort the keys after the ordering
   iterator first = begin();
-  if (ordering)
-    first += ordering->size();
-  if (first != end())
-    std::sort(first, end());
+  if (ordering) first += ordering->size();
+  if (first != end()) std::sort(first, end());
 
   // Filter out keys with zero dimensions (if ordering had more keys)
   erase(std::remove_if(begin(), end(), SlotEntry::Zero), end());
@@ -110,24 +103,20 @@ dmvio::AugmentedScatter::AugmentedScatter(
 FastVector<SlotEntry>::iterator dmvio::AugmentedScatter::findNew(Key key) {
   iterator it = begin();
   while (it != end()) {
-    if (it->key == key)
-      return it;
+    if (it->key == key) return it;
     ++it;
   }
-  return it; // end()
+  return it;  // end()
 }
 
-std::pair<gtsam::Matrix, gtsam::Vector>
-dmvio::AugmentedScatter::computeHessian(const GaussianFactorGraph &gfg) {
+std::pair<gtsam::Matrix, gtsam::Vector> dmvio::AugmentedScatter::computeHessian(const GaussianFactorGraph& gfg) {
   gtsam::HessianFactor combined(gfg, *this);
   gtsam::Matrix augmented = combined.info().selfadjointView();
   size_t n = augmented.rows() - 1;
-  return std::make_pair(augmented.topLeftCorner(n, n),
-                        augmented.topRightCorner(n, 1));
+  return std::make_pair(augmented.topLeftCorner(n, n), augmented.topRightCorner(n, 1));
 }
 
-gtsam::Matrix dmvio::AugmentedScatter::computeAugmentedHessian(
-    const gtsam::GaussianFactorGraph &gfg) {
+gtsam::Matrix dmvio::AugmentedScatter::computeAugmentedHessian(const gtsam::GaussianFactorGraph& gfg) {
   gtsam::HessianFactor combined(gfg, *this);
   gtsam::Matrix augmented = combined.info().selfadjointView();
   return augmented;

@@ -13,7 +13,7 @@
 namespace dso {
 
 class CameraBase {
-public:
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   using Ptr = std::shared_ptr<CameraBase>;
 
@@ -31,50 +31,32 @@ public:
   };
 
   static inline std::string ModelAsString(CameraModel camera_model) {
-    if (camera_model == kPinhole)
-      return "Pinhole";
-    if (camera_model == kKB8)
-      return "KB8";
-    if (camera_model == kKB16)
-      return "KB16";
-    if (camera_model == kRadialTangential)
-      return "RT";
-    if (camera_model == kDoubleSphere)
-      return "DS";
-    if (camera_model == kUcmRTP)
-      return "UcmRTP";
-    if (camera_model == kKB20)
-      return "KB20";
-    if (camera_model == kKBL16)
-      return "KBL16";
+    if (camera_model == kPinhole) return "Pinhole";
+    if (camera_model == kKB8) return "KB8";
+    if (camera_model == kKB16) return "KB16";
+    if (camera_model == kRadialTangential) return "RT";
+    if (camera_model == kDoubleSphere) return "DS";
+    if (camera_model == kUcmRTP) return "UcmRTP";
+    if (camera_model == kKB20) return "KB20";
+    if (camera_model == kKBL16) return "KBL16";
 
     return "UNKNOWN";
   }
 
-  static inline CameraModel FromString(const std::string &camera_model) {
-    if (camera_model == "Pinhole")
-      return kPinhole;
-    if (camera_model == "KB8")
-      return kKB8;
-    if (camera_model == "KB16")
-      return kKB16;
-    if (camera_model == "RT")
-      return kRadialTangential;
-    if (camera_model == "DS")
-      return kDoubleSphere;
-    if (camera_model == "UcmRTP")
-      return kUcmRTP;
-    if (camera_model == "KB20")
-      return kKB20;
-    if (camera_model == "KBL16")
-      return kKBL16;
+  static inline CameraModel FromString(const std::string& camera_model) {
+    if (camera_model == "Pinhole") return kPinhole;
+    if (camera_model == "KB8") return kKB8;
+    if (camera_model == "KB16") return kKB16;
+    if (camera_model == "RT") return kRadialTangential;
+    if (camera_model == "DS") return kDoubleSphere;
+    if (camera_model == "UcmRTP") return kUcmRTP;
+    if (camera_model == "KB20") return kKB20;
+    if (camera_model == "KBL16") return kKBL16;
     return kUnknown;
   }
 
-  CameraBase(CamId camera_id, int width, int height)
-      : camera_id_(camera_id), width_(width), height_(height) {}
-  CameraBase(CamId camera_id, int width, int height, const number_t *parameters,
-             const int &param_length)
+  CameraBase(CamId camera_id, int width, int height) : camera_id_(camera_id), width_(width), height_(height) {}
+  CameraBase(CamId camera_id, int width, int height, const number_t* parameters, const int& param_length)
       : camera_id_(camera_id), width_(width), height_(height) {
     kParamLength = param_length;
     std::memcpy(parameters_, parameters, kParamLength * sizeof(number_t));
@@ -83,28 +65,21 @@ public:
 
   virtual ~CameraBase() {}
 
-  virtual bool
-  Project(const Vec3 &p_3d, Vec2 &p_img,
-          LinearAlgebraLib::Matrix<number_t, 2, 3> *d_img_d_p3d = nullptr,
-          LinearAlgebraLib::Matrix<number_t, 2, LinearAlgebraLib::Dynamic>
-              *d_img_d_param = nullptr) const = 0;
+  virtual bool Project(
+      const Vec3& p_3d, Vec2& p_img, LinearAlgebraLib::Matrix<number_t, 2, 3>* d_img_d_p3d = nullptr,
+      LinearAlgebraLib::Matrix<number_t, 2, LinearAlgebraLib::Dynamic>* d_img_d_param = nullptr) const = 0;
 
-  virtual bool
-  Project(const Vec3 &p_3d, LinearAlgebraLib::Ref<Vec2> &p_img,
-          LinearAlgebraLib::Matrix<number_t, 2, 3> *d_img_d_p3d = nullptr,
-          LinearAlgebraLib::Matrix<number_t, 2, LinearAlgebraLib::Dynamic>
-              *d_img_d_param = nullptr) const = 0;
+  virtual bool Project(
+      const Vec3& p_3d, LinearAlgebraLib::Ref<Vec2>& p_img,
+      LinearAlgebraLib::Matrix<number_t, 2, 3>* d_img_d_p3d = nullptr,
+      LinearAlgebraLib::Matrix<number_t, 2, LinearAlgebraLib::Dynamic>* d_img_d_param = nullptr) const = 0;
 
   //输入图像坐标，输出单位方向向量
-  virtual bool
-  UnProject(const Vec2 &p_img, Vec3 &p_3d,
-            LinearAlgebraLib::Matrix<number_t, 3, 2> *d_p3d_d_img = nullptr,
-            LinearAlgebraLib::Matrix<number_t, 3, LinearAlgebraLib::Dynamic>
-                *d_p3d_d_param = nullptr) const = 0;
+  virtual bool UnProject(
+      const Vec2& p_img, Vec3& p_3d, LinearAlgebraLib::Matrix<number_t, 3, 2>* d_p3d_d_img = nullptr,
+      LinearAlgebraLib::Matrix<number_t, 3, LinearAlgebraLib::Dynamic>* d_p3d_d_param = nullptr) const = 0;
 
-  number_t GetParamByIndex(const size_t index) const {
-    return parameters_[index];
-  }
+  number_t GetParamByIndex(const size_t index) const { return parameters_[index]; }
 
   bool SetParamByIndex(const number_t value, const size_t index) {
     //    assert(index < parameters_.size());
@@ -112,7 +87,7 @@ public:
     return true;
   }
 
-  const number_t *parameters_ptr() { return parameters_; }
+  const number_t* parameters_ptr() { return parameters_; }
 
   const int GetLevel() { return level_; }
 
@@ -123,10 +98,10 @@ public:
   int width() { return width_; }
   int height() { return height_; }
 
-  void SetWidth(const int &w) { width_ = w; }
-  void SetHeight(const int &h) { height_ = h; }
+  void SetWidth(const int& w) { width_ = w; }
+  void SetHeight(const int& h) { height_ = h; }
 
-  void SetIntrinsic(const VecX &intri_vec) {
+  void SetIntrinsic(const VecX& intri_vec) {
     for (int i = 0; i < kParamLength; ++i) {
       parameters_[i] = intri_vec[i];
       parameters_bak_[i] = intri_vec[i];
@@ -167,7 +142,7 @@ public:
     //#endif
   }
 
-  void PlusIntrinsic(const VecX &intri_ksai) {
+  void PlusIntrinsic(const VecX& intri_ksai) {
     for (int i = 0; i < kParamLength; ++i) {
       parameters_[i] += intri_ksai[i];
     }
@@ -180,8 +155,7 @@ public:
     printf("\n");
   }
 
-  void SetUseExtraParam(const bool &use_extra_param, bool use_full = false,
-                        bool fix_fc_ = false) {
+  void SetUseExtraParam(const bool& use_extra_param, bool use_full = false, bool fix_fc_ = false) {
     extra_param = use_extra_param;
     if (camera_model_ == CameraBase::kKB20) {
       opt_ofst_xy0 = false;
@@ -205,8 +179,7 @@ public:
       int param_size_old = kParamLength;
       SetParamSize();
       int param_size_new = kParamLength;
-      printf("param, old size: %d, new size: %d\n", param_size_old,
-             param_size_new);
+      printf("param, old size: %d, new size: %d\n", param_size_old, param_size_new);
       if (param_size_new <= param_size_old) {
         return;
       } else {
@@ -219,13 +192,13 @@ public:
 
   virtual void SetParamSize() = 0;
 
-  void SetFixK(const bool &is_fix_k) { fix_k = is_fix_k; }
+  void SetFixK(const bool& is_fix_k) { fix_k = is_fix_k; }
 
   int kParamLength = 0;
   bool extra_param = false;
   bool fix_k = false;
   bool fix_fc = false;
-  int k_nums_used = 4; // 4;
+  int k_nums_used = 4;  // 4;
   bool opt_ofst_xy0 = true;
   bool opt_ofst_xy1 = true;
   bool opt_ofst_xy2 = true;
@@ -233,7 +206,7 @@ public:
   bool opt_p1 = true;
   bool opt_p2 = true;
 
-protected:
+ protected:
   CamId camera_id_;
   int width_;
   int height_;
@@ -243,4 +216,4 @@ protected:
 
   int level_ = -1;
 };
-} // namespace dso
+}  // namespace dso

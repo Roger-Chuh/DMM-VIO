@@ -49,15 +49,15 @@
 
 #ifndef TOML11_CXX14_VALUE
 #define TOML11_CXX14_VALUE 201402L
-#endif // TOML11_CXX14_VALUE
+#endif  // TOML11_CXX14_VALUE
 
 #ifndef TOML11_CXX17_VALUE
 #define TOML11_CXX17_VALUE 201703L
-#endif // TOML11_CXX17_VALUE
+#endif  // TOML11_CXX17_VALUE
 
 #ifndef TOML11_CXX20_VALUE
 #define TOML11_CXX20_VALUE 202002L
-#endif // TOML11_CXX20_VALUE
+#endif  // TOML11_CXX20_VALUE
 
 #if defined(__cpp_char8_t)
 #if __cpp_char8_t >= 201811L
@@ -93,7 +93,7 @@
 
 namespace toml {
 
-inline const char *license_notice() noexcept {
+inline const char* license_notice() noexcept {
   return R"(The MIT License (MIT)
 
 Copyright (c) 2017-now Toru Niina
@@ -117,8 +117,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.)";
 }
 
-} // namespace toml
-#endif // TOML11_VERSION_HPP
+}  // namespace toml
+#endif  // TOML11_VERSION_HPP
 #ifndef TOML11_FORMAT_HPP
 #define TOML11_FORMAT_HPP
 
@@ -137,12 +137,12 @@ namespace toml {
 // toml types with serialization info
 
 enum class indent_char : std::uint8_t {
-  space, // use space
-  tab,   // use tab
-  none   // no indent
+  space,  // use space
+  tab,    // use tab
+  none    // no indent
 };
 
-std::ostream &operator<<(std::ostream &os, const indent_char &c);
+std::ostream& operator<<(std::ostream& os, const indent_char& c);
 std::string to_string(const indent_char c);
 
 // ----------------------------------------------------------------------------
@@ -152,14 +152,8 @@ struct boolean_format_info {
   // nothing, for now
 };
 
-inline bool operator==(const boolean_format_info &,
-                       const boolean_format_info &) noexcept {
-  return true;
-}
-inline bool operator!=(const boolean_format_info &,
-                       const boolean_format_info &) noexcept {
-  return false;
-}
+inline bool operator==(const boolean_format_info&, const boolean_format_info&) noexcept { return true; }
+inline bool operator!=(const boolean_format_info&, const boolean_format_info&) noexcept { return false; }
 
 // ----------------------------------------------------------------------------
 // integer
@@ -171,57 +165,48 @@ enum class integer_format : std::uint8_t {
   hex = 3,
 };
 
-std::ostream &operator<<(std::ostream &os, const integer_format f);
+std::ostream& operator<<(std::ostream& os, const integer_format f);
 std::string to_string(const integer_format);
 
 struct integer_format_info {
   integer_format fmt = integer_format::dec;
-  bool uppercase = true;   // hex with uppercase
-  std::size_t width = 0;   // minimal width (may exceed)
-  std::size_t spacer = 0;  // position of `_` (if 0, no spacer)
-  std::string suffix = ""; // _suffix (library extension)
+  bool uppercase = true;    // hex with uppercase
+  std::size_t width = 0;    // minimal width (may exceed)
+  std::size_t spacer = 0;   // position of `_` (if 0, no spacer)
+  std::string suffix = "";  // _suffix (library extension)
 };
 
-bool operator==(const integer_format_info &,
-                const integer_format_info &) noexcept;
-bool operator!=(const integer_format_info &,
-                const integer_format_info &) noexcept;
+bool operator==(const integer_format_info&, const integer_format_info&) noexcept;
+bool operator!=(const integer_format_info&, const integer_format_info&) noexcept;
 
 // ----------------------------------------------------------------------------
 // floating
 
 enum class floating_format : std::uint8_t {
   defaultfloat = 0,
-  fixed = 1,      // does not include exponential part
-  scientific = 2, // always include exponential part
-  hex = 3         // hexfloat extension
+  fixed = 1,       // does not include exponential part
+  scientific = 2,  // always include exponential part
+  hex = 3          // hexfloat extension
 };
 
-std::ostream &operator<<(std::ostream &os, const floating_format f);
+std::ostream& operator<<(std::ostream& os, const floating_format f);
 std::string to_string(const floating_format);
 
 struct floating_format_info {
   floating_format fmt = floating_format::defaultfloat;
-  std::size_t prec = 0;    // precision (if 0, use the default)
-  std::string suffix = ""; // 1.0e+2_suffix (library extension)
+  std::size_t prec = 0;     // precision (if 0, use the default)
+  std::string suffix = "";  // 1.0e+2_suffix (library extension)
 };
 
-bool operator==(const floating_format_info &,
-                const floating_format_info &) noexcept;
-bool operator!=(const floating_format_info &,
-                const floating_format_info &) noexcept;
+bool operator==(const floating_format_info&, const floating_format_info&) noexcept;
+bool operator!=(const floating_format_info&, const floating_format_info&) noexcept;
 
 // ----------------------------------------------------------------------------
 // string
 
-enum class string_format : std::uint8_t {
-  basic = 0,
-  literal = 1,
-  multiline_basic = 2,
-  multiline_literal = 3
-};
+enum class string_format : std::uint8_t { basic = 0, literal = 1, multiline_basic = 2, multiline_literal = 3 };
 
-std::ostream &operator<<(std::ostream &os, const string_format f);
+std::ostream& operator<<(std::ostream& os, const string_format f);
 std::string to_string(const string_format);
 
 struct string_format_info {
@@ -229,10 +214,8 @@ struct string_format_info {
   bool start_with_newline = false;
 };
 
-bool operator==(const string_format_info &,
-                const string_format_info &) noexcept;
-bool operator!=(const string_format_info &,
-                const string_format_info &) noexcept;
+bool operator==(const string_format_info&, const string_format_info&) noexcept;
+bool operator!=(const string_format_info&, const string_format_info&) noexcept;
 
 // ----------------------------------------------------------------------------
 // datetime
@@ -242,49 +225,41 @@ enum class datetime_delimiter_kind : std::uint8_t {
   lower_t = 1,
   space = 2,
 };
-std::ostream &operator<<(std::ostream &os, const datetime_delimiter_kind d);
+std::ostream& operator<<(std::ostream& os, const datetime_delimiter_kind d);
 std::string to_string(const datetime_delimiter_kind);
 
 struct offset_datetime_format_info {
   datetime_delimiter_kind delimiter = datetime_delimiter_kind::upper_T;
   bool has_seconds = true;
-  std::size_t subsecond_precision = 6; // [us]
+  std::size_t subsecond_precision = 6;  // [us]
 };
 
-bool operator==(const offset_datetime_format_info &,
-                const offset_datetime_format_info &) noexcept;
-bool operator!=(const offset_datetime_format_info &,
-                const offset_datetime_format_info &) noexcept;
+bool operator==(const offset_datetime_format_info&, const offset_datetime_format_info&) noexcept;
+bool operator!=(const offset_datetime_format_info&, const offset_datetime_format_info&) noexcept;
 
 struct local_datetime_format_info {
   datetime_delimiter_kind delimiter = datetime_delimiter_kind::upper_T;
   bool has_seconds = true;
-  std::size_t subsecond_precision = 6; // [us]
+  std::size_t subsecond_precision = 6;  // [us]
 };
 
-bool operator==(const local_datetime_format_info &,
-                const local_datetime_format_info &) noexcept;
-bool operator!=(const local_datetime_format_info &,
-                const local_datetime_format_info &) noexcept;
+bool operator==(const local_datetime_format_info&, const local_datetime_format_info&) noexcept;
+bool operator!=(const local_datetime_format_info&, const local_datetime_format_info&) noexcept;
 
 struct local_date_format_info {
   // nothing, for now
 };
 
-bool operator==(const local_date_format_info &,
-                const local_date_format_info &) noexcept;
-bool operator!=(const local_date_format_info &,
-                const local_date_format_info &) noexcept;
+bool operator==(const local_date_format_info&, const local_date_format_info&) noexcept;
+bool operator!=(const local_date_format_info&, const local_date_format_info&) noexcept;
 
 struct local_time_format_info {
   bool has_seconds = true;
-  std::size_t subsecond_precision = 6; // [us]
+  std::size_t subsecond_precision = 6;  // [us]
 };
 
-bool operator==(const local_time_format_info &,
-                const local_time_format_info &) noexcept;
-bool operator!=(const local_time_format_info &,
-                const local_time_format_info &) noexcept;
+bool operator==(const local_time_format_info&, const local_time_format_info&) noexcept;
+bool operator!=(const local_time_format_info&, const local_time_format_info&) noexcept;
 
 // ----------------------------------------------------------------------------
 // array
@@ -293,64 +268,64 @@ enum class array_format : std::uint8_t {
   default_format = 0,
   oneline = 1,
   multiline = 2,
-  array_of_tables = 3 // [[format.in.this.way]]
+  array_of_tables = 3  // [[format.in.this.way]]
 };
 
-std::ostream &operator<<(std::ostream &os, const array_format f);
+std::ostream& operator<<(std::ostream& os, const array_format f);
 std::string to_string(const array_format);
 
 struct array_format_info {
   array_format fmt = array_format::default_format;
   indent_char indent_type = indent_char::space;
-  std::int32_t body_indent = 4;    // indent in case of multiline
-  std::int32_t closing_indent = 0; // indent of `]`
+  std::int32_t body_indent = 4;     // indent in case of multiline
+  std::int32_t closing_indent = 0;  // indent of `]`
 };
 
-bool operator==(const array_format_info &, const array_format_info &) noexcept;
-bool operator!=(const array_format_info &, const array_format_info &) noexcept;
+bool operator==(const array_format_info&, const array_format_info&) noexcept;
+bool operator!=(const array_format_info&, const array_format_info&) noexcept;
 
 // ----------------------------------------------------------------------------
 // table
 
 enum class table_format : std::uint8_t {
-  multiline = 0,         // [foo] \n bar = "baz"
-  oneline = 1,           // foo = {bar = "baz"}
-  dotted = 2,            // foo.bar = "baz"
-  multiline_oneline = 3, // foo = { \n bar = "baz" \n }
-  implicit = 4           // [x] defined by [x.y.z]. skip in serializer.
+  multiline = 0,          // [foo] \n bar = "baz"
+  oneline = 1,            // foo = {bar = "baz"}
+  dotted = 2,             // foo.bar = "baz"
+  multiline_oneline = 3,  // foo = { \n bar = "baz" \n }
+  implicit = 4            // [x] defined by [x.y.z]. skip in serializer.
 };
 
-std::ostream &operator<<(std::ostream &os, const table_format f);
+std::ostream& operator<<(std::ostream& os, const table_format f);
 std::string to_string(const table_format);
 
 struct table_format_info {
   table_format fmt = table_format::multiline;
   indent_char indent_type = indent_char::space;
-  std::int32_t body_indent = 0;    // indent of values
-  std::int32_t name_indent = 0;    // indent of [table]
-  std::int32_t closing_indent = 0; // in case of {inline-table}
+  std::int32_t body_indent = 0;     // indent of values
+  std::int32_t name_indent = 0;     // indent of [table]
+  std::int32_t closing_indent = 0;  // in case of {inline-table}
 };
 
-bool operator==(const table_format_info &, const table_format_info &) noexcept;
-bool operator!=(const table_format_info &, const table_format_info &) noexcept;
+bool operator==(const table_format_info&, const table_format_info&) noexcept;
+bool operator!=(const table_format_info&, const table_format_info&) noexcept;
 
 // ----------------------------------------------------------------------------
 // wrapper
 
 namespace detail {
-template <typename T, typename F> struct value_with_format {
+template <typename T, typename F>
+struct value_with_format {
   using value_type = T;
   using format_type = F;
 
   value_with_format() = default;
   ~value_with_format() = default;
-  value_with_format(const value_with_format &) = default;
-  value_with_format(value_with_format &&) = default;
-  value_with_format &operator=(const value_with_format &) = default;
-  value_with_format &operator=(value_with_format &&) = default;
+  value_with_format(const value_with_format&) = default;
+  value_with_format(value_with_format&&) = default;
+  value_with_format& operator=(const value_with_format&) = default;
+  value_with_format& operator=(value_with_format&&) = default;
 
-  value_with_format(value_type v, format_type f)
-      : value{std::move(v)}, format{std::move(f)} {}
+  value_with_format(value_type v, format_type f) : value{std::move(v)}, format{std::move(f)} {}
 
   template <typename U>
   value_with_format(value_with_format<U, format_type> other)
@@ -359,10 +334,10 @@ template <typename T, typename F> struct value_with_format {
   value_type value;
   format_type format;
 };
-} // namespace detail
+}  // namespace detail
 
-} // namespace toml
-#endif // TOML11_FORMAT_FWD_HPP
+}  // namespace toml
+#endif  // TOML11_FORMAT_FWD_HPP
 
 #if !defined(TOML11_COMPILE_SOURCES)
 #ifndef TOML11_FORMAT_IMPL_HPP
@@ -375,23 +350,23 @@ namespace toml {
 
 // toml types with serialization info
 
-TOML11_INLINE std::ostream &operator<<(std::ostream &os, const indent_char &c) {
+TOML11_INLINE std::ostream& operator<<(std::ostream& os, const indent_char& c) {
   switch (c) {
-  case indent_char::space: {
-    os << "space";
-    break;
-  }
-  case indent_char::tab: {
-    os << "tab";
-    break;
-  }
-  case indent_char::none: {
-    os << "none";
-    break;
-  }
-  default: {
-    os << "unknown indent char: " << static_cast<std::uint8_t>(c);
-  }
+    case indent_char::space: {
+      os << "space";
+      break;
+    }
+    case indent_char::tab: {
+      os << "tab";
+      break;
+    }
+    case indent_char::none: {
+      os << "none";
+      break;
+    }
+    default: {
+      os << "unknown indent char: " << static_cast<std::uint8_t>(c);
+    }
   }
   return os;
 }
@@ -408,29 +383,28 @@ TOML11_INLINE std::string to_string(const indent_char c) {
 // ----------------------------------------------------------------------------
 // integer
 
-TOML11_INLINE std::ostream &operator<<(std::ostream &os,
-                                       const integer_format f) {
+TOML11_INLINE std::ostream& operator<<(std::ostream& os, const integer_format f) {
   switch (f) {
-  case integer_format::dec: {
-    os << "dec";
-    break;
-  }
-  case integer_format::bin: {
-    os << "bin";
-    break;
-  }
-  case integer_format::oct: {
-    os << "oct";
-    break;
-  }
-  case integer_format::hex: {
-    os << "hex";
-    break;
-  }
-  default: {
-    os << "unknown integer_format: " << static_cast<std::uint8_t>(f);
-    break;
-  }
+    case integer_format::dec: {
+      os << "dec";
+      break;
+    }
+    case integer_format::bin: {
+      os << "bin";
+      break;
+    }
+    case integer_format::oct: {
+      os << "oct";
+      break;
+    }
+    case integer_format::hex: {
+      os << "hex";
+      break;
+    }
+    default: {
+      os << "unknown integer_format: " << static_cast<std::uint8_t>(f);
+      break;
+    }
   }
   return os;
 }
@@ -440,43 +414,39 @@ TOML11_INLINE std::string to_string(const integer_format c) {
   return oss.str();
 }
 
-TOML11_INLINE bool operator==(const integer_format_info &lhs,
-                              const integer_format_info &rhs) noexcept {
-  return lhs.fmt == rhs.fmt && lhs.uppercase == rhs.uppercase &&
-         lhs.width == rhs.width && lhs.spacer == rhs.spacer &&
+TOML11_INLINE bool operator==(const integer_format_info& lhs, const integer_format_info& rhs) noexcept {
+  return lhs.fmt == rhs.fmt && lhs.uppercase == rhs.uppercase && lhs.width == rhs.width && lhs.spacer == rhs.spacer &&
          lhs.suffix == rhs.suffix;
 }
-TOML11_INLINE bool operator!=(const integer_format_info &lhs,
-                              const integer_format_info &rhs) noexcept {
+TOML11_INLINE bool operator!=(const integer_format_info& lhs, const integer_format_info& rhs) noexcept {
   return !(lhs == rhs);
 }
 
 // ----------------------------------------------------------------------------
 // floating
 
-TOML11_INLINE std::ostream &operator<<(std::ostream &os,
-                                       const floating_format f) {
+TOML11_INLINE std::ostream& operator<<(std::ostream& os, const floating_format f) {
   switch (f) {
-  case floating_format::defaultfloat: {
-    os << "defaultfloat";
-    break;
-  }
-  case floating_format::fixed: {
-    os << "fixed";
-    break;
-  }
-  case floating_format::scientific: {
-    os << "scientific";
-    break;
-  }
-  case floating_format::hex: {
-    os << "hex";
-    break;
-  }
-  default: {
-    os << "unknown floating_format: " << static_cast<std::uint8_t>(f);
-    break;
-  }
+    case floating_format::defaultfloat: {
+      os << "defaultfloat";
+      break;
+    }
+    case floating_format::fixed: {
+      os << "fixed";
+      break;
+    }
+    case floating_format::scientific: {
+      os << "scientific";
+      break;
+    }
+    case floating_format::hex: {
+      os << "hex";
+      break;
+    }
+    default: {
+      os << "unknown floating_format: " << static_cast<std::uint8_t>(f);
+      break;
+    }
   }
   return os;
 }
@@ -486,41 +456,38 @@ TOML11_INLINE std::string to_string(const floating_format c) {
   return oss.str();
 }
 
-TOML11_INLINE bool operator==(const floating_format_info &lhs,
-                              const floating_format_info &rhs) noexcept {
+TOML11_INLINE bool operator==(const floating_format_info& lhs, const floating_format_info& rhs) noexcept {
   return lhs.fmt == rhs.fmt && lhs.prec == rhs.prec && lhs.suffix == rhs.suffix;
 }
-TOML11_INLINE bool operator!=(const floating_format_info &lhs,
-                              const floating_format_info &rhs) noexcept {
+TOML11_INLINE bool operator!=(const floating_format_info& lhs, const floating_format_info& rhs) noexcept {
   return !(lhs == rhs);
 }
 
 // ----------------------------------------------------------------------------
 // string
 
-TOML11_INLINE std::ostream &operator<<(std::ostream &os,
-                                       const string_format f) {
+TOML11_INLINE std::ostream& operator<<(std::ostream& os, const string_format f) {
   switch (f) {
-  case string_format::basic: {
-    os << "basic";
-    break;
-  }
-  case string_format::literal: {
-    os << "literal";
-    break;
-  }
-  case string_format::multiline_basic: {
-    os << "multiline_basic";
-    break;
-  }
-  case string_format::multiline_literal: {
-    os << "multiline_literal";
-    break;
-  }
-  default: {
-    os << "unknown string_format: " << static_cast<std::uint8_t>(f);
-    break;
-  }
+    case string_format::basic: {
+      os << "basic";
+      break;
+    }
+    case string_format::literal: {
+      os << "literal";
+      break;
+    }
+    case string_format::multiline_basic: {
+      os << "multiline_basic";
+      break;
+    }
+    case string_format::multiline_literal: {
+      os << "multiline_literal";
+      break;
+    }
+    default: {
+      os << "unknown string_format: " << static_cast<std::uint8_t>(f);
+      break;
+    }
   }
   return os;
 }
@@ -530,36 +497,33 @@ TOML11_INLINE std::string to_string(const string_format c) {
   return oss.str();
 }
 
-TOML11_INLINE bool operator==(const string_format_info &lhs,
-                              const string_format_info &rhs) noexcept {
+TOML11_INLINE bool operator==(const string_format_info& lhs, const string_format_info& rhs) noexcept {
   return lhs.fmt == rhs.fmt && lhs.start_with_newline == rhs.start_with_newline;
 }
-TOML11_INLINE bool operator!=(const string_format_info &lhs,
-                              const string_format_info &rhs) noexcept {
+TOML11_INLINE bool operator!=(const string_format_info& lhs, const string_format_info& rhs) noexcept {
   return !(lhs == rhs);
 }
 // ----------------------------------------------------------------------------
 // datetime
 
-TOML11_INLINE std::ostream &operator<<(std::ostream &os,
-                                       const datetime_delimiter_kind d) {
+TOML11_INLINE std::ostream& operator<<(std::ostream& os, const datetime_delimiter_kind d) {
   switch (d) {
-  case datetime_delimiter_kind::upper_T: {
-    os << "upper_T, ";
-    break;
-  }
-  case datetime_delimiter_kind::lower_t: {
-    os << "lower_t, ";
-    break;
-  }
-  case datetime_delimiter_kind::space: {
-    os << "space, ";
-    break;
-  }
-  default: {
-    os << "unknown datetime delimiter: " << static_cast<std::uint8_t>(d);
-    break;
-  }
+    case datetime_delimiter_kind::upper_T: {
+      os << "upper_T, ";
+      break;
+    }
+    case datetime_delimiter_kind::lower_t: {
+      os << "lower_t, ";
+      break;
+    }
+    case datetime_delimiter_kind::space: {
+      os << "space, ";
+      break;
+    }
+    default: {
+      os << "unknown datetime delimiter: " << static_cast<std::uint8_t>(d);
+      break;
+    }
   }
   return os;
 }
@@ -569,70 +533,59 @@ TOML11_INLINE std::string to_string(const datetime_delimiter_kind c) {
   return oss.str();
 }
 
-TOML11_INLINE bool operator==(const offset_datetime_format_info &lhs,
-                              const offset_datetime_format_info &rhs) noexcept {
+TOML11_INLINE bool operator==(const offset_datetime_format_info& lhs, const offset_datetime_format_info& rhs) noexcept {
   return lhs.delimiter == rhs.delimiter && lhs.has_seconds == rhs.has_seconds &&
          lhs.subsecond_precision == rhs.subsecond_precision;
 }
-TOML11_INLINE bool operator!=(const offset_datetime_format_info &lhs,
-                              const offset_datetime_format_info &rhs) noexcept {
+TOML11_INLINE bool operator!=(const offset_datetime_format_info& lhs, const offset_datetime_format_info& rhs) noexcept {
   return !(lhs == rhs);
 }
 
-TOML11_INLINE bool operator==(const local_datetime_format_info &lhs,
-                              const local_datetime_format_info &rhs) noexcept {
+TOML11_INLINE bool operator==(const local_datetime_format_info& lhs, const local_datetime_format_info& rhs) noexcept {
   return lhs.delimiter == rhs.delimiter && lhs.has_seconds == rhs.has_seconds &&
          lhs.subsecond_precision == rhs.subsecond_precision;
 }
-TOML11_INLINE bool operator!=(const local_datetime_format_info &lhs,
-                              const local_datetime_format_info &rhs) noexcept {
+TOML11_INLINE bool operator!=(const local_datetime_format_info& lhs, const local_datetime_format_info& rhs) noexcept {
   return !(lhs == rhs);
 }
 
-TOML11_INLINE bool operator==(const local_date_format_info &,
-                              const local_date_format_info &) noexcept {
-  return true;
-}
-TOML11_INLINE bool operator!=(const local_date_format_info &lhs,
-                              const local_date_format_info &rhs) noexcept {
+TOML11_INLINE bool operator==(const local_date_format_info&, const local_date_format_info&) noexcept { return true; }
+TOML11_INLINE bool operator!=(const local_date_format_info& lhs, const local_date_format_info& rhs) noexcept {
   return !(lhs == rhs);
 }
 
-TOML11_INLINE bool operator==(const local_time_format_info &lhs,
-                              const local_time_format_info &rhs) noexcept {
-  return lhs.has_seconds == rhs.has_seconds &&
-         lhs.subsecond_precision == rhs.subsecond_precision;
+TOML11_INLINE bool operator==(const local_time_format_info& lhs, const local_time_format_info& rhs) noexcept {
+  return lhs.has_seconds == rhs.has_seconds && lhs.subsecond_precision == rhs.subsecond_precision;
 }
-TOML11_INLINE bool operator!=(const local_time_format_info &lhs,
-                              const local_time_format_info &rhs) noexcept {
+TOML11_INLINE bool operator!=(const local_time_format_info& lhs, const local_time_format_info& rhs) noexcept {
   return !(lhs == rhs);
 }
 
 // ----------------------------------------------------------------------------
 // array
 
-TOML11_INLINE std::ostream &operator<<(std::ostream &os, const array_format f) {
+TOML11_INLINE std::ostream& operator<<(std::ostream& os, const array_format f) {
   switch (f) {
-  case array_format::default_format: {
-    os << "default_format";
-    break;
-  }
-  case array_format::oneline: {
-    os << "oneline";
-    break;
-  }
-  case array_format::multiline: {
-    os << "multiline";
-    break;
-  }
-  case array_format::array_of_tables: {
-    os << "array_of_tables";
-    break;
-  }
-  default: {
-    os << "unknown array_format: " << static_cast<std::uint8_t>(f);
-    break;
-  }
+    case array_format::default_format: {
+      os << "default_format";
+      break;
+    }
+    case array_format::oneline: {
+      os << "oneline";
+      break;
+    }
+    case array_format::multiline: {
+      os << "multiline";
+      break;
+    }
+    case array_format::array_of_tables: {
+      os << "array_of_tables";
+      break;
+    }
+    default: {
+      os << "unknown array_format: " << static_cast<std::uint8_t>(f);
+      break;
+    }
   }
   return os;
 }
@@ -642,46 +595,43 @@ TOML11_INLINE std::string to_string(const array_format c) {
   return oss.str();
 }
 
-TOML11_INLINE bool operator==(const array_format_info &lhs,
-                              const array_format_info &rhs) noexcept {
-  return lhs.fmt == rhs.fmt && lhs.indent_type == rhs.indent_type &&
-         lhs.body_indent == rhs.body_indent &&
+TOML11_INLINE bool operator==(const array_format_info& lhs, const array_format_info& rhs) noexcept {
+  return lhs.fmt == rhs.fmt && lhs.indent_type == rhs.indent_type && lhs.body_indent == rhs.body_indent &&
          lhs.closing_indent == rhs.closing_indent;
 }
-TOML11_INLINE bool operator!=(const array_format_info &lhs,
-                              const array_format_info &rhs) noexcept {
+TOML11_INLINE bool operator!=(const array_format_info& lhs, const array_format_info& rhs) noexcept {
   return !(lhs == rhs);
 }
 
 // ----------------------------------------------------------------------------
 // table
 
-TOML11_INLINE std::ostream &operator<<(std::ostream &os, const table_format f) {
+TOML11_INLINE std::ostream& operator<<(std::ostream& os, const table_format f) {
   switch (f) {
-  case table_format::multiline: {
-    os << "multiline";
-    break;
-  }
-  case table_format::oneline: {
-    os << "oneline";
-    break;
-  }
-  case table_format::dotted: {
-    os << "dotted";
-    break;
-  }
-  case table_format::multiline_oneline: {
-    os << "multiline_oneline";
-    break;
-  }
-  case table_format::implicit: {
-    os << "implicit";
-    break;
-  }
-  default: {
-    os << "unknown table_format: " << static_cast<std::uint8_t>(f);
-    break;
-  }
+    case table_format::multiline: {
+      os << "multiline";
+      break;
+    }
+    case table_format::oneline: {
+      os << "oneline";
+      break;
+    }
+    case table_format::dotted: {
+      os << "dotted";
+      break;
+    }
+    case table_format::multiline_oneline: {
+      os << "multiline_oneline";
+      break;
+    }
+    case table_format::implicit: {
+      os << "implicit";
+      break;
+    }
+    default: {
+      os << "unknown table_format: " << static_cast<std::uint8_t>(f);
+      break;
+    }
   }
   return os;
 }
@@ -691,23 +641,19 @@ TOML11_INLINE std::string to_string(const table_format c) {
   return oss.str();
 }
 
-TOML11_INLINE bool operator==(const table_format_info &lhs,
-                              const table_format_info &rhs) noexcept {
-  return lhs.fmt == rhs.fmt && lhs.indent_type == rhs.indent_type &&
-         lhs.body_indent == rhs.body_indent &&
-         lhs.name_indent == rhs.name_indent &&
-         lhs.closing_indent == rhs.closing_indent;
+TOML11_INLINE bool operator==(const table_format_info& lhs, const table_format_info& rhs) noexcept {
+  return lhs.fmt == rhs.fmt && lhs.indent_type == rhs.indent_type && lhs.body_indent == rhs.body_indent &&
+         lhs.name_indent == rhs.name_indent && lhs.closing_indent == rhs.closing_indent;
 }
-TOML11_INLINE bool operator!=(const table_format_info &lhs,
-                              const table_format_info &rhs) noexcept {
+TOML11_INLINE bool operator!=(const table_format_info& lhs, const table_format_info& rhs) noexcept {
   return !(lhs == rhs);
 }
 
-} // namespace toml
-#endif // TOML11_FORMAT_IMPL_HPP
+}  // namespace toml
+#endif  // TOML11_FORMAT_IMPL_HPP
 #endif
 
-#endif // TOML11_FORMAT_HPP
+#endif  // TOML11_FORMAT_HPP
 #ifndef TOML11_DATETIME_HPP
 #define TOML11_DATETIME_HPP
 
@@ -742,20 +688,19 @@ enum class month_t : std::uint8_t {
 // ----------------------------------------------------------------------------
 
 struct local_date {
-  std::int16_t year{0};  // A.D. (like, 2018)
-  std::uint8_t month{0}; // [0, 11]
-  std::uint8_t day{0};   // [1, 31]
+  std::int16_t year{0};   // A.D. (like, 2018)
+  std::uint8_t month{0};  // [0, 11]
+  std::uint8_t day{0};    // [1, 31]
 
   local_date(int y, month_t m, int d)
-      : year{static_cast<std::int16_t>(y)}, month{static_cast<std::uint8_t>(m)},
-        day{static_cast<std::uint8_t>(d)} {}
+      : year{static_cast<std::int16_t>(y)}, month{static_cast<std::uint8_t>(m)}, day{static_cast<std::uint8_t>(d)} {}
 
-  explicit local_date(const std::tm &t)
+  explicit local_date(const std::tm& t)
       : year{static_cast<std::int16_t>(t.tm_year + 1900)},
         month{static_cast<std::uint8_t>(t.tm_mon)},
         day{static_cast<std::uint8_t>(t.tm_mday)} {}
 
-  explicit local_date(const std::chrono::system_clock::time_point &tp);
+  explicit local_date(const std::chrono::system_clock::time_point& tp);
   explicit local_date(const std::time_t t);
 
   operator std::chrono::system_clock::time_point() const;
@@ -763,47 +708,49 @@ struct local_date {
 
   local_date() = default;
   ~local_date() = default;
-  local_date(local_date const &) = default;
-  local_date(local_date &&) = default;
-  local_date &operator=(local_date const &) = default;
-  local_date &operator=(local_date &&) = default;
+  local_date(local_date const&) = default;
+  local_date(local_date&&) = default;
+  local_date& operator=(local_date const&) = default;
+  local_date& operator=(local_date&&) = default;
 };
-bool operator==(const local_date &lhs, const local_date &rhs);
-bool operator!=(const local_date &lhs, const local_date &rhs);
-bool operator<(const local_date &lhs, const local_date &rhs);
-bool operator<=(const local_date &lhs, const local_date &rhs);
-bool operator>(const local_date &lhs, const local_date &rhs);
-bool operator>=(const local_date &lhs, const local_date &rhs);
+bool operator==(const local_date& lhs, const local_date& rhs);
+bool operator!=(const local_date& lhs, const local_date& rhs);
+bool operator<(const local_date& lhs, const local_date& rhs);
+bool operator<=(const local_date& lhs, const local_date& rhs);
+bool operator>(const local_date& lhs, const local_date& rhs);
+bool operator>=(const local_date& lhs, const local_date& rhs);
 
-std::ostream &operator<<(std::ostream &os, const local_date &date);
-std::string to_string(const local_date &date);
+std::ostream& operator<<(std::ostream& os, const local_date& date);
+std::string to_string(const local_date& date);
 
 // -----------------------------------------------------------------------------
 
 struct local_time {
-  std::uint8_t hour{0};         // [0, 23]
-  std::uint8_t minute{0};       // [0, 59]
-  std::uint8_t second{0};       // [0, 60]
-  std::uint16_t millisecond{0}; // [0, 999]
-  std::uint16_t microsecond{0}; // [0, 999]
-  std::uint16_t nanosecond{0};  // [0, 999]
+  std::uint8_t hour{0};          // [0, 23]
+  std::uint8_t minute{0};        // [0, 59]
+  std::uint8_t second{0};        // [0, 60]
+  std::uint16_t millisecond{0};  // [0, 999]
+  std::uint16_t microsecond{0};  // [0, 999]
+  std::uint16_t nanosecond{0};   // [0, 999]
 
   local_time(int h, int m, int s, int ms = 0, int us = 0, int ns = 0)
       : hour{static_cast<std::uint8_t>(h)},
-        minute{static_cast<std::uint8_t>(m)}, second{static_cast<std::uint8_t>(
-                                                  s)},
+        minute{static_cast<std::uint8_t>(m)},
+        second{static_cast<std::uint8_t>(s)},
         millisecond{static_cast<std::uint16_t>(ms)},
         microsecond{static_cast<std::uint16_t>(us)},
         nanosecond{static_cast<std::uint16_t>(ns)} {}
 
-  explicit local_time(const std::tm &t)
+  explicit local_time(const std::tm& t)
       : hour{static_cast<std::uint8_t>(t.tm_hour)},
         minute{static_cast<std::uint8_t>(t.tm_min)},
-        second{static_cast<std::uint8_t>(t.tm_sec)}, millisecond{0},
-        microsecond{0}, nanosecond{0} {}
+        second{static_cast<std::uint8_t>(t.tm_sec)},
+        millisecond{0},
+        microsecond{0},
+        nanosecond{0} {}
 
   template <typename Rep, typename Period>
-  explicit local_time(const std::chrono::duration<Rep, Period> &t) {
+  explicit local_time(const std::chrono::duration<Rep, Period>& t) {
     const auto h = std::chrono::duration_cast<std::chrono::hours>(t);
     this->hour = static_cast<std::uint8_t>(h.count());
     const auto t2 = t - h;
@@ -827,52 +774,50 @@ struct local_time {
 
   local_time() = default;
   ~local_time() = default;
-  local_time(local_time const &) = default;
-  local_time(local_time &&) = default;
-  local_time &operator=(local_time const &) = default;
-  local_time &operator=(local_time &&) = default;
+  local_time(local_time const&) = default;
+  local_time(local_time&&) = default;
+  local_time& operator=(local_time const&) = default;
+  local_time& operator=(local_time&&) = default;
 };
 
-bool operator==(const local_time &lhs, const local_time &rhs);
-bool operator!=(const local_time &lhs, const local_time &rhs);
-bool operator<(const local_time &lhs, const local_time &rhs);
-bool operator<=(const local_time &lhs, const local_time &rhs);
-bool operator>(const local_time &lhs, const local_time &rhs);
-bool operator>=(const local_time &lhs, const local_time &rhs);
+bool operator==(const local_time& lhs, const local_time& rhs);
+bool operator!=(const local_time& lhs, const local_time& rhs);
+bool operator<(const local_time& lhs, const local_time& rhs);
+bool operator<=(const local_time& lhs, const local_time& rhs);
+bool operator>(const local_time& lhs, const local_time& rhs);
+bool operator>=(const local_time& lhs, const local_time& rhs);
 
-std::ostream &operator<<(std::ostream &os, const local_time &time);
-std::string to_string(const local_time &time);
+std::ostream& operator<<(std::ostream& os, const local_time& time);
+std::string to_string(const local_time& time);
 
 // ----------------------------------------------------------------------------
 
 struct time_offset {
-  std::int8_t hour{0};   // [-12, 12]
-  std::int8_t minute{0}; // [-59, 59]
+  std::int8_t hour{0};    // [-12, 12]
+  std::int8_t minute{0};  // [-59, 59]
 
-  time_offset(int h, int m)
-      : hour{static_cast<std::int8_t>(h)}, minute{static_cast<std::int8_t>(m)} {
-  }
+  time_offset(int h, int m) : hour{static_cast<std::int8_t>(h)}, minute{static_cast<std::int8_t>(m)} {}
 
   operator std::chrono::minutes() const;
 
   time_offset() = default;
   ~time_offset() = default;
-  time_offset(time_offset const &) = default;
-  time_offset(time_offset &&) = default;
-  time_offset &operator=(time_offset const &) = default;
-  time_offset &operator=(time_offset &&) = default;
+  time_offset(time_offset const&) = default;
+  time_offset(time_offset&&) = default;
+  time_offset& operator=(time_offset const&) = default;
+  time_offset& operator=(time_offset&&) = default;
 };
 
-bool operator==(const time_offset &lhs, const time_offset &rhs);
-bool operator!=(const time_offset &lhs, const time_offset &rhs);
-bool operator<(const time_offset &lhs, const time_offset &rhs);
-bool operator<=(const time_offset &lhs, const time_offset &rhs);
-bool operator>(const time_offset &lhs, const time_offset &rhs);
-bool operator>=(const time_offset &lhs, const time_offset &rhs);
+bool operator==(const time_offset& lhs, const time_offset& rhs);
+bool operator!=(const time_offset& lhs, const time_offset& rhs);
+bool operator<(const time_offset& lhs, const time_offset& rhs);
+bool operator<=(const time_offset& lhs, const time_offset& rhs);
+bool operator>(const time_offset& lhs, const time_offset& rhs);
+bool operator>=(const time_offset& lhs, const time_offset& rhs);
 
-std::ostream &operator<<(std::ostream &os, const time_offset &offset);
+std::ostream& operator<<(std::ostream& os, const time_offset& offset);
 
-std::string to_string(const time_offset &offset);
+std::string to_string(const time_offset& offset);
 
 // -----------------------------------------------------------------------------
 
@@ -882,9 +827,9 @@ struct local_datetime {
 
   local_datetime(local_date d, local_time t) : date{d}, time{t} {}
 
-  explicit local_datetime(const std::tm &t) : date{t}, time{t} {}
+  explicit local_datetime(const std::tm& t) : date{t}, time{t} {}
 
-  explicit local_datetime(const std::chrono::system_clock::time_point &tp);
+  explicit local_datetime(const std::chrono::system_clock::time_point& tp);
   explicit local_datetime(const std::time_t t);
 
   operator std::chrono::system_clock::time_point() const;
@@ -892,22 +837,22 @@ struct local_datetime {
 
   local_datetime() = default;
   ~local_datetime() = default;
-  local_datetime(local_datetime const &) = default;
-  local_datetime(local_datetime &&) = default;
-  local_datetime &operator=(local_datetime const &) = default;
-  local_datetime &operator=(local_datetime &&) = default;
+  local_datetime(local_datetime const&) = default;
+  local_datetime(local_datetime&&) = default;
+  local_datetime& operator=(local_datetime const&) = default;
+  local_datetime& operator=(local_datetime&&) = default;
 };
 
-bool operator==(const local_datetime &lhs, const local_datetime &rhs);
-bool operator!=(const local_datetime &lhs, const local_datetime &rhs);
-bool operator<(const local_datetime &lhs, const local_datetime &rhs);
-bool operator<=(const local_datetime &lhs, const local_datetime &rhs);
-bool operator>(const local_datetime &lhs, const local_datetime &rhs);
-bool operator>=(const local_datetime &lhs, const local_datetime &rhs);
+bool operator==(const local_datetime& lhs, const local_datetime& rhs);
+bool operator!=(const local_datetime& lhs, const local_datetime& rhs);
+bool operator<(const local_datetime& lhs, const local_datetime& rhs);
+bool operator<=(const local_datetime& lhs, const local_datetime& rhs);
+bool operator>(const local_datetime& lhs, const local_datetime& rhs);
+bool operator>=(const local_datetime& lhs, const local_datetime& rhs);
 
-std::ostream &operator<<(std::ostream &os, const local_datetime &dt);
+std::ostream& operator<<(std::ostream& os, const local_datetime& dt);
 
-std::string to_string(const local_datetime &dt);
+std::string to_string(const local_datetime& dt);
 
 // -----------------------------------------------------------------------------
 
@@ -916,15 +861,13 @@ struct offset_datetime {
   local_time time{};
   time_offset offset{};
 
-  offset_datetime(local_date d, local_time t, time_offset o)
-      : date{d}, time{t}, offset{o} {}
-  offset_datetime(const local_datetime &dt, time_offset o)
-      : date{dt.date}, time{dt.time}, offset{o} {}
+  offset_datetime(local_date d, local_time t, time_offset o) : date{d}, time{t}, offset{o} {}
+  offset_datetime(const local_datetime& dt, time_offset o) : date{dt.date}, time{dt.time}, offset{o} {}
   // use the current local timezone offset
-  explicit offset_datetime(const local_datetime &ld);
-  explicit offset_datetime(const std::chrono::system_clock::time_point &tp);
-  explicit offset_datetime(const std::time_t &t);
-  explicit offset_datetime(const std::tm &t);
+  explicit offset_datetime(const local_datetime& ld);
+  explicit offset_datetime(const std::chrono::system_clock::time_point& tp);
+  explicit offset_datetime(const std::time_t& t);
+  explicit offset_datetime(const std::tm& t);
 
   operator std::chrono::system_clock::time_point() const;
 
@@ -932,28 +875,28 @@ struct offset_datetime {
 
   offset_datetime() = default;
   ~offset_datetime() = default;
-  offset_datetime(offset_datetime const &) = default;
-  offset_datetime(offset_datetime &&) = default;
-  offset_datetime &operator=(offset_datetime const &) = default;
-  offset_datetime &operator=(offset_datetime &&) = default;
+  offset_datetime(offset_datetime const&) = default;
+  offset_datetime(offset_datetime&&) = default;
+  offset_datetime& operator=(offset_datetime const&) = default;
+  offset_datetime& operator=(offset_datetime&&) = default;
 
-private:
-  static time_offset get_local_offset(const std::time_t *tp);
+ private:
+  static time_offset get_local_offset(const std::time_t* tp);
 };
 
-bool operator==(const offset_datetime &lhs, const offset_datetime &rhs);
-bool operator!=(const offset_datetime &lhs, const offset_datetime &rhs);
-bool operator<(const offset_datetime &lhs, const offset_datetime &rhs);
-bool operator<=(const offset_datetime &lhs, const offset_datetime &rhs);
-bool operator>(const offset_datetime &lhs, const offset_datetime &rhs);
-bool operator>=(const offset_datetime &lhs, const offset_datetime &rhs);
+bool operator==(const offset_datetime& lhs, const offset_datetime& rhs);
+bool operator!=(const offset_datetime& lhs, const offset_datetime& rhs);
+bool operator<(const offset_datetime& lhs, const offset_datetime& rhs);
+bool operator<=(const offset_datetime& lhs, const offset_datetime& rhs);
+bool operator>(const offset_datetime& lhs, const offset_datetime& rhs);
+bool operator>=(const offset_datetime& lhs, const offset_datetime& rhs);
 
-std::ostream &operator<<(std::ostream &os, const offset_datetime &dt);
+std::ostream& operator<<(std::ostream& os, const offset_datetime& dt);
 
-std::string to_string(const offset_datetime &dt);
+std::string to_string(const offset_datetime& dt);
 
-} // namespace toml
-#endif // TOML11_DATETIME_FWD_HPP
+}  // namespace toml
+#endif  // TOML11_DATETIME_FWD_HPP
 
 #if !defined(TOML11_COMPILE_SOURCES)
 #ifndef TOML11_DATETIME_IMPL_HPP
@@ -976,7 +919,7 @@ namespace toml {
 namespace detail {
 // TODO: find more sophisticated way to handle this
 #if defined(_MSC_VER)
-TOML11_INLINE std::tm localtime_s(const std::time_t *src) {
+TOML11_INLINE std::tm localtime_s(const std::time_t* src) {
   std::tm dst;
   const auto result = ::localtime_s(&dst, src);
   if (result) {
@@ -984,7 +927,7 @@ TOML11_INLINE std::tm localtime_s(const std::time_t *src) {
   }
   return dst;
 }
-TOML11_INLINE std::tm gmtime_s(const std::time_t *src) {
+TOML11_INLINE std::tm gmtime_s(const std::time_t* src) {
   std::tm dst;
   const auto result = ::gmtime_s(&dst, src);
   if (result) {
@@ -992,10 +935,9 @@ TOML11_INLINE std::tm gmtime_s(const std::time_t *src) {
   }
   return dst;
 }
-#elif (defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 1) ||                    \
-    defined(_XOPEN_SOURCE) || defined(_BSD_SOURCE) || defined(_SVID_SOURCE) || \
-    defined(_POSIX_SOURCE)
-TOML11_INLINE std::tm localtime_s(const std::time_t *src) {
+#elif (defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 1) || defined(_XOPEN_SOURCE) || defined(_BSD_SOURCE) || \
+    defined(_SVID_SOURCE) || defined(_POSIX_SOURCE)
+TOML11_INLINE std::tm localtime_s(const std::time_t* src) {
   std::tm dst;
   const auto result = ::localtime_r(src, &dst);
   if (!result) {
@@ -1003,7 +945,7 @@ TOML11_INLINE std::tm localtime_s(const std::time_t *src) {
   }
   return dst;
 }
-TOML11_INLINE std::tm gmtime_s(const std::time_t *src) {
+TOML11_INLINE std::tm gmtime_s(const std::time_t* src) {
   std::tm dst;
   const auto result = ::gmtime_r(src, &dst);
   if (!result) {
@@ -1011,15 +953,15 @@ TOML11_INLINE std::tm gmtime_s(const std::time_t *src) {
   }
   return dst;
 }
-#else // fallback. not threadsafe
-TOML11_INLINE std::tm localtime_s(const std::time_t *src) {
+#else  // fallback. not threadsafe
+TOML11_INLINE std::tm localtime_s(const std::time_t* src) {
   const auto result = std::localtime(src);
   if (!result) {
     throw std::runtime_error("localtime failed.");
   }
   return *result;
 }
-TOML11_INLINE std::tm gmtime_s(const std::time_t *src) {
+TOML11_INLINE std::tm gmtime_s(const std::time_t* src) {
   const auto result = std::gmtime(src);
   if (!result) {
     throw std::runtime_error("gmtime failed.");
@@ -1027,19 +969,18 @@ TOML11_INLINE std::tm gmtime_s(const std::time_t *src) {
   return *result;
 }
 #endif
-} // namespace detail
+}  // namespace detail
 
 // ----------------------------------------------------------------------------
 
 TOML11_INLINE
-local_date::local_date(const std::chrono::system_clock::time_point &tp) {
+local_date::local_date(const std::chrono::system_clock::time_point& tp) {
   const auto t = std::chrono::system_clock::to_time_t(tp);
   const auto time = detail::localtime_s(&t);
   *this = local_date(time);
 }
 
-TOML11_INLINE local_date::local_date(const std::time_t t)
-    : local_date{std::chrono::system_clock::from_time_t(t)} {}
+TOML11_INLINE local_date::local_date(const std::time_t t) : local_date{std::chrono::system_clock::from_time_t(t)} {}
 
 TOML11_INLINE
 local_date::operator std::chrono::system_clock::time_point() const {
@@ -1051,48 +992,35 @@ local_date::operator std::chrono::system_clock::time_point() const {
   t.tm_mday = static_cast<int>(this->day);
   t.tm_mon = static_cast<int>(this->month);
   t.tm_year = static_cast<int>(this->year) - 1900;
-  t.tm_wday = 0; // the value will be ignored
-  t.tm_yday = 0; // the value will be ignored
+  t.tm_wday = 0;  // the value will be ignored
+  t.tm_yday = 0;  // the value will be ignored
   t.tm_isdst = -1;
   return std::chrono::system_clock::from_time_t(std::mktime(&t));
 }
 
 TOML11_INLINE local_date::operator std::time_t() const {
-  return std::chrono::system_clock::to_time_t(
-      std::chrono::system_clock::time_point(*this));
+  return std::chrono::system_clock::to_time_t(std::chrono::system_clock::time_point(*this));
 }
 
-TOML11_INLINE bool operator==(const local_date &lhs, const local_date &rhs) {
-  return std::make_tuple(lhs.year, lhs.month, lhs.day) ==
-         std::make_tuple(rhs.year, rhs.month, rhs.day);
+TOML11_INLINE bool operator==(const local_date& lhs, const local_date& rhs) {
+  return std::make_tuple(lhs.year, lhs.month, lhs.day) == std::make_tuple(rhs.year, rhs.month, rhs.day);
 }
-TOML11_INLINE bool operator!=(const local_date &lhs, const local_date &rhs) {
-  return !(lhs == rhs);
+TOML11_INLINE bool operator!=(const local_date& lhs, const local_date& rhs) { return !(lhs == rhs); }
+TOML11_INLINE bool operator<(const local_date& lhs, const local_date& rhs) {
+  return std::make_tuple(lhs.year, lhs.month, lhs.day) < std::make_tuple(rhs.year, rhs.month, rhs.day);
 }
-TOML11_INLINE bool operator<(const local_date &lhs, const local_date &rhs) {
-  return std::make_tuple(lhs.year, lhs.month, lhs.day) <
-         std::make_tuple(rhs.year, rhs.month, rhs.day);
-}
-TOML11_INLINE bool operator<=(const local_date &lhs, const local_date &rhs) {
-  return (lhs < rhs) || (lhs == rhs);
-}
-TOML11_INLINE bool operator>(const local_date &lhs, const local_date &rhs) {
-  return !(lhs <= rhs);
-}
-TOML11_INLINE bool operator>=(const local_date &lhs, const local_date &rhs) {
-  return !(lhs < rhs);
-}
+TOML11_INLINE bool operator<=(const local_date& lhs, const local_date& rhs) { return (lhs < rhs) || (lhs == rhs); }
+TOML11_INLINE bool operator>(const local_date& lhs, const local_date& rhs) { return !(lhs <= rhs); }
+TOML11_INLINE bool operator>=(const local_date& lhs, const local_date& rhs) { return !(lhs < rhs); }
 
-TOML11_INLINE std::ostream &operator<<(std::ostream &os,
-                                       const local_date &date) {
+TOML11_INLINE std::ostream& operator<<(std::ostream& os, const local_date& date) {
   os << std::setfill('0') << std::setw(4) << static_cast<int>(date.year) << '-';
-  os << std::setfill('0') << std::setw(2) << static_cast<int>(date.month) + 1
-     << '-';
+  os << std::setfill('0') << std::setw(2) << static_cast<int>(date.month) + 1 << '-';
   os << std::setfill('0') << std::setw(2) << static_cast<int>(date.day);
   return os;
 }
 
-TOML11_INLINE std::string to_string(const local_date &date) {
+TOML11_INLINE std::string to_string(const local_date& date) {
   std::ostringstream oss;
   oss.imbue(std::locale::classic());
   oss << date;
@@ -1102,61 +1030,42 @@ TOML11_INLINE std::string to_string(const local_date &date) {
 // -----------------------------------------------------------------------------
 
 TOML11_INLINE local_time::operator std::chrono::nanoseconds() const {
-  return std::chrono::nanoseconds(this->nanosecond) +
-         std::chrono::microseconds(this->microsecond) +
-         std::chrono::milliseconds(this->millisecond) +
-         std::chrono::seconds(this->second) +
+  return std::chrono::nanoseconds(this->nanosecond) + std::chrono::microseconds(this->microsecond) +
+         std::chrono::milliseconds(this->millisecond) + std::chrono::seconds(this->second) +
          std::chrono::minutes(this->minute) + std::chrono::hours(this->hour);
 }
 
-TOML11_INLINE bool operator==(const local_time &lhs, const local_time &rhs) {
-  return std::make_tuple(lhs.hour, lhs.minute, lhs.second, lhs.millisecond,
-                         lhs.microsecond, lhs.nanosecond) ==
-         std::make_tuple(rhs.hour, rhs.minute, rhs.second, rhs.millisecond,
-                         rhs.microsecond, rhs.nanosecond);
+TOML11_INLINE bool operator==(const local_time& lhs, const local_time& rhs) {
+  return std::make_tuple(lhs.hour, lhs.minute, lhs.second, lhs.millisecond, lhs.microsecond, lhs.nanosecond) ==
+         std::make_tuple(rhs.hour, rhs.minute, rhs.second, rhs.millisecond, rhs.microsecond, rhs.nanosecond);
 }
-TOML11_INLINE bool operator!=(const local_time &lhs, const local_time &rhs) {
-  return !(lhs == rhs);
+TOML11_INLINE bool operator!=(const local_time& lhs, const local_time& rhs) { return !(lhs == rhs); }
+TOML11_INLINE bool operator<(const local_time& lhs, const local_time& rhs) {
+  return std::make_tuple(lhs.hour, lhs.minute, lhs.second, lhs.millisecond, lhs.microsecond, lhs.nanosecond) <
+         std::make_tuple(rhs.hour, rhs.minute, rhs.second, rhs.millisecond, rhs.microsecond, rhs.nanosecond);
 }
-TOML11_INLINE bool operator<(const local_time &lhs, const local_time &rhs) {
-  return std::make_tuple(lhs.hour, lhs.minute, lhs.second, lhs.millisecond,
-                         lhs.microsecond, lhs.nanosecond) <
-         std::make_tuple(rhs.hour, rhs.minute, rhs.second, rhs.millisecond,
-                         rhs.microsecond, rhs.nanosecond);
-}
-TOML11_INLINE bool operator<=(const local_time &lhs, const local_time &rhs) {
-  return (lhs < rhs) || (lhs == rhs);
-}
-TOML11_INLINE bool operator>(const local_time &lhs, const local_time &rhs) {
-  return !(lhs <= rhs);
-}
-TOML11_INLINE bool operator>=(const local_time &lhs, const local_time &rhs) {
-  return !(lhs < rhs);
-}
+TOML11_INLINE bool operator<=(const local_time& lhs, const local_time& rhs) { return (lhs < rhs) || (lhs == rhs); }
+TOML11_INLINE bool operator>(const local_time& lhs, const local_time& rhs) { return !(lhs <= rhs); }
+TOML11_INLINE bool operator>=(const local_time& lhs, const local_time& rhs) { return !(lhs < rhs); }
 
-TOML11_INLINE std::ostream &operator<<(std::ostream &os,
-                                       const local_time &time) {
+TOML11_INLINE std::ostream& operator<<(std::ostream& os, const local_time& time) {
   os << std::setfill('0') << std::setw(2) << static_cast<int>(time.hour) << ':';
-  os << std::setfill('0') << std::setw(2) << static_cast<int>(time.minute)
-     << ':';
+  os << std::setfill('0') << std::setw(2) << static_cast<int>(time.minute) << ':';
   os << std::setfill('0') << std::setw(2) << static_cast<int>(time.second);
   if (time.millisecond != 0 || time.microsecond != 0 || time.nanosecond != 0) {
     os << '.';
-    os << std::setfill('0') << std::setw(3)
-       << static_cast<int>(time.millisecond);
+    os << std::setfill('0') << std::setw(3) << static_cast<int>(time.millisecond);
     if (time.microsecond != 0 || time.nanosecond != 0) {
-      os << std::setfill('0') << std::setw(3)
-         << static_cast<int>(time.microsecond);
+      os << std::setfill('0') << std::setw(3) << static_cast<int>(time.microsecond);
       if (time.nanosecond != 0) {
-        os << std::setfill('0') << std::setw(3)
-           << static_cast<int>(time.nanosecond);
+        os << std::setfill('0') << std::setw(3) << static_cast<int>(time.nanosecond);
       }
     }
   }
   return os;
 }
 
-TOML11_INLINE std::string to_string(const local_time &time) {
+TOML11_INLINE std::string to_string(const local_time& time) {
   std::ostringstream oss;
   oss.imbue(std::locale::classic());
   oss << time;
@@ -1169,29 +1078,18 @@ TOML11_INLINE time_offset::operator std::chrono::minutes() const {
   return std::chrono::minutes(this->minute) + std::chrono::hours(this->hour);
 }
 
-TOML11_INLINE bool operator==(const time_offset &lhs, const time_offset &rhs) {
-  return std::make_tuple(lhs.hour, lhs.minute) ==
-         std::make_tuple(rhs.hour, rhs.minute);
+TOML11_INLINE bool operator==(const time_offset& lhs, const time_offset& rhs) {
+  return std::make_tuple(lhs.hour, lhs.minute) == std::make_tuple(rhs.hour, rhs.minute);
 }
-TOML11_INLINE bool operator!=(const time_offset &lhs, const time_offset &rhs) {
-  return !(lhs == rhs);
+TOML11_INLINE bool operator!=(const time_offset& lhs, const time_offset& rhs) { return !(lhs == rhs); }
+TOML11_INLINE bool operator<(const time_offset& lhs, const time_offset& rhs) {
+  return std::make_tuple(lhs.hour, lhs.minute) < std::make_tuple(rhs.hour, rhs.minute);
 }
-TOML11_INLINE bool operator<(const time_offset &lhs, const time_offset &rhs) {
-  return std::make_tuple(lhs.hour, lhs.minute) <
-         std::make_tuple(rhs.hour, rhs.minute);
-}
-TOML11_INLINE bool operator<=(const time_offset &lhs, const time_offset &rhs) {
-  return (lhs < rhs) || (lhs == rhs);
-}
-TOML11_INLINE bool operator>(const time_offset &lhs, const time_offset &rhs) {
-  return !(lhs <= rhs);
-}
-TOML11_INLINE bool operator>=(const time_offset &lhs, const time_offset &rhs) {
-  return !(lhs < rhs);
-}
+TOML11_INLINE bool operator<=(const time_offset& lhs, const time_offset& rhs) { return (lhs < rhs) || (lhs == rhs); }
+TOML11_INLINE bool operator>(const time_offset& lhs, const time_offset& rhs) { return !(lhs <= rhs); }
+TOML11_INLINE bool operator>=(const time_offset& lhs, const time_offset& rhs) { return !(lhs < rhs); }
 
-TOML11_INLINE std::ostream &operator<<(std::ostream &os,
-                                       const time_offset &offset) {
+TOML11_INLINE std::ostream& operator<<(std::ostream& os, const time_offset& offset) {
   if (offset.hour == 0 && offset.minute == 0) {
     os << 'Z';
     return os;
@@ -1208,7 +1106,7 @@ TOML11_INLINE std::ostream &operator<<(std::ostream &os,
   return os;
 }
 
-TOML11_INLINE std::string to_string(const time_offset &offset) {
+TOML11_INLINE std::string to_string(const time_offset& offset) {
   std::ostringstream oss;
   oss.imbue(std::locale::classic());
   oss << offset;
@@ -1217,8 +1115,7 @@ TOML11_INLINE std::string to_string(const time_offset &offset) {
 
 // -----------------------------------------------------------------------------
 
-TOML11_INLINE local_datetime::local_datetime(
-    const std::chrono::system_clock::time_point &tp) {
+TOML11_INLINE local_datetime::local_datetime(const std::chrono::system_clock::time_point& tp) {
   const auto t = std::chrono::system_clock::to_time_t(tp);
   std::tm ltime = detail::localtime_s(&t);
 
@@ -1227,14 +1124,13 @@ TOML11_INLINE local_datetime::local_datetime(
 
   // std::tm lacks subsecond information, so diff between tp and tm
   // can be used to get millisecond & microsecond information.
-  const auto t_diff =
-      tp - std::chrono::system_clock::from_time_t(std::mktime(&ltime));
-  this->time.millisecond = static_cast<std::uint16_t>(
-      std::chrono::duration_cast<std::chrono::milliseconds>(t_diff).count());
-  this->time.microsecond = static_cast<std::uint16_t>(
-      std::chrono::duration_cast<std::chrono::microseconds>(t_diff).count());
-  this->time.nanosecond = static_cast<std::uint16_t>(
-      std::chrono::duration_cast<std::chrono::nanoseconds>(t_diff).count());
+  const auto t_diff = tp - std::chrono::system_clock::from_time_t(std::mktime(&ltime));
+  this->time.millisecond =
+      static_cast<std::uint16_t>(std::chrono::duration_cast<std::chrono::milliseconds>(t_diff).count());
+  this->time.microsecond =
+      static_cast<std::uint16_t>(std::chrono::duration_cast<std::chrono::microseconds>(t_diff).count());
+  this->time.nanosecond =
+      static_cast<std::uint16_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(t_diff).count());
 }
 
 TOML11_INLINE local_datetime::local_datetime(const std::time_t t)
@@ -1242,8 +1138,7 @@ TOML11_INLINE local_datetime::local_datetime(const std::time_t t)
 
 TOML11_INLINE
 local_datetime::operator std::chrono::system_clock::time_point() const {
-  using internal_duration =
-      typename std::chrono::system_clock::time_point::duration;
+  using internal_duration = typename std::chrono::system_clock::time_point::duration;
 
   // Normally DST begins at A.M. 3 or 4. If we re-use conversion operator
   // of local_date and local_time independently, the conversion fails if
@@ -1259,58 +1154,41 @@ local_datetime::operator std::chrono::system_clock::time_point() const {
   t.tm_mday = static_cast<int>(this->date.day);
   t.tm_mon = static_cast<int>(this->date.month);
   t.tm_year = static_cast<int>(this->date.year) - 1900;
-  t.tm_wday = 0; // the value will be ignored
-  t.tm_yday = 0; // the value will be ignored
+  t.tm_wday = 0;  // the value will be ignored
+  t.tm_yday = 0;  // the value will be ignored
   t.tm_isdst = -1;
 
   // std::mktime returns date as local time zone. no conversion needed
   auto dt = std::chrono::system_clock::from_time_t(std::mktime(&t));
-  dt += std::chrono::duration_cast<internal_duration>(
-      std::chrono::milliseconds(this->time.millisecond) +
-      std::chrono::microseconds(this->time.microsecond) +
-      std::chrono::nanoseconds(this->time.nanosecond));
+  dt += std::chrono::duration_cast<internal_duration>(std::chrono::milliseconds(this->time.millisecond) +
+                                                      std::chrono::microseconds(this->time.microsecond) +
+                                                      std::chrono::nanoseconds(this->time.nanosecond));
   return dt;
 }
 
 TOML11_INLINE local_datetime::operator std::time_t() const {
-  return std::chrono::system_clock::to_time_t(
-      std::chrono::system_clock::time_point(*this));
+  return std::chrono::system_clock::to_time_t(std::chrono::system_clock::time_point(*this));
 }
 
-TOML11_INLINE bool operator==(const local_datetime &lhs,
-                              const local_datetime &rhs) {
-  return std::make_tuple(lhs.date, lhs.time) ==
-         std::make_tuple(rhs.date, rhs.time);
+TOML11_INLINE bool operator==(const local_datetime& lhs, const local_datetime& rhs) {
+  return std::make_tuple(lhs.date, lhs.time) == std::make_tuple(rhs.date, rhs.time);
 }
-TOML11_INLINE bool operator!=(const local_datetime &lhs,
-                              const local_datetime &rhs) {
-  return !(lhs == rhs);
+TOML11_INLINE bool operator!=(const local_datetime& lhs, const local_datetime& rhs) { return !(lhs == rhs); }
+TOML11_INLINE bool operator<(const local_datetime& lhs, const local_datetime& rhs) {
+  return std::make_tuple(lhs.date, lhs.time) < std::make_tuple(rhs.date, rhs.time);
 }
-TOML11_INLINE bool operator<(const local_datetime &lhs,
-                             const local_datetime &rhs) {
-  return std::make_tuple(lhs.date, lhs.time) <
-         std::make_tuple(rhs.date, rhs.time);
-}
-TOML11_INLINE bool operator<=(const local_datetime &lhs,
-                              const local_datetime &rhs) {
+TOML11_INLINE bool operator<=(const local_datetime& lhs, const local_datetime& rhs) {
   return (lhs < rhs) || (lhs == rhs);
 }
-TOML11_INLINE bool operator>(const local_datetime &lhs,
-                             const local_datetime &rhs) {
-  return !(lhs <= rhs);
-}
-TOML11_INLINE bool operator>=(const local_datetime &lhs,
-                              const local_datetime &rhs) {
-  return !(lhs < rhs);
-}
+TOML11_INLINE bool operator>(const local_datetime& lhs, const local_datetime& rhs) { return !(lhs <= rhs); }
+TOML11_INLINE bool operator>=(const local_datetime& lhs, const local_datetime& rhs) { return !(lhs < rhs); }
 
-TOML11_INLINE std::ostream &operator<<(std::ostream &os,
-                                       const local_datetime &dt) {
+TOML11_INLINE std::ostream& operator<<(std::ostream& os, const local_datetime& dt) {
   os << dt.date << 'T' << dt.time;
   return os;
 }
 
-TOML11_INLINE std::string to_string(const local_datetime &dt) {
+TOML11_INLINE std::string to_string(const local_datetime& dt) {
   std::ostringstream oss;
   oss.imbue(std::locale::classic());
   oss << dt;
@@ -1319,28 +1197,28 @@ TOML11_INLINE std::string to_string(const local_datetime &dt) {
 
 // -----------------------------------------------------------------------------
 
-TOML11_INLINE offset_datetime::offset_datetime(const local_datetime &ld)
-    : date{ld.date}, time{ld.time}, offset{get_local_offset(nullptr)}
-// use the current local timezone offset
+TOML11_INLINE offset_datetime::offset_datetime(const local_datetime& ld)
+    : date{ld.date},
+      time{ld.time},
+      offset{get_local_offset(nullptr)}  // use the current local timezone offset
 {}
-TOML11_INLINE offset_datetime::offset_datetime(
-    const std::chrono::system_clock::time_point &tp)
-    : offset{0, 0} // use gmtime
+TOML11_INLINE offset_datetime::offset_datetime(const std::chrono::system_clock::time_point& tp)
+    : offset{0, 0}  // use gmtime
 {
   const auto timet = std::chrono::system_clock::to_time_t(tp);
   const auto tm = detail::gmtime_s(&timet);
   this->date = local_date(tm);
   this->time = local_time(tm);
 }
-TOML11_INLINE offset_datetime::offset_datetime(const std::time_t &t)
-    : offset{0, 0} // use gmtime
+TOML11_INLINE offset_datetime::offset_datetime(const std::time_t& t)
+    : offset{0, 0}  // use gmtime
 {
   const auto tm = detail::gmtime_s(&t);
   this->date = local_date(tm);
   this->time = local_time(tm);
 }
-TOML11_INLINE offset_datetime::offset_datetime(const std::tm &t)
-    : offset{0, 0} // assume gmtime
+TOML11_INLINE offset_datetime::offset_datetime(const std::tm& t)
+    : offset{0, 0}  // assume gmtime
 {
   this->date = local_date(t);
   this->time = local_time(t);
@@ -1349,8 +1227,7 @@ TOML11_INLINE offset_datetime::offset_datetime(const std::tm &t)
 TOML11_INLINE
 offset_datetime::operator std::chrono::system_clock::time_point() const {
   // get date-time
-  using internal_duration =
-      typename std::chrono::system_clock::time_point::duration;
+  using internal_duration = typename std::chrono::system_clock::time_point::duration;
 
   // first, convert it to local date-time information in the same way as
   // local_datetime does. later we will use time_t to adjust time offset.
@@ -1361,16 +1238,15 @@ offset_datetime::operator std::chrono::system_clock::time_point() const {
   t.tm_mday = static_cast<int>(this->date.day);
   t.tm_mon = static_cast<int>(this->date.month);
   t.tm_year = static_cast<int>(this->date.year) - 1900;
-  t.tm_wday = 0; // the value will be ignored
-  t.tm_yday = 0; // the value will be ignored
+  t.tm_wday = 0;  // the value will be ignored
+  t.tm_yday = 0;  // the value will be ignored
   t.tm_isdst = -1;
   const std::time_t tp_loc = std::mktime(std::addressof(t));
 
   auto tp = std::chrono::system_clock::from_time_t(tp_loc);
-  tp += std::chrono::duration_cast<internal_duration>(
-      std::chrono::milliseconds(this->time.millisecond) +
-      std::chrono::microseconds(this->time.microsecond) +
-      std::chrono::nanoseconds(this->time.nanosecond));
+  tp += std::chrono::duration_cast<internal_duration>(std::chrono::milliseconds(this->time.millisecond) +
+                                                      std::chrono::microseconds(this->time.microsecond) +
+                                                      std::chrono::nanoseconds(this->time.nanosecond));
 
   // Since mktime uses local time zone, it should be corrected.
   // `12:00:00+09:00` means `03:00:00Z`. So mktime returns `03:00:00Z` if
@@ -1391,20 +1267,19 @@ offset_datetime::operator std::chrono::system_clock::time_point() const {
 }
 
 TOML11_INLINE offset_datetime::operator std::time_t() const {
-  return std::chrono::system_clock::to_time_t(
-      std::chrono::system_clock::time_point(*this));
+  return std::chrono::system_clock::to_time_t(std::chrono::system_clock::time_point(*this));
 }
 
-TOML11_INLINE time_offset
-offset_datetime::get_local_offset(const std::time_t *tp) {
+TOML11_INLINE time_offset offset_datetime::get_local_offset(const std::time_t* tp) {
   // get local timezone with the same date-time information as mktime
   const auto t = detail::localtime_s(tp);
 
   std::array<char, 6> buf;
-  const auto result = std::strftime(buf.data(), 6, "%z", &t); // +hhmm\0
+  const auto result = std::strftime(buf.data(), 6, "%z", &t);  // +hhmm\0
   if (result != 5) {
-    throw std::runtime_error("toml::offset_datetime: cannot obtain "
-                             "timezone information of current env");
+    throw std::runtime_error(
+        "toml::offset_datetime: cannot obtain "
+        "timezone information of current env");
   }
   const int ofs = std::atoi(buf.data());
   const int ofs_h = ofs / 100;
@@ -1412,51 +1287,36 @@ offset_datetime::get_local_offset(const std::time_t *tp) {
   return time_offset(ofs_h, ofs_m);
 }
 
-TOML11_INLINE bool operator==(const offset_datetime &lhs,
-                              const offset_datetime &rhs) {
-  return std::make_tuple(lhs.date, lhs.time, lhs.offset) ==
-         std::make_tuple(rhs.date, rhs.time, rhs.offset);
+TOML11_INLINE bool operator==(const offset_datetime& lhs, const offset_datetime& rhs) {
+  return std::make_tuple(lhs.date, lhs.time, lhs.offset) == std::make_tuple(rhs.date, rhs.time, rhs.offset);
 }
-TOML11_INLINE bool operator!=(const offset_datetime &lhs,
-                              const offset_datetime &rhs) {
-  return !(lhs == rhs);
+TOML11_INLINE bool operator!=(const offset_datetime& lhs, const offset_datetime& rhs) { return !(lhs == rhs); }
+TOML11_INLINE bool operator<(const offset_datetime& lhs, const offset_datetime& rhs) {
+  return std::make_tuple(lhs.date, lhs.time, lhs.offset) < std::make_tuple(rhs.date, rhs.time, rhs.offset);
 }
-TOML11_INLINE bool operator<(const offset_datetime &lhs,
-                             const offset_datetime &rhs) {
-  return std::make_tuple(lhs.date, lhs.time, lhs.offset) <
-         std::make_tuple(rhs.date, rhs.time, rhs.offset);
-}
-TOML11_INLINE bool operator<=(const offset_datetime &lhs,
-                              const offset_datetime &rhs) {
+TOML11_INLINE bool operator<=(const offset_datetime& lhs, const offset_datetime& rhs) {
   return (lhs < rhs) || (lhs == rhs);
 }
-TOML11_INLINE bool operator>(const offset_datetime &lhs,
-                             const offset_datetime &rhs) {
-  return !(lhs <= rhs);
-}
-TOML11_INLINE bool operator>=(const offset_datetime &lhs,
-                              const offset_datetime &rhs) {
-  return !(lhs < rhs);
-}
+TOML11_INLINE bool operator>(const offset_datetime& lhs, const offset_datetime& rhs) { return !(lhs <= rhs); }
+TOML11_INLINE bool operator>=(const offset_datetime& lhs, const offset_datetime& rhs) { return !(lhs < rhs); }
 
-TOML11_INLINE std::ostream &operator<<(std::ostream &os,
-                                       const offset_datetime &dt) {
+TOML11_INLINE std::ostream& operator<<(std::ostream& os, const offset_datetime& dt) {
   os << dt.date << 'T' << dt.time << dt.offset;
   return os;
 }
 
-TOML11_INLINE std::string to_string(const offset_datetime &dt) {
+TOML11_INLINE std::string to_string(const offset_datetime& dt) {
   std::ostringstream oss;
   oss.imbue(std::locale::classic());
   oss << dt;
   return oss.str();
 }
 
-} // namespace toml
-#endif // TOML11_DATETIME_IMPL_HPP
+}  // namespace toml
+#endif  // TOML11_DATETIME_IMPL_HPP
 #endif
 
-#endif // TOML11_DATETIME_HPP
+#endif  // TOML11_DATETIME_HPP
 #ifndef TOML11_COMPAT_HPP
 #define TOML11_COMPAT_HPP
 
@@ -1528,14 +1388,14 @@ using std::make_unique;
 #else
 
 template <typename T, typename... Ts>
-std::unique_ptr<T> make_unique(Ts &&... args) {
+std::unique_ptr<T> make_unique(Ts&&... args) {
   return std::unique_ptr<T>(new T(std::forward<Ts>(args)...));
 }
 
-#endif // TOML11_HAS_STD_MAKE_UNIQUE
+#endif  // TOML11_HAS_STD_MAKE_UNIQUE
 
-} // namespace cxx
-} // namespace toml
+}  // namespace cxx
+}  // namespace toml
 
 // ---------------------------------------------------------------------------
 
@@ -1560,10 +1420,10 @@ std::reverse_iterator<Iterator> make_reverse_iterator(Iterator iter) {
   return std::reverse_iterator<Iterator>(iter);
 }
 
-#endif // TOML11_HAS_STD_MAKE_REVERSE_ITERATOR
+#endif  // TOML11_HAS_STD_MAKE_REVERSE_ITERATOR
 
-} // namespace cxx
-} // namespace toml
+}  // namespace cxx
+}  // namespace toml
 
 // ---------------------------------------------------------------------------
 
@@ -1584,15 +1444,15 @@ using std::clamp;
 #else
 
 template <typename T>
-T clamp(const T &x, const T &low, const T &high) noexcept {
+T clamp(const T& x, const T& low, const T& high) noexcept {
   assert(low <= high);
   return (std::min)((std::max)(x, low), high);
 }
 
-#endif // TOML11_HAS_STD_CLAMP
+#endif  // TOML11_HAS_STD_CLAMP
 
-} // namespace cxx
-} // namespace toml
+}  // namespace cxx
+}  // namespace toml
 
 // ---------------------------------------------------------------------------
 
@@ -1612,21 +1472,21 @@ using std::bit_cast;
 
 #else
 
-template <typename U, typename T> U bit_cast(const T &x) noexcept {
+template <typename U, typename T>
+U bit_cast(const T& x) noexcept {
   static_assert(sizeof(T) == sizeof(U), "");
   static_assert(std::is_default_constructible<T>::value, "");
 
   U z;
-  std::memcpy(reinterpret_cast<char *>(std::addressof(z)),
-              reinterpret_cast<const char *>(std::addressof(x)), sizeof(T));
+  std::memcpy(reinterpret_cast<char*>(std::addressof(z)), reinterpret_cast<const char*>(std::addressof(x)), sizeof(T));
 
   return z;
 }
 
-#endif // TOML11_HAS_STD_BIT_CAST
+#endif  // TOML11_HAS_STD_BIT_CAST
 
-} // namespace cxx
-} // namespace toml
+}  // namespace cxx
+}  // namespace toml
 
 // ---------------------------------------------------------------------------
 // C++20 remove_cvref_t
@@ -1648,17 +1508,18 @@ using std::remove_cvref_t;
 
 #else
 
-template <typename T> struct remove_cvref {
-  using type =
-      typename std::remove_cv<typename std::remove_reference<T>::type>::type;
+template <typename T>
+struct remove_cvref {
+  using type = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
 };
 
-template <typename T> using remove_cvref_t = typename remove_cvref<T>::type;
+template <typename T>
+using remove_cvref_t = typename remove_cvref<T>::type;
 
-#endif // TOML11_HAS_STD_REMOVE_CVREF
+#endif  // TOML11_HAS_STD_REMOVE_CVREF
 
-} // namespace cxx
-} // namespace toml
+}  // namespace cxx
+}  // namespace toml
 
 // ---------------------------------------------------------------------------
 // C++17 and/or/not
@@ -1681,25 +1542,27 @@ using std::negation;
 
 #else
 
-template <typename...> struct conjunction : std::true_type {};
-template <typename T> struct conjunction<T> : T {};
+template <typename...>
+struct conjunction : std::true_type {};
+template <typename T>
+struct conjunction<T> : T {};
 template <typename T, typename... Ts>
-struct conjunction<T, Ts...> : std::conditional<static_cast<bool>(T::value),
-                                                conjunction<Ts...>, T>::type {};
+struct conjunction<T, Ts...> : std::conditional<static_cast<bool>(T::value), conjunction<Ts...>, T>::type {};
 
-template <typename...> struct disjunction : std::false_type {};
-template <typename T> struct disjunction<T> : T {};
+template <typename...>
+struct disjunction : std::false_type {};
+template <typename T>
+struct disjunction<T> : T {};
 template <typename T, typename... Ts>
-struct disjunction<T, Ts...> : std::conditional<static_cast<bool>(T::value), T,
-                                                disjunction<Ts...>>::type {};
+struct disjunction<T, Ts...> : std::conditional<static_cast<bool>(T::value), T, disjunction<Ts...>>::type {};
 
 template <typename T>
 struct negation : std::integral_constant<bool, !static_cast<bool>(T::value)> {};
 
-#endif // TOML11_HAS_STD_CONJUNCTION
+#endif  // TOML11_HAS_STD_CONJUNCTION
 
-} // namespace cxx
-} // namespace toml
+}  // namespace cxx
+}  // namespace toml
 
 // ---------------------------------------------------------------------------
 // C++14 index_sequence
@@ -1721,9 +1584,11 @@ using std::make_index_sequence;
 
 #else
 
-template <std::size_t... Ns> struct index_sequence {};
+template <std::size_t... Ns>
+struct index_sequence {};
 
-template <bool B, std::size_t N, typename T> struct double_index_sequence;
+template <bool B, std::size_t N, typename T>
+struct double_index_sequence;
 
 template <std::size_t N, std::size_t... Is>
 struct double_index_sequence<true, N, index_sequence<Is...>> {
@@ -1734,19 +1599,22 @@ struct double_index_sequence<false, N, index_sequence<Is...>> {
   using type = index_sequence<Is..., (Is + N)...>;
 };
 
-template <std::size_t N> struct index_sequence_maker {
-  using type = typename double_index_sequence<
-      N % 2 == 1, N / 2, typename index_sequence_maker<N / 2>::type>::type;
+template <std::size_t N>
+struct index_sequence_maker {
+  using type = typename double_index_sequence<N % 2 == 1, N / 2, typename index_sequence_maker<N / 2>::type>::type;
 };
-template <> struct index_sequence_maker<0> { using type = index_sequence<>; };
+template <>
+struct index_sequence_maker<0> {
+  using type = index_sequence<>;
+};
 
 template <std::size_t N>
 using make_index_sequence = typename index_sequence_maker<N>::type;
 
-#endif // TOML11_HAS_STD_INTEGER_SEQUENCE
+#endif  // TOML11_HAS_STD_INTEGER_SEQUENCE
 
-} // namespace cxx
-} // namespace toml
+}  // namespace cxx
+}  // namespace toml
 
 // ---------------------------------------------------------------------------
 // C++14 enable_if_t
@@ -1770,10 +1638,10 @@ using std::enable_if_t;
 template <bool B, typename T>
 using enable_if_t = typename std::enable_if<B, T>::type;
 
-#endif // TOML11_HAS_STD_ENABLE_IF_T
+#endif  // TOML11_HAS_STD_ENABLE_IF_T
 
-} // namespace cxx
-} // namespace toml
+}  // namespace cxx
+}  // namespace toml
 
 // ---------------------------------------------------------------------------
 // return_type_of_t
@@ -1799,10 +1667,10 @@ using return_type_of_t = std::invoke_result_t<F, Args...>;
 template <typename F, typename... Args>
 using return_type_of_t = typename std::result_of<F(Args...)>::type;
 
-#endif // TOML11_HAS_STD_INVOKE_RESULT
+#endif  // TOML11_HAS_STD_INVOKE_RESULT
 
-} // namespace cxx
-} // namespace toml
+}  // namespace cxx
+}  // namespace toml
 
 // ----------------------------------------------------------------------------
 // (subset of) source_location
@@ -1810,8 +1678,8 @@ using return_type_of_t = typename std::result_of<F(Args...)>::type;
 #if TOML11_CPLUSPLUS_STANDARD_VERSION >= 202002L
 #if __has_include(<source_location>)
 #define TOML11_HAS_STD_SOURCE_LOCATION
-#endif // has_include
-#endif // c++20
+#endif  // has_include
+#endif  // c++20
 
 #if !defined(TOML11_HAS_STD_SOURCE_LOCATION)
 #if defined(__GNUC__) && !defined(__clang__)
@@ -1820,17 +1688,16 @@ using return_type_of_t = typename std::result_of<F(Args...)>::type;
 #define TOML11_HAS_EXPERIMENTAL_SOURCE_LOCATION
 #endif
 #endif
-#endif // GNU g++
-#endif // not TOML11_HAS_STD_SOURCE_LOCATION
+#endif  // GNU g++
+#endif  // not TOML11_HAS_STD_SOURCE_LOCATION
 
-#if !defined(TOML11_HAS_STD_SOURCE_LOCATION) &&                                \
-    !defined(TOML11_HAS_EXPERIMENTAL_SOURCE_LOCATION)
+#if !defined(TOML11_HAS_STD_SOURCE_LOCATION) && !defined(TOML11_HAS_EXPERIMENTAL_SOURCE_LOCATION)
 #if defined(__GNUC__) && !defined(__clang__)
 #if (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 9))
 #define TOML11_HAS_BUILTIN_FILE_LINE 1
 #define TOML11_BUILTIN_LINE_TYPE int
 #endif
-#elif defined(__clang__) // clang 9.0.0 implements builtin_FILE/LINE
+#elif defined(__clang__)  // clang 9.0.0 implements builtin_FILE/LINE
 #if __has_builtin(__builtin_FILE) && __has_builtin(__builtin_LINE)
 #define TOML11_HAS_BUILTIN_FILE_LINE 1
 #define TOML11_BUILTIN_LINE_TYPE unsigned int
@@ -1849,64 +1716,60 @@ namespace toml {
 namespace cxx {
 using source_location = std::source_location;
 
-inline std::string to_string(const source_location &loc) {
-  return std::string(" at line ") + std::to_string(loc.line()) +
-         std::string(" in file ") + std::string(loc.file_name());
+inline std::string to_string(const source_location& loc) {
+  return std::string(" at line ") + std::to_string(loc.line()) + std::string(" in file ") +
+         std::string(loc.file_name());
 }
-} // namespace cxx
-} // namespace toml
+}  // namespace cxx
+}  // namespace toml
 #elif defined(TOML11_HAS_EXPERIMENTAL_SOURCE_LOCATION)
 #include <experimental/source_location>
 namespace toml {
 namespace cxx {
 using source_location = std::experimental::source_location;
 
-inline std::string to_string(const source_location &loc) {
-  return std::string(" at line ") + std::to_string(loc.line()) +
-         std::string(" in file ") + std::string(loc.file_name());
+inline std::string to_string(const source_location& loc) {
+  return std::string(" at line ") + std::to_string(loc.line()) + std::string(" in file ") +
+         std::string(loc.file_name());
 }
-} // namespace cxx
-} // namespace toml
+}  // namespace cxx
+}  // namespace toml
 #elif defined(TOML11_HAS_BUILTIN_FILE_LINE)
 namespace toml {
 namespace cxx {
 struct source_location {
   using line_type = TOML11_BUILTIN_LINE_TYPE;
-  static source_location current(const line_type line = __builtin_LINE(),
-                                 const char *file = __builtin_FILE()) {
+  static source_location current(const line_type line = __builtin_LINE(), const char* file = __builtin_FILE()) {
     return source_location(line, file);
   }
 
-  source_location(const line_type line, const char *file)
-      : line_(line), file_name_(file) {}
+  source_location(const line_type line, const char* file) : line_(line), file_name_(file) {}
 
   line_type line() const noexcept { return line_; }
-  const char *file_name() const noexcept { return file_name_; }
+  const char* file_name() const noexcept { return file_name_; }
 
-private:
+ private:
   line_type line_;
-  const char *file_name_;
+  const char* file_name_;
 };
 
-inline std::string to_string(const source_location &loc) {
-  return std::string(" at line ") + std::to_string(loc.line()) +
-         std::string(" in file ") + std::string(loc.file_name());
+inline std::string to_string(const source_location& loc) {
+  return std::string(" at line ") + std::to_string(loc.line()) + std::string(" in file ") +
+         std::string(loc.file_name());
 }
-} // namespace cxx
-} // namespace toml
-#else  // no builtin
+}  // namespace cxx
+}  // namespace toml
+#else   // no builtin
 namespace toml {
 namespace cxx {
 struct source_location {
   static source_location current() { return source_location{}; }
 };
 
-inline std::string to_string(const source_location &) {
-  return std::string("");
-}
-} // namespace cxx
-} // namespace toml
-#endif // TOML11_HAS_STD_SOURCE_LOCATION
+inline std::string to_string(const source_location&) { return std::string(""); }
+}  // namespace cxx
+}  // namespace toml
+#endif  // TOML11_HAS_STD_SOURCE_LOCATION
 
 // ----------------------------------------------------------------------------
 // (subset of) optional
@@ -1914,8 +1777,8 @@ inline std::string to_string(const source_location &) {
 #if TOML11_CPLUSPLUS_STANDARD_VERSION >= TOML11_CXX17_VALUE
 #if __has_include(<optional>)
 #include <optional>
-#endif // has_include(optional)
-#endif // C++17
+#endif  // has_include(optional)
+#endif  // C++17
 
 #if TOML11_CPLUSPLUS_STANDARD_VERSION >= TOML11_CXX17_VALUE
 #if defined(__cpp_lib_optional)
@@ -1934,16 +1797,15 @@ using std::optional;
 inline std::nullopt_t make_nullopt() { return std::nullopt; }
 
 template <typename charT, typename traitsT>
-std::basic_ostream<charT, traitsT> &
-operator<<(std::basic_ostream<charT, traitsT> &os, const std::nullopt_t &) {
+std::basic_ostream<charT, traitsT>& operator<<(std::basic_ostream<charT, traitsT>& os, const std::nullopt_t&) {
   os << "nullopt";
   return os;
 }
 
-} // namespace cxx
-} // namespace toml
+}  // namespace cxx
+}  // namespace toml
 
-#else  // TOML11_HAS_STD_OPTIONAL
+#else   // TOML11_HAS_STD_OPTIONAL
 
 namespace toml {
 namespace cxx {
@@ -1951,109 +1813,88 @@ namespace cxx {
 struct nullopt_t {};
 inline nullopt_t make_nullopt() { return nullopt_t{}; }
 
-inline bool operator==(const nullopt_t &, const nullopt_t &) noexcept {
-  return true;
-}
-inline bool operator!=(const nullopt_t &, const nullopt_t &) noexcept {
-  return false;
-}
-inline bool operator<(const nullopt_t &, const nullopt_t &) noexcept {
-  return false;
-}
-inline bool operator<=(const nullopt_t &, const nullopt_t &) noexcept {
-  return true;
-}
-inline bool operator>(const nullopt_t &, const nullopt_t &) noexcept {
-  return false;
-}
-inline bool operator>=(const nullopt_t &, const nullopt_t &) noexcept {
-  return true;
-}
+inline bool operator==(const nullopt_t&, const nullopt_t&) noexcept { return true; }
+inline bool operator!=(const nullopt_t&, const nullopt_t&) noexcept { return false; }
+inline bool operator<(const nullopt_t&, const nullopt_t&) noexcept { return false; }
+inline bool operator<=(const nullopt_t&, const nullopt_t&) noexcept { return true; }
+inline bool operator>(const nullopt_t&, const nullopt_t&) noexcept { return false; }
+inline bool operator>=(const nullopt_t&, const nullopt_t&) noexcept { return true; }
 
 template <typename charT, typename traitsT>
-std::basic_ostream<charT, traitsT> &
-operator<<(std::basic_ostream<charT, traitsT> &os, const nullopt_t &) {
+std::basic_ostream<charT, traitsT>& operator<<(std::basic_ostream<charT, traitsT>& os, const nullopt_t&) {
   os << "nullopt";
   return os;
 }
 
-template <typename T> class optional {
-public:
+template <typename T>
+class optional {
+ public:
   using value_type = T;
 
-public:
+ public:
   optional() noexcept : has_value_(false), null_('\0') {}
   optional(nullopt_t) noexcept : has_value_(false), null_('\0') {}
 
-  optional(const T &x) : has_value_(true), value_(x) {}
-  optional(T &&x) : has_value_(true), value_(std::move(x)) {}
+  optional(const T& x) : has_value_(true), value_(x) {}
+  optional(T&& x) : has_value_(true), value_(std::move(x)) {}
 
-  template <typename U, enable_if_t<std::is_constructible<T, U>::value,
+  template <typename U, enable_if_t<std::is_constructible<T, U>::value, std::nullptr_t> = nullptr>
+  explicit optional(U&& x) : has_value_(true), value_(std::forward<U>(x)) {}
+
+  optional(const optional& rhs) : has_value_(rhs.has_value_) {
+    if (rhs.has_value_) {
+      this->assigner(rhs.value_);
+    }
+  }
+  optional(optional&& rhs) : has_value_(rhs.has_value_) {
+    if (this->has_value_) {
+      this->assigner(std::move(rhs.value_));
+    }
+  }
+
+  optional& operator=(const optional& rhs) {
+    if (this == std::addressof(rhs)) {
+      return *this;
+    }
+
+    this->cleanup();
+    this->has_value_ = rhs.has_value_;
+    if (this->has_value_) {
+      this->assigner(rhs.value_);
+    }
+    return *this;
+  }
+  optional& operator=(optional&& rhs) {
+    if (this == std::addressof(rhs)) {
+      return *this;
+    }
+
+    this->cleanup();
+    this->has_value_ = rhs.has_value_;
+    if (this->has_value_) {
+      this->assigner(std::move(rhs.value_));
+    }
+    return *this;
+  }
+
+  template <typename U, enable_if_t<conjunction<negation<std::is_same<T, U>>, std::is_constructible<T, U>>::value,
                                     std::nullptr_t> = nullptr>
-  explicit optional(U &&x) : has_value_(true), value_(std::forward<U>(x)) {}
-
-  optional(const optional &rhs) : has_value_(rhs.has_value_) {
+  explicit optional(const optional<U>& rhs) : has_value_(rhs.has_value_), null_('\0') {
     if (rhs.has_value_) {
       this->assigner(rhs.value_);
     }
   }
-  optional(optional &&rhs) : has_value_(rhs.has_value_) {
+  template <typename U, enable_if_t<conjunction<negation<std::is_same<T, U>>, std::is_constructible<T, U>>::value,
+                                    std::nullptr_t> = nullptr>
+  explicit optional(optional<U>&& rhs) : has_value_(rhs.has_value_), null_('\0') {
     if (this->has_value_) {
       this->assigner(std::move(rhs.value_));
     }
   }
 
-  optional &operator=(const optional &rhs) {
-    if (this == std::addressof(rhs)) {
-      return *this;
-    }
-
-    this->cleanup();
-    this->has_value_ = rhs.has_value_;
-    if (this->has_value_) {
-      this->assigner(rhs.value_);
-    }
-    return *this;
-  }
-  optional &operator=(optional &&rhs) {
-    if (this == std::addressof(rhs)) {
-      return *this;
-    }
-
-    this->cleanup();
-    this->has_value_ = rhs.has_value_;
-    if (this->has_value_) {
-      this->assigner(std::move(rhs.value_));
-    }
-    return *this;
-  }
-
-  template <typename U,
-            enable_if_t<conjunction<negation<std::is_same<T, U>>,
-                                    std::is_constructible<T, U>>::value,
-                        std::nullptr_t> = nullptr>
-  explicit optional(const optional<U> &rhs)
-      : has_value_(rhs.has_value_), null_('\0') {
-    if (rhs.has_value_) {
-      this->assigner(rhs.value_);
-    }
-  }
-  template <typename U,
-            enable_if_t<conjunction<negation<std::is_same<T, U>>,
-                                    std::is_constructible<T, U>>::value,
-                        std::nullptr_t> = nullptr>
-  explicit optional(optional<U> &&rhs)
-      : has_value_(rhs.has_value_), null_('\0') {
-    if (this->has_value_) {
-      this->assigner(std::move(rhs.value_));
-    }
-  }
-
-  template <typename U,
-            enable_if_t<conjunction<negation<std::is_same<T, U>>,
-                                    std::is_constructible<T, U>>::value,
-                        std::nullptr_t> = nullptr>
-  optional &operator=(const optional<U> &rhs) {
+  template <typename U, enable_if_t<conjunction<negation<std::is_same<T, U>>, std::is_constructible<T, U>>::value,
+                                    std::nullptr_t> = nullptr>
+  optional& operator=(const optional<U>& rhs) {
     if (this == std::addressof(rhs)) {
       return *this;
     }
@@ -2066,11 +1907,9 @@ public:
     return *this;
   }
 
-  template <typename U,
-            enable_if_t<conjunction<negation<std::is_same<T, U>>,
-                                    std::is_constructible<T, U>>::value,
-                        std::nullptr_t> = nullptr>
-  optional &operator=(optional<U> &&rhs) {
+  template <typename U, enable_if_t<conjunction<negation<std::is_same<T, U>>, std::is_constructible<T, U>>::value,
+                                    std::nullptr_t> = nullptr>
+  optional& operator=(optional<U>&& rhs) {
     if (this == std::addressof(rhs)) {
       return *this;
     }
@@ -2088,30 +1927,27 @@ public:
 
   bool has_value() const noexcept { return has_value_; }
 
-  value_type const &
-  value(source_location loc = source_location::current()) const {
+  value_type const& value(source_location loc = source_location::current()) const {
     if (!this->has_value_) {
-      throw std::runtime_error("optional::value(): bad_unwrap" +
-                               to_string(loc));
+      throw std::runtime_error("optional::value(): bad_unwrap" + to_string(loc));
     }
     return this->value_;
   }
-  value_type &value(source_location loc = source_location::current()) {
+  value_type& value(source_location loc = source_location::current()) {
     if (!this->has_value_) {
-      throw std::runtime_error("optional::value(): bad_unwrap" +
-                               to_string(loc));
+      throw std::runtime_error("optional::value(): bad_unwrap" + to_string(loc));
     }
     return this->value_;
   }
 
-  value_type const &value_or(const value_type &opt) const {
+  value_type const& value_or(const value_type& opt) const {
     if (this->has_value_) {
       return this->value_;
     } else {
       return opt;
     }
   }
-  value_type &value_or(value_type &opt) {
+  value_type& value_or(value_type& opt) {
     if (this->has_value_) {
       return this->value_;
     } else {
@@ -2119,32 +1955,32 @@ public:
     }
   }
 
-private:
+ private:
   void cleanup() noexcept {
     if (this->has_value_) {
       value_.~T();
     }
   }
 
-  template <typename U> void assigner(U &&x) {
-    const auto tmp =
-        ::new (std::addressof(this->value_)) value_type(std::forward<U>(x));
+  template <typename U>
+  void assigner(U&& x) {
+    const auto tmp = ::new (std::addressof(this->value_)) value_type(std::forward<U>(x));
     assert(tmp == std::addressof(this->value_));
     (void)tmp;
   }
 
-private:
+ private:
   bool has_value_;
   union {
     char null_;
     T value_;
   };
 };
-} // namespace cxx
-} // namespace toml
-#endif // TOML11_HAS_STD_OPTIONAL
+}  // namespace cxx
+}  // namespace toml
+#endif  // TOML11_HAS_STD_OPTIONAL
 
-#endif // TOML11_COMPAT_HPP
+#endif  // TOML11_COMPAT_HPP
 #ifndef TOML11_VALUE_T_HPP
 #define TOML11_VALUE_T_HPP
 
@@ -2160,7 +1996,8 @@ private:
 namespace toml {
 
 // forward decl
-template <typename TypeConfig> class basic_value;
+template <typename TypeConfig>
+class basic_value;
 
 // ----------------------------------------------------------------------------
 // enum representing toml types
@@ -2179,7 +2016,7 @@ enum class value_t : std::uint8_t {
   table = 10
 };
 
-std::ostream &operator<<(std::ostream &os, value_t t);
+std::ostream& operator<<(std::ostream& os, value_t t);
 std::string to_string(value_t t);
 
 // ----------------------------------------------------------------------------
@@ -2194,102 +2031,118 @@ template <typename T, typename Value>
 struct type_to_enum : value_t_constant<value_t::empty> {};
 
 template <typename V>
-struct type_to_enum<typename V::boolean_type, V>
-    : value_t_constant<value_t::boolean> {};
+struct type_to_enum<typename V::boolean_type, V> : value_t_constant<value_t::boolean> {};
 template <typename V>
-struct type_to_enum<typename V::integer_type, V>
-    : value_t_constant<value_t::integer> {};
+struct type_to_enum<typename V::integer_type, V> : value_t_constant<value_t::integer> {};
 template <typename V>
-struct type_to_enum<typename V::floating_type, V>
-    : value_t_constant<value_t::floating> {};
+struct type_to_enum<typename V::floating_type, V> : value_t_constant<value_t::floating> {};
 template <typename V>
-struct type_to_enum<typename V::string_type, V>
-    : value_t_constant<value_t::string> {};
+struct type_to_enum<typename V::string_type, V> : value_t_constant<value_t::string> {};
 template <typename V>
-struct type_to_enum<typename V::offset_datetime_type, V>
-    : value_t_constant<value_t::offset_datetime> {};
+struct type_to_enum<typename V::offset_datetime_type, V> : value_t_constant<value_t::offset_datetime> {};
 template <typename V>
-struct type_to_enum<typename V::local_datetime_type, V>
-    : value_t_constant<value_t::local_datetime> {};
+struct type_to_enum<typename V::local_datetime_type, V> : value_t_constant<value_t::local_datetime> {};
 template <typename V>
-struct type_to_enum<typename V::local_date_type, V>
-    : value_t_constant<value_t::local_date> {};
+struct type_to_enum<typename V::local_date_type, V> : value_t_constant<value_t::local_date> {};
 template <typename V>
-struct type_to_enum<typename V::local_time_type, V>
-    : value_t_constant<value_t::local_time> {};
+struct type_to_enum<typename V::local_time_type, V> : value_t_constant<value_t::local_time> {};
 template <typename V>
-struct type_to_enum<typename V::array_type, V>
-    : value_t_constant<value_t::array> {};
+struct type_to_enum<typename V::array_type, V> : value_t_constant<value_t::array> {};
 template <typename V>
-struct type_to_enum<typename V::table_type, V>
-    : value_t_constant<value_t::table> {};
+struct type_to_enum<typename V::table_type, V> : value_t_constant<value_t::table> {};
 
-template <value_t V, typename Value> struct enum_to_type { using type = void; };
+template <value_t V, typename Value>
+struct enum_to_type {
+  using type = void;
+};
 
-template <typename V> struct enum_to_type<value_t::boolean, V> {
+template <typename V>
+struct enum_to_type<value_t::boolean, V> {
   using type = typename V::boolean_type;
 };
-template <typename V> struct enum_to_type<value_t::integer, V> {
+template <typename V>
+struct enum_to_type<value_t::integer, V> {
   using type = typename V::integer_type;
 };
-template <typename V> struct enum_to_type<value_t::floating, V> {
+template <typename V>
+struct enum_to_type<value_t::floating, V> {
   using type = typename V::floating_type;
 };
-template <typename V> struct enum_to_type<value_t::string, V> {
+template <typename V>
+struct enum_to_type<value_t::string, V> {
   using type = typename V::string_type;
 };
-template <typename V> struct enum_to_type<value_t::offset_datetime, V> {
+template <typename V>
+struct enum_to_type<value_t::offset_datetime, V> {
   using type = typename V::offset_datetime_type;
 };
-template <typename V> struct enum_to_type<value_t::local_datetime, V> {
+template <typename V>
+struct enum_to_type<value_t::local_datetime, V> {
   using type = typename V::local_datetime_type;
 };
-template <typename V> struct enum_to_type<value_t::local_date, V> {
+template <typename V>
+struct enum_to_type<value_t::local_date, V> {
   using type = typename V::local_date_type;
 };
-template <typename V> struct enum_to_type<value_t::local_time, V> {
+template <typename V>
+struct enum_to_type<value_t::local_time, V> {
   using type = typename V::local_time_type;
 };
-template <typename V> struct enum_to_type<value_t::array, V> {
+template <typename V>
+struct enum_to_type<value_t::array, V> {
   using type = typename V::array_type;
 };
-template <typename V> struct enum_to_type<value_t::table, V> {
+template <typename V>
+struct enum_to_type<value_t::table, V> {
   using type = typename V::table_type;
 };
 
 template <value_t V, typename Value>
 using enum_to_type_t = typename enum_to_type<V, Value>::type;
 
-template <value_t V> struct enum_to_fmt_type { using type = void; };
+template <value_t V>
+struct enum_to_fmt_type {
+  using type = void;
+};
 
-template <> struct enum_to_fmt_type<value_t::boolean> {
+template <>
+struct enum_to_fmt_type<value_t::boolean> {
   using type = boolean_format_info;
 };
-template <> struct enum_to_fmt_type<value_t::integer> {
+template <>
+struct enum_to_fmt_type<value_t::integer> {
   using type = integer_format_info;
 };
-template <> struct enum_to_fmt_type<value_t::floating> {
+template <>
+struct enum_to_fmt_type<value_t::floating> {
   using type = floating_format_info;
 };
-template <> struct enum_to_fmt_type<value_t::string> {
+template <>
+struct enum_to_fmt_type<value_t::string> {
   using type = string_format_info;
 };
-template <> struct enum_to_fmt_type<value_t::offset_datetime> {
+template <>
+struct enum_to_fmt_type<value_t::offset_datetime> {
   using type = offset_datetime_format_info;
 };
-template <> struct enum_to_fmt_type<value_t::local_datetime> {
+template <>
+struct enum_to_fmt_type<value_t::local_datetime> {
   using type = local_datetime_format_info;
 };
-template <> struct enum_to_fmt_type<value_t::local_date> {
+template <>
+struct enum_to_fmt_type<value_t::local_date> {
   using type = local_date_format_info;
 };
-template <> struct enum_to_fmt_type<value_t::local_time> {
+template <>
+struct enum_to_fmt_type<value_t::local_time> {
   using type = local_time_format_info;
 };
-template <> struct enum_to_fmt_type<value_t::array> {
+template <>
+struct enum_to_fmt_type<value_t::array> {
   using type = array_format_info;
 };
-template <> struct enum_to_fmt_type<value_t::table> {
+template <>
+struct enum_to_fmt_type<value_t::table> {
   using type = table_format_info;
 };
 
@@ -2298,24 +2151,20 @@ using enum_to_fmt_type_t = typename enum_to_fmt_type<V>::type;
 
 template <typename T, typename Value>
 struct is_exact_toml_type0
-    : cxx::disjunction<std::is_same<T, typename Value::boolean_type>,
-                       std::is_same<T, typename Value::integer_type>,
-                       std::is_same<T, typename Value::floating_type>,
-                       std::is_same<T, typename Value::string_type>,
-                       std::is_same<T, typename Value::offset_datetime_type>,
-                       std::is_same<T, typename Value::local_datetime_type>,
-                       std::is_same<T, typename Value::local_date_type>,
-                       std::is_same<T, typename Value::local_time_type>,
-                       std::is_same<T, typename Value::array_type>,
-                       std::is_same<T, typename Value::table_type>> {};
+    : cxx::disjunction<
+          std::is_same<T, typename Value::boolean_type>, std::is_same<T, typename Value::integer_type>,
+          std::is_same<T, typename Value::floating_type>, std::is_same<T, typename Value::string_type>,
+          std::is_same<T, typename Value::offset_datetime_type>, std::is_same<T, typename Value::local_datetime_type>,
+          std::is_same<T, typename Value::local_date_type>, std::is_same<T, typename Value::local_time_type>,
+          std::is_same<T, typename Value::array_type>, std::is_same<T, typename Value::table_type>> {};
 template <typename T, typename V>
 struct is_exact_toml_type : is_exact_toml_type0<cxx::remove_cvref_t<T>, V> {};
 template <typename T, typename V>
 struct is_not_toml_type : cxx::negation<is_exact_toml_type<T, V>> {};
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_VALUE_T_FWD_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_VALUE_T_FWD_HPP
 
 #if !defined(TOML11_COMPILE_SOURCES)
 #ifndef TOML11_VALUE_T_IMPL_HPP
@@ -2327,44 +2176,44 @@ struct is_not_toml_type : cxx::negation<is_exact_toml_type<T, V>> {};
 
 namespace toml {
 
-TOML11_INLINE std::ostream &operator<<(std::ostream &os, value_t t) {
+TOML11_INLINE std::ostream& operator<<(std::ostream& os, value_t t) {
   switch (t) {
-  case value_t::boolean:
-    os << "boolean";
-    return os;
-  case value_t::integer:
-    os << "integer";
-    return os;
-  case value_t::floating:
-    os << "floating";
-    return os;
-  case value_t::string:
-    os << "string";
-    return os;
-  case value_t::offset_datetime:
-    os << "offset_datetime";
-    return os;
-  case value_t::local_datetime:
-    os << "local_datetime";
-    return os;
-  case value_t::local_date:
-    os << "local_date";
-    return os;
-  case value_t::local_time:
-    os << "local_time";
-    return os;
-  case value_t::array:
-    os << "array";
-    return os;
-  case value_t::table:
-    os << "table";
-    return os;
-  case value_t::empty:
-    os << "empty";
-    return os;
-  default:
-    os << "unknown";
-    return os;
+    case value_t::boolean:
+      os << "boolean";
+      return os;
+    case value_t::integer:
+      os << "integer";
+      return os;
+    case value_t::floating:
+      os << "floating";
+      return os;
+    case value_t::string:
+      os << "string";
+      return os;
+    case value_t::offset_datetime:
+      os << "offset_datetime";
+      return os;
+    case value_t::local_datetime:
+      os << "local_datetime";
+      return os;
+    case value_t::local_date:
+      os << "local_date";
+      return os;
+    case value_t::local_time:
+      os << "local_time";
+      return os;
+    case value_t::array:
+      os << "array";
+      return os;
+    case value_t::table:
+      os << "table";
+      return os;
+    case value_t::empty:
+      os << "empty";
+      return os;
+    default:
+      os << "unknown";
+      return os;
   }
 }
 
@@ -2374,11 +2223,11 @@ TOML11_INLINE std::string to_string(value_t t) {
   return oss.str();
 }
 
-} // namespace toml
-#endif // TOML11_VALUE_T_IMPL_HPP
+}  // namespace toml
+#endif  // TOML11_VALUE_T_IMPL_HPP
 #endif
 
-#endif // TOML11_VALUE_T_HPP
+#endif  // TOML11_VALUE_T_HPP
 #ifndef TOML11_STORAGE_HPP
 #define TOML11_STORAGE_HPP
 
@@ -2395,32 +2244,33 @@ namespace detail {
 // `std::vector<std::unique_ptr<toml::value>>`. Although `std::unique_ptr` is
 // noncopyable, we want to make `toml::value` copyable. `storage` is introduced
 // to resolve those problems.
-template <typename T> struct storage {
+template <typename T>
+struct storage {
   using value_type = T;
 
   explicit storage(value_type v) : ptr_(cxx::make_unique<T>(std::move(v))) {}
   ~storage() = default;
 
-  storage(const storage &rhs) : ptr_(cxx::make_unique<T>(*rhs.ptr_)) {}
-  storage &operator=(const storage &rhs) {
+  storage(const storage& rhs) : ptr_(cxx::make_unique<T>(*rhs.ptr_)) {}
+  storage& operator=(const storage& rhs) {
     this->ptr_ = cxx::make_unique<T>(*rhs.ptr_);
     return *this;
   }
 
-  storage(storage &&) = default;
-  storage &operator=(storage &&) = default;
+  storage(storage&&) = default;
+  storage& operator=(storage&&) = default;
 
   bool is_ok() const noexcept { return static_cast<bool>(ptr_); }
 
-  value_type &get() const noexcept { return *ptr_; }
+  value_type& get() const noexcept { return *ptr_; }
 
-private:
+ private:
   std::unique_ptr<value_type> ptr_;
 };
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_STORAGE_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_STORAGE_HPP
 #ifndef TOML11_COMMENTS_HPP
 #define TOML11_COMMENTS_HPP
 
@@ -2448,10 +2298,10 @@ private:
 // `discard_comments` is always empty and you will encounter an error whenever
 // you access to the element.
 namespace toml {
-class discard_comments; // forward decl
+class discard_comments;  // forward decl
 
 class preserve_comments {
-public:
+ public:
   // `container_type` is not provided in discard_comments.
   // do not use this inner-type in a generic code.
   using container_type = std::vector<std::string>;
@@ -2468,115 +2318,95 @@ public:
   using reverse_iterator = container_type::reverse_iterator;
   using const_reverse_iterator = container_type::const_reverse_iterator;
 
-public:
+ public:
   preserve_comments() = default;
   ~preserve_comments() = default;
-  preserve_comments(preserve_comments const &) = default;
-  preserve_comments(preserve_comments &&) = default;
-  preserve_comments &operator=(preserve_comments const &) = default;
-  preserve_comments &operator=(preserve_comments &&) = default;
+  preserve_comments(preserve_comments const&) = default;
+  preserve_comments(preserve_comments&&) = default;
+  preserve_comments& operator=(preserve_comments const&) = default;
+  preserve_comments& operator=(preserve_comments&&) = default;
 
-  explicit preserve_comments(const std::vector<std::string> &c) : comments(c) {}
-  explicit preserve_comments(std::vector<std::string> &&c)
-      : comments(std::move(c)) {}
-  preserve_comments &operator=(const std::vector<std::string> &c) {
+  explicit preserve_comments(const std::vector<std::string>& c) : comments(c) {}
+  explicit preserve_comments(std::vector<std::string>&& c) : comments(std::move(c)) {}
+  preserve_comments& operator=(const std::vector<std::string>& c) {
     comments = c;
     return *this;
   }
-  preserve_comments &operator=(std::vector<std::string> &&c) {
+  preserve_comments& operator=(std::vector<std::string>&& c) {
     comments = std::move(c);
     return *this;
   }
 
-  explicit preserve_comments(const discard_comments &) {}
+  explicit preserve_comments(const discard_comments&) {}
 
   explicit preserve_comments(size_type n) : comments(n) {}
-  preserve_comments(size_type n, const std::string &x) : comments(n, x) {}
+  preserve_comments(size_type n, const std::string& x) : comments(n, x) {}
   preserve_comments(std::initializer_list<std::string> x) : comments(x) {}
   template <typename InputIterator>
-  preserve_comments(InputIterator first, InputIterator last)
-      : comments(first, last) {}
+  preserve_comments(InputIterator first, InputIterator last) : comments(first, last) {}
 
   template <typename InputIterator>
   void assign(InputIterator first, InputIterator last) {
     comments.assign(first, last);
   }
   void assign(std::initializer_list<std::string> ini) { comments.assign(ini); }
-  void assign(size_type n, const std::string &val) { comments.assign(n, val); }
+  void assign(size_type n, const std::string& val) { comments.assign(n, val); }
 
   // Related to the issue #97.
   //
   // `std::vector::insert` and `std::vector::erase` in the STL implementation
   // included in GCC 4.8.5 takes `std::vector::iterator` instead of
   // `std::vector::const_iterator`. It causes compilation error in GCC 4.8.5.
-#if defined(__GNUC__) && defined(__GNUC_MINOR__) &&                            \
-    defined(__GNUC_PATCHLEVEL__) && !defined(__clang__)
+#if defined(__GNUC__) && defined(__GNUC_MINOR__) && defined(__GNUC_PATCHLEVEL__) && !defined(__clang__)
 #if (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) <= 40805
 #define TOML11_WORKAROUND_GCC_4_8_X_STANDARD_LIBRARY_IMPLEMENTATION
 #endif
 #endif
 
 #ifdef TOML11_WORKAROUND_GCC_4_8_X_STANDARD_LIBRARY_IMPLEMENTATION
-  iterator insert(iterator p, const std::string &x) {
-    return comments.insert(p, x);
-  }
-  iterator insert(iterator p, std::string &&x) {
-    return comments.insert(p, std::move(x));
-  }
-  void insert(iterator p, size_type n, const std::string &x) {
-    return comments.insert(p, n, x);
-  }
+  iterator insert(iterator p, const std::string& x) { return comments.insert(p, x); }
+  iterator insert(iterator p, std::string&& x) { return comments.insert(p, std::move(x)); }
+  void insert(iterator p, size_type n, const std::string& x) { return comments.insert(p, n, x); }
   template <typename InputIterator>
   void insert(iterator p, InputIterator first, InputIterator last) {
     return comments.insert(p, first, last);
   }
-  void insert(iterator p, std::initializer_list<std::string> ini) {
-    return comments.insert(p, ini);
-  }
+  void insert(iterator p, std::initializer_list<std::string> ini) { return comments.insert(p, ini); }
 
-  template <typename... Ts> iterator emplace(iterator p, Ts &&... args) {
+  template <typename... Ts>
+  iterator emplace(iterator p, Ts&&... args) {
     return comments.emplace(p, std::forward<Ts>(args)...);
   }
 
   iterator erase(iterator pos) { return comments.erase(pos); }
-  iterator erase(iterator first, iterator last) {
-    return comments.erase(first, last);
-  }
+  iterator erase(iterator first, iterator last) { return comments.erase(first, last); }
 #else
-  iterator insert(const_iterator p, const std::string &x) {
-    return comments.insert(p, x);
-  }
-  iterator insert(const_iterator p, std::string &&x) {
-    return comments.insert(p, std::move(x));
-  }
-  iterator insert(const_iterator p, size_type n, const std::string &x) {
-    return comments.insert(p, n, x);
-  }
+  iterator insert(const_iterator p, const std::string& x) { return comments.insert(p, x); }
+  iterator insert(const_iterator p, std::string&& x) { return comments.insert(p, std::move(x)); }
+  iterator insert(const_iterator p, size_type n, const std::string& x) { return comments.insert(p, n, x); }
   template <typename InputIterator>
   iterator insert(const_iterator p, InputIterator first, InputIterator last) {
     return comments.insert(p, first, last);
   }
-  iterator insert(const_iterator p, std::initializer_list<std::string> ini) {
-    return comments.insert(p, ini);
-  }
+  iterator insert(const_iterator p, std::initializer_list<std::string> ini) { return comments.insert(p, ini); }
 
-  template <typename... Ts> iterator emplace(const_iterator p, Ts &&... args) {
+  template <typename... Ts>
+  iterator emplace(const_iterator p, Ts&&... args) {
     return comments.emplace(p, std::forward<Ts>(args)...);
   }
 
   iterator erase(const_iterator pos) { return comments.erase(pos); }
-  iterator erase(const_iterator first, const_iterator last) {
-    return comments.erase(first, last);
-  }
+  iterator erase(const_iterator first, const_iterator last) { return comments.erase(first, last); }
 #endif
 
-  void swap(preserve_comments &other) { comments.swap(other.comments); }
+  void swap(preserve_comments& other) { comments.swap(other.comments); }
 
-  void push_back(const std::string &v) { comments.push_back(v); }
-  void push_back(std::string &&v) { comments.push_back(std::move(v)); }
+  void push_back(const std::string& v) { comments.push_back(v); }
+  void push_back(std::string&& v) { comments.push_back(std::move(v)); }
   void pop_back() { comments.pop_back(); }
 
-  template <typename... Ts> void emplace_back(Ts &&... args) {
+  template <typename... Ts>
+  void emplace_back(Ts&&... args) {
     comments.emplace_back(std::forward<Ts>(args)...);
   }
 
@@ -2589,13 +2419,11 @@ public:
 
   void reserve(size_type n) { comments.reserve(n); }
   void resize(size_type n) { comments.resize(n); }
-  void resize(size_type n, const std::string &c) { comments.resize(n, c); }
+  void resize(size_type n, const std::string& c) { comments.resize(n, c); }
   void shrink_to_fit() { comments.shrink_to_fit(); }
 
   reference operator[](const size_type n) noexcept { return comments[n]; }
-  const_reference operator[](const size_type n) const noexcept {
-    return comments[n];
-  }
+  const_reference operator[](const size_type n) const noexcept { return comments[n]; }
   reference at(const size_type n) { return comments.at(n); }
   const_reference at(const size_type n) const { return comments.at(n); }
   reference front() noexcept { return comments.front(); }
@@ -2620,32 +2448,32 @@ public:
   const_reverse_iterator crbegin() const noexcept { return comments.crbegin(); }
   const_reverse_iterator crend() const noexcept { return comments.crend(); }
 
-  friend bool operator==(const preserve_comments &, const preserve_comments &);
-  friend bool operator!=(const preserve_comments &, const preserve_comments &);
-  friend bool operator<(const preserve_comments &, const preserve_comments &);
-  friend bool operator<=(const preserve_comments &, const preserve_comments &);
-  friend bool operator>(const preserve_comments &, const preserve_comments &);
-  friend bool operator>=(const preserve_comments &, const preserve_comments &);
+  friend bool operator==(const preserve_comments&, const preserve_comments&);
+  friend bool operator!=(const preserve_comments&, const preserve_comments&);
+  friend bool operator<(const preserve_comments&, const preserve_comments&);
+  friend bool operator<=(const preserve_comments&, const preserve_comments&);
+  friend bool operator>(const preserve_comments&, const preserve_comments&);
+  friend bool operator>=(const preserve_comments&, const preserve_comments&);
 
-  friend void swap(preserve_comments &, std::vector<std::string> &);
-  friend void swap(std::vector<std::string> &, preserve_comments &);
+  friend void swap(preserve_comments&, std::vector<std::string>&);
+  friend void swap(std::vector<std::string>&, preserve_comments&);
 
-private:
+ private:
   container_type comments;
 };
 
-bool operator==(const preserve_comments &lhs, const preserve_comments &rhs);
-bool operator!=(const preserve_comments &lhs, const preserve_comments &rhs);
-bool operator<(const preserve_comments &lhs, const preserve_comments &rhs);
-bool operator<=(const preserve_comments &lhs, const preserve_comments &rhs);
-bool operator>(const preserve_comments &lhs, const preserve_comments &rhs);
-bool operator>=(const preserve_comments &lhs, const preserve_comments &rhs);
+bool operator==(const preserve_comments& lhs, const preserve_comments& rhs);
+bool operator!=(const preserve_comments& lhs, const preserve_comments& rhs);
+bool operator<(const preserve_comments& lhs, const preserve_comments& rhs);
+bool operator<=(const preserve_comments& lhs, const preserve_comments& rhs);
+bool operator>(const preserve_comments& lhs, const preserve_comments& rhs);
+bool operator>=(const preserve_comments& lhs, const preserve_comments& rhs);
 
-void swap(preserve_comments &lhs, preserve_comments &rhs);
-void swap(preserve_comments &lhs, std::vector<std::string> &rhs);
-void swap(std::vector<std::string> &lhs, preserve_comments &rhs);
+void swap(preserve_comments& lhs, preserve_comments& rhs);
+void swap(preserve_comments& lhs, std::vector<std::string>& rhs);
+void swap(std::vector<std::string>& lhs, preserve_comments& rhs);
 
-std::ostream &operator<<(std::ostream &os, const preserve_comments &com);
+std::ostream& operator<<(std::ostream& os, const preserve_comments& com);
 
 namespace detail {
 
@@ -2655,92 +2483,82 @@ namespace detail {
 //
 // It always points null, so DO NOT unwrap this iterator. It always crashes
 // your program.
-template <typename T, bool is_const> struct empty_iterator {
+template <typename T, bool is_const>
+struct empty_iterator {
   using value_type = T;
-  using reference_type =
-      typename std::conditional<is_const, T const &, T &>::type;
-  using pointer_type =
-      typename std::conditional<is_const, T const *, T *>::type;
+  using reference_type = typename std::conditional<is_const, T const&, T&>::type;
+  using pointer_type = typename std::conditional<is_const, T const*, T*>::type;
   using difference_type = std::ptrdiff_t;
   using iterator_category = std::random_access_iterator_tag;
 
   empty_iterator() = default;
   ~empty_iterator() = default;
-  empty_iterator(empty_iterator const &) = default;
-  empty_iterator(empty_iterator &&) = default;
-  empty_iterator &operator=(empty_iterator const &) = default;
-  empty_iterator &operator=(empty_iterator &&) = default;
+  empty_iterator(empty_iterator const&) = default;
+  empty_iterator(empty_iterator&&) = default;
+  empty_iterator& operator=(empty_iterator const&) = default;
+  empty_iterator& operator=(empty_iterator&&) = default;
 
   // DO NOT call these operators.
   reference_type operator*() const noexcept { std::terminate(); }
   pointer_type operator->() const noexcept { return nullptr; }
-  reference_type operator[](difference_type) const noexcept {
-    return this->operator*();
-  }
+  reference_type operator[](difference_type) const noexcept { return this->operator*(); }
 
   // These operators do nothing.
-  empty_iterator &operator++() noexcept { return *this; }
+  empty_iterator& operator++() noexcept { return *this; }
   empty_iterator operator++(int) noexcept { return *this; }
-  empty_iterator &operator--() noexcept { return *this; }
+  empty_iterator& operator--() noexcept { return *this; }
   empty_iterator operator--(int) noexcept { return *this; }
 
-  empty_iterator &operator+=(difference_type) noexcept { return *this; }
-  empty_iterator &operator-=(difference_type) noexcept { return *this; }
+  empty_iterator& operator+=(difference_type) noexcept { return *this; }
+  empty_iterator& operator-=(difference_type) noexcept { return *this; }
 
   empty_iterator operator+(difference_type) const noexcept { return *this; }
   empty_iterator operator-(difference_type) const noexcept { return *this; }
 };
 
 template <typename T, bool C>
-bool operator==(const empty_iterator<T, C> &,
-                const empty_iterator<T, C> &) noexcept {
+bool operator==(const empty_iterator<T, C>&, const empty_iterator<T, C>&) noexcept {
   return true;
 }
 template <typename T, bool C>
-bool operator!=(const empty_iterator<T, C> &,
-                const empty_iterator<T, C> &) noexcept {
+bool operator!=(const empty_iterator<T, C>&, const empty_iterator<T, C>&) noexcept {
   return false;
 }
 template <typename T, bool C>
-bool operator<(const empty_iterator<T, C> &,
-               const empty_iterator<T, C> &) noexcept {
+bool operator<(const empty_iterator<T, C>&, const empty_iterator<T, C>&) noexcept {
   return false;
 }
 template <typename T, bool C>
-bool operator<=(const empty_iterator<T, C> &,
-                const empty_iterator<T, C> &) noexcept {
+bool operator<=(const empty_iterator<T, C>&, const empty_iterator<T, C>&) noexcept {
   return true;
 }
 template <typename T, bool C>
-bool operator>(const empty_iterator<T, C> &,
-               const empty_iterator<T, C> &) noexcept {
+bool operator>(const empty_iterator<T, C>&, const empty_iterator<T, C>&) noexcept {
   return false;
 }
 template <typename T, bool C>
-bool operator>=(const empty_iterator<T, C> &,
-                const empty_iterator<T, C> &) noexcept {
+bool operator>=(const empty_iterator<T, C>&, const empty_iterator<T, C>&) noexcept {
   return true;
 }
 
 template <typename T, bool C>
-typename empty_iterator<T, C>::difference_type
-operator-(const empty_iterator<T, C> &, const empty_iterator<T, C> &) noexcept {
+typename empty_iterator<T, C>::difference_type operator-(const empty_iterator<T, C>&,
+                                                         const empty_iterator<T, C>&) noexcept {
   return 0;
 }
 
 template <typename T, bool C>
 empty_iterator<T, C> operator+(typename empty_iterator<T, C>::difference_type,
-                               const empty_iterator<T, C> &rhs) noexcept {
+                               const empty_iterator<T, C>& rhs) noexcept {
   return rhs;
 }
 template <typename T, bool C>
-empty_iterator<T, C>
-operator+(const empty_iterator<T, C> &lhs,
-          typename empty_iterator<T, C>::difference_type) noexcept {
+empty_iterator<T, C> operator+(const empty_iterator<T, C>& lhs,
+                               typename empty_iterator<T, C>::difference_type) noexcept {
   return lhs;
 }
 
-} // namespace detail
+}  // namespace detail
 
 // The default comment type. It discards all the comments. It requires only one
 // byte to contain, so the memory footprint is smaller than preserve_comments.
@@ -2757,40 +2575,36 @@ operator+(const empty_iterator<T, C> &lhs,
 // To reduce the memory footprint, later we can try empty base optimization
 // (EBO).
 class discard_comments {
-public:
+ public:
   using size_type = std::size_t;
   using difference_type = std::ptrdiff_t;
   using value_type = std::string;
-  using reference = std::string &;
-  using const_reference = std::string const &;
-  using pointer = std::string *;
-  using const_pointer = std::string const *;
+  using reference = std::string&;
+  using const_reference = std::string const&;
+  using pointer = std::string*;
+  using const_pointer = std::string const*;
   using iterator = detail::empty_iterator<std::string, false>;
   using const_iterator = detail::empty_iterator<std::string, true>;
   using reverse_iterator = detail::empty_iterator<std::string, false>;
   using const_reverse_iterator = detail::empty_iterator<std::string, true>;
 
-public:
+ public:
   discard_comments() = default;
   ~discard_comments() = default;
-  discard_comments(discard_comments const &) = default;
-  discard_comments(discard_comments &&) = default;
-  discard_comments &operator=(discard_comments const &) = default;
-  discard_comments &operator=(discard_comments &&) = default;
+  discard_comments(discard_comments const&) = default;
+  discard_comments(discard_comments&&) = default;
+  discard_comments& operator=(discard_comments const&) = default;
+  discard_comments& operator=(discard_comments&&) = default;
 
-  explicit discard_comments(const std::vector<std::string> &) noexcept {}
-  explicit discard_comments(std::vector<std::string> &&) noexcept {}
-  discard_comments &operator=(const std::vector<std::string> &) noexcept {
-    return *this;
-  }
-  discard_comments &operator=(std::vector<std::string> &&) noexcept {
-    return *this;
-  }
+  explicit discard_comments(const std::vector<std::string>&) noexcept {}
+  explicit discard_comments(std::vector<std::string>&&) noexcept {}
+  discard_comments& operator=(const std::vector<std::string>&) noexcept { return *this; }
+  discard_comments& operator=(std::vector<std::string>&&) noexcept { return *this; }
 
-  explicit discard_comments(const preserve_comments &) noexcept {}
+  explicit discard_comments(const preserve_comments&) noexcept {}
 
   explicit discard_comments(size_type) noexcept {}
-  discard_comments(size_type, const std::string &) noexcept {}
+  discard_comments(size_type, const std::string&) noexcept {}
   discard_comments(std::initializer_list<std::string>) noexcept {}
   template <typename InputIterator>
   discard_comments(InputIterator, InputIterator) noexcept {}
@@ -2798,34 +2612,34 @@ public:
   template <typename InputIterator>
   void assign(InputIterator, InputIterator) noexcept {}
   void assign(std::initializer_list<std::string>) noexcept {}
-  void assign(size_type, const std::string &) noexcept {}
+  void assign(size_type, const std::string&) noexcept {}
 
-  iterator insert(const_iterator, const std::string &) { return iterator{}; }
-  iterator insert(const_iterator, std::string &&) { return iterator{}; }
-  iterator insert(const_iterator, size_type, const std::string &) {
-    return iterator{};
-  }
+  iterator insert(const_iterator, const std::string&) { return iterator{}; }
+  iterator insert(const_iterator, std::string&&) { return iterator{}; }
+  iterator insert(const_iterator, size_type, const std::string&) { return iterator{}; }
   template <typename InputIterator>
   iterator insert(const_iterator, InputIterator, InputIterator) {
     return iterator{};
   }
-  iterator insert(const_iterator, std::initializer_list<std::string>) {
-    return iterator{};
-  }
+  iterator insert(const_iterator, std::initializer_list<std::string>) { return iterator{}; }
 
-  template <typename... Ts> iterator emplace(const_iterator, Ts &&...) {
+  template <typename... Ts>
+  iterator emplace(const_iterator, Ts&&...) {
     return iterator{};
   }
   iterator erase(const_iterator) { return iterator{}; }
   iterator erase(const_iterator, const_iterator) { return iterator{}; }
 
-  void swap(discard_comments &) { return; }
+  void swap(discard_comments&) { return; }
 
-  void push_back(const std::string &) { return; }
-  void push_back(std::string &&) { return; }
+  void push_back(const std::string&) { return; }
+  void push_back(std::string&&) { return; }
   void pop_back() { return; }
 
-  template <typename... Ts> void emplace_back(Ts &&...) { return; }
+  template <typename... Ts>
+  void emplace_back(Ts&&...) {
+    return;
+  }
 
   void clear() { return; }
 
@@ -2836,33 +2650,21 @@ public:
 
   void reserve(size_type) { return; }
   void resize(size_type) { return; }
-  void resize(size_type, const std::string &) { return; }
+  void resize(size_type, const std::string&) { return; }
   void shrink_to_fit() { return; }
 
   // DO NOT access to the element of this container. This container is always
   // empty, so accessing through operator[], front/back, data causes address
   // error.
 
-  reference operator[](const size_type) noexcept {
-    never_call("toml::discard_comment::operator[]");
-  }
-  const_reference operator[](const size_type) const noexcept {
-    never_call("toml::discard_comment::operator[]");
-  }
-  reference at(const size_type) {
-    throw std::out_of_range("toml::discard_comment is always empty.");
-  }
-  const_reference at(const size_type) const {
-    throw std::out_of_range("toml::discard_comment is always empty.");
-  }
+  reference operator[](const size_type) noexcept { never_call("toml::discard_comment::operator[]"); }
+  const_reference operator[](const size_type) const noexcept { never_call("toml::discard_comment::operator[]"); }
+  reference at(const size_type) { throw std::out_of_range("toml::discard_comment is always empty."); }
+  const_reference at(const size_type) const { throw std::out_of_range("toml::discard_comment is always empty."); }
   reference front() noexcept { never_call("toml::discard_comment::front"); }
-  const_reference front() const noexcept {
-    never_call("toml::discard_comment::front");
-  }
+  const_reference front() const noexcept { never_call("toml::discard_comment::front"); }
   reference back() noexcept { never_call("toml::discard_comment::back"); }
-  const_reference back() const noexcept {
-    never_call("toml::discard_comment::back");
-  }
+  const_reference back() const noexcept { never_call("toml::discard_comment::back"); }
 
   pointer data() noexcept { return nullptr; }
   const_pointer data() const noexcept { return nullptr; }
@@ -2881,8 +2683,8 @@ public:
   const_reverse_iterator crbegin() const noexcept { return const_iterator{}; }
   const_reverse_iterator crend() const noexcept { return const_iterator{}; }
 
-private:
-  [[noreturn]] static void never_call(const char *const this_function) {
+ private:
+  [[noreturn]] static void never_call(const char* const this_function) {
 #if __has_builtin(__builtin_unreachable)
     __builtin_unreachable();
 #endif
@@ -2890,41 +2692,19 @@ private:
   }
 };
 
-inline bool operator==(const discard_comments &,
-                       const discard_comments &) noexcept {
-  return true;
-}
-inline bool operator!=(const discard_comments &,
-                       const discard_comments &) noexcept {
-  return false;
-}
-inline bool operator<(const discard_comments &,
-                      const discard_comments &) noexcept {
-  return false;
-}
-inline bool operator<=(const discard_comments &,
-                       const discard_comments &) noexcept {
-  return true;
-}
-inline bool operator>(const discard_comments &,
-                      const discard_comments &) noexcept {
-  return false;
-}
-inline bool operator>=(const discard_comments &,
-                       const discard_comments &) noexcept {
-  return true;
-}
+inline bool operator==(const discard_comments&, const discard_comments&) noexcept { return true; }
+inline bool operator!=(const discard_comments&, const discard_comments&) noexcept { return false; }
+inline bool operator<(const discard_comments&, const discard_comments&) noexcept { return false; }
+inline bool operator<=(const discard_comments&, const discard_comments&) noexcept { return true; }
+inline bool operator>(const discard_comments&, const discard_comments&) noexcept { return false; }
+inline bool operator>=(const discard_comments&, const discard_comments&) noexcept { return true; }
 
-inline void swap(const discard_comments &, const discard_comments &) noexcept {
-  return;
-}
+inline void swap(const discard_comments&, const discard_comments&) noexcept { return; }
 
-inline std::ostream &operator<<(std::ostream &os, const discard_comments &) {
-  return os;
-}
+inline std::ostream& operator<<(std::ostream& os, const discard_comments&) { return os; }
 
-} // namespace toml
-#endif // TOML11_COMMENTS_FWD_HPP
+}  // namespace toml
+#endif  // TOML11_COMMENTS_FWD_HPP
 
 #if !defined(TOML11_COMPILE_SOURCES)
 #ifndef TOML11_COMMENTS_IMPL_HPP
@@ -2932,47 +2712,40 @@ inline std::ostream &operator<<(std::ostream &os, const discard_comments &) {
 
 namespace toml {
 
-TOML11_INLINE bool operator==(const preserve_comments &lhs,
-                              const preserve_comments &rhs) {
+TOML11_INLINE bool operator==(const preserve_comments& lhs, const preserve_comments& rhs) {
   return lhs.comments == rhs.comments;
 }
-TOML11_INLINE bool operator!=(const preserve_comments &lhs,
-                              const preserve_comments &rhs) {
+TOML11_INLINE bool operator!=(const preserve_comments& lhs, const preserve_comments& rhs) {
   return lhs.comments != rhs.comments;
 }
-TOML11_INLINE bool operator<(const preserve_comments &lhs,
-                             const preserve_comments &rhs) {
+TOML11_INLINE bool operator<(const preserve_comments& lhs, const preserve_comments& rhs) {
   return lhs.comments < rhs.comments;
 }
-TOML11_INLINE bool operator<=(const preserve_comments &lhs,
-                              const preserve_comments &rhs) {
+TOML11_INLINE bool operator<=(const preserve_comments& lhs, const preserve_comments& rhs) {
   return lhs.comments <= rhs.comments;
 }
-TOML11_INLINE bool operator>(const preserve_comments &lhs,
-                             const preserve_comments &rhs) {
+TOML11_INLINE bool operator>(const preserve_comments& lhs, const preserve_comments& rhs) {
   return lhs.comments > rhs.comments;
 }
-TOML11_INLINE bool operator>=(const preserve_comments &lhs,
-                              const preserve_comments &rhs) {
+TOML11_INLINE bool operator>=(const preserve_comments& lhs, const preserve_comments& rhs) {
   return lhs.comments >= rhs.comments;
 }
 
-TOML11_INLINE void swap(preserve_comments &lhs, preserve_comments &rhs) {
+TOML11_INLINE void swap(preserve_comments& lhs, preserve_comments& rhs) {
   lhs.swap(rhs);
   return;
 }
-TOML11_INLINE void swap(preserve_comments &lhs, std::vector<std::string> &rhs) {
+TOML11_INLINE void swap(preserve_comments& lhs, std::vector<std::string>& rhs) {
   lhs.comments.swap(rhs);
   return;
 }
-TOML11_INLINE void swap(std::vector<std::string> &lhs, preserve_comments &rhs) {
+TOML11_INLINE void swap(std::vector<std::string>& lhs, preserve_comments& rhs) {
   lhs.swap(rhs.comments);
   return;
 }
 
-TOML11_INLINE std::ostream &operator<<(std::ostream &os,
-                                       const preserve_comments &com) {
-  for (const auto &c : com) {
+TOML11_INLINE std::ostream& operator<<(std::ostream& os, const preserve_comments& com) {
+  for (const auto& c : com) {
     if (c.front() != '#') {
       os << '#';
     }
@@ -2981,11 +2754,11 @@ TOML11_INLINE std::ostream &operator<<(std::ostream &os,
   return os;
 }
 
-} // namespace toml
-#endif // TOML11_COMMENTS_IMPL_HPP
+}  // namespace toml
+#endif  // TOML11_COMMENTS_IMPL_HPP
 #endif
 
-#endif // TOML11_COMMENTS_HPP
+#endif  // TOML11_COMMENTS_HPP
 #ifndef TOML11_COLOR_HPP
 #define TOML11_COLOR_HPP
 
@@ -3014,43 +2787,43 @@ namespace detail {
 
 // Control color mode globally
 class color_mode {
-public:
+ public:
   void enable() noexcept { should_color_ = true; }
   void disable() noexcept { should_color_ = false; }
   bool should_color() const noexcept { return should_color_; }
 
-private:
+ private:
   bool should_color_ = TOML11_ERROR_MESSAGE_COLORIZED;
 };
 
-inline color_mode &color_status() noexcept {
+inline color_mode& color_status() noexcept {
   static TOML11_THREAD_LOCAL_COLORIZATION color_mode status;
   return status;
 }
 
-} // namespace detail
+}  // namespace detail
 
-std::ostream &reset(std::ostream &os);
-std::ostream &bold(std::ostream &os);
-std::ostream &grey(std::ostream &os);
-std::ostream &gray(std::ostream &os);
-std::ostream &red(std::ostream &os);
-std::ostream &green(std::ostream &os);
-std::ostream &yellow(std::ostream &os);
-std::ostream &blue(std::ostream &os);
-std::ostream &magenta(std::ostream &os);
-std::ostream &cyan(std::ostream &os);
-std::ostream &white(std::ostream &os);
+std::ostream& reset(std::ostream& os);
+std::ostream& bold(std::ostream& os);
+std::ostream& grey(std::ostream& os);
+std::ostream& gray(std::ostream& os);
+std::ostream& red(std::ostream& os);
+std::ostream& green(std::ostream& os);
+std::ostream& yellow(std::ostream& os);
+std::ostream& blue(std::ostream& os);
+std::ostream& magenta(std::ostream& os);
+std::ostream& cyan(std::ostream& os);
+std::ostream& white(std::ostream& os);
 
-} // namespace ansi
+}  // namespace ansi
 
 inline void enable() { return detail::color_status().enable(); }
 inline void disable() { return detail::color_status().disable(); }
 inline bool should_color() { return detail::color_status().should_color(); }
 
-} // namespace color
-} // namespace toml
-#endif // TOML11_COLOR_FWD_HPP
+}  // namespace color
+}  // namespace toml
+#endif  // TOML11_COLOR_FWD_HPP
 
 #if !defined(TOML11_COMPILE_SOURCES)
 #ifndef TOML11_COLOR_IMPL_HPP
@@ -3063,80 +2836,80 @@ namespace color {
 // put ANSI escape sequence to ostream
 inline namespace ansi {
 
-TOML11_INLINE std::ostream &reset(std::ostream &os) {
+TOML11_INLINE std::ostream& reset(std::ostream& os) {
   if (detail::color_status().should_color()) {
     os << "\033[00m";
   }
   return os;
 }
-TOML11_INLINE std::ostream &bold(std::ostream &os) {
+TOML11_INLINE std::ostream& bold(std::ostream& os) {
   if (detail::color_status().should_color()) {
     os << "\033[01m";
   }
   return os;
 }
-TOML11_INLINE std::ostream &grey(std::ostream &os) {
+TOML11_INLINE std::ostream& grey(std::ostream& os) {
   if (detail::color_status().should_color()) {
     os << "\033[30m";
   }
   return os;
 }
-TOML11_INLINE std::ostream &gray(std::ostream &os) {
+TOML11_INLINE std::ostream& gray(std::ostream& os) {
   if (detail::color_status().should_color()) {
     os << "\033[30m";
   }
   return os;
 }
-TOML11_INLINE std::ostream &red(std::ostream &os) {
+TOML11_INLINE std::ostream& red(std::ostream& os) {
   if (detail::color_status().should_color()) {
     os << "\033[31m";
   }
   return os;
 }
-TOML11_INLINE std::ostream &green(std::ostream &os) {
+TOML11_INLINE std::ostream& green(std::ostream& os) {
   if (detail::color_status().should_color()) {
     os << "\033[32m";
   }
   return os;
 }
-TOML11_INLINE std::ostream &yellow(std::ostream &os) {
+TOML11_INLINE std::ostream& yellow(std::ostream& os) {
   if (detail::color_status().should_color()) {
     os << "\033[33m";
   }
   return os;
 }
-TOML11_INLINE std::ostream &blue(std::ostream &os) {
+TOML11_INLINE std::ostream& blue(std::ostream& os) {
   if (detail::color_status().should_color()) {
     os << "\033[34m";
   }
   return os;
 }
-TOML11_INLINE std::ostream &magenta(std::ostream &os) {
+TOML11_INLINE std::ostream& magenta(std::ostream& os) {
   if (detail::color_status().should_color()) {
     os << "\033[35m";
   }
   return os;
 }
-TOML11_INLINE std::ostream &cyan(std::ostream &os) {
+TOML11_INLINE std::ostream& cyan(std::ostream& os) {
   if (detail::color_status().should_color()) {
     os << "\033[36m";
   }
   return os;
 }
-TOML11_INLINE std::ostream &white(std::ostream &os) {
+TOML11_INLINE std::ostream& white(std::ostream& os) {
   if (detail::color_status().should_color()) {
     os << "\033[37m";
   }
   return os;
 }
 
-} // namespace ansi
-} // namespace color
-} // namespace toml
-#endif // TOML11_COLOR_IMPL_HPP
+}  // namespace ansi
+}  // namespace color
+}  // namespace toml
+#endif  // TOML11_COLOR_IMPL_HPP
 #endif
 
-#endif // TOML11_COLOR_HPP
+#endif  // TOML11_COLOR_HPP
 #ifndef TOML11_SPEC_HPP
 #define TOML11_SPEC_HPP
 
@@ -3148,8 +2921,7 @@ TOML11_INLINE std::ostream &white(std::ostream &os) {
 namespace toml {
 
 struct semantic_version {
-  constexpr semantic_version(std::uint32_t mjr, std::uint32_t mnr,
-                             std::uint32_t p) noexcept
+  constexpr semantic_version(std::uint32_t mjr, std::uint32_t mnr, std::uint32_t p) noexcept
       : major{mjr}, minor{mnr}, patch{p} {}
 
   std::uint32_t major;
@@ -3157,46 +2929,34 @@ struct semantic_version {
   std::uint32_t patch;
 };
 
-constexpr inline semantic_version
-make_semver(std::uint32_t mjr, std::uint32_t mnr, std::uint32_t p) noexcept {
+constexpr inline semantic_version make_semver(std::uint32_t mjr, std::uint32_t mnr, std::uint32_t p) noexcept {
   return semantic_version(mjr, mnr, p);
 }
 
-constexpr inline bool operator==(const semantic_version &lhs,
-                                 const semantic_version &rhs) noexcept {
-  return lhs.major == rhs.major && lhs.minor == rhs.minor &&
-         lhs.patch == rhs.patch;
+constexpr inline bool operator==(const semantic_version& lhs, const semantic_version& rhs) noexcept {
+  return lhs.major == rhs.major && lhs.minor == rhs.minor && lhs.patch == rhs.patch;
 }
-constexpr inline bool operator!=(const semantic_version &lhs,
-                                 const semantic_version &rhs) noexcept {
+constexpr inline bool operator!=(const semantic_version& lhs, const semantic_version& rhs) noexcept {
   return !(lhs == rhs);
 }
-constexpr inline bool operator<(const semantic_version &lhs,
-                                const semantic_version &rhs) noexcept {
-  return lhs.major < rhs.major ||
-         (lhs.major == rhs.major && lhs.minor < rhs.minor) ||
-         (lhs.major == rhs.major && lhs.minor == rhs.minor &&
-          lhs.patch < rhs.patch);
+constexpr inline bool operator<(const semantic_version& lhs, const semantic_version& rhs) noexcept {
+  return lhs.major < rhs.major || (lhs.major == rhs.major && lhs.minor < rhs.minor) ||
+         (lhs.major == rhs.major && lhs.minor == rhs.minor && lhs.patch < rhs.patch);
 }
-constexpr inline bool operator>(const semantic_version &lhs,
-                                const semantic_version &rhs) noexcept {
-  return rhs < lhs;
-}
-constexpr inline bool operator<=(const semantic_version &lhs,
-                                 const semantic_version &rhs) noexcept {
+constexpr inline bool operator>(const semantic_version& lhs, const semantic_version& rhs) noexcept { return rhs < lhs; }
+constexpr inline bool operator<=(const semantic_version& lhs, const semantic_version& rhs) noexcept {
   return !(lhs > rhs);
 }
-constexpr inline bool operator>=(const semantic_version &lhs,
-                                 const semantic_version &rhs) noexcept {
+constexpr inline bool operator>=(const semantic_version& lhs, const semantic_version& rhs) noexcept {
   return !(lhs < rhs);
 }
 
-inline std::ostream &operator<<(std::ostream &os, const semantic_version &v) {
+inline std::ostream& operator<<(std::ostream& os, const semantic_version& v) {
   os << v.major << '.' << v.minor << '.' << v.patch;
   return os;
 }
 
-inline std::string to_string(const semantic_version &v) {
+inline std::string to_string(const semantic_version& v) {
   std::ostringstream oss;
   oss << v;
   return oss.str();
@@ -3205,27 +2965,24 @@ inline std::string to_string(const semantic_version &v) {
 struct spec {
   constexpr static spec default_version() noexcept { return spec::v(1, 0, 0); }
 
-  constexpr static spec v(std::uint32_t mjr, std::uint32_t mnr,
-                          std::uint32_t p) noexcept {
+  constexpr static spec v(std::uint32_t mjr, std::uint32_t mnr, std::uint32_t p) noexcept {
     return spec(make_semver(mjr, mnr, p));
   }
 
-  constexpr explicit spec(const semantic_version &semver) noexcept
+  constexpr explicit spec(const semantic_version& semver) noexcept
       : version{semver},
-        v1_1_0_allow_control_characters_in_comments{semantic_version{1, 1, 0} <=
-                                                    semver},
-        v1_1_0_allow_newlines_in_inline_tables{semantic_version{1, 1, 0} <=
-                                               semver},
-        v1_1_0_allow_trailing_comma_in_inline_tables{
-            semantic_version{1, 1, 0} <= semver},
-        v1_1_0_allow_non_english_in_bare_keys{semantic_version{1, 1, 0} <=
-                                              semver},
+        v1_1_0_allow_control_characters_in_comments{semantic_version{1, 1, 0} <= semver},
+        v1_1_0_allow_newlines_in_inline_tables{semantic_version{1, 1, 0} <= semver},
+        v1_1_0_allow_trailing_comma_in_inline_tables{semantic_version{1, 1, 0} <= semver},
+        v1_1_0_allow_non_english_in_bare_keys{semantic_version{1, 1, 0} <= semver},
         v1_1_0_add_escape_sequence_e{semantic_version{1, 1, 0} <= semver},
         v1_1_0_add_escape_sequence_x{semantic_version{1, 1, 0} <= semver},
         v1_1_0_make_seconds_optional{semantic_version{1, 1, 0} <= semver},
-        ext_hex_float{false}, ext_num_suffix{false}, ext_null_value{false} {}
+        ext_hex_float{false},
+        ext_num_suffix{false},
+        ext_null_value{false} {}
 
-  semantic_version version; // toml version
+  semantic_version version;  // toml version
 
   // diff from v1.0.0 -> v1.1.0
   bool v1_1_0_allow_control_characters_in_comments;
@@ -3237,13 +2994,13 @@ struct spec {
   bool v1_1_0_make_seconds_optional;
 
   // library extensions
-  bool ext_hex_float;  // allow hex float (in C++ style)
-  bool ext_num_suffix; // allow number suffix (in C++ style)
-  bool ext_null_value; // allow `null` as a value
+  bool ext_hex_float;   // allow hex float (in C++ style)
+  bool ext_num_suffix;  // allow number suffix (in C++ style)
+  bool ext_null_value;  // allow `null` as a value
 };
 
-} // namespace toml
-#endif // TOML11_SPEC_HPP
+}  // namespace toml
+#endif  // TOML11_SPEC_HPP
 #ifndef TOML11_ORDERED_MAP_HPP
 #define TOML11_ORDERED_MAP_HPP
 
@@ -3255,15 +3012,16 @@ struct spec {
 namespace toml {
 
 namespace detail {
-template <typename Cmp> struct ordered_map_ebo_container {
-  Cmp cmp_; // empty base optimization for empty Cmp type
+template <typename Cmp>
+struct ordered_map_ebo_container {
+  Cmp cmp_;  // empty base optimization for empty Cmp type
 };
-} // namespace detail
+}  // namespace detail
 
 template <typename Key, typename Val, typename Cmp = std::equal_to<Key>,
           typename Allocator = std::allocator<std::pair<Key, Val>>>
 class ordered_map : detail::ordered_map_ebo_container<Cmp> {
-public:
+ public:
   using key_type = Key;
   using mapped_type = Val;
   using value_type = std::pair<Key, Val>;
@@ -3281,40 +3039,33 @@ public:
   using size_type = typename container_type::size_type;
   using difference_type = typename container_type::difference_type;
 
-private:
+ private:
   using ebo_base = detail::ordered_map_ebo_container<Cmp>;
 
-public:
+ public:
   ordered_map() = default;
   ~ordered_map() = default;
-  ordered_map(const ordered_map &) = default;
-  ordered_map(ordered_map &&) = default;
-  ordered_map &operator=(const ordered_map &) = default;
-  ordered_map &operator=(ordered_map &&) = default;
+  ordered_map(const ordered_map&) = default;
+  ordered_map(ordered_map&&) = default;
+  ordered_map& operator=(const ordered_map&) = default;
+  ordered_map& operator=(ordered_map&&) = default;
 
-  ordered_map(const ordered_map &other, const Allocator &alloc)
-      : container_(other.container_, alloc) {}
-  ordered_map(ordered_map &&other, const Allocator &alloc)
-      : container_(std::move(other.container_), alloc) {}
+  ordered_map(const ordered_map& other, const Allocator& alloc) : container_(other.container_, alloc) {}
+  ordered_map(ordered_map&& other, const Allocator& alloc) : container_(std::move(other.container_), alloc) {}
 
-  explicit ordered_map(const Cmp &cmp, const Allocator &alloc = Allocator())
-      : ebo_base{cmp}, container_(alloc) {}
-  explicit ordered_map(const Allocator &alloc) : container_(alloc) {}
+  explicit ordered_map(const Cmp& cmp, const Allocator& alloc = Allocator()) : ebo_base{cmp}, container_(alloc) {}
+  explicit ordered_map(const Allocator& alloc) : container_(alloc) {}
 
   template <typename InputIterator>
-  ordered_map(InputIterator first, InputIterator last, const Cmp &cmp = Cmp(),
-              const Allocator &alloc = Allocator())
+  ordered_map(InputIterator first, InputIterator last, const Cmp& cmp = Cmp(), const Allocator& alloc = Allocator())
       : ebo_base{cmp}, container_(first, last, alloc) {}
   template <typename InputIterator>
-  ordered_map(InputIterator first, InputIterator last, const Allocator &alloc)
-      : container_(first, last, alloc) {}
+  ordered_map(InputIterator first, InputIterator last, const Allocator& alloc) : container_(first, last, alloc) {}
 
-  ordered_map(std::initializer_list<value_type> v, const Cmp &cmp = Cmp(),
-              const Allocator &alloc = Allocator())
+  ordered_map(std::initializer_list<value_type> v, const Cmp& cmp = Cmp(), const Allocator& alloc = Allocator())
       : ebo_base{cmp}, container_(std::move(v), alloc) {}
-  ordered_map(std::initializer_list<value_type> v, const Allocator &alloc)
-      : container_(std::move(v), alloc) {}
-  ordered_map &operator=(std::initializer_list<value_type> v) {
+  ordered_map(std::initializer_list<value_type> v, const Allocator& alloc) : container_(std::move(v), alloc) {}
+  ordered_map& operator=(std::initializer_list<value_type> v) {
     this->container_ = std::move(v);
     return *this;
   }
@@ -3332,13 +3083,13 @@ public:
 
   void clear() { container_.clear(); }
 
-  void push_back(const value_type &v) {
+  void push_back(const value_type& v) {
     if (this->contains(v.first)) {
       throw std::out_of_range("ordered_map: value already exists");
     }
     container_.push_back(v);
   }
-  void push_back(value_type &&v) {
+  void push_back(value_type&& v) {
     if (this->contains(v.first)) {
       throw std::out_of_range("ordered_map: value already exists");
     }
@@ -3365,35 +3116,31 @@ public:
     container_.emplace_back(std::move(k), std::move(v));
   }
 
-  std::size_t count(const key_type &key) const {
+  std::size_t count(const key_type& key) const {
     if (this->find(key) != this->end()) {
       return 1;
     } else {
       return 0;
     }
   }
-  bool contains(const key_type &key) const {
-    return this->find(key) != this->end();
+  bool contains(const key_type& key) const { return this->find(key) != this->end(); }
+  iterator find(const key_type& key) noexcept {
+    return std::find_if(this->begin(), this->end(),
+                        [&key, this](const value_type& v) { return this->cmp_(v.first, key); });
   }
-  iterator find(const key_type &key) noexcept {
-    return std::find_if(
-        this->begin(), this->end(),
-        [&key, this](const value_type &v) { return this->cmp_(v.first, key); });
-  }
-  const_iterator find(const key_type &key) const noexcept {
-    return std::find_if(
-        this->begin(), this->end(),
-        [&key, this](const value_type &v) { return this->cmp_(v.first, key); });
+  const_iterator find(const key_type& key) const noexcept {
+    return std::find_if(this->begin(), this->end(),
+                        [&key, this](const value_type& v) { return this->cmp_(v.first, key); });
   }
 
-  mapped_type &at(const key_type &k) {
+  mapped_type& at(const key_type& k) {
     const auto iter = this->find(k);
     if (iter == this->end()) {
       throw std::out_of_range("ordered_map: no such element");
     }
     return iter->second;
   }
-  mapped_type const &at(const key_type &k) const {
+  mapped_type const& at(const key_type& k) const {
     const auto iter = this->find(k);
     if (iter == this->end()) {
       throw std::out_of_range("ordered_map: no such element");
@@ -3401,7 +3148,7 @@ public:
     return iter->second;
   }
 
-  mapped_type &operator[](const key_type &k) {
+  mapped_type& operator[](const key_type& k) {
     const auto iter = this->find(k);
     if (iter == this->end()) {
       this->container_.emplace_back(k, mapped_type{});
@@ -3410,7 +3157,7 @@ public:
     return iter->second;
   }
 
-  mapped_type const &operator[](const key_type &k) const {
+  mapped_type const& operator[](const key_type& k) const {
     const auto iter = this->find(k);
     if (iter == this->end()) {
       throw std::out_of_range("ordered_map: no such element");
@@ -3420,59 +3167,52 @@ public:
 
   key_compare key_comp() const { return this->cmp_; }
 
-  void swap(ordered_map &other) { container_.swap(other.container_); }
+  void swap(ordered_map& other) { container_.swap(other.container_); }
 
-private:
+ private:
   container_type container_;
 };
 
 template <typename K, typename V, typename C, typename A>
-bool operator==(const ordered_map<K, V, C, A> &lhs,
-                const ordered_map<K, V, C, A> &rhs) {
-  return lhs.size() == rhs.size() &&
-         std::equal(lhs.begin(), lhs.end(), rhs.begin());
+bool operator==(const ordered_map<K, V, C, A>& lhs, const ordered_map<K, V, C, A>& rhs) {
+  return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
 }
 template <typename K, typename V, typename C, typename A>
-bool operator!=(const ordered_map<K, V, C, A> &lhs,
-                const ordered_map<K, V, C, A> &rhs) {
+bool operator!=(const ordered_map<K, V, C, A>& lhs, const ordered_map<K, V, C, A>& rhs) {
   return !(lhs == rhs);
 }
 template <typename K, typename V, typename C, typename A>
-bool operator<(const ordered_map<K, V, C, A> &lhs,
-               const ordered_map<K, V, C, A> &rhs) {
-  return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(),
-                                      rhs.end());
+bool operator<(const ordered_map<K, V, C, A>& lhs, const ordered_map<K, V, C, A>& rhs) {
+  return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
 template <typename K, typename V, typename C, typename A>
-bool operator>(const ordered_map<K, V, C, A> &lhs,
-               const ordered_map<K, V, C, A> &rhs) {
+bool operator>(const ordered_map<K, V, C, A>& lhs, const ordered_map<K, V, C, A>& rhs) {
   return rhs < lhs;
 }
 template <typename K, typename V, typename C, typename A>
-bool operator<=(const ordered_map<K, V, C, A> &lhs,
-                const ordered_map<K, V, C, A> &rhs) {
+bool operator<=(const ordered_map<K, V, C, A>& lhs, const ordered_map<K, V, C, A>& rhs) {
   return !(lhs > rhs);
 }
 template <typename K, typename V, typename C, typename A>
-bool operator>=(const ordered_map<K, V, C, A> &lhs,
-                const ordered_map<K, V, C, A> &rhs) {
+bool operator>=(const ordered_map<K, V, C, A>& lhs, const ordered_map<K, V, C, A>& rhs) {
   return !(lhs < rhs);
 }
 
 template <typename K, typename V, typename C, typename A>
-void swap(ordered_map<K, V, C, A> &lhs, ordered_map<K, V, C, A> &rhs) {
+void swap(ordered_map<K, V, C, A>& lhs, ordered_map<K, V, C, A>& rhs) {
   lhs.swap(rhs);
   return;
 }
 
-} // namespace toml
-#endif // TOML11_ORDERED_MAP_HPP
+}  // namespace toml
+#endif  // TOML11_ORDERED_MAP_HPP
 #ifndef TOML11_INTO_HPP
 #define TOML11_INTO_HPP
 
 namespace toml {
 
-template <typename T> struct into;
+template <typename T>
+struct into;
 // {
 //     static toml::value into_toml(const T& user_defined_type)
 //     {
@@ -3480,14 +3220,15 @@ template <typename T> struct into;
 //     }
 // };
 
-} // namespace toml
-#endif // TOML11_INTO_HPP
+}  // namespace toml
+#endif  // TOML11_INTO_HPP
 #ifndef TOML11_FROM_HPP
 #define TOML11_FROM_HPP
 
 namespace toml {
 
-template <typename T> struct from;
+template <typename T>
+struct from;
 // {
 //     static T from_toml(const toml::value& v)
 //     {
@@ -3495,8 +3236,8 @@ template <typename T> struct from;
 //     }
 // };
 
-} // namespace toml
-#endif // TOML11_FROM_HPP
+}  // namespace toml
+#endif  // TOML11_FROM_HPP
 #ifndef TOML11_TRAITS_HPP
 #define TOML11_TRAITS_HPP
 
@@ -3513,76 +3254,88 @@ template <typename T> struct from;
 #endif
 
 namespace toml {
-template <typename TypeConcig> class basic_value;
+template <typename TypeConcig>
+class basic_value;
 
 namespace detail {
 // ---------------------------------------------------------------------------
 // check whether type T is a kind of container/map class
 
 struct has_iterator_impl {
-  template <typename T> static std::true_type check(typename T::iterator *);
-  template <typename T> static std::false_type check(...);
+  template <typename T>
+  static std::true_type check(typename T::iterator*);
+  template <typename T>
+  static std::false_type check(...);
 };
 struct has_value_type_impl {
-  template <typename T> static std::true_type check(typename T::value_type *);
-  template <typename T> static std::false_type check(...);
+  template <typename T>
+  static std::true_type check(typename T::value_type*);
+  template <typename T>
+  static std::false_type check(...);
 };
 struct has_key_type_impl {
-  template <typename T> static std::true_type check(typename T::key_type *);
-  template <typename T> static std::false_type check(...);
+  template <typename T>
+  static std::true_type check(typename T::key_type*);
+  template <typename T>
+  static std::false_type check(...);
 };
 struct has_mapped_type_impl {
-  template <typename T> static std::true_type check(typename T::mapped_type *);
-  template <typename T> static std::false_type check(...);
+  template <typename T>
+  static std::true_type check(typename T::mapped_type*);
+  template <typename T>
+  static std::false_type check(...);
 };
 struct has_reserve_method_impl {
-  template <typename T> static std::false_type check(...);
   template <typename T>
-  static std::true_type
-  check(decltype(std::declval<T>().reserve(std::declval<std::size_t>())) *);
+  static std::false_type check(...);
+  template <typename T>
+  static std::true_type check(decltype(std::declval<T>().reserve(std::declval<std::size_t>()))*);
 };
 struct has_push_back_method_impl {
-  template <typename T> static std::false_type check(...);
   template <typename T>
-  static std::true_type check(decltype(
-      std::declval<T>().push_back(std::declval<typename T::value_type>())) *);
+  static std::false_type check(...);
+  template <typename T>
+  static std::true_type check(decltype(std::declval<T>().push_back(std::declval<typename T::value_type>()))*);
 };
 struct is_comparable_impl {
-  template <typename T> static std::false_type check(...);
   template <typename T>
-  static std::true_type
-  check(decltype(std::declval<T>() < std::declval<T>()) *);
+  static std::false_type check(...);
+  template <typename T>
+  static std::true_type check(decltype(std::declval<T>() < std::declval<T>())*);
 };
 
 struct has_from_toml_method_impl {
   template <typename T, typename TC>
-  static std::true_type check(decltype(
-      std::declval<T>().from_toml(std::declval<::toml::basic_value<TC>>())) *);
+  static std::true_type check(decltype(std::declval<T>().from_toml(std::declval<::toml::basic_value<TC>>()))*);
 
-  template <typename T, typename TC> static std::false_type check(...);
+  template <typename T, typename TC>
+  static std::false_type check(...);
 };
 struct has_into_toml_method_impl {
   template <typename T>
-  static std::true_type check(decltype(std::declval<T>().into_toml()) *);
-  template <typename T> static std::false_type check(...);
+  static std::true_type check(decltype(std::declval<T>().into_toml())*);
+  template <typename T>
+  static std::false_type check(...);
 };
 
 struct has_template_into_toml_method_impl {
   template <typename T, typename TypeConfig>
-  static std::true_type
-  check(decltype(std::declval<T>().template into_toml<TypeConfig>()) *);
-  template <typename T, typename TypeConfig> static std::false_type check(...);
+  static std::true_type check(decltype(std::declval<T>().template into_toml<TypeConfig>())*);
+  template <typename T, typename TypeConfig>
+  static std::false_type check(...);
 };
 
 struct has_specialized_from_impl {
-  template <typename T> static std::false_type check(...);
+  template <typename T>
+  static std::false_type check(...);
   template <typename T, std::size_t S = sizeof(::toml::from<T>)>
-  static std::true_type check(::toml::from<T> *);
+  static std::true_type check(::toml::from<T>*);
 };
 struct has_specialized_into_impl {
-  template <typename T> static std::false_type check(...);
+  template <typename T>
+  static std::false_type check(...);
   template <typename T, std::size_t S = sizeof(::toml::into<T>)>
-  static std::true_type check(::toml::into<T> *);
+  static std::true_type check(::toml::into<T>*);
 };
 
 /// Intel C++ compiler can not use decltype in parent class declaration, here
@@ -3600,33 +3353,25 @@ struct has_key_type : decltype(has_key_type_impl::check<T>(nullptr)) {};
 template <typename T>
 struct has_mapped_type : decltype(has_mapped_type_impl::check<T>(nullptr)) {};
 template <typename T>
-struct has_reserve_method
-    : decltype(has_reserve_method_impl::check<T>(nullptr)) {};
+struct has_reserve_method : decltype(has_reserve_method_impl::check<T>(nullptr)) {};
 template <typename T>
-struct has_push_back_method
-    : decltype(has_push_back_method_impl::check<T>(nullptr)) {};
+struct has_push_back_method : decltype(has_push_back_method_impl::check<T>(nullptr)) {};
 template <typename T>
 struct is_comparable : decltype(is_comparable_impl::check<T>(nullptr)) {};
 
 template <typename T, typename TC>
-struct has_from_toml_method
-    : decltype(has_from_toml_method_impl::check<T, TC>(nullptr)) {};
+struct has_from_toml_method : decltype(has_from_toml_method_impl::check<T, TC>(nullptr)) {};
 
 template <typename T>
-struct has_into_toml_method
-    : decltype(has_into_toml_method_impl::check<T>(nullptr)) {};
+struct has_into_toml_method : decltype(has_into_toml_method_impl::check<T>(nullptr)) {};
 
 template <typename T, typename TypeConfig>
-struct has_template_into_toml_method
-    : decltype(
-          has_template_into_toml_method_impl::check<T, TypeConfig>(nullptr)) {};
+struct has_template_into_toml_method : decltype(has_template_into_toml_method_impl::check<T, TypeConfig>(nullptr)) {};
 
 template <typename T>
-struct has_specialized_from
-    : decltype(has_specialized_from_impl::check<T>(nullptr)) {};
+struct has_specialized_from : decltype(has_specialized_from_impl::check<T>(nullptr)) {};
 template <typename T>
-struct has_specialized_into
-    : decltype(has_specialized_into_impl::check<T>(nullptr)) {};
+struct has_specialized_into : decltype(has_specialized_into_impl::check<T>(nullptr)) {};
 
 #ifdef __INTEL_COMPILER
 #undef decltype
@@ -3635,31 +3380,36 @@ struct has_specialized_into
 // ---------------------------------------------------------------------------
 // type checkers
 
-template <typename T> struct is_std_pair_impl : std::false_type {};
+template <typename T>
+struct is_std_pair_impl : std::false_type {};
 template <typename T1, typename T2>
 struct is_std_pair_impl<std::pair<T1, T2>> : std::true_type {};
 template <typename T>
 using is_std_pair = is_std_pair_impl<cxx::remove_cvref_t<T>>;
 
-template <typename T> struct is_std_tuple_impl : std::false_type {};
+template <typename T>
+struct is_std_tuple_impl : std::false_type {};
 template <typename... Ts>
 struct is_std_tuple_impl<std::tuple<Ts...>> : std::true_type {};
 template <typename T>
 using is_std_tuple = is_std_tuple_impl<cxx::remove_cvref_t<T>>;
 
-template <typename T> struct is_std_array_impl : std::false_type {};
+template <typename T>
+struct is_std_array_impl : std::false_type {};
 template <typename T, std::size_t N>
 struct is_std_array_impl<std::array<T, N>> : std::true_type {};
 template <typename T>
 using is_std_array = is_std_array_impl<cxx::remove_cvref_t<T>>;
 
-template <typename T> struct is_std_forward_list_impl : std::false_type {};
+template <typename T>
+struct is_std_forward_list_impl : std::false_type {};
 template <typename T>
 struct is_std_forward_list_impl<std::forward_list<T>> : std::true_type {};
 template <typename T>
 using is_std_forward_list = is_std_forward_list_impl<cxx::remove_cvref_t<T>>;
 
-template <typename T> struct is_std_basic_string_impl : std::false_type {};
+template <typename T>
+struct is_std_basic_string_impl : std::false_type {};
 template <typename C, typename T, typename A>
 struct is_std_basic_string_impl<std::basic_string<C, T, A>> : std::true_type {};
 template <typename T>
@@ -3671,66 +3421,63 @@ template <typename C, typename T, typename A>
 struct is_1byte_std_basic_string_impl<std::basic_string<C, T, A>>
     : std::integral_constant<bool, sizeof(C) == sizeof(char)> {};
 template <typename T>
-using is_1byte_std_basic_string =
-    is_std_basic_string_impl<cxx::remove_cvref_t<T>>;
+using is_1byte_std_basic_string = is_std_basic_string_impl<cxx::remove_cvref_t<T>>;
 
 #if defined(TOML11_HAS_STRING_VIEW)
-template <typename T> struct is_std_basic_string_view_impl : std::false_type {};
-template <typename C, typename T>
-struct is_std_basic_string_view_impl<std::basic_string_view<C, T>>
-    : std::true_type {};
 template <typename T>
-using is_std_basic_string_view =
-    is_std_basic_string_view_impl<cxx::remove_cvref_t<T>>;
-
-template <typename V, typename S> struct is_string_view_of : std::false_type {};
+struct is_std_basic_string_view_impl : std::false_type {};
 template <typename C, typename T>
-struct is_string_view_of<std::basic_string_view<C, T>, std::basic_string<C, T>>
-    : std::true_type {};
+struct is_std_basic_string_view_impl<std::basic_string_view<C, T>> : std::true_type {};
+template <typename T>
+using is_std_basic_string_view = is_std_basic_string_view_impl<cxx::remove_cvref_t<T>>;
+
+template <typename V, typename S>
+struct is_string_view_of : std::false_type {};
+template <typename C, typename T>
+struct is_string_view_of<std::basic_string_view<C, T>, std::basic_string<C, T>> : std::true_type {};
 #endif
 
-template <typename T> struct is_chrono_duration_impl : std::false_type {};
+template <typename T>
+struct is_chrono_duration_impl : std::false_type {};
 template <typename Rep, typename Period>
-struct is_chrono_duration_impl<std::chrono::duration<Rep, Period>>
-    : std::true_type {};
+struct is_chrono_duration_impl<std::chrono::duration<Rep, Period>> : std::true_type {};
 template <typename T>
 using is_chrono_duration = is_chrono_duration_impl<cxx::remove_cvref_t<T>>;
 
 template <typename T>
-struct is_map_impl
-    : cxx::conjunction<      // map satisfies all the following conditions
-          has_iterator<T>,   // has T::iterator
-          has_value_type<T>, // has T::value_type
-          has_key_type<T>,   // has T::key_type
-          has_mapped_type<T> // has T::mapped_type
-          > {};
-template <typename T> using is_map = is_map_impl<cxx::remove_cvref_t<T>>;
+struct is_map_impl : cxx::conjunction<       // map satisfies all the following conditions
+                         has_iterator<T>,    // has T::iterator
+                         has_value_type<T>,  // has T::value_type
+                         has_key_type<T>,    // has T::key_type
+                         has_mapped_type<T>  // has T::mapped_type
+                         > {};
+template <typename T>
+using is_map = is_map_impl<cxx::remove_cvref_t<T>>;
 
 template <typename T>
-struct is_container_impl
-    : cxx::conjunction<
-          cxx::negation<is_map<T>>,                    // not a map
-          cxx::negation<std::is_same<T, std::string>>, // not a std::string
+struct is_container_impl : cxx::conjunction<cxx::negation<is_map<T>>,                     // not a map
+                                            cxx::negation<std::is_same<T, std::string>>,  // not a std::string
 #ifdef TOML11_HAS_STRING_VIEW
-          cxx::negation<std::is_same<T, std::string_view>>, // not a
-                                                            // std::string_view
+                                            cxx::negation<std::is_same<T, std::string_view>>,  // not a
+                                                                                               // std::string_view
 #endif
-          has_iterator<T>,  // has T::iterator
-          has_value_type<T> // has T::value_type
-          > {
+                                            has_iterator<T>,   // has T::iterator
+                                            has_value_type<T>  // has T::value_type
+                                            > {
 };
 template <typename T>
 using is_container = is_container_impl<cxx::remove_cvref_t<T>>;
 
-template <typename T> struct is_basic_value_impl : std::false_type {};
+template <typename T>
+struct is_basic_value_impl : std::false_type {};
 template <typename TC>
 struct is_basic_value_impl<::toml::basic_value<TC>> : std::true_type {};
 template <typename T>
 using is_basic_value = is_basic_value_impl<cxx::remove_cvref_t<T>>;
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_TRAITS_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_TRAITS_HPP
 #ifndef TOML11_EXCEPTION_HPP
 #define TOML11_EXCEPTION_HPP
 
@@ -3739,13 +3486,13 @@ using is_basic_value = is_basic_value_impl<cxx::remove_cvref_t<T>>;
 namespace toml {
 
 struct exception : public std::exception {
-public:
+ public:
   virtual ~exception() noexcept override = default;
-  virtual const char *what() const noexcept override { return ""; }
+  virtual const char* what() const noexcept override { return ""; }
 };
 
-} // namespace toml
-#endif // TOMl11_EXCEPTION_HPP
+}  // namespace toml
+#endif  // TOMl11_EXCEPTION_HPP
 #ifndef TOML11_RESULT_HPP
 #define TOML11_RESULT_HPP
 
@@ -3759,132 +3506,131 @@ public:
 namespace toml {
 
 struct bad_result_access final : public ::toml::exception {
-public:
-  explicit bad_result_access(std::string what_arg)
-      : what_(std::move(what_arg)) {}
+ public:
+  explicit bad_result_access(std::string what_arg) : what_(std::move(what_arg)) {}
   ~bad_result_access() noexcept override = default;
-  const char *what() const noexcept override { return what_.c_str(); }
+  const char* what() const noexcept override { return what_.c_str(); }
 
-private:
+ private:
   std::string what_;
 };
 
 // -----------------------------------------------------------------------------
 
-template <typename T> struct success {
+template <typename T>
+struct success {
   static_assert(!std::is_same<T, void>::value, "");
 
   using value_type = T;
 
-  explicit success(value_type v) noexcept(
-      std::is_nothrow_move_constructible<value_type>::value)
+  explicit success(value_type v) noexcept(std::is_nothrow_move_constructible<value_type>::value)
       : value(std::move(v)) {}
 
-  template <
-      typename U,
-      cxx::enable_if_t<std::is_convertible<cxx::remove_cvref_t<U>, T>::value,
-                       std::nullptr_t> = nullptr>
-  explicit success(U &&v) : value(std::forward<U>(v)) {}
+  template <typename U,
+            cxx::enable_if_t<std::is_convertible<cxx::remove_cvref_t<U>, T>::value, std::nullptr_t> = nullptr>
+  explicit success(U&& v) : value(std::forward<U>(v)) {}
 
   template <typename U>
   explicit success(success<U> v) : value(std::move(v.value)) {}
 
   ~success() = default;
-  success(const success &) = default;
-  success(success &&) = default;
-  success &operator=(const success &) = default;
-  success &operator=(success &&) = default;
+  success(const success&) = default;
+  success(success&&) = default;
+  success& operator=(const success&) = default;
+  success& operator=(success&&) = default;
 
-  value_type &get() noexcept { return value; }
-  value_type const &get() const noexcept { return value; }
+  value_type& get() noexcept { return value; }
+  value_type const& get() const noexcept { return value; }
 
-private:
+ private:
   value_type value;
 };
 
-template <typename T> struct success<std::reference_wrapper<T>> {
+template <typename T>
+struct success<std::reference_wrapper<T>> {
   static_assert(!std::is_same<T, void>::value, "");
 
   using value_type = T;
 
-  explicit success(std::reference_wrapper<value_type> v) noexcept
-      : value(std::move(v)) {}
+  explicit success(std::reference_wrapper<value_type> v) noexcept : value(std::move(v)) {}
 
   ~success() = default;
-  success(const success &) = default;
-  success(success &&) = default;
-  success &operator=(const success &) = default;
-  success &operator=(success &&) = default;
+  success(const success&) = default;
+  success(success&&) = default;
+  success& operator=(const success&) = default;
+  success& operator=(success&&) = default;
 
-  value_type &get() noexcept { return value.get(); }
-  value_type const &get() const noexcept { return value.get(); }
+  value_type& get() noexcept { return value.get(); }
+  value_type const& get() const noexcept { return value.get(); }
 
-private:
+ private:
   std::reference_wrapper<value_type> value;
 };
 
-template <typename T> success<typename std::decay<T>::type> ok(T &&v) {
+template <typename T>
+success<typename std::decay<T>::type> ok(T&& v) {
   return success<typename std::decay<T>::type>(std::forward<T>(v));
 }
-template <std::size_t N> success<std::string> ok(const char (&literal)[N]) {
+template <std::size_t N>
+success<std::string> ok(const char (&literal)[N]) {
   return success<std::string>(std::string(literal));
 }
 
 // -----------------------------------------------------------------------------
 
-template <typename T> struct failure {
+template <typename T>
+struct failure {
   using value_type = T;
 
-  explicit failure(value_type v) noexcept(
-      std::is_nothrow_move_constructible<value_type>::value)
+  explicit failure(value_type v) noexcept(std::is_nothrow_move_constructible<value_type>::value)
       : value(std::move(v)) {}
 
-  template <
-      typename U,
-      cxx::enable_if_t<std::is_convertible<cxx::remove_cvref_t<U>, T>::value,
-                       std::nullptr_t> = nullptr>
-  explicit failure(U &&v) : value(std::forward<U>(v)) {}
+  template <typename U,
+            cxx::enable_if_t<std::is_convertible<cxx::remove_cvref_t<U>, T>::value, std::nullptr_t> = nullptr>
+  explicit failure(U&& v) : value(std::forward<U>(v)) {}
 
   template <typename U>
   explicit failure(failure<U> v) : value(std::move(v.value)) {}
 
   ~failure() = default;
-  failure(const failure &) = default;
-  failure(failure &&) = default;
-  failure &operator=(const failure &) = default;
-  failure &operator=(failure &&) = default;
+  failure(const failure&) = default;
+  failure(failure&&) = default;
+  failure& operator=(const failure&) = default;
+  failure& operator=(failure&&) = default;
 
-  value_type &get() noexcept { return value; }
-  value_type const &get() const noexcept { return value; }
+  value_type& get() noexcept { return value; }
+  value_type const& get() const noexcept { return value; }
 
-private:
+ private:
   value_type value;
 };
 
-template <typename T> struct failure<std::reference_wrapper<T>> {
+template <typename T>
+struct failure<std::reference_wrapper<T>> {
   using value_type = T;
 
-  explicit failure(std::reference_wrapper<value_type> v) noexcept
-      : value(std::move(v)) {}
+  explicit failure(std::reference_wrapper<value_type> v) noexcept : value(std::move(v)) {}
 
   ~failure() = default;
-  failure(const failure &) = default;
-  failure(failure &&) = default;
-  failure &operator=(const failure &) = default;
-  failure &operator=(failure &&) = default;
+  failure(const failure&) = default;
+  failure(failure&&) = default;
+  failure& operator=(const failure&) = default;
+  failure& operator=(failure&&) = default;
 
-  value_type &get() noexcept { return value.get(); }
-  value_type const &get() const noexcept { return value.get(); }
+  value_type& get() noexcept { return value.get(); }
+  value_type const& get() const noexcept { return value.get(); }
 
-private:
+ private:
   std::reference_wrapper<value_type> value;
 };
 
-template <typename T> failure<typename std::decay<T>::type> err(T &&v) {
+template <typename T>
+failure<typename std::decay<T>::type> err(T&& v) {
   return failure<typename std::decay<T>::type>(std::forward<T>(v));
 }
 
-template <std::size_t N> failure<std::string> err(const char (&literal)[N]) {
+template <std::size_t N>
+failure<std::string> err(const char (&literal)[N]) {
   return failure<std::string>(std::string(literal));
 }
 
@@ -3895,7 +3641,8 @@ template <std::size_t N> failure<std::string> err(const char (&literal)[N]) {
  * |_| \___/__/\_,_|_|\__|
  */
 
-template <typename T, typename E> struct result {
+template <typename T, typename E>
+struct result {
   using success_type = success<T>;
   using failure_type = failure<E>;
   using value_type = typename success_type::value_type;
@@ -3904,25 +3651,19 @@ template <typename T, typename E> struct result {
   result(success_type s) : is_ok_(true), succ_(std::move(s)) {}
   result(failure_type f) : is_ok_(false), fail_(std::move(f)) {}
 
-  template <
-      typename U,
-      cxx::enable_if_t<
-          cxx::conjunction<
-              cxx::negation<std::is_same<cxx::remove_cvref_t<U>, value_type>>,
-              std::is_convertible<cxx::remove_cvref_t<U>, value_type>>::value,
-          std::nullptr_t> = nullptr>
+  template <typename U,
+            cxx::enable_if_t<cxx::conjunction<cxx::negation<std::is_same<cxx::remove_cvref_t<U>, value_type>>,
+                                              std::is_convertible<cxx::remove_cvref_t<U>, value_type>>::value,
+                             std::nullptr_t> = nullptr>
   result(success<U> s) : is_ok_(true), succ_(std::move(s.value)) {}
 
-  template <
-      typename U,
-      cxx::enable_if_t<
-          cxx::conjunction<
-              cxx::negation<std::is_same<cxx::remove_cvref_t<U>, error_type>>,
-              std::is_convertible<cxx::remove_cvref_t<U>, error_type>>::value,
-          std::nullptr_t> = nullptr>
+  template <typename U,
+            cxx::enable_if_t<cxx::conjunction<cxx::negation<std::is_same<cxx::remove_cvref_t<U>, error_type>>,
+                                              std::is_convertible<cxx::remove_cvref_t<U>, error_type>>::value,
+                             std::nullptr_t> = nullptr>
   result(failure<U> f) : is_ok_(false), fail_(std::move(f.value)) {}
 
-  result &operator=(success_type s) {
+  result& operator=(success_type s) {
     this->cleanup();
     this->is_ok_ = true;
     auto tmp = ::new (std::addressof(this->succ_)) success_type(std::move(s));
@@ -3930,7 +3671,7 @@ template <typename T, typename E> struct result {
     (void)tmp;
     return *this;
   }
-  result &operator=(failure_type f) {
+  result& operator=(failure_type f) {
     this->cleanup();
     this->is_ok_ = false;
     auto tmp = ::new (std::addressof(this->fail_)) failure_type(std::move(f));
@@ -3939,20 +3680,20 @@ template <typename T, typename E> struct result {
     return *this;
   }
 
-  template <typename U> result &operator=(success<U> s) {
+  template <typename U>
+  result& operator=(success<U> s) {
     this->cleanup();
     this->is_ok_ = true;
-    auto tmp =
-        ::new (std::addressof(this->succ_)) success_type(std::move(s.value));
+    auto tmp = ::new (std::addressof(this->succ_)) success_type(std::move(s.value));
     assert(tmp == std::addressof(this->succ_));
     (void)tmp;
     return *this;
   }
-  template <typename U> result &operator=(failure<U> f) {
+  template <typename U>
+  result& operator=(failure<U> f) {
     this->cleanup();
     this->is_ok_ = false;
-    auto tmp =
-        ::new (std::addressof(this->fail_)) failure_type(std::move(f.value));
+    auto tmp = ::new (std::addressof(this->fail_)) failure_type(std::move(f.value));
     assert(tmp == std::addressof(this->fail_));
     (void)tmp;
     return *this;
@@ -3960,7 +3701,7 @@ template <typename T, typename E> struct result {
 
   ~result() noexcept { this->cleanup(); }
 
-  result(const result &other) : is_ok_(other.is_ok()) {
+  result(const result& other) : is_ok_(other.is_ok()) {
     if (other.is_ok()) {
       auto tmp = ::new (std::addressof(this->succ_)) success_type(other.succ_);
       assert(tmp == std::addressof(this->succ_));
@@ -3971,21 +3712,19 @@ template <typename T, typename E> struct result {
       (void)tmp;
     }
   }
-  result(result &&other) : is_ok_(other.is_ok()) {
+  result(result&& other) : is_ok_(other.is_ok()) {
     if (other.is_ok()) {
-      auto tmp = ::new (std::addressof(this->succ_))
-          success_type(std::move(other.succ_));
+      auto tmp = ::new (std::addressof(this->succ_)) success_type(std::move(other.succ_));
       assert(tmp == std::addressof(this->succ_));
       (void)tmp;
     } else {
-      auto tmp = ::new (std::addressof(this->fail_))
-          failure_type(std::move(other.fail_));
+      auto tmp = ::new (std::addressof(this->fail_)) failure_type(std::move(other.fail_));
       assert(tmp == std::addressof(this->fail_));
       (void)tmp;
     }
   }
 
-  result &operator=(const result &other) {
+  result& operator=(const result& other) {
     this->cleanup();
     if (other.is_ok()) {
       auto tmp = ::new (std::addressof(this->succ_)) success_type(other.succ_);
@@ -3999,16 +3738,14 @@ template <typename T, typename E> struct result {
     is_ok_ = other.is_ok();
     return *this;
   }
-  result &operator=(result &&other) {
+  result& operator=(result&& other) {
     this->cleanup();
     if (other.is_ok()) {
-      auto tmp = ::new (std::addressof(this->succ_))
-          success_type(std::move(other.succ_));
+      auto tmp = ::new (std::addressof(this->succ_)) success_type(std::move(other.succ_));
       assert(tmp == std::addressof(this->succ_));
       (void)tmp;
     } else {
-      auto tmp = ::new (std::addressof(this->fail_))
-          failure_type(std::move(other.fail_));
+      auto tmp = ::new (std::addressof(this->fail_)) failure_type(std::move(other.fail_));
       assert(tmp == std::addressof(this->fail_));
       (void)tmp;
     }
@@ -4016,48 +3753,38 @@ template <typename T, typename E> struct result {
     return *this;
   }
 
-  template <
-      typename U, typename F,
-      cxx::enable_if_t<
-          cxx::conjunction<
-              cxx::negation<std::is_same<cxx::remove_cvref_t<U>, value_type>>,
-              cxx::negation<std::is_same<cxx::remove_cvref_t<F>, error_type>>,
-              std::is_convertible<cxx::remove_cvref_t<U>, value_type>,
-              std::is_convertible<cxx::remove_cvref_t<F>, error_type>>::value,
-          std::nullptr_t> = nullptr>
+  template <typename U, typename F,
+            cxx::enable_if_t<cxx::conjunction<cxx::negation<std::is_same<cxx::remove_cvref_t<U>, value_type>>,
+                                              cxx::negation<std::is_same<cxx::remove_cvref_t<F>, error_type>>,
+                                              std::is_convertible<cxx::remove_cvref_t<U>, value_type>,
+                                              std::is_convertible<cxx::remove_cvref_t<F>, error_type>>::value,
+                             std::nullptr_t> = nullptr>
   result(result<U, F> other) : is_ok_(other.is_ok()) {
     if (other.is_ok()) {
-      auto tmp = ::new (std::addressof(this->succ_))
-          success_type(std::move(other.as_ok()));
+      auto tmp = ::new (std::addressof(this->succ_)) success_type(std::move(other.as_ok()));
       assert(tmp == std::addressof(this->succ_));
       (void)tmp;
     } else {
-      auto tmp = ::new (std::addressof(this->fail_))
-          failure_type(std::move(other.as_err()));
+      auto tmp = ::new (std::addressof(this->fail_)) failure_type(std::move(other.as_err()));
       assert(tmp == std::addressof(this->fail_));
       (void)tmp;
     }
   }
 
-  template <
-      typename U, typename F,
-      cxx::enable_if_t<
-          cxx::conjunction<
-              cxx::negation<std::is_same<cxx::remove_cvref_t<U>, value_type>>,
-              cxx::negation<std::is_same<cxx::remove_cvref_t<F>, error_type>>,
-              std::is_convertible<cxx::remove_cvref_t<U>, value_type>,
-              std::is_convertible<cxx::remove_cvref_t<F>, error_type>>::value,
-          std::nullptr_t> = nullptr>
-  result &operator=(result<U, F> other) {
+  template <typename U, typename F,
+            cxx::enable_if_t<cxx::conjunction<cxx::negation<std::is_same<cxx::remove_cvref_t<U>, value_type>>,
+                                              cxx::negation<std::is_same<cxx::remove_cvref_t<F>, error_type>>,
+                                              std::is_convertible<cxx::remove_cvref_t<U>, value_type>,
+                                              std::is_convertible<cxx::remove_cvref_t<F>, error_type>>::value,
+                             std::nullptr_t> = nullptr>
+  result& operator=(result<U, F> other) {
     this->cleanup();
     if (other.is_ok()) {
-      auto tmp = ::new (std::addressof(this->succ_))
-          success_type(std::move(other.as_ok()));
+      auto tmp = ::new (std::addressof(this->succ_)) success_type(std::move(other.as_ok()));
       assert(tmp == std::addressof(this->succ_));
       (void)tmp;
     } else {
-      auto tmp = ::new (std::addressof(this->fail_))
-          failure_type(std::move(other.as_err()));
+      auto tmp = ::new (std::addressof(this->fail_)) failure_type(std::move(other.as_err()));
       assert(tmp == std::addressof(this->fail_));
       (void)tmp;
     }
@@ -4070,70 +3797,64 @@ template <typename T, typename E> struct result {
 
   explicit operator bool() const noexcept { return is_ok_; }
 
-  value_type &
-  unwrap(cxx::source_location loc = cxx::source_location::current()) {
+  value_type& unwrap(cxx::source_location loc = cxx::source_location::current()) {
     if (this->is_err()) {
       throw bad_result_access("toml::result: bad unwrap" + cxx::to_string(loc));
     }
     return this->succ_.get();
   }
-  value_type const &
-  unwrap(cxx::source_location loc = cxx::source_location::current()) const {
+  value_type const& unwrap(cxx::source_location loc = cxx::source_location::current()) const {
     if (this->is_err()) {
       throw bad_result_access("toml::result: bad unwrap" + cxx::to_string(loc));
     }
     return this->succ_.get();
   }
 
-  value_type &unwrap_or(value_type &opt) noexcept {
+  value_type& unwrap_or(value_type& opt) noexcept {
     if (this->is_err()) {
       return opt;
     }
     return this->succ_.get();
   }
-  value_type const &unwrap_or(value_type const &opt) const noexcept {
+  value_type const& unwrap_or(value_type const& opt) const noexcept {
     if (this->is_err()) {
       return opt;
     }
     return this->succ_.get();
   }
 
-  error_type &
-  unwrap_err(cxx::source_location loc = cxx::source_location::current()) {
+  error_type& unwrap_err(cxx::source_location loc = cxx::source_location::current()) {
     if (this->is_ok()) {
-      throw bad_result_access("toml::result: bad unwrap_err" +
-                              cxx::to_string(loc));
+      throw bad_result_access("toml::result: bad unwrap_err" + cxx::to_string(loc));
     }
     return this->fail_.get();
   }
-  error_type const &
-  unwrap_err(cxx::source_location loc = cxx::source_location::current()) const {
+  error_type const& unwrap_err(cxx::source_location loc = cxx::source_location::current()) const {
     if (this->is_ok()) {
-      throw bad_result_access("toml::result: bad unwrap_err" +
-                              cxx::to_string(loc));
+      throw bad_result_access("toml::result: bad unwrap_err" + cxx::to_string(loc));
     }
     return this->fail_.get();
   }
 
-  value_type &as_ok() noexcept {
+  value_type& as_ok() noexcept {
     assert(this->is_ok());
     return this->succ_.get();
   }
-  value_type const &as_ok() const noexcept {
+  value_type const& as_ok() const noexcept {
     assert(this->is_ok());
     return this->succ_.get();
   }
 
-  error_type &as_err() noexcept {
+  error_type& as_err() noexcept {
     assert(this->is_err());
     return this->fail_.get();
   }
-  error_type const &as_err() const noexcept {
+  error_type const& as_err() const noexcept {
     assert(this->is_err());
     return this->fail_.get();
   }
 
-private:
+ private:
   void cleanup() noexcept {
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
@@ -4152,7 +3873,7 @@ private:
     return;
   }
 
-private:
+ private:
   bool is_ok_;
   union {
     success_type succ_;
@@ -4164,29 +3885,23 @@ private:
 
 namespace detail {
 struct none_t {};
-inline bool operator==(const none_t &, const none_t &) noexcept { return true; }
-inline bool operator!=(const none_t &, const none_t &) noexcept {
-  return false;
-}
-inline bool operator<(const none_t &, const none_t &) noexcept { return false; }
-inline bool operator<=(const none_t &, const none_t &) noexcept { return true; }
-inline bool operator>(const none_t &, const none_t &) noexcept { return false; }
-inline bool operator>=(const none_t &, const none_t &) noexcept { return true; }
-inline std::ostream &operator<<(std::ostream &os, const none_t &) {
+inline bool operator==(const none_t&, const none_t&) noexcept { return true; }
+inline bool operator!=(const none_t&, const none_t&) noexcept { return false; }
+inline bool operator<(const none_t&, const none_t&) noexcept { return false; }
+inline bool operator<=(const none_t&, const none_t&) noexcept { return true; }
+inline bool operator>(const none_t&, const none_t&) noexcept { return false; }
+inline bool operator>=(const none_t&, const none_t&) noexcept { return true; }
+inline std::ostream& operator<<(std::ostream& os, const none_t&) {
   os << "none";
   return os;
 }
-} // namespace detail
+}  // namespace detail
 
-inline success<detail::none_t> ok() noexcept {
-  return success<detail::none_t>(detail::none_t{});
-}
-inline failure<detail::none_t> err() noexcept {
-  return failure<detail::none_t>(detail::none_t{});
-}
+inline success<detail::none_t> ok() noexcept { return success<detail::none_t>(detail::none_t{}); }
+inline failure<detail::none_t> err() noexcept { return failure<detail::none_t>(detail::none_t{}); }
 
-} // namespace toml
-#endif // TOML11_RESULT_HPP
+}  // namespace toml
+#endif  // TOML11_RESULT_HPP
 #ifndef TOML11_UTILITY_HPP
 #define TOML11_UTILITY_HPP
 
@@ -4210,43 +3925,43 @@ inline std::string show_char(const int c) {
     buf.fill('\0');
     const auto r = std::snprintf(buf.data(), buf.size(), "0x%02x", c & 0xFF);
     assert(r == static_cast<int>(buf.size()) - 1);
-    (void)r; // Unused variable warning
+    (void)r;  // Unused variable warning
     auto in_hex = std::string(buf.data());
     switch (c) {
-    case char_type('\0'): {
-      in_hex += "(NUL)";
-      break;
-    }
-    case char_type(' '): {
-      in_hex += "(SPACE)";
-      break;
-    }
-    case char_type('\n'): {
-      in_hex += "(LINE FEED)";
-      break;
-    }
-    case char_type('\r'): {
-      in_hex += "(CARRIAGE RETURN)";
-      break;
-    }
-    case char_type('\t'): {
-      in_hex += "(TAB)";
-      break;
-    }
-    case char_type('\v'): {
-      in_hex += "(VERTICAL TAB)";
-      break;
-    }
-    case char_type('\f'): {
-      in_hex += "(FORM FEED)";
-      break;
-    }
-    case char_type('\x1B'): {
-      in_hex += "(ESCAPE)";
-      break;
-    }
-    default:
-      break;
+      case char_type('\0'): {
+        in_hex += "(NUL)";
+        break;
+      }
+      case char_type(' '): {
+        in_hex += "(SPACE)";
+        break;
+      }
+      case char_type('\n'): {
+        in_hex += "(LINE FEED)";
+        break;
+      }
+      case char_type('\r'): {
+        in_hex += "(CARRIAGE RETURN)";
+        break;
+      }
+      case char_type('\t'): {
+        in_hex += "(TAB)";
+        break;
+      }
+      case char_type('\v'): {
+        in_hex += "(VERTICAL TAB)";
+        break;
+      }
+      case char_type('\f'): {
+        in_hex += "(FORM FEED)";
+        break;
+      }
+      case char_type('\x1B'): {
+        in_hex += "(ESCAPE)";
+        break;
+      }
+      default:
+        break;
     }
     return in_hex;
   }
@@ -4255,24 +3970,25 @@ inline std::string show_char(const int c) {
 // ---------------------------------------------------------------------------
 
 template <typename Container>
-void try_reserve_impl(Container &container, std::size_t N, std::true_type) {
+void try_reserve_impl(Container& container, std::size_t N, std::true_type) {
   container.reserve(N);
   return;
 }
 template <typename Container>
-void try_reserve_impl(Container &, std::size_t, std::false_type) noexcept {
+void try_reserve_impl(Container&, std::size_t, std::false_type) noexcept {
   return;
 }
 
 template <typename Container>
-void try_reserve(Container &container, std::size_t N) {
+void try_reserve(Container& container, std::size_t N) {
   try_reserve_impl(container, N, has_reserve_method<Container>{});
   return;
 }
 
 // ---------------------------------------------------------------------------
 
-template <typename T> result<T, none_t> from_string(const std::string &str) {
+template <typename T>
+result<T, none_t> from_string(const std::string& str) {
   T v;
   std::istringstream iss(str);
   iss >> v;
@@ -4301,25 +4017,21 @@ inline std::string make_string(std::size_t len, char c) {
 
 // ---------------------------------------------------------------------------
 
-template <typename Char, typename Traits, typename Alloc, typename Char2,
-          typename Traits2, typename Alloc2>
+template <typename Char, typename Traits, typename Alloc, typename Char2, typename Traits2, typename Alloc2>
 struct string_conv_impl {
   static_assert(sizeof(Char) == sizeof(char), "");
   static_assert(sizeof(Char2) == sizeof(char), "");
 
-  static std::basic_string<Char, Traits, Alloc>
-  invoke(std::basic_string<Char2, Traits2, Alloc2> s) {
+  static std::basic_string<Char, Traits, Alloc> invoke(std::basic_string<Char2, Traits2, Alloc2> s) {
     std::basic_string<Char, Traits, Alloc> retval;
-    std::transform(s.begin(), s.end(), std::back_inserter(retval),
-                   [](const Char2 c) { return static_cast<Char>(c); });
+    std::transform(s.begin(), s.end(), std::back_inserter(retval), [](const Char2 c) { return static_cast<Char>(c); });
     return retval;
   }
   template <std::size_t N>
   static std::basic_string<Char, Traits, Alloc> invoke(const Char2 (&s)[N]) {
     std::basic_string<Char, Traits, Alloc> retval;
     // "string literal" has null-char at the end. to skip it, we use prev.
-    std::transform(std::begin(s), std::prev(std::end(s)),
-                   std::back_inserter(retval),
+    std::transform(std::begin(s), std::prev(std::end(s)), std::back_inserter(retval),
                    [](const Char2 c) { return static_cast<Char>(c); });
     return retval;
   }
@@ -4329,10 +4041,7 @@ template <typename Char, typename Traits, typename Alloc>
 struct string_conv_impl<Char, Traits, Alloc, Char, Traits, Alloc> {
   static_assert(sizeof(Char) == sizeof(char), "");
 
-  static std::basic_string<Char, Traits, Alloc>
-  invoke(std::basic_string<Char, Traits, Alloc> s) {
-    return s;
-  }
+  static std::basic_string<Char, Traits, Alloc> invoke(std::basic_string<Char, Traits, Alloc> s) { return s; }
   template <std::size_t N>
   static std::basic_string<Char, Traits, Alloc> invoke(const Char (&s)[N]) {
     return std::basic_string<Char, Traits, Alloc>(s);
@@ -4340,17 +4049,14 @@ struct string_conv_impl<Char, Traits, Alloc, Char, Traits, Alloc> {
 };
 
 template <typename S, typename Char2, typename Traits2, typename Alloc2>
-cxx::enable_if_t<is_std_basic_string<S>::value, S>
-string_conv(std::basic_string<Char2, Traits2, Alloc2> s) {
+cxx::enable_if_t<is_std_basic_string<S>::value, S> string_conv(std::basic_string<Char2, Traits2, Alloc2> s) {
   using C = typename S::value_type;
   using T = typename S::traits_type;
   using A = typename S::allocator_type;
-  return string_conv_impl<C, T, A, Char2, Traits2, Alloc2>::invoke(
-      std::move(s));
+  return string_conv_impl<C, T, A, Char2, Traits2, Alloc2>::invoke(std::move(s));
 }
 template <typename S, std::size_t N>
-cxx::enable_if_t<is_std_basic_string<S>::value, S>
-string_conv(const char (&s)[N]) {
+cxx::enable_if_t<is_std_basic_string<S>::value, S> string_conv(const char (&s)[N]) {
   using C = typename S::value_type;
   using T = typename S::traits_type;
   using A = typename S::allocator_type;
@@ -4361,9 +4067,9 @@ string_conv(const char (&s)[N]) {
   return string_conv_impl<C, T, A, C2, T2, A2>::template invoke<N>(s);
 }
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_UTILITY_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_UTILITY_HPP
 #ifndef TOML11_LOCATION_HPP
 #define TOML11_LOCATION_HPP
 
@@ -4377,30 +4083,28 @@ string_conv(const char (&s)[N]) {
 namespace toml {
 namespace detail {
 
-class region; // fwd decl
+class region;  // fwd decl
 
 //
 // To represent where we are reading in the parse functions.
 // Since it "points" somewhere in the input stream, the length is always 1.
 //
 class location {
-public:
-  using char_type = unsigned char; // must be unsigned
+ public:
+  using char_type = unsigned char;  // must be unsigned
   using container_type = std::vector<char_type>;
-  using difference_type =
-      typename container_type::difference_type; // to suppress sign-conversion
-                                                // warning
+  using difference_type = typename container_type::difference_type;  // to suppress sign-conversion
+                                                                     // warning
   using source_ptr = std::shared_ptr<const container_type>;
 
-public:
+ public:
   location(source_ptr src, std::string src_name)
-      : source_(std::move(src)), source_name_(std::move(src_name)),
-        location_(0), line_number_(1) {}
+      : source_(std::move(src)), source_name_(std::move(src_name)), location_(0), line_number_(1) {}
 
-  location(const location &) = default;
-  location(location &&) = default;
-  location &operator=(const location &) = default;
-  location &operator=(location &&) = default;
+  location(const location&) = default;
+  location(location&&) = default;
+  location& operator=(const location&) = default;
+  location& operator=(location&&) = default;
   ~location() = default;
 
   void advance(std::size_t n = 1) noexcept;
@@ -4420,33 +4124,32 @@ public:
   std::string get_line() const;
   std::size_t column_number() const noexcept;
 
-  source_ptr const &source() const noexcept { return this->source_; }
-  std::string const &source_name() const noexcept { return this->source_name_; }
+  source_ptr const& source() const noexcept { return this->source_; }
+  std::string const& source_name() const noexcept { return this->source_name_; }
 
-private:
+ private:
   void advance_line_number(const std::size_t n);
   void retrace_line_number(const std::size_t n);
 
-private:
+ private:
   friend region;
 
-private:
+ private:
   source_ptr source_;
   std::string source_name_;
-  std::size_t location_; // std::vector<>::difference_type is signed
+  std::size_t location_;  // std::vector<>::difference_type is signed
   std::size_t line_number_;
 };
 
-bool operator==(const location &lhs, const location &rhs) noexcept;
-bool operator!=(const location &lhs, const location &rhs);
+bool operator==(const location& lhs, const location& rhs) noexcept;
+bool operator!=(const location& lhs, const location& rhs);
 
-location prev(const location &loc);
-location next(const location &loc);
-location make_temporary_location(const std::string &str) noexcept;
+location prev(const location& loc);
+location next(const location& loc);
+location make_temporary_location(const std::string& str) noexcept;
 
 template <typename F>
-result<location, none_t> find_if(const location &first, const location &last,
-                                 const F &func) noexcept {
+result<location, none_t> find_if(const location& first, const location& last, const F& func) noexcept {
   if (first.source() != last.source()) {
     return err();
   }
@@ -4465,8 +4168,7 @@ result<location, none_t> find_if(const location &first, const location &last,
 }
 
 template <typename F>
-result<location, none_t> rfind_if(location first, const location &last,
-                                  const F &func) {
+result<location, none_t> rfind_if(location first, const location& last, const F& func) {
   if (first.source() != last.source()) {
     return err();
   }
@@ -4487,17 +4189,14 @@ result<location, none_t> rfind_if(location first, const location &last,
   return err();
 }
 
-result<location, none_t> find(const location &first, const location &last,
-                              const location::char_type val);
-result<location, none_t> rfind(const location &first, const location &last,
-                               const location::char_type val);
+result<location, none_t> find(const location& first, const location& last, const location::char_type val);
+result<location, none_t> rfind(const location& first, const location& last, const location::char_type val);
 
-std::size_t count(const location &first, const location &last,
-                  const location::char_type &c);
+std::size_t count(const location& first, const location& last, const location::char_type& c);
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_LOCATION_FWD_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_LOCATION_FWD_HPP
 
 #if !defined(TOML11_COMPILE_SOURCES)
 #ifndef TOML11_LOCATION_IMPL_HPP
@@ -4569,8 +4268,7 @@ TOML11_INLINE void location::set_location(const std::size_t loc) noexcept {
 
 TOML11_INLINE std::string location::get_line() const {
   assert(this->is_ok());
-  const auto iter = std::next(this->source_->cbegin(),
-                              static_cast<difference_type>(this->location_));
+  const auto iter = std::next(this->source_->cbegin(), static_cast<difference_type>(this->location_));
   const auto riter = cxx::make_reverse_iterator(iter);
 
   const auto prev = std::find(riter, this->source_->crend(), char_type('\n'));
@@ -4580,14 +4278,12 @@ TOML11_INLINE std::string location::get_line() const {
 }
 TOML11_INLINE std::size_t location::column_number() const noexcept {
   assert(this->is_ok());
-  const auto iter = std::next(this->source_->cbegin(),
-                              static_cast<difference_type>(this->location_));
+  const auto iter = std::next(this->source_->cbegin(), static_cast<difference_type>(this->location_));
   const auto riter = cxx::make_reverse_iterator(iter);
   const auto prev = std::find(riter, this->source_->crend(), char_type('\n'));
 
   assert(prev.base() <= iter);
-  return static_cast<std::size_t>(std::distance(prev.base(), iter) +
-                                  1); // 1-origin
+  return static_cast<std::size_t>(std::distance(prev.base(), iter) + 1);  // 1-origin
 }
 
 TOML11_INLINE void location::advance_line_number(const std::size_t n) {
@@ -4595,22 +4291,20 @@ TOML11_INLINE void location::advance_line_number(const std::size_t n) {
   assert(this->location_ + n <= this->source_->size());
 
   const auto iter = this->source_->cbegin();
-  this->line_number_ += static_cast<std::size_t>(std::count(
-      std::next(iter, static_cast<difference_type>(this->location_)),
-      std::next(iter, static_cast<difference_type>(this->location_ + n)),
-      char_type('\n')));
+  this->line_number_ += static_cast<std::size_t>(
+      std::count(std::next(iter, static_cast<difference_type>(this->location_)),
+                 std::next(iter, static_cast<difference_type>(this->location_ + n)), char_type('\n')));
 
   return;
 }
 TOML11_INLINE void location::retrace_line_number(const std::size_t n) {
   assert(this->is_ok());
-  assert(n <= this->location_); // loc - n >= 0
+  assert(n <= this->location_);  // loc - n >= 0
 
   const auto iter = this->source_->cbegin();
-  const auto dline_num = static_cast<std::size_t>(std::count(
-      std::next(iter, static_cast<difference_type>(this->location_ - n)),
-      std::next(iter, static_cast<difference_type>(this->location_)),
-      char_type('\n')));
+  const auto dline_num = static_cast<std::size_t>(
+      std::count(std::next(iter, static_cast<difference_type>(this->location_ - n)),
+                 std::next(iter, static_cast<difference_type>(this->location_)), char_type('\n')));
 
   if (this->line_number_ <= dline_num) {
     this->line_number_ = 1;
@@ -4620,57 +4314,43 @@ TOML11_INLINE void location::retrace_line_number(const std::size_t n) {
   return;
 }
 
-TOML11_INLINE bool operator==(const location &lhs,
-                              const location &rhs) noexcept {
+TOML11_INLINE bool operator==(const location& lhs, const location& rhs) noexcept {
   if (!lhs.is_ok() || !rhs.is_ok()) {
     return (!lhs.is_ok()) && (!rhs.is_ok());
   }
-  return lhs.source() == rhs.source() &&
-         lhs.source_name() == rhs.source_name() &&
+  return lhs.source() == rhs.source() && lhs.source_name() == rhs.source_name() &&
          lhs.get_location() == rhs.get_location();
 }
-TOML11_INLINE bool operator!=(const location &lhs, const location &rhs) {
-  return !(lhs == rhs);
-}
+TOML11_INLINE bool operator!=(const location& lhs, const location& rhs) { return !(lhs == rhs); }
 
-TOML11_INLINE location prev(const location &loc) {
+TOML11_INLINE location prev(const location& loc) {
   location p(loc);
   p.retrace(1);
   return p;
 }
-TOML11_INLINE location next(const location &loc) {
+TOML11_INLINE location next(const location& loc) {
   location p(loc);
   p.advance(1);
   return p;
 }
 
-TOML11_INLINE location
-make_temporary_location(const std::string &str) noexcept {
+TOML11_INLINE location make_temporary_location(const std::string& str) noexcept {
   location::container_type cont(str.size());
   std::transform(str.begin(), str.end(), cont.begin(),
-                 [](const std::string::value_type &c) {
-                   return cxx::bit_cast<location::char_type>(c);
-                 });
-  return location(
-      std::make_shared<const location::container_type>(std::move(cont)),
-      "internal temporary");
+                 [](const std::string::value_type& c) { return cxx::bit_cast<location::char_type>(c); });
+  return location(std::make_shared<const location::container_type>(std::move(cont)), "internal temporary");
 }
 
-TOML11_INLINE result<location, none_t> find(const location &first,
-                                            const location &last,
+TOML11_INLINE result<location, none_t> find(const location& first, const location& last,
                                             const location::char_type val) {
-  return find_if(first, last,
-                 [val](const location::char_type c) { return c == val; });
+  return find_if(first, last, [val](const location::char_type c) { return c == val; });
 }
-TOML11_INLINE result<location, none_t> rfind(const location &first,
-                                             const location &last,
+TOML11_INLINE result<location, none_t> rfind(const location& first, const location& last,
                                              const location::char_type val) {
-  return rfind_if(first, last,
-                  [val](const location::char_type c) { return c == val; });
+  return rfind_if(first, last, [val](const location::char_type c) { return c == val; });
 }
 
-TOML11_INLINE std::size_t count(const location &first, const location &last,
-                                const location::char_type &c) {
+TOML11_INLINE std::size_t count(const location& first, const location& last, const location::char_type& c) {
   if (first.source() != last.source()) {
     return 0;
   }
@@ -4689,12 +4369,12 @@ TOML11_INLINE std::size_t count(const location &first, const location &last,
   return num;
 }
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_LOCATION_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_LOCATION_HPP
 #endif
 
-#endif // TOML11_LOCATION_HPP
+#endif  // TOML11_LOCATION_HPP
 #ifndef TOML11_REGION_HPP
 #define TOML11_REGION_HPP
 
@@ -4714,7 +4394,7 @@ namespace detail {
 // Stored in toml::value. source_location will be constructed based on this.
 //
 class region {
-public:
+ public:
   using char_type = location::char_type;
   using container_type = location::container_type;
   using difference_type = location::difference_type;
@@ -4723,25 +4403,31 @@ public:
   using iterator = typename container_type::iterator;
   using const_iterator = typename container_type::const_iterator;
 
-public:
+ public:
   // a value that is constructed manually does not have input stream info
   region()
-      : source_(nullptr), source_name_(""), length_(0), first_(0),
-        first_line_(0), first_column_(0), last_(0), last_line_(0),
+      : source_(nullptr),
+        source_name_(""),
+        length_(0),
+        first_(0),
+        first_line_(0),
+        first_column_(0),
+        last_(0),
+        last_line_(0),
         last_column_(0) {}
 
   // a value defined in [first, last).
   // Those source must be the same. Instread, `region` does not make sense.
-  region(const location &first, const location &last);
+  region(const location& first, const location& last);
 
   // shorthand of [loc, loc+1)
-  explicit region(const location &loc);
+  explicit region(const location& loc);
 
   ~region() = default;
-  region(const region &) = default;
-  region(region &&) = default;
-  region &operator=(const region &) = default;
-  region &operator=(region &&) = default;
+  region(const region&) = default;
+  region(region&&) = default;
+  region& operator=(const region&) = default;
+  region& operator=(region&&) = default;
 
   bool is_ok() const noexcept { return static_cast<bool>(this->source_); }
 
@@ -4750,9 +4436,7 @@ public:
   std::size_t length() const noexcept { return this->length_; }
 
   std::size_t first_line_number() const noexcept { return this->first_line_; }
-  std::size_t first_column_number() const noexcept {
-    return this->first_column_;
-  }
+  std::size_t first_column_number() const noexcept { return this->first_column_; }
   std::size_t last_line_number() const noexcept { return this->last_line_; }
   std::size_t last_column_number() const noexcept { return this->last_column_; }
 
@@ -4766,10 +4450,10 @@ public:
   std::string as_string() const;
   std::vector<std::string> as_lines() const;
 
-  source_ptr const &source() const noexcept { return this->source_; }
-  std::string const &source_name() const noexcept { return this->source_name_; }
+  source_ptr const& source() const noexcept { return this->source_; }
+  std::string const& source_name() const noexcept { return this->source_name_; }
 
-private:
+ private:
   source_ptr source_;
   std::string source_name_;
   std::size_t length_;
@@ -4781,9 +4465,9 @@ private:
   std::size_t last_column_;
 };
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_REGION_FWD_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_REGION_FWD_HPP
 
 #if !defined(TOML11_COMPILE_SOURCES)
 #ifndef TOML11_REGION_IMPL_HPP
@@ -4801,20 +4485,29 @@ namespace detail {
 
 // a value defined in [first, last).
 // Those source must be the same. Instread, `region` does not make sense.
-TOML11_INLINE region::region(const location &first, const location &last)
-    : source_(first.source()), source_name_(first.source_name()),
+TOML11_INLINE region::region(const location& first, const location& last)
+    : source_(first.source()),
+      source_name_(first.source_name()),
       length_(last.get_location() - first.get_location()),
-      first_(first.get_location()), first_line_(first.line_number()),
-      first_column_(first.column_number()), last_(last.get_location()),
-      last_line_(last.line_number()), last_column_(last.column_number()) {
+      first_(first.get_location()),
+      first_line_(first.line_number()),
+      first_column_(first.column_number()),
+      last_(last.get_location()),
+      last_line_(last.line_number()),
+      last_column_(last.column_number()) {
   assert(first.source() == last.source());
   assert(first.source_name() == last.source_name());
 }
 
 // shorthand of [loc, loc+1)
-TOML11_INLINE region::region(const location &loc)
-    : source_(loc.source()), source_name_(loc.source_name()), length_(0),
-      first_line_(0), first_column_(0), last_line_(0), last_column_(0) {
+TOML11_INLINE region::region(const location& loc)
+    : source_(loc.source()),
+      source_name_(loc.source_name()),
+      length_(0),
+      first_line_(0),
+      first_column_(0),
+      last_line_(0),
+      last_column_(0) {
   // if the file ends with LF, the resulting region points no char.
   if (loc.eof()) {
     if (loc.get_location() == 0) {
@@ -4848,37 +4541,30 @@ TOML11_INLINE region::region(const location &loc)
 
 TOML11_INLINE region::char_type region::at(std::size_t i) const {
   if (this->last_ <= this->first_ + i) {
-    throw std::out_of_range("range::at: index " + std::to_string(i) +
-                            " exceeds length " + std::to_string(this->length_));
+    throw std::out_of_range("range::at: index " + std::to_string(i) + " exceeds length " +
+                            std::to_string(this->length_));
   }
-  const auto iter = std::next(this->source_->cbegin(),
-                              static_cast<difference_type>(this->first_ + i));
+  const auto iter = std::next(this->source_->cbegin(), static_cast<difference_type>(this->first_ + i));
   return *iter;
 }
 
 TOML11_INLINE region::const_iterator region::begin() const noexcept {
-  return std::next(this->source_->cbegin(),
-                   static_cast<difference_type>(this->first_));
+  return std::next(this->source_->cbegin(), static_cast<difference_type>(this->first_));
 }
 TOML11_INLINE region::const_iterator region::end() const noexcept {
-  return std::next(this->source_->cbegin(),
-                   static_cast<difference_type>(this->last_));
+  return std::next(this->source_->cbegin(), static_cast<difference_type>(this->last_));
 }
 TOML11_INLINE region::const_iterator region::cbegin() const noexcept {
-  return std::next(this->source_->cbegin(),
-                   static_cast<difference_type>(this->first_));
+  return std::next(this->source_->cbegin(), static_cast<difference_type>(this->first_));
 }
 TOML11_INLINE region::const_iterator region::cend() const noexcept {
-  return std::next(this->source_->cbegin(),
-                   static_cast<difference_type>(this->last_));
+  return std::next(this->source_->cbegin(), static_cast<difference_type>(this->last_));
 }
 
 TOML11_INLINE std::string region::as_string() const {
   if (this->is_ok()) {
-    const auto begin = std::next(this->source_->cbegin(),
-                                 static_cast<difference_type>(this->first_));
-    const auto end = std::next(this->source_->cbegin(),
-                               static_cast<difference_type>(this->last_));
+    const auto begin = std::next(this->source_->cbegin(), static_cast<difference_type>(this->first_));
+    const auto end = std::next(this->source_->cbegin(), static_cast<difference_type>(this->last_));
     return ::toml::detail::make_string(begin, end);
   } else {
     return std::string("");
@@ -4924,14 +4610,12 @@ TOML11_INLINE std::vector<std::string> region::as_lines() const {
   const auto begin = std::next(this->source_->cbegin(), begin_idx);
   const auto end = std::next(this->source_->cbegin(), end_idx);
 
-  const auto line_begin = std::find(cxx::make_reverse_iterator(begin),
-                                    this->source_->crend(), char_type('\n'))
-                              .base();
+  const auto line_begin = std::find(cxx::make_reverse_iterator(begin), this->source_->crend(), char_type('\n')).base();
   const auto line_end = std::find(end, this->source_->cend(), char_type('\n'));
 
   const auto reg_lines = make_string(line_begin, line_end);
 
-  if (reg_lines == "") // the region is an empty line that only contains LF
+  if (reg_lines == "")  // the region is an empty line that only contains LF
   {
     return std::vector<std::string>{""};
   }
@@ -4946,12 +4630,12 @@ TOML11_INLINE std::vector<std::string> region::as_lines() const {
   return lines;
 }
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_REGION_IMPL_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_REGION_IMPL_HPP
 #endif
 
-#endif // TOML11_REGION_HPP
+#endif  // TOML11_REGION_HPP
 #ifndef TOML11_SOURCE_LOCATION_HPP
 #define TOML11_SOURCE_LOCATION_HPP
 
@@ -4966,34 +4650,32 @@ namespace toml {
 
 // A struct to contain location in a toml file.
 struct source_location {
-public:
-  explicit source_location(const detail::region &r);
+ public:
+  explicit source_location(const detail::region& r);
   ~source_location() = default;
-  source_location(source_location const &) = default;
-  source_location(source_location &&) = default;
-  source_location &operator=(source_location const &) = default;
-  source_location &operator=(source_location &&) = default;
+  source_location(source_location const&) = default;
+  source_location(source_location&&) = default;
+  source_location& operator=(source_location const&) = default;
+  source_location& operator=(source_location&&) = default;
 
   bool is_ok() const noexcept { return this->is_ok_; }
   std::size_t length() const noexcept { return this->length_; }
 
   std::size_t first_line_number() const noexcept { return this->first_line_; }
-  std::size_t first_column_number() const noexcept {
-    return this->first_column_;
-  }
+  std::size_t first_column_number() const noexcept { return this->first_column_; }
   std::size_t last_line_number() const noexcept { return this->last_line_; }
   std::size_t last_column_number() const noexcept { return this->last_column_; }
 
-  std::string const &file_name() const noexcept { return this->file_name_; }
+  std::string const& file_name() const noexcept { return this->file_name_; }
 
   std::size_t num_lines() const noexcept { return this->line_str_.size(); }
 
-  std::string const &first_line() const;
-  std::string const &last_line() const;
+  std::string const& first_line() const;
+  std::string const& last_line() const;
 
-  std::vector<std::string> const &lines() const noexcept { return line_str_; }
+  std::vector<std::string> const& lines() const noexcept { return line_str_; }
 
-private:
+ private:
   bool is_ok_;
   std::size_t first_line_;
   std::size_t first_column_;
@@ -5011,60 +4693,44 @@ std::size_t integer_width_base10(std::size_t i) noexcept;
 inline std::size_t line_width() noexcept { return 0; }
 
 template <typename... Ts>
-std::size_t line_width(const source_location &loc, const std::string & /*msg*/,
-                       const Ts &... tail) noexcept {
-  return (std::max)(integer_width_base10(loc.last_line_number()),
-                    line_width(tail...));
+std::size_t line_width(const source_location& loc, const std::string& /*msg*/, const Ts&... tail) noexcept {
+  return (std::max)(integer_width_base10(loc.last_line_number()), line_width(tail...));
 }
 
-std::ostringstream &format_filename(std::ostringstream &oss,
-                                    const source_location &loc);
+std::ostringstream& format_filename(std::ostringstream& oss, const source_location& loc);
 
-std::ostringstream &format_empty_line(std::ostringstream &oss,
-                                      const std::size_t lnw);
+std::ostringstream& format_empty_line(std::ostringstream& oss, const std::size_t lnw);
 
-std::ostringstream &format_line(std::ostringstream &oss, const std::size_t lnw,
-                                const std::size_t linenum,
-                                const std::string &line);
+std::ostringstream& format_line(std::ostringstream& oss, const std::size_t lnw, const std::size_t linenum,
+                                const std::string& line);
 
-std::ostringstream &format_underline(std::ostringstream &oss,
-                                     const std::size_t lnw,
-                                     const std::size_t col,
-                                     const std::size_t len,
-                                     const std::string &msg);
+std::ostringstream& format_underline(std::ostringstream& oss, const std::size_t lnw, const std::size_t col,
+                                     const std::size_t len, const std::string& msg);
 
-std::string format_location_impl(const std::size_t lnw,
-                                 const std::string &prev_fname,
-                                 const source_location &loc,
-                                 const std::string &msg);
+std::string format_location_impl(const std::size_t lnw, const std::string& prev_fname, const source_location& loc,
+                                 const std::string& msg);
 
-inline std::string format_location_rec(const std::size_t, const std::string &) {
-  return "";
-}
+inline std::string format_location_rec(const std::size_t, const std::string&) { return ""; }
 
 template <typename... Ts>
-std::string format_location_rec(const std::size_t lnw,
-                                const std::string &prev_fname,
-                                const source_location &loc,
-                                const std::string &msg, const Ts &... tail) {
-  return format_location_impl(lnw, prev_fname, loc, msg) +
-         format_location_rec(lnw, loc.file_name(), tail...);
+std::string format_location_rec(const std::size_t lnw, const std::string& prev_fname, const source_location& loc,
+                                const std::string& msg, const Ts&... tail) {
+  return format_location_impl(lnw, prev_fname, loc, msg) + format_location_rec(lnw, loc.file_name(), tail...);
 }
 
-} // namespace detail
+}  // namespace detail
 
 // format a location info without title
 template <typename... Ts>
-std::string format_location(const source_location &loc, const std::string &msg,
-                            const Ts &... tail) {
+std::string format_location(const source_location& loc, const std::string& msg, const Ts&... tail) {
   const auto lnw = detail::line_width(loc, msg, tail...);
 
-  const std::string f(""); // at the 1st iteration, no prev_filename is given
+  const std::string f("");  // at the 1st iteration, no prev_filename is given
   return detail::format_location_rec(lnw, f, loc, msg, tail...);
 }
 
-} // namespace toml
-#endif // TOML11_SOURCE_LOCATION_FWD_HPP
+}  // namespace toml
+#endif  // TOML11_SOURCE_LOCATION_FWD_HPP
 
 #if !defined(TOML11_COMPILE_SOURCES)
 #ifndef TOML11_SOURCE_LOCATION_IMPL_HPP
@@ -5079,9 +4745,14 @@ std::string format_location(const source_location &loc, const std::string &msg,
 
 namespace toml {
 
-TOML11_INLINE source_location::source_location(const detail::region &r)
-    : is_ok_(false), first_line_(1), first_column_(1), last_line_(1),
-      last_column_(1), length_(0), file_name_("unknown file") {
+TOML11_INLINE source_location::source_location(const detail::region& r)
+    : is_ok_(false),
+      first_line_(1),
+      first_column_(1),
+      last_line_(1),
+      last_column_(1),
+      length_(0),
+      file_name_("unknown file") {
   if (r.is_ok()) {
     this->is_ok_ = true;
     this->file_name_ = r.source_name();
@@ -5094,17 +4765,15 @@ TOML11_INLINE source_location::source_location(const detail::region &r)
   }
 }
 
-TOML11_INLINE std::string const &source_location::first_line() const {
+TOML11_INLINE std::string const& source_location::first_line() const {
   if (this->line_str_.size() == 0) {
-    throw std::out_of_range(
-        "toml::source_location::first_line: `lines` is empty");
+    throw std::out_of_range("toml::source_location::first_line: `lines` is empty");
   }
   return this->line_str_.front();
 }
-TOML11_INLINE std::string const &source_location::last_line() const {
+TOML11_INLINE std::string const& source_location::last_line() const {
   if (this->line_str_.size() == 0) {
-    throw std::out_of_range(
-        "toml::source_location::first_line: `lines` is empty");
+    throw std::out_of_range("toml::source_location::first_line: `lines` is empty");
   }
   return this->line_str_.back();
 }
@@ -5120,31 +4789,24 @@ TOML11_INLINE std::size_t integer_width_base10(std::size_t i) noexcept {
   return width;
 }
 
-TOML11_INLINE std::ostringstream &format_filename(std::ostringstream &oss,
-                                                  const source_location &loc) {
+TOML11_INLINE std::ostringstream& format_filename(std::ostringstream& oss, const source_location& loc) {
   // --> example.toml
-  oss << color::bold << color::blue << " --> " << color::reset << color::bold
-      << loc.file_name() << '\n'
+  oss << color::bold << color::blue << " --> " << color::reset << color::bold << loc.file_name() << '\n'
       << color::reset;
   return oss;
 }
 
-TOML11_INLINE std::ostringstream &format_empty_line(std::ostringstream &oss,
-                                                    const std::size_t lnw) {
+TOML11_INLINE std::ostringstream& format_empty_line(std::ostringstream& oss, const std::size_t lnw) {
   //    |
-  oss << detail::make_string(lnw + 1, ' ') << color::bold << color::blue
-      << " |\n"
-      << color::reset;
+  oss << detail::make_string(lnw + 1, ' ') << color::bold << color::blue << " |\n" << color::reset;
   return oss;
 }
 
-TOML11_INLINE std::ostringstream &format_line(std::ostringstream &oss,
-                                              const std::size_t lnw,
-                                              const std::size_t linenum,
-                                              const std::string &line) {
+TOML11_INLINE std::ostringstream& format_line(std::ostringstream& oss, const std::size_t lnw, const std::size_t linenum,
+                                              const std::string& line) {
   // 10 | key = "value"
-  oss << ' ' << color::bold << color::blue << std::setw(static_cast<int>(lnw))
-      << std::right << linenum << " | " << color::reset;
+  oss << ' ' << color::bold << color::blue << std::setw(static_cast<int>(lnw)) << std::right << linenum << " | "
+      << color::reset;
   for (const char c : line) {
     if (std::isgraph(c) || c == ' ') {
       oss << c;
@@ -5155,27 +4817,22 @@ TOML11_INLINE std::ostringstream &format_line(std::ostringstream &oss,
   oss << '\n';
   return oss;
 }
-TOML11_INLINE std::ostringstream &format_underline(std::ostringstream &oss,
-                                                   const std::size_t lnw,
-                                                   const std::size_t col,
-                                                   const std::size_t len,
-                                                   const std::string &msg) {
+TOML11_INLINE std::ostringstream& format_underline(std::ostringstream& oss, const std::size_t lnw,
+                                                   const std::size_t col, const std::size_t len,
+                                                   const std::string& msg) {
   //    |       ^^^^^^^-- this part
-  oss << make_string(lnw + 1, ' ') << color::bold << color::blue << " | "
-      << color::reset;
+  oss << make_string(lnw + 1, ' ') << color::bold << color::blue << " | " << color::reset;
 
   // in case col is 0, so we don't create a string with size_t max length
   const std::size_t sanitized_col = col == 0 ? 0 : col - 1 /*1-origin*/;
-  oss << make_string(sanitized_col, ' ') << color::bold << color::red
-      << make_string(len, '^') << "-- " << color::reset << msg << '\n';
+  oss << make_string(sanitized_col, ' ') << color::bold << color::red << make_string(len, '^') << "-- " << color::reset
+      << msg << '\n';
 
   return oss;
 }
 
-TOML11_INLINE std::string format_location_impl(const std::size_t lnw,
-                                               const std::string &prev_fname,
-                                               const source_location &loc,
-                                               const std::string &msg) {
+TOML11_INLINE std::string format_location_impl(const std::size_t lnw, const std::string& prev_fname,
+                                               const source_location& loc, const std::string& msg) {
   std::ostringstream oss;
 
   if (loc.file_name() != prev_fname) {
@@ -5198,20 +4855,16 @@ TOML11_INLINE std::string format_location_impl(const std::size_t lnw,
     format_line(oss, lnw, loc.first_line_number(), loc.first_line());
     format_underline(oss, lnw, loc.first_column_number(), underline_len, msg);
   } else if (loc.lines().size() == 2) {
-    const auto first_underline_len =
-        loc.first_line().size() - loc.first_column_number() + 1;
+    const auto first_underline_len = loc.first_line().size() - loc.first_column_number() + 1;
     format_line(oss, lnw, loc.first_line_number(), loc.first_line());
-    format_underline(oss, lnw, loc.first_column_number(), first_underline_len,
-                     "");
+    format_underline(oss, lnw, loc.first_column_number(), first_underline_len, "");
 
     format_line(oss, lnw, loc.last_line_number(), loc.last_line());
     format_underline(oss, lnw, 1, loc.last_column_number(), msg);
   } else if (loc.lines().size() > 2) {
-    const auto first_underline_len =
-        loc.first_line().size() - loc.first_column_number() + 1;
+    const auto first_underline_len = loc.first_line().size() - loc.first_column_number() + 1;
     format_line(oss, lnw, loc.first_line_number(), loc.first_line());
-    format_underline(oss, lnw, loc.first_column_number(), first_underline_len,
-                     "and");
+    format_underline(oss, lnw, loc.first_column_number(), first_underline_len, "and");
 
     if (loc.lines().size() == 3) {
       format_line(oss, lnw, loc.first_line_number() + 1, loc.lines().at(1));
@@ -5227,12 +4880,12 @@ TOML11_INLINE std::string format_location_impl(const std::size_t lnw,
   return oss.str();
 }
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_SOURCE_LOCATION_IMPL_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_SOURCE_LOCATION_IMPL_HPP
 #endif
 
-#endif // TOML11_SOURCE_LOCATION_HPP
+#endif  // TOML11_SOURCE_LOCATION_HPP
 #ifndef TOML11_ERROR_INFO_HPP
 #define TOML11_ERROR_INFO_HPP
 
@@ -5243,40 +4896,33 @@ namespace toml {
 
 // error info returned from parser.
 struct error_info {
-  error_info(std::string t, source_location l, std::string m,
-             std::string s = "")
-      : title_(std::move(t)), locations_{std::make_pair(std::move(l),
-                                                        std::move(m))},
-        suffix_(std::move(s)) {}
+  error_info(std::string t, source_location l, std::string m, std::string s = "")
+      : title_(std::move(t)), locations_{std::make_pair(std::move(l), std::move(m))}, suffix_(std::move(s)) {}
 
-  error_info(std::string t,
-             std::vector<std::pair<source_location, std::string>> l,
-             std::string s = "")
+  error_info(std::string t, std::vector<std::pair<source_location, std::string>> l, std::string s = "")
       : title_(std::move(t)), locations_(std::move(l)), suffix_(std::move(s)) {}
 
-  std::string const &title() const noexcept { return title_; }
-  std::string &title() noexcept { return title_; }
+  std::string const& title() const noexcept { return title_; }
+  std::string& title() noexcept { return title_; }
 
-  std::vector<std::pair<source_location, std::string>> const &
-  locations() const noexcept {
-    return locations_;
-  }
+  std::vector<std::pair<source_location, std::string>> const& locations() const noexcept { return locations_; }
 
   void add_locations(source_location loc, std::string msg) noexcept {
     locations_.emplace_back(std::move(loc), std::move(msg));
   }
 
-  std::string const &suffix() const noexcept { return suffix_; }
-  std::string &suffix() noexcept { return suffix_; }
+  std::string const& suffix() const noexcept { return suffix_; }
+  std::string& suffix() noexcept { return suffix_; }
 
-private:
+ private:
   std::string title_;
   std::vector<std::pair<source_location, std::string>> locations_;
-  std::string suffix_; // hint or something like that
+  std::string suffix_;  // hint or something like that
 };
 
 // forward decl
-template <typename TypeConfig> class basic_value;
+template <typename TypeConfig>
+class basic_value;
 
 namespace detail {
 inline error_info make_error_info_rec(error_info e) { return e; }
@@ -5286,41 +4932,35 @@ inline error_info make_error_info_rec(error_info e, std::string s) {
 }
 
 template <typename TC, typename... Ts>
-error_info make_error_info_rec(error_info e, const basic_value<TC> &v,
-                               std::string msg, Ts &&... tail);
+error_info make_error_info_rec(error_info e, const basic_value<TC>& v, std::string msg, Ts&&... tail);
 
 template <typename... Ts>
-error_info make_error_info_rec(error_info e, source_location loc,
-                               std::string msg, Ts &&... tail) {
+error_info make_error_info_rec(error_info e, source_location loc, std::string msg, Ts&&... tail) {
   e.add_locations(std::move(loc), std::move(msg));
   return make_error_info_rec(std::move(e), std::forward<Ts>(tail)...);
 }
 
-} // namespace detail
+}  // namespace detail
 
 template <typename... Ts>
-error_info make_error_info(std::string title, source_location loc,
-                           std::string msg, Ts &&... tail) {
+error_info make_error_info(std::string title, source_location loc, std::string msg, Ts&&... tail) {
   error_info ei(std::move(title), std::move(loc), std::move(msg));
   return detail::make_error_info_rec(ei, std::forward<Ts>(tail)...);
 }
 
-std::string format_error(const std::string &errkind, const error_info &err);
-std::string format_error(const error_info &err);
+std::string format_error(const std::string& errkind, const error_info& err);
+std::string format_error(const error_info& err);
 
 // for custom error message
 template <typename... Ts>
-std::string format_error(std::string title, source_location loc,
-                         std::string msg, Ts &&... tail) {
-  return format_error("", make_error_info(std::move(title), std::move(loc),
-                                          std::move(msg),
-                                          std::forward<Ts>(tail)...));
+std::string format_error(std::string title, source_location loc, std::string msg, Ts&&... tail) {
+  return format_error("", make_error_info(std::move(title), std::move(loc), std::move(msg), std::forward<Ts>(tail)...));
 }
 
-std::ostream &operator<<(std::ostream &os, const error_info &e);
+std::ostream& operator<<(std::ostream& os, const error_info& e);
 
-} // namespace toml
-#endif // TOML11_ERROR_INFO_FWD_HPP
+}  // namespace toml
+#endif  // TOML11_ERROR_INFO_FWD_HPP
 
 #if !defined(TOML11_COMPILE_SOURCES)
 #ifndef TOML11_ERROR_INFO_IMPL_HPP
@@ -5330,8 +4970,7 @@ std::ostream &operator<<(std::ostream &os, const error_info &e);
 
 namespace toml {
 
-TOML11_INLINE std::string format_error(const std::string &errkind,
-                                       const error_info &err) {
+TOML11_INLINE std::string format_error(const std::string& errkind, const error_info& err) {
   std::string errmsg;
   if (!errkind.empty()) {
     errmsg = errkind;
@@ -5342,29 +4981,26 @@ TOML11_INLINE std::string format_error(const std::string &errkind,
 
   const auto lnw = [&err]() {
     std::size_t width = 0;
-    for (const auto &l : err.locations()) {
-      width = (std::max)(
-          detail::integer_width_base10(l.first.last_line_number()), width);
+    for (const auto& l : err.locations()) {
+      width = (std::max)(detail::integer_width_base10(l.first.last_line_number()), width);
     }
     return width;
   }();
 
   bool first = true;
   std::string prev_fname;
-  for (const auto &lm : err.locations()) {
+  for (const auto& lm : err.locations()) {
     if (!first) {
       std::ostringstream oss;
-      oss << detail::make_string(lnw + 1, ' ') << color::bold << color::blue
-          << " |" << color::reset << color::bold << " ...\n"
+      oss << detail::make_string(lnw + 1, ' ') << color::bold << color::blue << " |" << color::reset << color::bold
+          << " ...\n"
           << color::reset;
-      oss << detail::make_string(lnw + 1, ' ') << color::bold << color::blue
-          << " |\n"
-          << color::reset;
+      oss << detail::make_string(lnw + 1, ' ') << color::bold << color::blue << " |\n" << color::reset;
       errmsg += oss.str();
     }
 
-    const auto &l = lm.first;
-    const auto &m = lm.second;
+    const auto& l = lm.first;
+    const auto& m = lm.second;
 
     errmsg += detail::format_location_impl(lnw, prev_fname, l, m);
 
@@ -5377,22 +5013,22 @@ TOML11_INLINE std::string format_error(const std::string &errkind,
   return errmsg;
 }
 
-TOML11_INLINE std::string format_error(const error_info &err) {
+TOML11_INLINE std::string format_error(const error_info& err) {
   std::ostringstream oss;
   oss << color::red << color::bold << "[error]" << color::reset;
   return format_error(oss.str(), err);
 }
 
-TOML11_INLINE std::ostream &operator<<(std::ostream &os, const error_info &e) {
+TOML11_INLINE std::ostream& operator<<(std::ostream& os, const error_info& e) {
   os << format_error(e);
   return os;
 }
 
-} // namespace toml
-#endif // TOML11_ERROR_INFO_IMPL_HPP
+}  // namespace toml
+#endif  // TOML11_ERROR_INFO_IMPL_HPP
 #endif
 
-#endif // TOML11_ERROR_INFO_HPP
+#endif  // TOML11_ERROR_INFO_HPP
 #ifndef TOML11_VALUE_HPP
 #define TOML11_VALUE_HPP
 
@@ -5403,19 +5039,19 @@ TOML11_INLINE std::ostream &operator<<(std::ostream &os, const error_info &e) {
 #include <cassert>
 
 namespace toml {
-template <typename TypeConfig> class basic_value;
+template <typename TypeConfig>
+class basic_value;
 
 struct type_error final : public ::toml::exception {
-public:
-  type_error(std::string what_arg, source_location loc)
-      : what_(std::move(what_arg)), loc_(std::move(loc)) {}
+ public:
+  type_error(std::string what_arg, source_location loc) : what_(std::move(what_arg)), loc_(std::move(loc)) {}
   ~type_error() noexcept override = default;
 
-  const char *what() const noexcept override { return what_.c_str(); }
+  const char* what() const noexcept override { return what_.c_str(); }
 
-  source_location const &location() const noexcept { return loc_; }
+  source_location const& location() const noexcept { return loc_; }
 
-private:
+ private:
   std::string what_;
   source_location loc_;
 };
@@ -5423,21 +5059,21 @@ private:
 // only for internal use
 namespace detail {
 template <typename TC>
-error_info make_type_error(const basic_value<TC> &, const std::string &,
-                           const value_t);
+error_info make_type_error(const basic_value<TC>&, const std::string&, const value_t);
 
 template <typename TC>
-error_info make_not_found_error(const basic_value<TC> &, const std::string &,
-                                const typename basic_value<TC>::key_type &);
+error_info make_not_found_error(const basic_value<TC>&, const std::string&, const typename basic_value<TC>::key_type&);
 
 template <typename TC>
-void change_region_of_value(basic_value<TC> &, const basic_value<TC> &);
+void change_region_of_value(basic_value<TC>&, const basic_value<TC>&);
 
-template <typename TC, value_t V> struct getter;
-} // namespace detail
+template <typename TC, value_t V>
+struct getter;
+}  // namespace detail
 
-template <typename TypeConfig> class basic_value {
-public:
+template <typename TypeConfig>
+class basic_value {
+ public:
   using config_type = TypeConfig;
   using key_type = typename config_type::string_type;
   using value_type = basic_value<config_type>;
@@ -5450,100 +5086,95 @@ public:
   using local_datetime_type = ::toml::local_datetime;
   using offset_datetime_type = ::toml::offset_datetime;
   using array_type = typename config_type::template array_type<value_type>;
-  using table_type =
-      typename config_type::template table_type<key_type, value_type>;
+  using table_type = typename config_type::template table_type<key_type, value_type>;
   using comment_type = typename config_type::comment_type;
   using char_type = typename string_type::value_type;
 
-private:
+ private:
   using region_type = detail::region;
 
-public:
-  basic_value() noexcept
-      : type_(value_t::empty), empty_('\0'), region_{}, comments_{} {}
+ public:
+  basic_value() noexcept : type_(value_t::empty), empty_('\0'), region_{}, comments_{} {}
   ~basic_value() noexcept { this->cleanup(); }
 
   // copy/move constructor/assigner ===================================== {{{
 
-  basic_value(const basic_value &v)
-      : type_(v.type_), region_(v.region_), comments_(v.comments_) {
+  basic_value(const basic_value& v) : type_(v.type_), region_(v.region_), comments_(v.comments_) {
     switch (this->type_) {
-    case value_t::boolean:
-      assigner(boolean_, v.boolean_);
-      break;
-    case value_t::integer:
-      assigner(integer_, v.integer_);
-      break;
-    case value_t::floating:
-      assigner(floating_, v.floating_);
-      break;
-    case value_t::string:
-      assigner(string_, v.string_);
-      break;
-    case value_t::offset_datetime:
-      assigner(offset_datetime_, v.offset_datetime_);
-      break;
-    case value_t::local_datetime:
-      assigner(local_datetime_, v.local_datetime_);
-      break;
-    case value_t::local_date:
-      assigner(local_date_, v.local_date_);
-      break;
-    case value_t::local_time:
-      assigner(local_time_, v.local_time_);
-      break;
-    case value_t::array:
-      assigner(array_, v.array_);
-      break;
-    case value_t::table:
-      assigner(table_, v.table_);
-      break;
-    default:
-      assigner(empty_, '\0');
-      break;
+      case value_t::boolean:
+        assigner(boolean_, v.boolean_);
+        break;
+      case value_t::integer:
+        assigner(integer_, v.integer_);
+        break;
+      case value_t::floating:
+        assigner(floating_, v.floating_);
+        break;
+      case value_t::string:
+        assigner(string_, v.string_);
+        break;
+      case value_t::offset_datetime:
+        assigner(offset_datetime_, v.offset_datetime_);
+        break;
+      case value_t::local_datetime:
+        assigner(local_datetime_, v.local_datetime_);
+        break;
+      case value_t::local_date:
+        assigner(local_date_, v.local_date_);
+        break;
+      case value_t::local_time:
+        assigner(local_time_, v.local_time_);
+        break;
+      case value_t::array:
+        assigner(array_, v.array_);
+        break;
+      case value_t::table:
+        assigner(table_, v.table_);
+        break;
+      default:
+        assigner(empty_, '\0');
+        break;
     }
   }
-  basic_value(basic_value &&v)
-      : type_(v.type()), region_(std::move(v.region_)),
-        comments_(std::move(v.comments_)) {
+  basic_value(basic_value&& v) : type_(v.type()), region_(std::move(v.region_)), comments_(std::move(v.comments_)) {
     switch (this->type_) {
-    case value_t::boolean:
-      assigner(boolean_, std::move(v.boolean_));
-      break;
-    case value_t::integer:
-      assigner(integer_, std::move(v.integer_));
-      break;
-    case value_t::floating:
-      assigner(floating_, std::move(v.floating_));
-      break;
-    case value_t::string:
-      assigner(string_, std::move(v.string_));
-      break;
-    case value_t::offset_datetime:
-      assigner(offset_datetime_, std::move(v.offset_datetime_));
-      break;
-    case value_t::local_datetime:
-      assigner(local_datetime_, std::move(v.local_datetime_));
-      break;
-    case value_t::local_date:
-      assigner(local_date_, std::move(v.local_date_));
-      break;
-    case value_t::local_time:
-      assigner(local_time_, std::move(v.local_time_));
-      break;
-    case value_t::array:
-      assigner(array_, std::move(v.array_));
-      break;
-    case value_t::table:
-      assigner(table_, std::move(v.table_));
-      break;
-    default:
-      assigner(empty_, '\0');
-      break;
+      case value_t::boolean:
+        assigner(boolean_, std::move(v.boolean_));
+        break;
+      case value_t::integer:
+        assigner(integer_, std::move(v.integer_));
+        break;
+      case value_t::floating:
+        assigner(floating_, std::move(v.floating_));
+        break;
+      case value_t::string:
+        assigner(string_, std::move(v.string_));
+        break;
+      case value_t::offset_datetime:
+        assigner(offset_datetime_, std::move(v.offset_datetime_));
+        break;
+      case value_t::local_datetime:
+        assigner(local_datetime_, std::move(v.local_datetime_));
+        break;
+      case value_t::local_date:
+        assigner(local_date_, std::move(v.local_date_));
+        break;
+      case value_t::local_time:
+        assigner(local_time_, std::move(v.local_time_));
+        break;
+      case value_t::array:
+        assigner(array_, std::move(v.array_));
+        break;
+      case value_t::table:
+        assigner(table_, std::move(v.table_));
+        break;
+      default:
+        assigner(empty_, '\0');
+        break;
     }
   }
 
-  basic_value &operator=(const basic_value &v) {
+  basic_value& operator=(const basic_value& v) {
     if (this == std::addressof(v)) {
       return *this;
     }
@@ -5553,43 +5184,43 @@ public:
     this->region_ = v.region_;
     this->comments_ = v.comments_;
     switch (this->type_) {
-    case value_t::boolean:
-      assigner(boolean_, v.boolean_);
-      break;
-    case value_t::integer:
-      assigner(integer_, v.integer_);
-      break;
-    case value_t::floating:
-      assigner(floating_, v.floating_);
-      break;
-    case value_t::string:
-      assigner(string_, v.string_);
-      break;
-    case value_t::offset_datetime:
-      assigner(offset_datetime_, v.offset_datetime_);
-      break;
-    case value_t::local_datetime:
-      assigner(local_datetime_, v.local_datetime_);
-      break;
-    case value_t::local_date:
-      assigner(local_date_, v.local_date_);
-      break;
-    case value_t::local_time:
-      assigner(local_time_, v.local_time_);
-      break;
-    case value_t::array:
-      assigner(array_, v.array_);
-      break;
-    case value_t::table:
-      assigner(table_, v.table_);
-      break;
-    default:
-      assigner(empty_, '\0');
-      break;
+      case value_t::boolean:
+        assigner(boolean_, v.boolean_);
+        break;
+      case value_t::integer:
+        assigner(integer_, v.integer_);
+        break;
+      case value_t::floating:
+        assigner(floating_, v.floating_);
+        break;
+      case value_t::string:
+        assigner(string_, v.string_);
+        break;
+      case value_t::offset_datetime:
+        assigner(offset_datetime_, v.offset_datetime_);
+        break;
+      case value_t::local_datetime:
+        assigner(local_datetime_, v.local_datetime_);
+        break;
+      case value_t::local_date:
+        assigner(local_date_, v.local_date_);
+        break;
+      case value_t::local_time:
+        assigner(local_time_, v.local_time_);
+        break;
+      case value_t::array:
+        assigner(array_, v.array_);
+        break;
+      case value_t::table:
+        assigner(table_, v.table_);
+        break;
+      default:
+        assigner(empty_, '\0');
+        break;
     }
     return *this;
   }
-  basic_value &operator=(basic_value &&v) {
+  basic_value& operator=(basic_value&& v) {
     if (this == std::addressof(v)) {
       return *this;
     }
@@ -5599,39 +5230,39 @@ public:
     this->region_ = std::move(v.region_);
     this->comments_ = std::move(v.comments_);
     switch (this->type_) {
-    case value_t::boolean:
-      assigner(boolean_, std::move(v.boolean_));
-      break;
-    case value_t::integer:
-      assigner(integer_, std::move(v.integer_));
-      break;
-    case value_t::floating:
-      assigner(floating_, std::move(v.floating_));
-      break;
-    case value_t::string:
-      assigner(string_, std::move(v.string_));
-      break;
-    case value_t::offset_datetime:
-      assigner(offset_datetime_, std::move(v.offset_datetime_));
-      break;
-    case value_t::local_datetime:
-      assigner(local_datetime_, std::move(v.local_datetime_));
-      break;
-    case value_t::local_date:
-      assigner(local_date_, std::move(v.local_date_));
-      break;
-    case value_t::local_time:
-      assigner(local_time_, std::move(v.local_time_));
-      break;
-    case value_t::array:
-      assigner(array_, std::move(v.array_));
-      break;
-    case value_t::table:
-      assigner(table_, std::move(v.table_));
-      break;
-    default:
-      assigner(empty_, '\0');
-      break;
+      case value_t::boolean:
+        assigner(boolean_, std::move(v.boolean_));
+        break;
+      case value_t::integer:
+        assigner(integer_, std::move(v.integer_));
+        break;
+      case value_t::floating:
+        assigner(floating_, std::move(v.floating_));
+        break;
+      case value_t::string:
+        assigner(string_, std::move(v.string_));
+        break;
+      case value_t::offset_datetime:
+        assigner(offset_datetime_, std::move(v.offset_datetime_));
+        break;
+      case value_t::local_datetime:
+        assigner(local_datetime_, std::move(v.local_datetime_));
+        break;
+      case value_t::local_date:
+        assigner(local_date_, std::move(v.local_date_));
+        break;
+      case value_t::local_time:
+        assigner(local_time_, std::move(v.local_time_));
+        break;
+      case value_t::array:
+        assigner(array_, std::move(v.array_));
+        break;
+      case value_t::table:
+        assigner(table_, std::move(v.table_));
+        break;
+      default:
+        assigner(empty_, '\0');
+        break;
     }
     return *this;
   }
@@ -5640,42 +5271,41 @@ public:
   // constructor to overwrite commnets ================================== {{{
 
   basic_value(basic_value v, std::vector<std::string> com)
-      : type_(v.type()), region_(std::move(v.region_)),
-        comments_(std::move(com)) {
+      : type_(v.type()), region_(std::move(v.region_)), comments_(std::move(com)) {
     switch (this->type_) {
-    case value_t::boolean:
-      assigner(boolean_, std::move(v.boolean_));
-      break;
-    case value_t::integer:
-      assigner(integer_, std::move(v.integer_));
-      break;
-    case value_t::floating:
-      assigner(floating_, std::move(v.floating_));
-      break;
-    case value_t::string:
-      assigner(string_, std::move(v.string_));
-      break;
-    case value_t::offset_datetime:
-      assigner(offset_datetime_, std::move(v.offset_datetime_));
-      break;
-    case value_t::local_datetime:
-      assigner(local_datetime_, std::move(v.local_datetime_));
-      break;
-    case value_t::local_date:
-      assigner(local_date_, std::move(v.local_date_));
-      break;
-    case value_t::local_time:
-      assigner(local_time_, std::move(v.local_time_));
-      break;
-    case value_t::array:
-      assigner(array_, std::move(v.array_));
-      break;
-    case value_t::table:
-      assigner(table_, std::move(v.table_));
-      break;
-    default:
-      assigner(empty_, '\0');
-      break;
+      case value_t::boolean:
+        assigner(boolean_, std::move(v.boolean_));
+        break;
+      case value_t::integer:
+        assigner(integer_, std::move(v.integer_));
+        break;
+      case value_t::floating:
+        assigner(floating_, std::move(v.floating_));
+        break;
+      case value_t::string:
+        assigner(string_, std::move(v.string_));
+        break;
+      case value_t::offset_datetime:
+        assigner(offset_datetime_, std::move(v.offset_datetime_));
+        break;
+      case value_t::local_datetime:
+        assigner(local_datetime_, std::move(v.local_datetime_));
+        break;
+      case value_t::local_date:
+        assigner(local_date_, std::move(v.local_date_));
+        break;
+      case value_t::local_time:
+        assigner(local_time_, std::move(v.local_time_));
+        break;
+      case value_t::array:
+        assigner(array_, std::move(v.array_));
+        break;
+      case value_t::table:
+        assigner(table_, std::move(v.table_));
+        break;
+      default:
+        assigner(empty_, '\0');
+        break;
     }
   }
   // }}}
@@ -5684,160 +5314,147 @@ public:
 
   template <typename TI>
   basic_value(basic_value<TI> other)
-      : type_(other.type_), region_(std::move(other.region_)),
-        comments_(std::move(other.comments_)) {
+      : type_(other.type_), region_(std::move(other.region_)), comments_(std::move(other.comments_)) {
     switch (other.type_) {
-    // use auto-convert in constructor
-    case value_t::boolean:
-      assigner(boolean_, std::move(other.boolean_));
-      break;
-    case value_t::integer:
-      assigner(integer_, std::move(other.integer_));
-      break;
-    case value_t::floating:
-      assigner(floating_, std::move(other.floating_));
-      break;
-    case value_t::string:
-      assigner(string_, std::move(other.string_));
-      break;
-    case value_t::offset_datetime:
-      assigner(offset_datetime_, std::move(other.offset_datetime_));
-      break;
-    case value_t::local_datetime:
-      assigner(local_datetime_, std::move(other.local_datetime_));
-      break;
-    case value_t::local_date:
-      assigner(local_date_, std::move(other.local_date_));
-      break;
-    case value_t::local_time:
-      assigner(local_time_, std::move(other.local_time_));
-      break;
+      // use auto-convert in constructor
+      case value_t::boolean:
+        assigner(boolean_, std::move(other.boolean_));
+        break;
+      case value_t::integer:
+        assigner(integer_, std::move(other.integer_));
+        break;
+      case value_t::floating:
+        assigner(floating_, std::move(other.floating_));
+        break;
+      case value_t::string:
+        assigner(string_, std::move(other.string_));
+        break;
+      case value_t::offset_datetime:
+        assigner(offset_datetime_, std::move(other.offset_datetime_));
+        break;
+      case value_t::local_datetime:
+        assigner(local_datetime_, std::move(other.local_datetime_));
+        break;
+      case value_t::local_date:
+        assigner(local_date_, std::move(other.local_date_));
+        break;
+      case value_t::local_time:
+        assigner(local_time_, std::move(other.local_time_));
+        break;
 
-    // may have different container type
-    case value_t::array: {
-      array_type tmp(std::make_move_iterator(other.array_.value.get().begin()),
-                     std::make_move_iterator(other.array_.value.get().end()));
-      assigner(array_,
-               array_storage(detail::storage<array_type>(std::move(tmp)),
-                             other.array_.format));
-      break;
-    }
-    case value_t::table: {
-      table_type tmp(std::make_move_iterator(other.table_.value.get().begin()),
-                     std::make_move_iterator(other.table_.value.get().end()));
-      assigner(table_,
-               table_storage(detail::storage<table_type>(std::move(tmp)),
-                             other.table_.format));
-      break;
-    }
-    default:
-      break;
+      // may have different container type
+      case value_t::array: {
+        array_type tmp(std::make_move_iterator(other.array_.value.get().begin()),
+                       std::make_move_iterator(other.array_.value.get().end()));
+        assigner(array_, array_storage(detail::storage<array_type>(std::move(tmp)), other.array_.format));
+        break;
+      }
+      case value_t::table: {
+        table_type tmp(std::make_move_iterator(other.table_.value.get().begin()),
+                       std::make_move_iterator(other.table_.value.get().end()));
+        assigner(table_, table_storage(detail::storage<table_type>(std::move(tmp)), other.table_.format));
+        break;
+      }
+      default:
+        break;
     }
   }
 
   template <typename TI>
   basic_value(basic_value<TI> other, std::vector<std::string> com)
-      : type_(other.type_), region_(std::move(other.region_)),
-        comments_(std::move(com)) {
+      : type_(other.type_), region_(std::move(other.region_)), comments_(std::move(com)) {
     switch (other.type_) {
-    // use auto-convert in constructor
-    case value_t::boolean:
-      assigner(boolean_, std::move(other.boolean_));
-      break;
-    case value_t::integer:
-      assigner(integer_, std::move(other.integer_));
-      break;
-    case value_t::floating:
-      assigner(floating_, std::move(other.floating_));
-      break;
-    case value_t::string:
-      assigner(string_, std::move(other.string_));
-      break;
-    case value_t::offset_datetime:
-      assigner(offset_datetime_, std::move(other.offset_datetime_));
-      break;
-    case value_t::local_datetime:
-      assigner(local_datetime_, std::move(other.local_datetime_));
-      break;
-    case value_t::local_date:
-      assigner(local_date_, std::move(other.local_date_));
-      break;
-    case value_t::local_time:
-      assigner(local_time_, std::move(other.local_time_));
-      break;
+      // use auto-convert in constructor
+      case value_t::boolean:
+        assigner(boolean_, std::move(other.boolean_));
+        break;
+      case value_t::integer:
+        assigner(integer_, std::move(other.integer_));
+        break;
+      case value_t::floating:
+        assigner(floating_, std::move(other.floating_));
+        break;
+      case value_t::string:
+        assigner(string_, std::move(other.string_));
+        break;
+      case value_t::offset_datetime:
+        assigner(offset_datetime_, std::move(other.offset_datetime_));
+        break;
+      case value_t::local_datetime:
+        assigner(local_datetime_, std::move(other.local_datetime_));
+        break;
+      case value_t::local_date:
+        assigner(local_date_, std::move(other.local_date_));
+        break;
+      case value_t::local_time:
+        assigner(local_time_, std::move(other.local_time_));
+        break;
 
-    // may have different container type
-    case value_t::array: {
-      array_type tmp(std::make_move_iterator(other.array_.value.get().begin()),
-                     std::make_move_iterator(other.array_.value.get().end()));
-      assigner(array_,
-               array_storage(detail::storage<array_type>(std::move(tmp)),
-                             other.array_.format));
-      break;
-    }
-    case value_t::table: {
-      table_type tmp(std::make_move_iterator(other.table_.value.get().begin()),
-                     std::make_move_iterator(other.table_.value.get().end()));
-      assigner(table_,
-               table_storage(detail::storage<table_type>(std::move(tmp)),
-                             other.table_.format));
-      break;
-    }
-    default:
-      break;
+      // may have different container type
+      case value_t::array: {
+        array_type tmp(std::make_move_iterator(other.array_.value.get().begin()),
+                       std::make_move_iterator(other.array_.value.get().end()));
+        assigner(array_, array_storage(detail::storage<array_type>(std::move(tmp)), other.array_.format));
+        break;
+      }
+      case value_t::table: {
+        table_type tmp(std::make_move_iterator(other.table_.value.get().begin()),
+                       std::make_move_iterator(other.table_.value.get().end()));
+        assigner(table_, table_storage(detail::storage<table_type>(std::move(tmp)), other.table_.format));
+        break;
+      }
+      default:
+        break;
     }
   }
-  template <typename TI> basic_value &operator=(basic_value<TI> other) {
+  template <typename TI>
+  basic_value& operator=(basic_value<TI> other) {
     this->cleanup();
     this->region_ = other.region_;
     this->comments_ = comment_type(other.comments_);
     this->type_ = other.type_;
     switch (other.type_) {
-    // use auto-convert in constructor
-    case value_t::boolean:
-      assigner(boolean_, std::move(other.boolean_));
-      break;
-    case value_t::integer:
-      assigner(integer_, std::move(other.integer_));
-      break;
-    case value_t::floating:
-      assigner(floating_, std::move(other.floating_));
-      break;
-    case value_t::string:
-      assigner(string_, std::move(other.string_));
-      break;
-    case value_t::offset_datetime:
-      assigner(offset_datetime_, std::move(other.offset_datetime_));
-      break;
-    case value_t::local_datetime:
-      assigner(local_datetime_, std::move(other.local_datetime_));
-      break;
-    case value_t::local_date:
-      assigner(local_date_, std::move(other.local_date_));
-      break;
-    case value_t::local_time:
-      assigner(local_time_, std::move(other.local_time_));
-      break;
+      // use auto-convert in constructor
+      case value_t::boolean:
+        assigner(boolean_, std::move(other.boolean_));
+        break;
+      case value_t::integer:
+        assigner(integer_, std::move(other.integer_));
+        break;
+      case value_t::floating:
+        assigner(floating_, std::move(other.floating_));
+        break;
+      case value_t::string:
+        assigner(string_, std::move(other.string_));
+        break;
+      case value_t::offset_datetime:
+        assigner(offset_datetime_, std::move(other.offset_datetime_));
+        break;
+      case value_t::local_datetime:
+        assigner(local_datetime_, std::move(other.local_datetime_));
+        break;
+      case value_t::local_date:
+        assigner(local_date_, std::move(other.local_date_));
+        break;
+      case value_t::local_time:
+        assigner(local_time_, std::move(other.local_time_));
+        break;
 
-    // may have different container type
-    case value_t::array: {
-      array_type tmp(std::make_move_iterator(other.array_.value.get().begin()),
-                     std::make_move_iterator(other.array_.value.get().end()));
-      assigner(array_,
-               array_storage(detail::storage<array_type>(std::move(tmp)),
-                             other.array_.format));
-      break;
-    }
-    case value_t::table: {
-      table_type tmp(std::make_move_iterator(other.table_.value.get().begin()),
-                     std::make_move_iterator(other.table_.value.get().end()));
-      assigner(table_,
-               table_storage(detail::storage<table_type>(std::move(tmp)),
-                             other.table_.format));
-      break;
-    }
-    default:
-      break;
+      // may have different container type
+      case value_t::array: {
+        array_type tmp(std::make_move_iterator(other.array_.value.get().begin()),
+                       std::make_move_iterator(other.array_.value.get().end()));
+        assigner(array_, array_storage(detail::storage<array_type>(std::move(tmp)), other.array_.format));
+        break;
+      }
+      case value_t::table: {
+        table_type tmp(std::make_move_iterator(other.table_.value.get().begin()),
+                       std::make_move_iterator(other.table_.value.get().end()));
+        assigner(table_, table_storage(detail::storage<table_type>(std::move(tmp)), other.table_.format));
+        break;
+      }
+      default:
+        break;
     }
     return *this;
   }
@@ -5845,21 +5462,19 @@ public:
 
   // constructor (boolean) ============================================== {{{
 
-  basic_value(boolean_type x)
-      : basic_value(x, boolean_format_info{}, std::vector<std::string>{},
-                    region_type{}) {}
+  basic_value(boolean_type x) : basic_value(x, boolean_format_info{}, std::vector<std::string>{}, region_type{}) {}
   basic_value(boolean_type x, boolean_format_info fmt)
       : basic_value(x, fmt, std::vector<std::string>{}, region_type{}) {}
   basic_value(boolean_type x, std::vector<std::string> com)
       : basic_value(x, boolean_format_info{}, std::move(com), region_type{}) {}
-  basic_value(boolean_type x, boolean_format_info fmt,
-              std::vector<std::string> com)
+  basic_value(boolean_type x, boolean_format_info fmt, std::vector<std::string> com)
       : basic_value(x, fmt, std::move(com), region_type{}) {}
-  basic_value(boolean_type x, boolean_format_info fmt,
-              std::vector<std::string> com, region_type reg)
-      : type_(value_t::boolean), boolean_(boolean_storage(x, fmt)),
-        region_(std::move(reg)), comments_(std::move(com)) {}
-  basic_value &operator=(boolean_type x) {
+  basic_value(boolean_type x, boolean_format_info fmt, std::vector<std::string> com, region_type reg)
+      : type_(value_t::boolean),
+        boolean_(boolean_storage(x, fmt)),
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
+  basic_value& operator=(boolean_type x) {
     boolean_format_info fmt;
     if (this->is_boolean()) {
       fmt = this->as_boolean_fmt();
@@ -5876,24 +5491,19 @@ public:
   // constructor (integer) ============================================== {{{
 
   basic_value(integer_type x)
-      : basic_value(std::move(x), integer_format_info{},
-                    std::vector<std::string>{}, region_type{}) {}
+      : basic_value(std::move(x), integer_format_info{}, std::vector<std::string>{}, region_type{}) {}
   basic_value(integer_type x, integer_format_info fmt)
-      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{},
-                    region_type{}) {}
+      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{}, region_type{}) {}
   basic_value(integer_type x, std::vector<std::string> com)
-      : basic_value(std::move(x), integer_format_info{}, std::move(com),
-                    region_type{}) {}
-  basic_value(integer_type x, integer_format_info fmt,
-              std::vector<std::string> com)
-      : basic_value(std::move(x), std::move(fmt), std::move(com),
-                    region_type{}) {}
-  basic_value(integer_type x, integer_format_info fmt,
-              std::vector<std::string> com, region_type reg)
+      : basic_value(std::move(x), integer_format_info{}, std::move(com), region_type{}) {}
+  basic_value(integer_type x, integer_format_info fmt, std::vector<std::string> com)
+      : basic_value(std::move(x), std::move(fmt), std::move(com), region_type{}) {}
+  basic_value(integer_type x, integer_format_info fmt, std::vector<std::string> com, region_type reg)
       : type_(value_t::integer),
         integer_(integer_storage(std::move(x), std::move(fmt))),
-        region_(std::move(reg)), comments_(std::move(com)) {}
-  basic_value &operator=(integer_type x) {
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
+  basic_value& operator=(integer_type x) {
     integer_format_info fmt;
     if (this->is_integer()) {
       fmt = this->as_integer_fmt();
@@ -5905,40 +5515,34 @@ public:
     return *this;
   }
 
-private:
+ private:
   template <typename T>
-  using enable_if_integer_like_t = cxx::enable_if_t<
-      cxx::conjunction<
-          cxx::negation<std::is_same<cxx::remove_cvref_t<T>, boolean_type>>,
-          cxx::negation<std::is_same<cxx::remove_cvref_t<T>, integer_type>>,
-          std::is_integral<cxx::remove_cvref_t<T>>>::value,
-      std::nullptr_t>;
+  using enable_if_integer_like_t =
+      cxx::enable_if_t<cxx::conjunction<cxx::negation<std::is_same<cxx::remove_cvref_t<T>, boolean_type>>,
+                                        cxx::negation<std::is_same<cxx::remove_cvref_t<T>, integer_type>>,
+                                        std::is_integral<cxx::remove_cvref_t<T>>>::value,
+                       std::nullptr_t>;
 
-public:
+ public:
   template <typename T, enable_if_integer_like_t<T> = nullptr>
-  basic_value(T x)
-      : basic_value(std::move(x), integer_format_info{},
-                    std::vector<std::string>{}, region_type{}) {}
+  basic_value(T x) : basic_value(std::move(x), integer_format_info{}, std::vector<std::string>{}, region_type{}) {}
   template <typename T, enable_if_integer_like_t<T> = nullptr>
   basic_value(T x, integer_format_info fmt)
-      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{},
-                    region_type{}) {}
+      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{}, region_type{}) {}
   template <typename T, enable_if_integer_like_t<T> = nullptr>
   basic_value(T x, std::vector<std::string> com)
-      : basic_value(std::move(x), integer_format_info{}, std::move(com),
-                    region_type{}) {}
+      : basic_value(std::move(x), integer_format_info{}, std::move(com), region_type{}) {}
   template <typename T, enable_if_integer_like_t<T> = nullptr>
   basic_value(T x, integer_format_info fmt, std::vector<std::string> com)
-      : basic_value(std::move(x), std::move(fmt), std::move(com),
-                    region_type{}) {}
+      : basic_value(std::move(x), std::move(fmt), std::move(com), region_type{}) {}
   template <typename T, enable_if_integer_like_t<T> = nullptr>
-  basic_value(T x, integer_format_info fmt, std::vector<std::string> com,
-              region_type reg)
+  basic_value(T x, integer_format_info fmt, std::vector<std::string> com, region_type reg)
       : type_(value_t::integer),
         integer_(integer_storage(std::move(x), std::move(fmt))),
-        region_(std::move(reg)), comments_(std::move(com)) {}
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
   template <typename T, enable_if_integer_like_t<T> = nullptr>
-  basic_value &operator=(T x) {
+  basic_value& operator=(T x) {
     integer_format_info fmt;
     if (this->is_integer()) {
       fmt = this->as_integer_fmt();
@@ -5955,24 +5559,19 @@ public:
   // constructor (floating) ============================================= {{{
 
   basic_value(floating_type x)
-      : basic_value(std::move(x), floating_format_info{},
-                    std::vector<std::string>{}, region_type{}) {}
+      : basic_value(std::move(x), floating_format_info{}, std::vector<std::string>{}, region_type{}) {}
   basic_value(floating_type x, floating_format_info fmt)
-      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{},
-                    region_type{}) {}
+      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{}, region_type{}) {}
   basic_value(floating_type x, std::vector<std::string> com)
-      : basic_value(std::move(x), floating_format_info{}, std::move(com),
-                    region_type{}) {}
-  basic_value(floating_type x, floating_format_info fmt,
-              std::vector<std::string> com)
-      : basic_value(std::move(x), std::move(fmt), std::move(com),
-                    region_type{}) {}
-  basic_value(floating_type x, floating_format_info fmt,
-              std::vector<std::string> com, region_type reg)
+      : basic_value(std::move(x), floating_format_info{}, std::move(com), region_type{}) {}
+  basic_value(floating_type x, floating_format_info fmt, std::vector<std::string> com)
+      : basic_value(std::move(x), std::move(fmt), std::move(com), region_type{}) {}
+  basic_value(floating_type x, floating_format_info fmt, std::vector<std::string> com, region_type reg)
       : type_(value_t::floating),
         floating_(floating_storage(std::move(x), std::move(fmt))),
-        region_(std::move(reg)), comments_(std::move(com)) {}
-  basic_value &operator=(floating_type x) {
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
+  basic_value& operator=(floating_type x) {
     floating_format_info fmt;
     if (this->is_floating()) {
       fmt = this->as_floating_fmt();
@@ -5984,24 +5583,20 @@ public:
     return *this;
   }
 
-private:
+ private:
   template <typename T>
-  using enable_if_floating_like_t = cxx::enable_if_t<
-      cxx::conjunction<
-          cxx::negation<std::is_same<cxx::remove_cvref_t<T>, floating_type>>,
-          std::is_floating_point<cxx::remove_cvref_t<T>>>::value,
-      std::nullptr_t>;
+  using enable_if_floating_like_t =
+      cxx::enable_if_t<cxx::conjunction<cxx::negation<std::is_same<cxx::remove_cvref_t<T>, floating_type>>,
+                                        std::is_floating_point<cxx::remove_cvref_t<T>>>::value,
+                       std::nullptr_t>;
 
-public:
+ public:
   template <typename T, enable_if_floating_like_t<T> = nullptr>
-  basic_value(T x)
-      : basic_value(x, floating_format_info{}, std::vector<std::string>{},
-                    region_type{}) {}
+  basic_value(T x) : basic_value(x, floating_format_info{}, std::vector<std::string>{}, region_type{}) {}
 
   template <typename T, enable_if_floating_like_t<T> = nullptr>
   basic_value(T x, floating_format_info fmt)
-      : basic_value(x, std::move(fmt), std::vector<std::string>{},
-                    region_type{}) {}
+      : basic_value(x, std::move(fmt), std::vector<std::string>{}, region_type{}) {}
 
   template <typename T, enable_if_floating_like_t<T> = nullptr>
   basic_value(T x, std::vector<std::string> com)
@@ -6012,14 +5607,14 @@ public:
       : basic_value(x, std::move(fmt), std::move(com), region_type{}) {}
 
   template <typename T, enable_if_floating_like_t<T> = nullptr>
-  basic_value(T x, floating_format_info fmt, std::vector<std::string> com,
-              region_type reg)
+  basic_value(T x, floating_format_info fmt, std::vector<std::string> com, region_type reg)
       : type_(value_t::floating),
-        floating_(floating_storage(x, std::move(fmt))), region_(std::move(reg)),
+        floating_(floating_storage(x, std::move(fmt))),
+        region_(std::move(reg)),
         comments_(std::move(com)) {}
 
   template <typename T, enable_if_floating_like_t<T> = nullptr>
-  basic_value &operator=(T x) {
+  basic_value& operator=(T x) {
     floating_format_info fmt;
     if (this->is_floating()) {
       fmt = this->as_floating_fmt();
@@ -6036,24 +5631,19 @@ public:
   // constructor (string) =============================================== {{{
 
   basic_value(string_type x)
-      : basic_value(std::move(x), string_format_info{},
-                    std::vector<std::string>{}, region_type{}) {}
+      : basic_value(std::move(x), string_format_info{}, std::vector<std::string>{}, region_type{}) {}
   basic_value(string_type x, string_format_info fmt)
-      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{},
-                    region_type{}) {}
+      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{}, region_type{}) {}
   basic_value(string_type x, std::vector<std::string> com)
-      : basic_value(std::move(x), string_format_info{}, std::move(com),
-                    region_type{}) {}
-  basic_value(string_type x, string_format_info fmt,
-              std::vector<std::string> com)
-      : basic_value(std::move(x), std::move(fmt), std::move(com),
-                    region_type{}) {}
-  basic_value(string_type x, string_format_info fmt,
-              std::vector<std::string> com, region_type reg)
+      : basic_value(std::move(x), string_format_info{}, std::move(com), region_type{}) {}
+  basic_value(string_type x, string_format_info fmt, std::vector<std::string> com)
+      : basic_value(std::move(x), std::move(fmt), std::move(com), region_type{}) {}
+  basic_value(string_type x, string_format_info fmt, std::vector<std::string> com, region_type reg)
       : type_(value_t::string),
         string_(string_storage(std::move(x), std::move(fmt))),
-        region_(std::move(reg)), comments_(std::move(com)) {}
-  basic_value &operator=(string_type x) {
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
+  basic_value& operator=(string_type x) {
     string_format_info fmt;
     if (this->is_string()) {
       fmt = this->as_string_fmt();
@@ -6067,24 +5657,21 @@ public:
 
   // "string literal"
 
-  basic_value(const typename string_type::value_type *x)
-      : basic_value(x, string_format_info{}, std::vector<std::string>{},
-                    region_type{}) {}
-  basic_value(const typename string_type::value_type *x, string_format_info fmt)
-      : basic_value(x, std::move(fmt), std::vector<std::string>{},
-                    region_type{}) {}
-  basic_value(const typename string_type::value_type *x,
-              std::vector<std::string> com)
+  basic_value(const typename string_type::value_type* x)
+      : basic_value(x, string_format_info{}, std::vector<std::string>{}, region_type{}) {}
+  basic_value(const typename string_type::value_type* x, string_format_info fmt)
+      : basic_value(x, std::move(fmt), std::vector<std::string>{}, region_type{}) {}
+  basic_value(const typename string_type::value_type* x, std::vector<std::string> com)
       : basic_value(x, string_format_info{}, std::move(com), region_type{}) {}
-  basic_value(const typename string_type::value_type *x, string_format_info fmt,
-              std::vector<std::string> com)
+  basic_value(const typename string_type::value_type* x, string_format_info fmt, std::vector<std::string> com)
       : basic_value(x, std::move(fmt), std::move(com), region_type{}) {}
-  basic_value(const typename string_type::value_type *x, string_format_info fmt,
-              std::vector<std::string> com, region_type reg)
+  basic_value(const typename string_type::value_type* x, string_format_info fmt, std::vector<std::string> com,
+              region_type reg)
       : type_(value_t::string),
         string_(string_storage(string_type(x), std::move(fmt))),
-        region_(std::move(reg)), comments_(std::move(com)) {}
-  basic_value &operator=(const typename string_type::value_type *x) {
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
+  basic_value& operator=(const typename string_type::value_type* x) {
     string_format_info fmt;
     if (this->is_string()) {
       fmt = this->as_string_fmt();
@@ -6097,27 +5684,21 @@ public:
   }
 
 #if defined(TOML11_HAS_STRING_VIEW)
-  using string_view_type =
-      std::basic_string_view<typename string_type::value_type,
-                             typename string_type::traits_type>;
+  using string_view_type = std::basic_string_view<typename string_type::value_type, typename string_type::traits_type>;
 
-  basic_value(string_view_type x)
-      : basic_value(x, string_format_info{}, std::vector<std::string>{},
-                    region_type{}) {}
+  basic_value(string_view_type x) : basic_value(x, string_format_info{}, std::vector<std::string>{}, region_type{}) {}
   basic_value(string_view_type x, string_format_info fmt)
-      : basic_value(x, std::move(fmt), std::vector<std::string>{},
-                    region_type{}) {}
+      : basic_value(x, std::move(fmt), std::vector<std::string>{}, region_type{}) {}
   basic_value(string_view_type x, std::vector<std::string> com)
       : basic_value(x, string_format_info{}, std::move(com), region_type{}) {}
-  basic_value(string_view_type x, string_format_info fmt,
-              std::vector<std::string> com)
+  basic_value(string_view_type x, string_format_info fmt, std::vector<std::string> com)
       : basic_value(x, std::move(fmt), std::move(com), region_type{}) {}
-  basic_value(string_view_type x, string_format_info fmt,
-              std::vector<std::string> com, region_type reg)
+  basic_value(string_view_type x, string_format_info fmt, std::vector<std::string> com, region_type reg)
       : type_(value_t::string),
         string_(string_storage(string_type(x), std::move(fmt))),
-        region_(std::move(reg)), comments_(std::move(com)) {}
-  basic_value &operator=(string_view_type x) {
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
+  basic_value& operator=(string_view_type x) {
     string_format_info fmt;
     if (this->is_string()) {
       fmt = this->as_string_fmt();
@@ -6129,67 +5710,45 @@ public:
     return *this;
   }
 
-#endif // TOML11_HAS_STRING_VIEW
+#endif  // TOML11_HAS_STRING_VIEW
 
-  template <
-      typename T,
-      cxx::enable_if_t<
-          cxx::conjunction<
-              cxx::negation<std::is_same<cxx::remove_cvref_t<T>, string_type>>,
-              detail::is_1byte_std_basic_string<T>>::value,
-          std::nullptr_t> = nullptr>
-  basic_value(const T &x)
-      : basic_value(x, string_format_info{}, std::vector<std::string>{},
-                    region_type{}) {}
-  template <
-      typename T,
-      cxx::enable_if_t<
-          cxx::conjunction<
-              cxx::negation<std::is_same<cxx::remove_cvref_t<T>, string_type>>,
-              detail::is_1byte_std_basic_string<T>>::value,
-          std::nullptr_t> = nullptr>
-  basic_value(const T &x, string_format_info fmt)
-      : basic_value(x, std::move(fmt), std::vector<std::string>{},
-                    region_type{}) {}
-  template <
-      typename T,
-      cxx::enable_if_t<
-          cxx::conjunction<
-              cxx::negation<std::is_same<cxx::remove_cvref_t<T>, string_type>>,
-              detail::is_1byte_std_basic_string<T>>::value,
-          std::nullptr_t> = nullptr>
-  basic_value(const T &x, std::vector<std::string> com)
+  template <typename T,
+            cxx::enable_if_t<cxx::conjunction<cxx::negation<std::is_same<cxx::remove_cvref_t<T>, string_type>>,
+                                              detail::is_1byte_std_basic_string<T>>::value,
+                             std::nullptr_t> = nullptr>
+  basic_value(const T& x) : basic_value(x, string_format_info{}, std::vector<std::string>{}, region_type{}) {}
+  template <typename T,
+            cxx::enable_if_t<cxx::conjunction<cxx::negation<std::is_same<cxx::remove_cvref_t<T>, string_type>>,
+                                              detail::is_1byte_std_basic_string<T>>::value,
+                             std::nullptr_t> = nullptr>
+  basic_value(const T& x, string_format_info fmt)
+      : basic_value(x, std::move(fmt), std::vector<std::string>{}, region_type{}) {}
+  template <typename T,
+            cxx::enable_if_t<cxx::conjunction<cxx::negation<std::is_same<cxx::remove_cvref_t<T>, string_type>>,
+                                              detail::is_1byte_std_basic_string<T>>::value,
+                             std::nullptr_t> = nullptr>
+  basic_value(const T& x, std::vector<std::string> com)
       : basic_value(x, string_format_info{}, std::move(com), region_type{}) {}
-  template <
-      typename T,
-      cxx::enable_if_t<
-          cxx::conjunction<
-              cxx::negation<std::is_same<cxx::remove_cvref_t<T>, string_type>>,
-              detail::is_1byte_std_basic_string<T>>::value,
-          std::nullptr_t> = nullptr>
-  basic_value(const T &x, string_format_info fmt, std::vector<std::string> com)
+  template <typename T,
+            cxx::enable_if_t<cxx::conjunction<cxx::negation<std::is_same<cxx::remove_cvref_t<T>, string_type>>,
+                                              detail::is_1byte_std_basic_string<T>>::value,
+                             std::nullptr_t> = nullptr>
+  basic_value(const T& x, string_format_info fmt, std::vector<std::string> com)
       : basic_value(x, std::move(fmt), std::move(com), region_type{}) {}
-  template <
-      typename T,
-      cxx::enable_if_t<
-          cxx::conjunction<
-              cxx::negation<std::is_same<cxx::remove_cvref_t<T>, string_type>>,
-              detail::is_1byte_std_basic_string<T>>::value,
-          std::nullptr_t> = nullptr>
-  basic_value(const T &x, string_format_info fmt, std::vector<std::string> com,
-              region_type reg)
+  template <typename T,
+            cxx::enable_if_t<cxx::conjunction<cxx::negation<std::is_same<cxx::remove_cvref_t<T>, string_type>>,
+                                              detail::is_1byte_std_basic_string<T>>::value,
+                             std::nullptr_t> = nullptr>
+  basic_value(const T& x, string_format_info fmt, std::vector<std::string> com, region_type reg)
       : type_(value_t::string),
-        string_(string_storage(detail::string_conv<string_type>(x),
-                               std::move(fmt))),
-        region_(std::move(reg)), comments_(std::move(com)) {}
-  template <
-      typename T,
-      cxx::enable_if_t<
-          cxx::conjunction<
-              cxx::negation<std::is_same<cxx::remove_cvref_t<T>, string_type>>,
-              detail::is_1byte_std_basic_string<T>>::value,
-          std::nullptr_t> = nullptr>
-  basic_value &operator=(const T &x) {
+        string_(string_storage(detail::string_conv<string_type>(x), std::move(fmt))),
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
+  template <typename T,
+            cxx::enable_if_t<cxx::conjunction<cxx::negation<std::is_same<cxx::remove_cvref_t<T>, string_type>>,
+                                              detail::is_1byte_std_basic_string<T>>::value,
+                             std::nullptr_t> = nullptr>
+  basic_value& operator=(const T& x) {
     string_format_info fmt;
     if (this->is_string()) {
       fmt = this->as_string_fmt();
@@ -6197,8 +5756,7 @@ public:
     this->cleanup();
     this->type_ = value_t::string;
     this->region_ = region_type{};
-    assigner(this->string_, string_storage(detail::string_conv<string_type>(x),
-                                           std::move(fmt)));
+    assigner(this->string_, string_storage(detail::string_conv<string_type>(x), std::move(fmt)));
     return *this;
   }
 
@@ -6207,21 +5765,19 @@ public:
   // constructor (local_date) =========================================== {{{
 
   basic_value(local_date_type x)
-      : basic_value(x, local_date_format_info{}, std::vector<std::string>{},
-                    region_type{}) {}
+      : basic_value(x, local_date_format_info{}, std::vector<std::string>{}, region_type{}) {}
   basic_value(local_date_type x, local_date_format_info fmt)
       : basic_value(x, fmt, std::vector<std::string>{}, region_type{}) {}
   basic_value(local_date_type x, std::vector<std::string> com)
-      : basic_value(x, local_date_format_info{}, std::move(com),
-                    region_type{}) {}
-  basic_value(local_date_type x, local_date_format_info fmt,
-              std::vector<std::string> com)
+      : basic_value(x, local_date_format_info{}, std::move(com), region_type{}) {}
+  basic_value(local_date_type x, local_date_format_info fmt, std::vector<std::string> com)
       : basic_value(x, fmt, std::move(com), region_type{}) {}
-  basic_value(local_date_type x, local_date_format_info fmt,
-              std::vector<std::string> com, region_type reg)
-      : type_(value_t::local_date), local_date_(local_date_storage(x, fmt)),
-        region_(std::move(reg)), comments_(std::move(com)) {}
-  basic_value &operator=(local_date_type x) {
+  basic_value(local_date_type x, local_date_format_info fmt, std::vector<std::string> com, region_type reg)
+      : type_(value_t::local_date),
+        local_date_(local_date_storage(x, fmt)),
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
+  basic_value& operator=(local_date_type x) {
     local_date_format_info fmt;
     if (this->is_local_date()) {
       fmt = this->as_local_date_fmt();
@@ -6238,21 +5794,19 @@ public:
   // constructor (local_time) =========================================== {{{
 
   basic_value(local_time_type x)
-      : basic_value(x, local_time_format_info{}, std::vector<std::string>{},
-                    region_type{}) {}
+      : basic_value(x, local_time_format_info{}, std::vector<std::string>{}, region_type{}) {}
   basic_value(local_time_type x, local_time_format_info fmt)
       : basic_value(x, fmt, std::vector<std::string>{}, region_type{}) {}
   basic_value(local_time_type x, std::vector<std::string> com)
-      : basic_value(x, local_time_format_info{}, std::move(com),
-                    region_type{}) {}
-  basic_value(local_time_type x, local_time_format_info fmt,
-              std::vector<std::string> com)
+      : basic_value(x, local_time_format_info{}, std::move(com), region_type{}) {}
+  basic_value(local_time_type x, local_time_format_info fmt, std::vector<std::string> com)
       : basic_value(x, fmt, std::move(com), region_type{}) {}
-  basic_value(local_time_type x, local_time_format_info fmt,
-              std::vector<std::string> com, region_type reg)
-      : type_(value_t::local_time), local_time_(local_time_storage(x, fmt)),
-        region_(std::move(reg)), comments_(std::move(com)) {}
-  basic_value &operator=(local_time_type x) {
+  basic_value(local_time_type x, local_time_format_info fmt, std::vector<std::string> com, region_type reg)
+      : type_(value_t::local_time),
+        local_time_(local_time_storage(x, fmt)),
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
+  basic_value& operator=(local_time_type x) {
     local_time_format_info fmt;
     if (this->is_local_time()) {
       fmt = this->as_local_time_fmt();
@@ -6265,32 +5819,23 @@ public:
   }
 
   template <typename Rep, typename Period>
-  basic_value(const std::chrono::duration<Rep, Period> &x)
-      : basic_value(local_time_type(x), local_time_format_info{},
-                    std::vector<std::string>{}, region_type{}) {}
+  basic_value(const std::chrono::duration<Rep, Period>& x)
+      : basic_value(local_time_type(x), local_time_format_info{}, std::vector<std::string>{}, region_type{}) {}
   template <typename Rep, typename Period>
-  basic_value(const std::chrono::duration<Rep, Period> &x,
-              local_time_format_info fmt)
-      : basic_value(local_time_type(x), std::move(fmt),
-                    std::vector<std::string>{}, region_type{}) {}
+  basic_value(const std::chrono::duration<Rep, Period>& x, local_time_format_info fmt)
+      : basic_value(local_time_type(x), std::move(fmt), std::vector<std::string>{}, region_type{}) {}
   template <typename Rep, typename Period>
-  basic_value(const std::chrono::duration<Rep, Period> &x,
-              std::vector<std::string> com)
-      : basic_value(local_time_type(x), local_time_format_info{},
-                    std::move(com), region_type{}) {}
+  basic_value(const std::chrono::duration<Rep, Period>& x, std::vector<std::string> com)
+      : basic_value(local_time_type(x), local_time_format_info{}, std::move(com), region_type{}) {}
   template <typename Rep, typename Period>
-  basic_value(const std::chrono::duration<Rep, Period> &x,
-              local_time_format_info fmt, std::vector<std::string> com)
-      : basic_value(local_time_type(x), std::move(fmt), std::move(com),
-                    region_type{}) {}
+  basic_value(const std::chrono::duration<Rep, Period>& x, local_time_format_info fmt, std::vector<std::string> com)
+      : basic_value(local_time_type(x), std::move(fmt), std::move(com), region_type{}) {}
   template <typename Rep, typename Period>
-  basic_value(const std::chrono::duration<Rep, Period> &x,
-              local_time_format_info fmt, std::vector<std::string> com,
+  basic_value(const std::chrono::duration<Rep, Period>& x, local_time_format_info fmt, std::vector<std::string> com,
               region_type reg)
-      : basic_value(local_time_type(x), std::move(fmt), std::move(com),
-                    std::move(reg)) {}
+      : basic_value(local_time_type(x), std::move(fmt), std::move(com), std::move(reg)) {}
   template <typename Rep, typename Period>
-  basic_value &operator=(const std::chrono::duration<Rep, Period> &x) {
+  basic_value& operator=(const std::chrono::duration<Rep, Period>& x) {
     local_time_format_info fmt;
     if (this->is_local_time()) {
       fmt = this->as_local_time_fmt();
@@ -6298,8 +5843,7 @@ public:
     this->cleanup();
     this->type_ = value_t::local_time;
     this->region_ = region_type{};
-    assigner(this->local_time_,
-             local_time_storage(local_time_type(x), std::move(fmt)));
+    assigner(this->local_time_, local_time_storage(local_time_type(x), std::move(fmt)));
     return *this;
   }
 
@@ -6309,22 +5853,19 @@ public:
   // {{{
 
   basic_value(local_datetime_type x)
-      : basic_value(x, local_datetime_format_info{}, std::vector<std::string>{},
-                    region_type{}) {}
+      : basic_value(x, local_datetime_format_info{}, std::vector<std::string>{}, region_type{}) {}
   basic_value(local_datetime_type x, local_datetime_format_info fmt)
       : basic_value(x, fmt, std::vector<std::string>{}, region_type{}) {}
   basic_value(local_datetime_type x, std::vector<std::string> com)
-      : basic_value(x, local_datetime_format_info{}, std::move(com),
-                    region_type{}) {}
-  basic_value(local_datetime_type x, local_datetime_format_info fmt,
-              std::vector<std::string> com)
+      : basic_value(x, local_datetime_format_info{}, std::move(com), region_type{}) {}
+  basic_value(local_datetime_type x, local_datetime_format_info fmt, std::vector<std::string> com)
       : basic_value(x, fmt, std::move(com), region_type{}) {}
-  basic_value(local_datetime_type x, local_datetime_format_info fmt,
-              std::vector<std::string> com, region_type reg)
+  basic_value(local_datetime_type x, local_datetime_format_info fmt, std::vector<std::string> com, region_type reg)
       : type_(value_t::local_datetime),
         local_datetime_(local_datetime_storage(x, fmt)),
-        region_(std::move(reg)), comments_(std::move(com)) {}
-  basic_value &operator=(local_datetime_type x) {
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
+  basic_value& operator=(local_datetime_type x) {
     local_datetime_format_info fmt;
     if (this->is_local_datetime()) {
       fmt = this->as_local_datetime_fmt();
@@ -6342,22 +5883,19 @@ public:
   // {{{
 
   basic_value(offset_datetime_type x)
-      : basic_value(x, offset_datetime_format_info{},
-                    std::vector<std::string>{}, region_type{}) {}
+      : basic_value(x, offset_datetime_format_info{}, std::vector<std::string>{}, region_type{}) {}
   basic_value(offset_datetime_type x, offset_datetime_format_info fmt)
       : basic_value(x, fmt, std::vector<std::string>{}, region_type{}) {}
   basic_value(offset_datetime_type x, std::vector<std::string> com)
-      : basic_value(x, offset_datetime_format_info{}, std::move(com),
-                    region_type{}) {}
-  basic_value(offset_datetime_type x, offset_datetime_format_info fmt,
-              std::vector<std::string> com)
+      : basic_value(x, offset_datetime_format_info{}, std::move(com), region_type{}) {}
+  basic_value(offset_datetime_type x, offset_datetime_format_info fmt, std::vector<std::string> com)
       : basic_value(x, fmt, std::move(com), region_type{}) {}
-  basic_value(offset_datetime_type x, offset_datetime_format_info fmt,
-              std::vector<std::string> com, region_type reg)
+  basic_value(offset_datetime_type x, offset_datetime_format_info fmt, std::vector<std::string> com, region_type reg)
       : type_(value_t::offset_datetime),
         offset_datetime_(offset_datetime_storage(x, fmt)),
-        region_(std::move(reg)), comments_(std::move(com)) {}
-  basic_value &operator=(offset_datetime_type x) {
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
+  basic_value& operator=(offset_datetime_type x) {
     offset_datetime_format_info fmt;
     if (this->is_offset_datetime()) {
       fmt = this->as_offset_datetime_fmt();
@@ -6372,26 +5910,18 @@ public:
   // system_clock::time_point
 
   basic_value(std::chrono::system_clock::time_point x)
-      : basic_value(offset_datetime_type(x), offset_datetime_format_info{},
-                    std::vector<std::string>{}, region_type{}) {}
-  basic_value(std::chrono::system_clock::time_point x,
-              offset_datetime_format_info fmt)
-      : basic_value(offset_datetime_type(x), fmt, std::vector<std::string>{},
-                    region_type{}) {}
-  basic_value(std::chrono::system_clock::time_point x,
-              std::vector<std::string> com)
-      : basic_value(offset_datetime_type(x), offset_datetime_format_info{},
-                    std::move(com), region_type{}) {}
-  basic_value(std::chrono::system_clock::time_point x,
-              offset_datetime_format_info fmt, std::vector<std::string> com)
-      : basic_value(offset_datetime_type(x), fmt, std::move(com),
-                    region_type{}) {}
-  basic_value(std::chrono::system_clock::time_point x,
-              offset_datetime_format_info fmt, std::vector<std::string> com,
+      : basic_value(offset_datetime_type(x), offset_datetime_format_info{}, std::vector<std::string>{}, region_type{}) {
+  }
+  basic_value(std::chrono::system_clock::time_point x, offset_datetime_format_info fmt)
+      : basic_value(offset_datetime_type(x), fmt, std::vector<std::string>{}, region_type{}) {}
+  basic_value(std::chrono::system_clock::time_point x, std::vector<std::string> com)
+      : basic_value(offset_datetime_type(x), offset_datetime_format_info{}, std::move(com), region_type{}) {}
+  basic_value(std::chrono::system_clock::time_point x, offset_datetime_format_info fmt, std::vector<std::string> com)
+      : basic_value(offset_datetime_type(x), fmt, std::move(com), region_type{}) {}
+  basic_value(std::chrono::system_clock::time_point x, offset_datetime_format_info fmt, std::vector<std::string> com,
               region_type reg)
-      : basic_value(offset_datetime_type(x), std::move(fmt), std::move(com),
-                    std::move(reg)) {}
-  basic_value &operator=(std::chrono::system_clock::time_point x) {
+      : basic_value(offset_datetime_type(x), std::move(fmt), std::move(com), std::move(reg)) {}
+  basic_value& operator=(std::chrono::system_clock::time_point x) {
     offset_datetime_format_info fmt;
     if (this->is_offset_datetime()) {
       fmt = this->as_offset_datetime_fmt();
@@ -6399,8 +5929,7 @@ public:
     this->cleanup();
     this->type_ = value_t::offset_datetime;
     this->region_ = region_type{};
-    assigner(this->offset_datetime_,
-             offset_datetime_storage(offset_datetime_type(x), fmt));
+    assigner(this->offset_datetime_, offset_datetime_storage(offset_datetime_type(x), fmt));
     return *this;
   }
 
@@ -6409,23 +5938,19 @@ public:
   // constructor (array) ================================================ {{{
 
   basic_value(array_type x)
-      : basic_value(std::move(x), array_format_info{},
-                    std::vector<std::string>{}, region_type{}) {}
+      : basic_value(std::move(x), array_format_info{}, std::vector<std::string>{}, region_type{}) {}
   basic_value(array_type x, array_format_info fmt)
-      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{},
-                    region_type{}) {}
+      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{}, region_type{}) {}
   basic_value(array_type x, std::vector<std::string> com)
-      : basic_value(std::move(x), array_format_info{}, std::move(com),
-                    region_type{}) {}
+      : basic_value(std::move(x), array_format_info{}, std::move(com), region_type{}) {}
   basic_value(array_type x, array_format_info fmt, std::vector<std::string> com)
       : basic_value(std::move(x), fmt, std::move(com), region_type{}) {}
-  basic_value(array_type x, array_format_info fmt, std::vector<std::string> com,
-              region_type reg)
+  basic_value(array_type x, array_format_info fmt, std::vector<std::string> com, region_type reg)
       : type_(value_t::array),
-        array_(array_storage(detail::storage<array_type>(std::move(x)),
-                             std::move(fmt))),
-        region_(std::move(reg)), comments_(std::move(com)) {}
-  basic_value &operator=(array_type x) {
+        array_(array_storage(detail::storage<array_type>(std::move(x)), std::move(fmt))),
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
+  basic_value& operator=(array_type x) {
     array_format_info fmt;
     if (this->is_array()) {
       fmt = this->as_array_fmt();
@@ -6433,52 +5958,44 @@ public:
     this->cleanup();
     this->type_ = value_t::array;
     this->region_ = region_type{};
-    assigner(this->array_,
-             array_storage(detail::storage<array_type>(std::move(x)),
-                           std::move(fmt)));
+    assigner(this->array_, array_storage(detail::storage<array_type>(std::move(x)), std::move(fmt)));
     return *this;
   }
 
-private:
+ private:
   template <typename T>
-  using enable_if_array_like_t = cxx::enable_if_t<
-      cxx::conjunction<
-          detail::is_container<T>, cxx::negation<std::is_same<T, array_type>>,
-          cxx::negation<detail::is_std_basic_string<T>>,
+  using enable_if_array_like_t =
+      cxx::enable_if_t<cxx::conjunction<detail::is_container<T>, cxx::negation<std::is_same<T, array_type>>,
+                                        cxx::negation<detail::is_std_basic_string<T>>,
 #if defined(TOML11_HAS_STRING_VIEW)
-          cxx::negation<detail::is_std_basic_string_view<T>>,
+                                        cxx::negation<detail::is_std_basic_string_view<T>>,
 #endif
-          cxx::negation<detail::has_from_toml_method<T, config_type>>,
-          cxx::negation<detail::has_specialized_from<T>>>::value,
-      std::nullptr_t>;
+                                        cxx::negation<detail::has_from_toml_method<T, config_type>>,
+                                        cxx::negation<detail::has_specialized_from<T>>>::value,
+                       std::nullptr_t>;
 
-public:
+ public:
   template <typename T, enable_if_array_like_t<T> = nullptr>
-  basic_value(T x)
-      : basic_value(std::move(x), array_format_info{},
-                    std::vector<std::string>{}, region_type{}) {}
+  basic_value(T x) : basic_value(std::move(x), array_format_info{}, std::vector<std::string>{}, region_type{}) {}
   template <typename T, enable_if_array_like_t<T> = nullptr>
   basic_value(T x, array_format_info fmt)
-      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{},
-                    region_type{}) {}
+      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{}, region_type{}) {}
   template <typename T, enable_if_array_like_t<T> = nullptr>
   basic_value(T x, std::vector<std::string> com)
-      : basic_value(std::move(x), array_format_info{}, std::move(com),
-                    region_type{}) {}
+      : basic_value(std::move(x), array_format_info{}, std::move(com), region_type{}) {}
   template <typename T, enable_if_array_like_t<T> = nullptr>
   basic_value(T x, array_format_info fmt, std::vector<std::string> com)
       : basic_value(std::move(x), fmt, std::move(com), region_type{}) {}
   template <typename T, enable_if_array_like_t<T> = nullptr>
-  basic_value(T x, array_format_info fmt, std::vector<std::string> com,
-              region_type reg)
+  basic_value(T x, array_format_info fmt, std::vector<std::string> com, region_type reg)
       : type_(value_t::array),
         array_(array_storage(detail::storage<array_type>(
-                                 array_type(std::make_move_iterator(x.begin()),
-                                            std::make_move_iterator(x.end()))),
+                                 array_type(std::make_move_iterator(x.begin()), std::make_move_iterator(x.end()))),
                              std::move(fmt))),
-        region_(std::move(reg)), comments_(std::move(com)) {}
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
   template <typename T, enable_if_array_like_t<T> = nullptr>
-  basic_value &operator=(T x) {
+  basic_value& operator=(T x) {
     array_format_info fmt;
     if (this->is_array()) {
       fmt = this->as_array_fmt();
@@ -6487,11 +6004,8 @@ public:
     this->type_ = value_t::array;
     this->region_ = region_type{};
 
-    array_type a(std::make_move_iterator(x.begin()),
-                 std::make_move_iterator(x.end()));
-    assigner(this->array_,
-             array_storage(detail::storage<array_type>(std::move(a)),
-                           std::move(fmt)));
+    array_type a(std::make_move_iterator(x.begin()), std::make_move_iterator(x.end()));
+    assigner(this->array_, array_storage(detail::storage<array_type>(std::move(a)), std::move(fmt)));
     return *this;
   }
 
@@ -6500,23 +6014,19 @@ public:
   // constructor (table) ================================================ {{{
 
   basic_value(table_type x)
-      : basic_value(std::move(x), table_format_info{},
-                    std::vector<std::string>{}, region_type{}) {}
+      : basic_value(std::move(x), table_format_info{}, std::vector<std::string>{}, region_type{}) {}
   basic_value(table_type x, table_format_info fmt)
-      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{},
-                    region_type{}) {}
+      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{}, region_type{}) {}
   basic_value(table_type x, std::vector<std::string> com)
-      : basic_value(std::move(x), table_format_info{}, std::move(com),
-                    region_type{}) {}
+      : basic_value(std::move(x), table_format_info{}, std::move(com), region_type{}) {}
   basic_value(table_type x, table_format_info fmt, std::vector<std::string> com)
       : basic_value(std::move(x), fmt, std::move(com), region_type{}) {}
-  basic_value(table_type x, table_format_info fmt, std::vector<std::string> com,
-              region_type reg)
+  basic_value(table_type x, table_format_info fmt, std::vector<std::string> com, region_type reg)
       : type_(value_t::table),
-        table_(table_storage(detail::storage<table_type>(std::move(x)),
-                             std::move(fmt))),
-        region_(std::move(reg)), comments_(std::move(com)) {}
-  basic_value &operator=(table_type x) {
+        table_(table_storage(detail::storage<table_type>(std::move(x)), std::move(fmt))),
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
+  basic_value& operator=(table_type x) {
     table_format_info fmt;
     if (this->is_table()) {
       fmt = this->as_table_fmt();
@@ -6524,50 +6034,42 @@ public:
     this->cleanup();
     this->type_ = value_t::table;
     this->region_ = region_type{};
-    assigner(this->table_,
-             table_storage(detail::storage<table_type>(std::move(x)),
-                           std::move(fmt)));
+    assigner(this->table_, table_storage(detail::storage<table_type>(std::move(x)), std::move(fmt)));
     return *this;
   }
 
   // table-like
 
-private:
+ private:
   template <typename T>
-  using enable_if_table_like_t = cxx::enable_if_t<
-      cxx::conjunction<
-          cxx::negation<std::is_same<T, table_type>>, detail::is_map<T>,
-          cxx::negation<detail::has_from_toml_method<T, config_type>>,
-          cxx::negation<detail::has_specialized_from<T>>>::value,
-      std::nullptr_t>;
+  using enable_if_table_like_t =
+      cxx::enable_if_t<cxx::conjunction<cxx::negation<std::is_same<T, table_type>>, detail::is_map<T>,
+                                        cxx::negation<detail::has_from_toml_method<T, config_type>>,
+                                        cxx::negation<detail::has_specialized_from<T>>>::value,
+                       std::nullptr_t>;
 
-public:
+ public:
   template <typename T, enable_if_table_like_t<T> = nullptr>
-  basic_value(T x)
-      : basic_value(std::move(x), table_format_info{},
-                    std::vector<std::string>{}, region_type{}) {}
+  basic_value(T x) : basic_value(std::move(x), table_format_info{}, std::vector<std::string>{}, region_type{}) {}
   template <typename T, enable_if_table_like_t<T> = nullptr>
   basic_value(T x, table_format_info fmt)
-      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{},
-                    region_type{}) {}
+      : basic_value(std::move(x), std::move(fmt), std::vector<std::string>{}, region_type{}) {}
   template <typename T, enable_if_table_like_t<T> = nullptr>
   basic_value(T x, std::vector<std::string> com)
-      : basic_value(std::move(x), table_format_info{}, std::move(com),
-                    region_type{}) {}
+      : basic_value(std::move(x), table_format_info{}, std::move(com), region_type{}) {}
   template <typename T, enable_if_table_like_t<T> = nullptr>
   basic_value(T x, table_format_info fmt, std::vector<std::string> com)
       : basic_value(std::move(x), fmt, std::move(com), region_type{}) {}
   template <typename T, enable_if_table_like_t<T> = nullptr>
-  basic_value(T x, table_format_info fmt, std::vector<std::string> com,
-              region_type reg)
+  basic_value(T x, table_format_info fmt, std::vector<std::string> com, region_type reg)
       : type_(value_t::table),
         table_(table_storage(detail::storage<table_type>(
-                                 table_type(std::make_move_iterator(x.begin()),
-                                            std::make_move_iterator(x.end()))),
+                                 table_type(std::make_move_iterator(x.begin()), std::make_move_iterator(x.end()))),
                              std::move(fmt))),
-        region_(std::move(reg)), comments_(std::move(com)) {}
+        region_(std::move(reg)),
+        comments_(std::move(com)) {}
   template <typename T, enable_if_table_like_t<T> = nullptr>
-  basic_value &operator=(T x) {
+  basic_value& operator=(T x) {
     table_format_info fmt;
     if (this->is_table()) {
       fmt = this->as_table_fmt();
@@ -6576,11 +6078,8 @@ public:
     this->type_ = value_t::table;
     this->region_ = region_type{};
 
-    table_type t(std::make_move_iterator(x.begin()),
-                 std::make_move_iterator(x.end()));
-    assigner(this->table_,
-             table_storage(detail::storage<table_type>(std::move(t)),
-                           std::move(fmt)));
+    table_type t(std::make_move_iterator(x.begin()), std::make_move_iterator(x.end()));
+    assigner(this->table_, table_storage(detail::storage<table_type>(std::move(t)), std::move(fmt)));
     return *this;
   }
 
@@ -6588,75 +6087,48 @@ public:
 
   // constructor (user_defined) ========================================= {{{
 
-  template <typename T, cxx::enable_if_t<detail::has_specialized_into<T>::value,
-                                         std::nullptr_t> = nullptr>
-  basic_value(const T &ud)
-      : basic_value(
-            into<cxx::remove_cvref_t<T>>::template into_toml<config_type>(ud)) {
-  }
-  template <typename T, cxx::enable_if_t<detail::has_specialized_into<T>::value,
-                                         std::nullptr_t> = nullptr>
-  basic_value(const T &ud, std::vector<std::string> com)
-      : basic_value(
-            into<cxx::remove_cvref_t<T>>::template into_toml<config_type>(ud),
-            std::move(com)) {}
-  template <typename T, cxx::enable_if_t<detail::has_specialized_into<T>::value,
-                                         std::nullptr_t> = nullptr>
-  basic_value &operator=(const T &ud) {
+  template <typename T, cxx::enable_if_t<detail::has_specialized_into<T>::value, std::nullptr_t> = nullptr>
+  basic_value(const T& ud) : basic_value(into<cxx::remove_cvref_t<T>>::template into_toml<config_type>(ud)) {}
+  template <typename T, cxx::enable_if_t<detail::has_specialized_into<T>::value, std::nullptr_t> = nullptr>
+  basic_value(const T& ud, std::vector<std::string> com)
+      : basic_value(into<cxx::remove_cvref_t<T>>::template into_toml<config_type>(ud), std::move(com)) {}
+  template <typename T, cxx::enable_if_t<detail::has_specialized_into<T>::value, std::nullptr_t> = nullptr>
+  basic_value& operator=(const T& ud) {
     *this = into<cxx::remove_cvref_t<T>>::template into_toml<config_type>(ud);
     return *this;
   }
 
-  template <typename T,
-            cxx::enable_if_t<
-                cxx::conjunction<
-                    detail::has_into_toml_method<T>,
-                    cxx::negation<detail::has_specialized_into<T>>>::value,
-                std::nullptr_t> = nullptr>
-  basic_value(const T &ud) : basic_value(ud.into_toml()) {}
+  template <typename T, cxx::enable_if_t<cxx::conjunction<detail::has_into_toml_method<T>,
+                                                          cxx::negation<detail::has_specialized_into<T>>>::value,
+                                         std::nullptr_t> = nullptr>
+  basic_value(const T& ud) : basic_value(ud.into_toml()) {}
 
-  template <typename T,
-            cxx::enable_if_t<
-                cxx::conjunction<
-                    detail::has_into_toml_method<T>,
-                    cxx::negation<detail::has_specialized_into<T>>>::value,
-                std::nullptr_t> = nullptr>
-  basic_value(const T &ud, std::vector<std::string> com)
-      : basic_value(ud.into_toml(), std::move(com)) {}
-  template <typename T,
-            cxx::enable_if_t<
-                cxx::conjunction<
-                    detail::has_into_toml_method<T>,
-                    cxx::negation<detail::has_specialized_into<T>>>::value,
-                std::nullptr_t> = nullptr>
-  basic_value &operator=(const T &ud) {
+  template <typename T, cxx::enable_if_t<cxx::conjunction<detail::has_into_toml_method<T>,
+                                                          cxx::negation<detail::has_specialized_into<T>>>::value,
+                                         std::nullptr_t> = nullptr>
+  basic_value(const T& ud, std::vector<std::string> com) : basic_value(ud.into_toml(), std::move(com)) {}
+  template <typename T, cxx::enable_if_t<cxx::conjunction<detail::has_into_toml_method<T>,
+                                                          cxx::negation<detail::has_specialized_into<T>>>::value,
+                                         std::nullptr_t> = nullptr>
+  basic_value& operator=(const T& ud) {
     *this = ud.into_toml();
     return *this;
   }
 
-  template <typename T,
-            cxx::enable_if_t<
-                cxx::conjunction<
-                    detail::has_template_into_toml_method<T, TypeConfig>,
-                    cxx::negation<detail::has_specialized_into<T>>>::value,
-                std::nullptr_t> = nullptr>
-  basic_value(const T &ud) : basic_value(ud.template into_toml<TypeConfig>()) {}
+  template <typename T, cxx::enable_if_t<cxx::conjunction<detail::has_template_into_toml_method<T, TypeConfig>,
+                                                          cxx::negation<detail::has_specialized_into<T>>>::value,
+                                         std::nullptr_t> = nullptr>
+  basic_value(const T& ud) : basic_value(ud.template into_toml<TypeConfig>()) {}
 
-  template <typename T,
-            cxx::enable_if_t<
-                cxx::conjunction<
-                    detail::has_template_into_toml_method<T, TypeConfig>,
-                    cxx::negation<detail::has_specialized_into<T>>>::value,
-                std::nullptr_t> = nullptr>
-  basic_value(const T &ud, std::vector<std::string> com)
+  template <typename T, cxx::enable_if_t<cxx::conjunction<detail::has_template_into_toml_method<T, TypeConfig>,
+                                                          cxx::negation<detail::has_specialized_into<T>>>::value,
+                                         std::nullptr_t> = nullptr>
+  basic_value(const T& ud, std::vector<std::string> com)
       : basic_value(ud.template into_toml<TypeConfig>(), std::move(com)) {}
-  template <typename T,
-            cxx::enable_if_t<
-                cxx::conjunction<
-                    detail::has_template_into_toml_method<T, TypeConfig>,
-                    cxx::negation<detail::has_specialized_into<T>>>::value,
-                std::nullptr_t> = nullptr>
-  basic_value &operator=(const T &ud) {
+  template <typename T, cxx::enable_if_t<cxx::conjunction<detail::has_template_into_toml_method<T, TypeConfig>,
+                                                          cxx::negation<detail::has_specialized_into<T>>>::value,
+                                         std::nullptr_t> = nullptr>
+  basic_value& operator=(const T& ud) {
     *this = ud.template into_toml<TypeConfig>();
     return *this;
   }
@@ -6666,17 +6138,14 @@ public:
 
   // mainly for `null` extension
   basic_value(detail::none_t, region_type reg) noexcept
-      : type_(value_t::empty), empty_('\0'),
-        region_(std::move(reg)), comments_{} {}
+      : type_(value_t::empty), empty_('\0'), region_(std::move(reg)), comments_{} {}
 
   // }}}
 
   // type checking ====================================================== {{{
 
-  template <typename T,
-            cxx::enable_if_t<detail::is_exact_toml_type<cxx::remove_cvref_t<T>,
-                                                        value_type>::value,
-                             std::nullptr_t> = nullptr>
+  template <typename T, cxx::enable_if_t<detail::is_exact_toml_type<cxx::remove_cvref_t<T>, value_type>::value,
+                                         std::nullptr_t> = nullptr>
   bool is() const noexcept {
     return detail::type_to_enum<T, value_type>::value == this->type_;
   }
@@ -6687,12 +6156,8 @@ public:
   bool is_integer() const noexcept { return this->is(value_t::integer); }
   bool is_floating() const noexcept { return this->is(value_t::floating); }
   bool is_string() const noexcept { return this->is(value_t::string); }
-  bool is_offset_datetime() const noexcept {
-    return this->is(value_t::offset_datetime);
-  }
-  bool is_local_datetime() const noexcept {
-    return this->is(value_t::local_datetime);
-  }
+  bool is_offset_datetime() const noexcept { return this->is(value_t::offset_datetime); }
+  bool is_local_datetime() const noexcept { return this->is(value_t::local_datetime); }
   bool is_local_date() const noexcept { return this->is(value_t::local_date); }
   bool is_local_time() const noexcept { return this->is(value_t::local_time); }
   bool is_array() const noexcept { return this->is(value_t::array); }
@@ -6702,7 +6167,7 @@ public:
     if (!this->is_array()) {
       return false;
     }
-    const auto &a = this->as_array(std::nothrow); // already checked.
+    const auto& a = this->as_array(std::nothrow);  // already checked.
 
     // when you define [[array.of.tables]], at least one empty table will be
     // assigned. In case of array of inline tables, `array_of_tables = []`,
@@ -6715,7 +6180,7 @@ public:
     // since toml v1.0.0 allows array of heterogeneous types, we need to
     // check all the elements. if any of the elements is not a table, it
     // is a heterogeneous array and cannot be expressed by `[[aot]]` form.
-    for (const auto &e : a) {
+    for (const auto& e : a) {
       if (!e.is_table()) {
         return false;
       }
@@ -6730,150 +6195,108 @@ public:
   // as_xxx (noexcept) version ========================================== {{{
 
   template <value_t T>
-  detail::enum_to_type_t<T, basic_value<config_type>> const &
-  as(const std::nothrow_t &) const noexcept {
+  detail::enum_to_type_t<T, basic_value<config_type>> const& as(const std::nothrow_t&) const noexcept {
     return detail::getter<config_type, T>::get_nothrow(*this);
   }
   template <value_t T>
-  detail::enum_to_type_t<T, basic_value<config_type>> &
-  as(const std::nothrow_t &) noexcept {
+  detail::enum_to_type_t<T, basic_value<config_type>>& as(const std::nothrow_t&) noexcept {
     return detail::getter<config_type, T>::get_nothrow(*this);
   }
 
-  boolean_type const &as_boolean(const std::nothrow_t &) const noexcept {
-    return this->boolean_.value;
-  }
-  integer_type const &as_integer(const std::nothrow_t &) const noexcept {
-    return this->integer_.value;
-  }
-  floating_type const &as_floating(const std::nothrow_t &) const noexcept {
-    return this->floating_.value;
-  }
-  string_type const &as_string(const std::nothrow_t &) const noexcept {
-    return this->string_.value;
-  }
-  offset_datetime_type const &
-  as_offset_datetime(const std::nothrow_t &) const noexcept {
+  boolean_type const& as_boolean(const std::nothrow_t&) const noexcept { return this->boolean_.value; }
+  integer_type const& as_integer(const std::nothrow_t&) const noexcept { return this->integer_.value; }
+  floating_type const& as_floating(const std::nothrow_t&) const noexcept { return this->floating_.value; }
+  string_type const& as_string(const std::nothrow_t&) const noexcept { return this->string_.value; }
+  offset_datetime_type const& as_offset_datetime(const std::nothrow_t&) const noexcept {
     return this->offset_datetime_.value;
   }
-  local_datetime_type const &
-  as_local_datetime(const std::nothrow_t &) const noexcept {
+  local_datetime_type const& as_local_datetime(const std::nothrow_t&) const noexcept {
     return this->local_datetime_.value;
   }
-  local_date_type const &as_local_date(const std::nothrow_t &) const noexcept {
-    return this->local_date_.value;
-  }
-  local_time_type const &as_local_time(const std::nothrow_t &) const noexcept {
-    return this->local_time_.value;
-  }
-  array_type const &as_array(const std::nothrow_t &) const noexcept {
-    return this->array_.value.get();
-  }
-  table_type const &as_table(const std::nothrow_t &) const noexcept {
-    return this->table_.value.get();
-  }
+  local_date_type const& as_local_date(const std::nothrow_t&) const noexcept { return this->local_date_.value; }
+  local_time_type const& as_local_time(const std::nothrow_t&) const noexcept { return this->local_time_.value; }
+  array_type const& as_array(const std::nothrow_t&) const noexcept { return this->array_.value.get(); }
+  table_type const& as_table(const std::nothrow_t&) const noexcept { return this->table_.value.get(); }
 
-  boolean_type &as_boolean(const std::nothrow_t &) noexcept {
-    return this->boolean_.value;
-  }
-  integer_type &as_integer(const std::nothrow_t &) noexcept {
-    return this->integer_.value;
-  }
-  floating_type &as_floating(const std::nothrow_t &) noexcept {
-    return this->floating_.value;
-  }
-  string_type &as_string(const std::nothrow_t &) noexcept {
-    return this->string_.value;
-  }
-  offset_datetime_type &as_offset_datetime(const std::nothrow_t &) noexcept {
-    return this->offset_datetime_.value;
-  }
-  local_datetime_type &as_local_datetime(const std::nothrow_t &) noexcept {
-    return this->local_datetime_.value;
-  }
-  local_date_type &as_local_date(const std::nothrow_t &) noexcept {
-    return this->local_date_.value;
-  }
-  local_time_type &as_local_time(const std::nothrow_t &) noexcept {
-    return this->local_time_.value;
-  }
-  array_type &as_array(const std::nothrow_t &) noexcept {
-    return this->array_.value.get();
-  }
-  table_type &as_table(const std::nothrow_t &) noexcept {
-    return this->table_.value.get();
-  }
+  boolean_type& as_boolean(const std::nothrow_t&) noexcept { return this->boolean_.value; }
+  integer_type& as_integer(const std::nothrow_t&) noexcept { return this->integer_.value; }
+  floating_type& as_floating(const std::nothrow_t&) noexcept { return this->floating_.value; }
+  string_type& as_string(const std::nothrow_t&) noexcept { return this->string_.value; }
+  offset_datetime_type& as_offset_datetime(const std::nothrow_t&) noexcept { return this->offset_datetime_.value; }
+  local_datetime_type& as_local_datetime(const std::nothrow_t&) noexcept { return this->local_datetime_.value; }
+  local_date_type& as_local_date(const std::nothrow_t&) noexcept { return this->local_date_.value; }
+  local_time_type& as_local_time(const std::nothrow_t&) noexcept { return this->local_time_.value; }
+  array_type& as_array(const std::nothrow_t&) noexcept { return this->array_.value.get(); }
+  table_type& as_table(const std::nothrow_t&) noexcept { return this->table_.value.get(); }
 
   // }}}
 
   // as_xxx (throw) ===================================================== {{{
 
   template <value_t T>
-  detail::enum_to_type_t<T, basic_value<config_type>> const &as() const {
+  detail::enum_to_type_t<T, basic_value<config_type>> const& as() const {
     return detail::getter<config_type, T>::get(*this);
   }
   template <value_t T>
-  detail::enum_to_type_t<T, basic_value<config_type>> &as() {
+  detail::enum_to_type_t<T, basic_value<config_type>>& as() {
     return detail::getter<config_type, T>::get(*this);
   }
 
-  boolean_type const &as_boolean() const {
+  boolean_type const& as_boolean() const {
     if (this->type_ != value_t::boolean) {
       this->throw_bad_cast("toml::value::as_boolean()", value_t::boolean);
     }
     return this->boolean_.value;
   }
-  integer_type const &as_integer() const {
+  integer_type const& as_integer() const {
     if (this->type_ != value_t::integer) {
       this->throw_bad_cast("toml::value::as_integer()", value_t::integer);
     }
     return this->integer_.value;
   }
-  floating_type const &as_floating() const {
+  floating_type const& as_floating() const {
     if (this->type_ != value_t::floating) {
       this->throw_bad_cast("toml::value::as_floating()", value_t::floating);
     }
     return this->floating_.value;
   }
-  string_type const &as_string() const {
+  string_type const& as_string() const {
     if (this->type_ != value_t::string) {
       this->throw_bad_cast("toml::value::as_string()", value_t::string);
     }
     return this->string_.value;
   }
-  offset_datetime_type const &as_offset_datetime() const {
+  offset_datetime_type const& as_offset_datetime() const {
     if (this->type_ != value_t::offset_datetime) {
-      this->throw_bad_cast("toml::value::as_offset_datetime()",
-                           value_t::offset_datetime);
+      this->throw_bad_cast("toml::value::as_offset_datetime()", value_t::offset_datetime);
     }
     return this->offset_datetime_.value;
   }
-  local_datetime_type const &as_local_datetime() const {
+  local_datetime_type const& as_local_datetime() const {
     if (this->type_ != value_t::local_datetime) {
-      this->throw_bad_cast("toml::value::as_local_datetime()",
-                           value_t::local_datetime);
+      this->throw_bad_cast("toml::value::as_local_datetime()", value_t::local_datetime);
     }
     return this->local_datetime_.value;
   }
-  local_date_type const &as_local_date() const {
+  local_date_type const& as_local_date() const {
     if (this->type_ != value_t::local_date) {
       this->throw_bad_cast("toml::value::as_local_date()", value_t::local_date);
     }
     return this->local_date_.value;
   }
-  local_time_type const &as_local_time() const {
+  local_time_type const& as_local_time() const {
     if (this->type_ != value_t::local_time) {
       this->throw_bad_cast("toml::value::as_local_time()", value_t::local_time);
     }
     return this->local_time_.value;
   }
-  array_type const &as_array() const {
+  array_type const& as_array() const {
     if (this->type_ != value_t::array) {
       this->throw_bad_cast("toml::value::as_array()", value_t::array);
     }
     return this->array_.value.get();
   }
-  table_type const &as_table() const {
+  table_type const& as_table() const {
     if (this->type_ != value_t::table) {
       this->throw_bad_cast("toml::value::as_table()", value_t::table);
     }
@@ -6883,63 +6306,61 @@ public:
   // ------------------------------------------------------------------------
   // nonconst reference
 
-  boolean_type &as_boolean() {
+  boolean_type& as_boolean() {
     if (this->type_ != value_t::boolean) {
       this->throw_bad_cast("toml::value::as_boolean()", value_t::boolean);
     }
     return this->boolean_.value;
   }
-  integer_type &as_integer() {
+  integer_type& as_integer() {
     if (this->type_ != value_t::integer) {
       this->throw_bad_cast("toml::value::as_integer()", value_t::integer);
     }
     return this->integer_.value;
   }
-  floating_type &as_floating() {
+  floating_type& as_floating() {
     if (this->type_ != value_t::floating) {
       this->throw_bad_cast("toml::value::as_floating()", value_t::floating);
     }
     return this->floating_.value;
   }
-  string_type &as_string() {
+  string_type& as_string() {
     if (this->type_ != value_t::string) {
       this->throw_bad_cast("toml::value::as_string()", value_t::string);
     }
     return this->string_.value;
   }
-  offset_datetime_type &as_offset_datetime() {
+  offset_datetime_type& as_offset_datetime() {
     if (this->type_ != value_t::offset_datetime) {
-      this->throw_bad_cast("toml::value::as_offset_datetime()",
-                           value_t::offset_datetime);
+      this->throw_bad_cast("toml::value::as_offset_datetime()", value_t::offset_datetime);
     }
     return this->offset_datetime_.value;
   }
-  local_datetime_type &as_local_datetime() {
+  local_datetime_type& as_local_datetime() {
     if (this->type_ != value_t::local_datetime) {
-      this->throw_bad_cast("toml::value::as_local_datetime()",
-                           value_t::local_datetime);
+      this->throw_bad_cast("toml::value::as_local_datetime()", value_t::local_datetime);
     }
     return this->local_datetime_.value;
   }
-  local_date_type &as_local_date() {
+  local_date_type& as_local_date() {
     if (this->type_ != value_t::local_date) {
       this->throw_bad_cast("toml::value::as_local_date()", value_t::local_date);
     }
     return this->local_date_.value;
   }
-  local_time_type &as_local_time() {
+  local_time_type& as_local_time() {
     if (this->type_ != value_t::local_time) {
       this->throw_bad_cast("toml::value::as_local_time()", value_t::local_time);
     }
     return this->local_time_.value;
   }
-  array_type &as_array() {
+  array_type& as_array() {
     if (this->type_ != value_t::array) {
       this->throw_bad_cast("toml::value::as_array()", value_t::array);
     }
     return this->array_.value.get();
   }
-  table_type &as_table() {
+  table_type& as_table() {
     if (this->type_ != value_t::table) {
       this->throw_bad_cast("toml::value::as_table()", value_t::table);
     }
@@ -6951,157 +6372,116 @@ public:
   // format accessors (noexcept) ======================================== {{{
 
   template <value_t T>
-  detail::enum_to_fmt_type_t<T> const &
-  as_fmt(const std::nothrow_t &) const noexcept {
+  detail::enum_to_fmt_type_t<T> const& as_fmt(const std::nothrow_t&) const noexcept {
     return detail::getter<config_type, T>::get_fmt_nothrow(*this);
   }
   template <value_t T>
-  detail::enum_to_fmt_type_t<T> &as_fmt(const std::nothrow_t &) noexcept {
+  detail::enum_to_fmt_type_t<T>& as_fmt(const std::nothrow_t&) noexcept {
     return detail::getter<config_type, T>::get_fmt_nothrow(*this);
   }
 
-  boolean_format_info &as_boolean_fmt(const std::nothrow_t &) noexcept {
-    return this->boolean_.format;
-  }
-  integer_format_info &as_integer_fmt(const std::nothrow_t &) noexcept {
-    return this->integer_.format;
-  }
-  floating_format_info &as_floating_fmt(const std::nothrow_t &) noexcept {
-    return this->floating_.format;
-  }
-  string_format_info &as_string_fmt(const std::nothrow_t &) noexcept {
-    return this->string_.format;
-  }
-  offset_datetime_format_info &
-  as_offset_datetime_fmt(const std::nothrow_t &) noexcept {
+  boolean_format_info& as_boolean_fmt(const std::nothrow_t&) noexcept { return this->boolean_.format; }
+  integer_format_info& as_integer_fmt(const std::nothrow_t&) noexcept { return this->integer_.format; }
+  floating_format_info& as_floating_fmt(const std::nothrow_t&) noexcept { return this->floating_.format; }
+  string_format_info& as_string_fmt(const std::nothrow_t&) noexcept { return this->string_.format; }
+  offset_datetime_format_info& as_offset_datetime_fmt(const std::nothrow_t&) noexcept {
     return this->offset_datetime_.format;
   }
-  local_datetime_format_info &
-  as_local_datetime_fmt(const std::nothrow_t &) noexcept {
+  local_datetime_format_info& as_local_datetime_fmt(const std::nothrow_t&) noexcept {
     return this->local_datetime_.format;
   }
-  local_date_format_info &as_local_date_fmt(const std::nothrow_t &) noexcept {
-    return this->local_date_.format;
-  }
-  local_time_format_info &as_local_time_fmt(const std::nothrow_t &) noexcept {
-    return this->local_time_.format;
-  }
-  array_format_info &as_array_fmt(const std::nothrow_t &) noexcept {
-    return this->array_.format;
-  }
-  table_format_info &as_table_fmt(const std::nothrow_t &) noexcept {
-    return this->table_.format;
-  }
+  local_date_format_info& as_local_date_fmt(const std::nothrow_t&) noexcept { return this->local_date_.format; }
+  local_time_format_info& as_local_time_fmt(const std::nothrow_t&) noexcept { return this->local_time_.format; }
+  array_format_info& as_array_fmt(const std::nothrow_t&) noexcept { return this->array_.format; }
+  table_format_info& as_table_fmt(const std::nothrow_t&) noexcept { return this->table_.format; }
 
-  boolean_format_info const &
-  as_boolean_fmt(const std::nothrow_t &) const noexcept {
-    return this->boolean_.format;
-  }
-  integer_format_info const &
-  as_integer_fmt(const std::nothrow_t &) const noexcept {
-    return this->integer_.format;
-  }
-  floating_format_info const &
-  as_floating_fmt(const std::nothrow_t &) const noexcept {
-    return this->floating_.format;
-  }
-  string_format_info const &
-  as_string_fmt(const std::nothrow_t &) const noexcept {
-    return this->string_.format;
-  }
-  offset_datetime_format_info const &
-  as_offset_datetime_fmt(const std::nothrow_t &) const noexcept {
+  boolean_format_info const& as_boolean_fmt(const std::nothrow_t&) const noexcept { return this->boolean_.format; }
+  integer_format_info const& as_integer_fmt(const std::nothrow_t&) const noexcept { return this->integer_.format; }
+  floating_format_info const& as_floating_fmt(const std::nothrow_t&) const noexcept { return this->floating_.format; }
+  string_format_info const& as_string_fmt(const std::nothrow_t&) const noexcept { return this->string_.format; }
+  offset_datetime_format_info const& as_offset_datetime_fmt(const std::nothrow_t&) const noexcept {
     return this->offset_datetime_.format;
   }
-  local_datetime_format_info const &
-  as_local_datetime_fmt(const std::nothrow_t &) const noexcept {
+  local_datetime_format_info const& as_local_datetime_fmt(const std::nothrow_t&) const noexcept {
     return this->local_datetime_.format;
   }
-  local_date_format_info const &
-  as_local_date_fmt(const std::nothrow_t &) const noexcept {
+  local_date_format_info const& as_local_date_fmt(const std::nothrow_t&) const noexcept {
     return this->local_date_.format;
   }
-  local_time_format_info const &
-  as_local_time_fmt(const std::nothrow_t &) const noexcept {
+  local_time_format_info const& as_local_time_fmt(const std::nothrow_t&) const noexcept {
     return this->local_time_.format;
   }
-  array_format_info const &as_array_fmt(const std::nothrow_t &) const noexcept {
-    return this->array_.format;
-  }
-  table_format_info const &as_table_fmt(const std::nothrow_t &) const noexcept {
-    return this->table_.format;
-  }
+  array_format_info const& as_array_fmt(const std::nothrow_t&) const noexcept { return this->array_.format; }
+  table_format_info const& as_table_fmt(const std::nothrow_t&) const noexcept { return this->table_.format; }
 
   // }}}
 
   // format accessors (throw) =========================================== {{{
 
-  template <value_t T> detail::enum_to_fmt_type_t<T> const &as_fmt() const {
+  template <value_t T>
+  detail::enum_to_fmt_type_t<T> const& as_fmt() const {
     return detail::getter<config_type, T>::get_fmt(*this);
   }
-  template <value_t T> detail::enum_to_fmt_type_t<T> &as_fmt() {
+  template <value_t T>
+  detail::enum_to_fmt_type_t<T>& as_fmt() {
     return detail::getter<config_type, T>::get_fmt(*this);
   }
 
-  boolean_format_info const &as_boolean_fmt() const {
+  boolean_format_info const& as_boolean_fmt() const {
     if (this->type_ != value_t::boolean) {
       this->throw_bad_cast("toml::value::as_boolean_fmt()", value_t::boolean);
     }
     return this->boolean_.format;
   }
-  integer_format_info const &as_integer_fmt() const {
+  integer_format_info const& as_integer_fmt() const {
     if (this->type_ != value_t::integer) {
       this->throw_bad_cast("toml::value::as_integer_fmt()", value_t::integer);
     }
     return this->integer_.format;
   }
-  floating_format_info const &as_floating_fmt() const {
+  floating_format_info const& as_floating_fmt() const {
     if (this->type_ != value_t::floating) {
       this->throw_bad_cast("toml::value::as_floating_fmt()", value_t::floating);
     }
     return this->floating_.format;
   }
-  string_format_info const &as_string_fmt() const {
+  string_format_info const& as_string_fmt() const {
     if (this->type_ != value_t::string) {
       this->throw_bad_cast("toml::value::as_string_fmt()", value_t::string);
     }
     return this->string_.format;
   }
-  offset_datetime_format_info const &as_offset_datetime_fmt() const {
+  offset_datetime_format_info const& as_offset_datetime_fmt() const {
     if (this->type_ != value_t::offset_datetime) {
-      this->throw_bad_cast("toml::value::as_offset_datetime_fmt()",
-                           value_t::offset_datetime);
+      this->throw_bad_cast("toml::value::as_offset_datetime_fmt()", value_t::offset_datetime);
     }
     return this->offset_datetime_.format;
   }
-  local_datetime_format_info const &as_local_datetime_fmt() const {
+  local_datetime_format_info const& as_local_datetime_fmt() const {
     if (this->type_ != value_t::local_datetime) {
-      this->throw_bad_cast("toml::value::as_local_datetime_fmt()",
-                           value_t::local_datetime);
+      this->throw_bad_cast("toml::value::as_local_datetime_fmt()", value_t::local_datetime);
     }
     return this->local_datetime_.format;
   }
-  local_date_format_info const &as_local_date_fmt() const {
+  local_date_format_info const& as_local_date_fmt() const {
     if (this->type_ != value_t::local_date) {
-      this->throw_bad_cast("toml::value::as_local_date_fmt()",
-                           value_t::local_date);
+      this->throw_bad_cast("toml::value::as_local_date_fmt()", value_t::local_date);
     }
     return this->local_date_.format;
   }
-  local_time_format_info const &as_local_time_fmt() const {
+  local_time_format_info const& as_local_time_fmt() const {
     if (this->type_ != value_t::local_time) {
-      this->throw_bad_cast("toml::value::as_local_time_fmt()",
-                           value_t::local_time);
+      this->throw_bad_cast("toml::value::as_local_time_fmt()", value_t::local_time);
     }
     return this->local_time_.format;
   }
-  array_format_info const &as_array_fmt() const {
+  array_format_info const& as_array_fmt() const {
     if (this->type_ != value_t::array) {
       this->throw_bad_cast("toml::value::as_array_fmt()", value_t::array);
     }
     return this->array_.format;
   }
-  table_format_info const &as_table_fmt() const {
+  table_format_info const& as_table_fmt() const {
     if (this->type_ != value_t::table) {
       this->throw_bad_cast("toml::value::as_table_fmt()", value_t::table);
     }
@@ -7111,65 +6491,61 @@ public:
   // ------------------------------------------------------------------------
   // nonconst reference
 
-  boolean_format_info &as_boolean_fmt() {
+  boolean_format_info& as_boolean_fmt() {
     if (this->type_ != value_t::boolean) {
       this->throw_bad_cast("toml::value::as_boolean_fmt()", value_t::boolean);
     }
     return this->boolean_.format;
   }
-  integer_format_info &as_integer_fmt() {
+  integer_format_info& as_integer_fmt() {
     if (this->type_ != value_t::integer) {
       this->throw_bad_cast("toml::value::as_integer_fmt()", value_t::integer);
     }
     return this->integer_.format;
   }
-  floating_format_info &as_floating_fmt() {
+  floating_format_info& as_floating_fmt() {
     if (this->type_ != value_t::floating) {
       this->throw_bad_cast("toml::value::as_floating_fmt()", value_t::floating);
     }
     return this->floating_.format;
   }
-  string_format_info &as_string_fmt() {
+  string_format_info& as_string_fmt() {
     if (this->type_ != value_t::string) {
       this->throw_bad_cast("toml::value::as_string_fmt()", value_t::string);
     }
     return this->string_.format;
   }
-  offset_datetime_format_info &as_offset_datetime_fmt() {
+  offset_datetime_format_info& as_offset_datetime_fmt() {
     if (this->type_ != value_t::offset_datetime) {
-      this->throw_bad_cast("toml::value::as_offset_datetime_fmt()",
-                           value_t::offset_datetime);
+      this->throw_bad_cast("toml::value::as_offset_datetime_fmt()", value_t::offset_datetime);
     }
     return this->offset_datetime_.format;
   }
-  local_datetime_format_info &as_local_datetime_fmt() {
+  local_datetime_format_info& as_local_datetime_fmt() {
     if (this->type_ != value_t::local_datetime) {
-      this->throw_bad_cast("toml::value::as_local_datetime_fmt()",
-                           value_t::local_datetime);
+      this->throw_bad_cast("toml::value::as_local_datetime_fmt()", value_t::local_datetime);
     }
     return this->local_datetime_.format;
   }
-  local_date_format_info &as_local_date_fmt() {
+  local_date_format_info& as_local_date_fmt() {
     if (this->type_ != value_t::local_date) {
-      this->throw_bad_cast("toml::value::as_local_date_fmt()",
-                           value_t::local_date);
+      this->throw_bad_cast("toml::value::as_local_date_fmt()", value_t::local_date);
     }
     return this->local_date_.format;
   }
-  local_time_format_info &as_local_time_fmt() {
+  local_time_format_info& as_local_time_fmt() {
     if (this->type_ != value_t::local_time) {
-      this->throw_bad_cast("toml::value::as_local_time_fmt()",
-                           value_t::local_time);
+      this->throw_bad_cast("toml::value::as_local_time_fmt()", value_t::local_time);
     }
     return this->local_time_.format;
   }
-  array_format_info &as_array_fmt() {
+  array_format_info& as_array_fmt() {
     if (this->type_ != value_t::array) {
       this->throw_bad_cast("toml::value::as_array_fmt()", value_t::array);
     }
     return this->array_.format;
   }
-  table_format_info &as_table_fmt() {
+  table_format_info& as_table_fmt() {
     if (this->type_ != value_t::table) {
       this->throw_bad_cast("toml::value::as_table_fmt()", value_t::table);
     }
@@ -7179,11 +6555,11 @@ public:
 
   // table accessors ==================================================== {{{
 
-  value_type &at(const key_type &k) {
+  value_type& at(const key_type& k) {
     if (!this->is_table()) {
       this->throw_bad_cast("toml::value::at(key_type)", value_t::table);
     }
-    auto &table = this->as_table(std::nothrow);
+    auto& table = this->as_table(std::nothrow);
     const auto found = table.find(k);
     if (found == table.end()) {
       this->throw_key_not_found_error("toml::value::at", k);
@@ -7191,11 +6567,11 @@ public:
     assert(found->first == k);
     return found->second;
   }
-  value_type const &at(const key_type &k) const {
+  value_type const& at(const key_type& k) const {
     if (!this->is_table()) {
       this->throw_bad_cast("toml::value::at(key_type)", value_t::table);
     }
-    const auto &table = this->as_table(std::nothrow);
+    const auto& table = this->as_table(std::nothrow);
     const auto found = table.find(k);
     if (found == table.end()) {
       this->throw_key_not_found_error("toml::value::at", k);
@@ -7203,83 +6579,79 @@ public:
     assert(found->first == k);
     return found->second;
   }
-  value_type &operator[](const key_type &k) {
+  value_type& operator[](const key_type& k) {
     if (this->is_empty()) {
       (*this) = table_type{};
-    } else if (!this->is_table()) // initialized, but not a table
+    } else if (!this->is_table())  // initialized, but not a table
     {
       this->throw_bad_cast("toml::value::operator[](key_type)", value_t::table);
     }
     return (this->as_table(std::nothrow))[k];
   }
-  std::size_t count(const key_type &k) const {
+  std::size_t count(const key_type& k) const {
     if (!this->is_table()) {
       this->throw_bad_cast("toml::value::count(key_type)", value_t::table);
     }
     return this->as_table(std::nothrow).count(k);
   }
-  bool contains(const key_type &k) const {
+  bool contains(const key_type& k) const {
     if (!this->is_table()) {
       this->throw_bad_cast("toml::value::contains(key_type)", value_t::table);
     }
-    const auto &table = this->as_table(std::nothrow);
+    const auto& table = this->as_table(std::nothrow);
     return table.find(k) != table.end();
   }
   // }}}
 
   // array accessors ==================================================== {{{
 
-  value_type &at(const std::size_t idx) {
+  value_type& at(const std::size_t idx) {
     if (!this->is_array()) {
       this->throw_bad_cast("toml::value::at(idx)", value_t::array);
     }
-    auto &ar = this->as_array(std::nothrow);
+    auto& ar = this->as_array(std::nothrow);
 
     if (ar.size() <= idx) {
       std::ostringstream oss;
-      oss << "actual length (" << ar.size()
-          << ") is shorter than the specified index (" << idx << ").";
-      throw std::out_of_range(format_error(
-          "toml::value::at(idx): no element corresponding to the index",
-          this->location(), oss.str()));
+      oss << "actual length (" << ar.size() << ") is shorter than the specified index (" << idx << ").";
+      throw std::out_of_range(
+          format_error("toml::value::at(idx): no element corresponding to the index", this->location(), oss.str()));
     }
     return ar.at(idx);
   }
-  value_type const &at(const std::size_t idx) const {
+  value_type const& at(const std::size_t idx) const {
     if (!this->is_array()) {
       this->throw_bad_cast("toml::value::at(idx)", value_t::array);
     }
-    const auto &ar = this->as_array(std::nothrow);
+    const auto& ar = this->as_array(std::nothrow);
 
     if (ar.size() <= idx) {
       std::ostringstream oss;
-      oss << "actual length (" << ar.size()
-          << ") is shorter than the specified index (" << idx << ").";
+      oss << "actual length (" << ar.size() << ") is shorter than the specified index (" << idx << ").";
 
-      throw std::out_of_range(format_error(
-          "toml::value::at(idx): no element corresponding to the index",
-          this->location(), oss.str()));
+      throw std::out_of_range(
+          format_error("toml::value::at(idx): no element corresponding to the index", this->location(), oss.str()));
     }
     return ar.at(idx);
   }
 
-  value_type &operator[](const std::size_t idx) noexcept {
+  value_type& operator[](const std::size_t idx) noexcept {
     // no check...
     return this->as_array(std::nothrow)[idx];
   }
-  value_type const &operator[](const std::size_t idx) const noexcept {
+  value_type const& operator[](const std::size_t idx) const noexcept {
     // no check...
     return this->as_array(std::nothrow)[idx];
   }
 
-  void push_back(const value_type &x) {
+  void push_back(const value_type& x) {
     if (!this->is_array()) {
       this->throw_bad_cast("toml::value::push_back(idx)", value_t::array);
     }
     this->as_array(std::nothrow).push_back(x);
     return;
   }
-  void push_back(value_type &&x) {
+  void push_back(value_type&& x) {
     if (!this->is_array()) {
       this->throw_bad_cast("toml::value::push_back(idx)", value_t::array);
     }
@@ -7287,33 +6659,32 @@ public:
     return;
   }
 
-  template <typename... Ts> value_type &emplace_back(Ts &&... args) {
+  template <typename... Ts>
+  value_type& emplace_back(Ts&&... args) {
     if (!this->is_array()) {
       this->throw_bad_cast("toml::value::emplace_back(idx)", value_t::array);
     }
-    auto &ar = this->as_array(std::nothrow);
+    auto& ar = this->as_array(std::nothrow);
     ar.emplace_back(std::forward<Ts>(args)...);
     return ar.back();
   }
 
   std::size_t size() const {
     switch (this->type_) {
-    case value_t::array: {
-      return this->as_array(std::nothrow).size();
-    }
-    case value_t::table: {
-      return this->as_table(std::nothrow).size();
-    }
-    case value_t::string: {
-      return this->as_string(std::nothrow).size();
-    }
-    default: {
-      throw type_error(
-          format_error("toml::value::size(): bad_cast to container types",
-                       this->location(),
-                       "the actual type is " + to_string(this->type_)),
-          this->location());
-    }
+      case value_t::array: {
+        return this->as_array(std::nothrow).size();
+      }
+      case value_t::table: {
+        return this->as_table(std::nothrow).size();
+      }
+      case value_t::string: {
+        return this->as_string(std::nothrow).size();
+      }
+      default: {
+        throw type_error(format_error("toml::value::size(): bad_cast to container types", this->location(),
+                                      "the actual type is " + to_string(this->type_)),
+                         this->location());
+      }
     }
   }
 
@@ -7321,116 +6692,101 @@ public:
 
   source_location location() const { return source_location(this->region_); }
 
-  comment_type const &comments() const noexcept { return this->comments_; }
-  comment_type &comments() noexcept { return this->comments_; }
+  comment_type const& comments() const noexcept { return this->comments_; }
+  comment_type& comments() noexcept { return this->comments_; }
 
-private:
+ private:
   // private helper functions =========================================== {{{
 
   void cleanup() noexcept {
     switch (this->type_) {
-    case value_t::boolean: {
-      boolean_.~boolean_storage();
-      break;
-    }
-    case value_t::integer: {
-      integer_.~integer_storage();
-      break;
-    }
-    case value_t::floating: {
-      floating_.~floating_storage();
-      break;
-    }
-    case value_t::string: {
-      string_.~string_storage();
-      break;
-    }
-    case value_t::offset_datetime: {
-      offset_datetime_.~offset_datetime_storage();
-      break;
-    }
-    case value_t::local_datetime: {
-      local_datetime_.~local_datetime_storage();
-      break;
-    }
-    case value_t::local_date: {
-      local_date_.~local_date_storage();
-      break;
-    }
-    case value_t::local_time: {
-      local_time_.~local_time_storage();
-      break;
-    }
-    case value_t::array: {
-      array_.~array_storage();
-      break;
-    }
-    case value_t::table: {
-      table_.~table_storage();
-      break;
-    }
-    default: {
-      break;
-    }
+      case value_t::boolean: {
+        boolean_.~boolean_storage();
+        break;
+      }
+      case value_t::integer: {
+        integer_.~integer_storage();
+        break;
+      }
+      case value_t::floating: {
+        floating_.~floating_storage();
+        break;
+      }
+      case value_t::string: {
+        string_.~string_storage();
+        break;
+      }
+      case value_t::offset_datetime: {
+        offset_datetime_.~offset_datetime_storage();
+        break;
+      }
+      case value_t::local_datetime: {
+        local_datetime_.~local_datetime_storage();
+        break;
+      }
+      case value_t::local_date: {
+        local_date_.~local_date_storage();
+        break;
+      }
+      case value_t::local_time: {
+        local_time_.~local_time_storage();
+        break;
+      }
+      case value_t::array: {
+        array_.~array_storage();
+        break;
+      }
+      case value_t::table: {
+        table_.~table_storage();
+        break;
+      }
+      default: {
+        break;
+      }
     }
     this->type_ = value_t::empty;
     return;
   }
 
-  template <typename T, typename U> static void assigner(T &dst, U &&v) {
+  template <typename T, typename U>
+  static void assigner(T& dst, U&& v) {
     const auto tmp = ::new (std::addressof(dst)) T(std::forward<U>(v));
     assert(tmp == std::addressof(dst));
     (void)tmp;
   }
 
-  [[noreturn]] void throw_bad_cast(const std::string &funcname,
-                                   const value_t ty) const {
-    throw type_error(format_error(detail::make_type_error(*this, funcname, ty)),
-                     this->location());
+  [[noreturn]] void throw_bad_cast(const std::string& funcname, const value_t ty) const {
+    throw type_error(format_error(detail::make_type_error(*this, funcname, ty)), this->location());
   }
 
-  [[noreturn]] void throw_key_not_found_error(const std::string &funcname,
-                                              const key_type &key) const {
-    throw std::out_of_range(
-        format_error(detail::make_not_found_error(*this, funcname, key)));
+  [[noreturn]] void throw_key_not_found_error(const std::string& funcname, const key_type& key) const {
+    throw std::out_of_range(format_error(detail::make_not_found_error(*this, funcname, key)));
   }
 
   template <typename TC>
-  friend void detail::change_region_of_value(basic_value<TC> &,
-                                             const basic_value<TC> &);
+  friend void detail::change_region_of_value(basic_value<TC>&, const basic_value<TC>&);
 
-  template <typename TC> friend class basic_value;
+  template <typename TC>
+  friend class basic_value;
 
   // }}}
 
-private:
-  using boolean_storage =
-      detail::value_with_format<boolean_type, boolean_format_info>;
-  using integer_storage =
-      detail::value_with_format<integer_type, integer_format_info>;
-  using floating_storage =
-      detail::value_with_format<floating_type, floating_format_info>;
-  using string_storage =
-      detail::value_with_format<string_type, string_format_info>;
-  using offset_datetime_storage =
-      detail::value_with_format<offset_datetime_type,
-                                offset_datetime_format_info>;
-  using local_datetime_storage =
-      detail::value_with_format<local_datetime_type,
-                                local_datetime_format_info>;
-  using local_date_storage =
-      detail::value_with_format<local_date_type, local_date_format_info>;
-  using local_time_storage =
-      detail::value_with_format<local_time_type, local_time_format_info>;
-  using array_storage =
-      detail::value_with_format<detail::storage<array_type>, array_format_info>;
-  using table_storage =
-      detail::value_with_format<detail::storage<table_type>, table_format_info>;
+ private:
+  using boolean_storage = detail::value_with_format<boolean_type, boolean_format_info>;
+  using integer_storage = detail::value_with_format<integer_type, integer_format_info>;
+  using floating_storage = detail::value_with_format<floating_type, floating_format_info>;
+  using string_storage = detail::value_with_format<string_type, string_format_info>;
+  using offset_datetime_storage = detail::value_with_format<offset_datetime_type, offset_datetime_format_info>;
+  using local_datetime_storage = detail::value_with_format<local_datetime_type, local_datetime_format_info>;
+  using local_date_storage = detail::value_with_format<local_date_type, local_date_format_info>;
+  using local_time_storage = detail::value_with_format<local_time_type, local_time_format_info>;
+  using array_storage = detail::value_with_format<detail::storage<array_type>, array_format_info>;
+  using table_storage = detail::value_with_format<detail::storage<table_type>, table_format_info>;
 
-private:
+ private:
   value_t type_;
   union {
-    char empty_; // the smallest type
+    char empty_;  // the smallest type
     boolean_storage boolean_;
     integer_storage integer_;
     floating_storage floating_;
@@ -7447,7 +6803,7 @@ private:
 };
 
 template <typename TC>
-bool operator==(const basic_value<TC> &lhs, const basic_value<TC> &rhs) {
+bool operator==(const basic_value<TC>& lhs, const basic_value<TC>& rhs) {
   if (lhs.type() != rhs.type()) {
     return false;
   }
@@ -7456,194 +6812,164 @@ bool operator==(const basic_value<TC> &lhs, const basic_value<TC> &rhs) {
   }
 
   switch (lhs.type()) {
-  case value_t::boolean: {
-    return lhs.as_boolean() == rhs.as_boolean();
-  }
-  case value_t::integer: {
-    return lhs.as_integer() == rhs.as_integer();
-  }
-  case value_t::floating: {
-    return lhs.as_floating() == rhs.as_floating();
-  }
-  case value_t::string: {
-    return lhs.as_string() == rhs.as_string();
-  }
-  case value_t::offset_datetime: {
-    return lhs.as_offset_datetime() == rhs.as_offset_datetime();
-  }
-  case value_t::local_datetime: {
-    return lhs.as_local_datetime() == rhs.as_local_datetime();
-  }
-  case value_t::local_date: {
-    return lhs.as_local_date() == rhs.as_local_date();
-  }
-  case value_t::local_time: {
-    return lhs.as_local_time() == rhs.as_local_time();
-  }
-  case value_t::array: {
-    return lhs.as_array() == rhs.as_array();
-  }
-  case value_t::table: {
-    return lhs.as_table() == rhs.as_table();
-  }
-  case value_t::empty: {
-    return true;
-  }
-  default: {
-    return false;
-  }
+    case value_t::boolean: {
+      return lhs.as_boolean() == rhs.as_boolean();
+    }
+    case value_t::integer: {
+      return lhs.as_integer() == rhs.as_integer();
+    }
+    case value_t::floating: {
+      return lhs.as_floating() == rhs.as_floating();
+    }
+    case value_t::string: {
+      return lhs.as_string() == rhs.as_string();
+    }
+    case value_t::offset_datetime: {
+      return lhs.as_offset_datetime() == rhs.as_offset_datetime();
+    }
+    case value_t::local_datetime: {
+      return lhs.as_local_datetime() == rhs.as_local_datetime();
+    }
+    case value_t::local_date: {
+      return lhs.as_local_date() == rhs.as_local_date();
+    }
+    case value_t::local_time: {
+      return lhs.as_local_time() == rhs.as_local_time();
+    }
+    case value_t::array: {
+      return lhs.as_array() == rhs.as_array();
+    }
+    case value_t::table: {
+      return lhs.as_table() == rhs.as_table();
+    }
+    case value_t::empty: {
+      return true;
+    }
+    default: {
+      return false;
+    }
   }
 }
 
 template <typename TC>
-bool operator!=(const basic_value<TC> &lhs, const basic_value<TC> &rhs) {
+bool operator!=(const basic_value<TC>& lhs, const basic_value<TC>& rhs) {
   return !(lhs == rhs);
 }
 
 template <typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<
-        detail::is_comparable<typename basic_value<TC>::array_type>,
-        detail::is_comparable<typename basic_value<TC>::table_type>>::value,
-    bool>
-operator<(const basic_value<TC> &lhs, const basic_value<TC> &rhs) {
+cxx::enable_if_t<cxx::conjunction<detail::is_comparable<typename basic_value<TC>::array_type>,
+                                  detail::is_comparable<typename basic_value<TC>::table_type>>::value,
+                 bool>
+operator<(const basic_value<TC>& lhs, const basic_value<TC>& rhs) {
   if (lhs.type() != rhs.type()) {
     return (lhs.type() < rhs.type());
   }
   switch (lhs.type()) {
-  case value_t::boolean: {
-    return lhs.as_boolean() < rhs.as_boolean() ||
-           (lhs.as_boolean() == rhs.as_boolean() &&
-            lhs.comments() < rhs.comments());
-  }
-  case value_t::integer: {
-    return lhs.as_integer() < rhs.as_integer() ||
-           (lhs.as_integer() == rhs.as_integer() &&
-            lhs.comments() < rhs.comments());
-  }
-  case value_t::floating: {
-    return lhs.as_floating() < rhs.as_floating() ||
-           (lhs.as_floating() == rhs.as_floating() &&
-            lhs.comments() < rhs.comments());
-  }
-  case value_t::string: {
-    return lhs.as_string() < rhs.as_string() ||
-           (lhs.as_string() == rhs.as_string() &&
-            lhs.comments() < rhs.comments());
-  }
-  case value_t::offset_datetime: {
-    return lhs.as_offset_datetime() < rhs.as_offset_datetime() ||
-           (lhs.as_offset_datetime() == rhs.as_offset_datetime() &&
-            lhs.comments() < rhs.comments());
-  }
-  case value_t::local_datetime: {
-    return lhs.as_local_datetime() < rhs.as_local_datetime() ||
-           (lhs.as_local_datetime() == rhs.as_local_datetime() &&
-            lhs.comments() < rhs.comments());
-  }
-  case value_t::local_date: {
-    return lhs.as_local_date() < rhs.as_local_date() ||
-           (lhs.as_local_date() == rhs.as_local_date() &&
-            lhs.comments() < rhs.comments());
-  }
-  case value_t::local_time: {
-    return lhs.as_local_time() < rhs.as_local_time() ||
-           (lhs.as_local_time() == rhs.as_local_time() &&
-            lhs.comments() < rhs.comments());
-  }
-  case value_t::array: {
-    return lhs.as_array() < rhs.as_array() ||
-           (lhs.as_array() == rhs.as_array() &&
-            lhs.comments() < rhs.comments());
-  }
-  case value_t::table: {
-    return lhs.as_table() < rhs.as_table() ||
-           (lhs.as_table() == rhs.as_table() &&
-            lhs.comments() < rhs.comments());
-  }
-  case value_t::empty: {
-    return lhs.comments() < rhs.comments();
-  }
-  default: {
-    return lhs.comments() < rhs.comments();
-  }
+    case value_t::boolean: {
+      return lhs.as_boolean() < rhs.as_boolean() ||
+             (lhs.as_boolean() == rhs.as_boolean() && lhs.comments() < rhs.comments());
+    }
+    case value_t::integer: {
+      return lhs.as_integer() < rhs.as_integer() ||
+             (lhs.as_integer() == rhs.as_integer() && lhs.comments() < rhs.comments());
+    }
+    case value_t::floating: {
+      return lhs.as_floating() < rhs.as_floating() ||
+             (lhs.as_floating() == rhs.as_floating() && lhs.comments() < rhs.comments());
+    }
+    case value_t::string: {
+      return lhs.as_string() < rhs.as_string() ||
+             (lhs.as_string() == rhs.as_string() && lhs.comments() < rhs.comments());
+    }
+    case value_t::offset_datetime: {
+      return lhs.as_offset_datetime() < rhs.as_offset_datetime() ||
+             (lhs.as_offset_datetime() == rhs.as_offset_datetime() && lhs.comments() < rhs.comments());
+    }
+    case value_t::local_datetime: {
+      return lhs.as_local_datetime() < rhs.as_local_datetime() ||
+             (lhs.as_local_datetime() == rhs.as_local_datetime() && lhs.comments() < rhs.comments());
+    }
+    case value_t::local_date: {
+      return lhs.as_local_date() < rhs.as_local_date() ||
+             (lhs.as_local_date() == rhs.as_local_date() && lhs.comments() < rhs.comments());
+    }
+    case value_t::local_time: {
+      return lhs.as_local_time() < rhs.as_local_time() ||
+             (lhs.as_local_time() == rhs.as_local_time() && lhs.comments() < rhs.comments());
+    }
+    case value_t::array: {
+      return lhs.as_array() < rhs.as_array() || (lhs.as_array() == rhs.as_array() && lhs.comments() < rhs.comments());
+    }
+    case value_t::table: {
+      return lhs.as_table() < rhs.as_table() || (lhs.as_table() == rhs.as_table() && lhs.comments() < rhs.comments());
+    }
+    case value_t::empty: {
+      return lhs.comments() < rhs.comments();
+    }
+    default: {
+      return lhs.comments() < rhs.comments();
+    }
   }
 }
 
 template <typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<
-        detail::is_comparable<typename basic_value<TC>::array_type>,
-        detail::is_comparable<typename basic_value<TC>::table_type>>::value,
-    bool>
-operator<=(const basic_value<TC> &lhs, const basic_value<TC> &rhs) {
+cxx::enable_if_t<cxx::conjunction<detail::is_comparable<typename basic_value<TC>::array_type>,
+                                  detail::is_comparable<typename basic_value<TC>::table_type>>::value,
+                 bool>
+operator<=(const basic_value<TC>& lhs, const basic_value<TC>& rhs) {
   return (lhs < rhs) || (lhs == rhs);
 }
 template <typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<
-        detail::is_comparable<typename basic_value<TC>::array_type>,
-        detail::is_comparable<typename basic_value<TC>::table_type>>::value,
-    bool>
-operator>(const basic_value<TC> &lhs, const basic_value<TC> &rhs) {
+cxx::enable_if_t<cxx::conjunction<detail::is_comparable<typename basic_value<TC>::array_type>,
+                                  detail::is_comparable<typename basic_value<TC>::table_type>>::value,
+                 bool>
+operator>(const basic_value<TC>& lhs, const basic_value<TC>& rhs) {
   return !(lhs <= rhs);
 }
 template <typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<
-        detail::is_comparable<typename basic_value<TC>::array_type>,
-        detail::is_comparable<typename basic_value<TC>::table_type>>::value,
-    bool>
-operator>=(const basic_value<TC> &lhs, const basic_value<TC> &rhs) {
+cxx::enable_if_t<cxx::conjunction<detail::is_comparable<typename basic_value<TC>::array_type>,
+                                  detail::is_comparable<typename basic_value<TC>::table_type>>::value,
+                 bool>
+operator>=(const basic_value<TC>& lhs, const basic_value<TC>& rhs) {
   return !(lhs < rhs);
 }
 
 // error_info helper
 namespace detail {
 template <typename TC, typename... Ts>
-error_info make_error_info_rec(error_info e, const basic_value<TC> &v,
-                               std::string msg, Ts &&... tail) {
-  return make_error_info_rec(std::move(e), v.location(), std::move(msg),
-                             std::forward<Ts>(tail)...);
+error_info make_error_info_rec(error_info e, const basic_value<TC>& v, std::string msg, Ts&&... tail) {
+  return make_error_info_rec(std::move(e), v.location(), std::move(msg), std::forward<Ts>(tail)...);
 }
-} // namespace detail
+}  // namespace detail
 
 template <typename TC, typename... Ts>
-error_info make_error_info(std::string title, const basic_value<TC> &v,
-                           std::string msg, Ts &&... tail) {
-  return make_error_info(std::move(title), v.location(), std::move(msg),
-                         std::forward<Ts>(tail)...);
+error_info make_error_info(std::string title, const basic_value<TC>& v, std::string msg, Ts&&... tail) {
+  return make_error_info(std::move(title), v.location(), std::move(msg), std::forward<Ts>(tail)...);
 }
 template <typename TC, typename... Ts>
-std::string format_error(std::string title, const basic_value<TC> &v,
-                         std::string msg, Ts &&... tail) {
-  return format_error(std::move(title), v.location(), std::move(msg),
-                      std::forward<Ts>(tail)...);
+std::string format_error(std::string title, const basic_value<TC>& v, std::string msg, Ts&&... tail) {
+  return format_error(std::move(title), v.location(), std::move(msg), std::forward<Ts>(tail)...);
 }
 
 namespace detail {
 
 template <typename TC>
-error_info make_type_error(const basic_value<TC> &v, const std::string &fname,
-                           const value_t ty) {
+error_info make_type_error(const basic_value<TC>& v, const std::string& fname, const value_t ty) {
   return make_error_info(fname + ": bad_cast to " + to_string(ty), v.location(),
                          "the actual type is " + to_string(v.type()));
 }
 template <typename TC>
-error_info make_not_found_error(const basic_value<TC> &v,
-                                const std::string &fname,
-                                const typename basic_value<TC>::key_type &key) {
+error_info make_not_found_error(const basic_value<TC>& v, const std::string& fname,
+                                const typename basic_value<TC>::key_type& key) {
   const auto loc = v.location();
-  const std::string title =
-      fname + ": key \"" + string_conv<std::string>(key) + "\" not found";
+  const std::string title = fname + ": key \"" + string_conv<std::string>(key) + "\" not found";
 
   std::vector<std::pair<source_location, std::string>> locs;
   if (!loc.is_ok()) {
     return error_info(title, locs);
   }
 
-  if (loc.first_line_number() == 1 && loc.first_column_number() == 1 &&
-      loc.length() == 1) {
+  if (loc.first_line_number() == 1 && loc.first_column_number() == 1 && loc.length() == 1) {
     // The top-level table has its region at the 0th character of the file.
     // That means that, in the case when a key is not found in the top-level
     // table, the error message points to the first character. If the file has
@@ -7665,33 +6991,24 @@ error_info make_not_found_error(const basic_value<TC> &v,
   return error_info(title, locs);
 }
 
-#define TOML11_DETAIL_GENERATE_COMPTIME_GETTER(ty)                             \
-  template <typename TC> struct getter<TC, value_t::ty> {                      \
-    using value_type = basic_value<TC>;                                        \
-    using result_type = enum_to_type_t<value_t::ty, value_type>;               \
-    using format_type = enum_to_fmt_type_t<value_t::ty>;                       \
-                                                                               \
-    static result_type &get(value_type &v) { return v.as_##ty(); }             \
-    static result_type const &get(const value_type &v) { return v.as_##ty(); } \
-                                                                               \
-    static result_type &get_nothrow(value_type &v) noexcept {                  \
-      return v.as_##ty(std::nothrow);                                          \
-    }                                                                          \
-    static result_type const &get_nothrow(const value_type &v) noexcept {      \
-      return v.as_##ty(std::nothrow);                                          \
-    }                                                                          \
-                                                                               \
-    static format_type &get_fmt(value_type &v) { return v.as_##ty##_fmt(); }   \
-    static format_type const &get_fmt(const value_type &v) {                   \
-      return v.as_##ty##_fmt();                                                \
-    }                                                                          \
-                                                                               \
-    static format_type &get_fmt_nothrow(value_type &v) noexcept {              \
-      return v.as_##ty##_fmt(std::nothrow);                                    \
-    }                                                                          \
-    static format_type const &get_fmt_nothrow(const value_type &v) noexcept {  \
-      return v.as_##ty##_fmt(std::nothrow);                                    \
-    }                                                                          \
+#define TOML11_DETAIL_GENERATE_COMPTIME_GETTER(ty)                                                                    \
+  template <typename TC>                                                                                              \
+  struct getter<TC, value_t::ty> {                                                                                    \
+    using value_type = basic_value<TC>;                                                                               \
+    using result_type = enum_to_type_t<value_t::ty, value_type>;                                                      \
+    using format_type = enum_to_fmt_type_t<value_t::ty>;                                                              \
+                                                                                                                      \
+    static result_type& get(value_type& v) { return v.as_##ty(); }                                                    \
+    static result_type const& get(const value_type& v) { return v.as_##ty(); }                                        \
+                                                                                                                      \
+    static result_type& get_nothrow(value_type& v) noexcept { return v.as_##ty(std::nothrow); }                       \
+    static result_type const& get_nothrow(const value_type& v) noexcept { return v.as_##ty(std::nothrow); }           \
+                                                                                                                      \
+    static format_type& get_fmt(value_type& v) { return v.as_##ty##_fmt(); }                                          \
+    static format_type const& get_fmt(const value_type& v) { return v.as_##ty##_fmt(); }                              \
+                                                                                                                      \
+    static format_type& get_fmt_nothrow(value_type& v) noexcept { return v.as_##ty##_fmt(std::nothrow); }             \
+    static format_type const& get_fmt_nothrow(const value_type& v) noexcept { return v.as_##ty##_fmt(std::nothrow); } \
   };
 
 TOML11_DETAIL_GENERATE_COMPTIME_GETTER(boolean)
@@ -7708,57 +7025,57 @@ TOML11_DETAIL_GENERATE_COMPTIME_GETTER(table)
 #undef TOML11_DETAIL_GENERATE_COMPTIME_GETTER
 
 template <typename TC>
-void change_region_of_value(basic_value<TC> &dst, const basic_value<TC> &src) {
+void change_region_of_value(basic_value<TC>& dst, const basic_value<TC>& src) {
   dst.region_ = std::move(src.region_);
   return;
 }
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_VALUE_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_VALUE_HPP
 #ifndef TOML11_VISIT_HPP
 #define TOML11_VISIT_HPP
 
 namespace toml {
 
 template <typename Visitor, typename TC>
-cxx::return_type_of_t<Visitor, const typename basic_value<TC>::boolean_type &>
-visit(Visitor &&visitor, const basic_value<TC> &v) {
+cxx::return_type_of_t<Visitor, const typename basic_value<TC>::boolean_type&> visit(Visitor&& visitor,
+                                                                                    const basic_value<TC>& v) {
   switch (v.type()) {
-  case value_t::boolean: {
-    return visitor(v.as_boolean());
-  }
-  case value_t::integer: {
-    return visitor(v.as_integer());
-  }
-  case value_t::floating: {
-    return visitor(v.as_floating());
-  }
-  case value_t::string: {
-    return visitor(v.as_string());
-  }
-  case value_t::offset_datetime: {
-    return visitor(v.as_offset_datetime());
-  }
-  case value_t::local_datetime: {
-    return visitor(v.as_local_datetime());
-  }
-  case value_t::local_date: {
-    return visitor(v.as_local_date());
-  }
-  case value_t::local_time: {
-    return visitor(v.as_local_time());
-  }
-  case value_t::array: {
-    return visitor(v.as_array());
-  }
-  case value_t::table: {
-    return visitor(v.as_table());
-  }
-  case value_t::empty:
-    break;
-  default:
-    break;
+    case value_t::boolean: {
+      return visitor(v.as_boolean());
+    }
+    case value_t::integer: {
+      return visitor(v.as_integer());
+    }
+    case value_t::floating: {
+      return visitor(v.as_floating());
+    }
+    case value_t::string: {
+      return visitor(v.as_string());
+    }
+    case value_t::offset_datetime: {
+      return visitor(v.as_offset_datetime());
+    }
+    case value_t::local_datetime: {
+      return visitor(v.as_local_datetime());
+    }
+    case value_t::local_date: {
+      return visitor(v.as_local_date());
+    }
+    case value_t::local_time: {
+      return visitor(v.as_local_time());
+    }
+    case value_t::array: {
+      return visitor(v.as_array());
+    }
+    case value_t::table: {
+      return visitor(v.as_table());
+    }
+    case value_t::empty:
+      break;
+    default:
+      break;
   }
   throw type_error(format_error("[error] toml::visit: toml::basic_value "
                                 "does not have any valid type.",
@@ -7767,43 +7084,42 @@ visit(Visitor &&visitor, const basic_value<TC> &v) {
 }
 
 template <typename Visitor, typename TC>
-cxx::return_type_of_t<Visitor, typename basic_value<TC>::boolean_type &>
-visit(Visitor &&visitor, basic_value<TC> &v) {
+cxx::return_type_of_t<Visitor, typename basic_value<TC>::boolean_type&> visit(Visitor&& visitor, basic_value<TC>& v) {
   switch (v.type()) {
-  case value_t::boolean: {
-    return visitor(v.as_boolean());
-  }
-  case value_t::integer: {
-    return visitor(v.as_integer());
-  }
-  case value_t::floating: {
-    return visitor(v.as_floating());
-  }
-  case value_t::string: {
-    return visitor(v.as_string());
-  }
-  case value_t::offset_datetime: {
-    return visitor(v.as_offset_datetime());
-  }
-  case value_t::local_datetime: {
-    return visitor(v.as_local_datetime());
-  }
-  case value_t::local_date: {
-    return visitor(v.as_local_date());
-  }
-  case value_t::local_time: {
-    return visitor(v.as_local_time());
-  }
-  case value_t::array: {
-    return visitor(v.as_array());
-  }
-  case value_t::table: {
-    return visitor(v.as_table());
-  }
-  case value_t::empty:
-    break;
-  default:
-    break;
+    case value_t::boolean: {
+      return visitor(v.as_boolean());
+    }
+    case value_t::integer: {
+      return visitor(v.as_integer());
+    }
+    case value_t::floating: {
+      return visitor(v.as_floating());
+    }
+    case value_t::string: {
+      return visitor(v.as_string());
+    }
+    case value_t::offset_datetime: {
+      return visitor(v.as_offset_datetime());
+    }
+    case value_t::local_datetime: {
+      return visitor(v.as_local_datetime());
+    }
+    case value_t::local_date: {
+      return visitor(v.as_local_date());
+    }
+    case value_t::local_time: {
+      return visitor(v.as_local_time());
+    }
+    case value_t::array: {
+      return visitor(v.as_array());
+    }
+    case value_t::table: {
+      return visitor(v.as_table());
+    }
+    case value_t::empty:
+      break;
+    default:
+      break;
   }
   throw type_error(format_error("[error] toml::visit: toml::basic_value "
                                 "does not have any valid type.",
@@ -7812,43 +7128,42 @@ visit(Visitor &&visitor, basic_value<TC> &v) {
 }
 
 template <typename Visitor, typename TC>
-cxx::return_type_of_t<Visitor, typename basic_value<TC>::boolean_type &&>
-visit(Visitor &&visitor, basic_value<TC> &&v) {
+cxx::return_type_of_t<Visitor, typename basic_value<TC>::boolean_type&&> visit(Visitor&& visitor, basic_value<TC>&& v) {
   switch (v.type()) {
-  case value_t::boolean: {
-    return visitor(std::move(v.as_boolean()));
-  }
-  case value_t::integer: {
-    return visitor(std::move(v.as_integer()));
-  }
-  case value_t::floating: {
-    return visitor(std::move(v.as_floating()));
-  }
-  case value_t::string: {
-    return visitor(std::move(v.as_string()));
-  }
-  case value_t::offset_datetime: {
-    return visitor(std::move(v.as_offset_datetime()));
-  }
-  case value_t::local_datetime: {
-    return visitor(std::move(v.as_local_datetime()));
-  }
-  case value_t::local_date: {
-    return visitor(std::move(v.as_local_date()));
-  }
-  case value_t::local_time: {
-    return visitor(std::move(v.as_local_time()));
-  }
-  case value_t::array: {
-    return visitor(std::move(v.as_array()));
-  }
-  case value_t::table: {
-    return visitor(std::move(v.as_table()));
-  }
-  case value_t::empty:
-    break;
-  default:
-    break;
+    case value_t::boolean: {
+      return visitor(std::move(v.as_boolean()));
+    }
+    case value_t::integer: {
+      return visitor(std::move(v.as_integer()));
+    }
+    case value_t::floating: {
+      return visitor(std::move(v.as_floating()));
+    }
+    case value_t::string: {
+      return visitor(std::move(v.as_string()));
+    }
+    case value_t::offset_datetime: {
+      return visitor(std::move(v.as_offset_datetime()));
+    }
+    case value_t::local_datetime: {
+      return visitor(std::move(v.as_local_datetime()));
+    }
+    case value_t::local_date: {
+      return visitor(std::move(v.as_local_date()));
+    }
+    case value_t::local_time: {
+      return visitor(std::move(v.as_local_time()));
+    }
+    case value_t::array: {
+      return visitor(std::move(v.as_array()));
+    }
+    case value_t::table: {
+      return visitor(std::move(v.as_table()));
+    }
+    case value_t::empty:
+      break;
+    default:
+      break;
   }
   throw type_error(format_error("[error] toml::visit: toml::basic_value "
                                 "does not have any valid type.",
@@ -7856,8 +7171,8 @@ visit(Visitor &&visitor, basic_value<TC> &&v) {
                    v.location());
 }
 
-} // namespace toml
-#endif // TOML11_VISIT_HPP
+}  // namespace toml
+#endif  // TOML11_VISIT_HPP
 #ifndef TOML11_TYPES_HPP
 #define TOML11_TYPES_HPP
 
@@ -7874,7 +7189,8 @@ visit(Visitor &&visitor, basic_value<TC> &&v) {
 namespace toml {
 
 // forward decl
-template <typename TypeConfig> class basic_value;
+template <typename TypeConfig>
+class basic_value;
 
 // when you use a special integer type as toml::value::integer_type, parse must
 // be able to read it. So, type_config has static member functions that read the
@@ -7885,8 +7201,7 @@ template <typename TypeConfig> class basic_value;
 // spacer(`_`) are removed.
 
 template <typename T>
-result<T, error_info> read_dec_int(const std::string &str,
-                                   const source_location src) {
+result<T, error_info> read_dec_int(const std::string& str, const source_location src) {
   constexpr auto max_digits = std::numeric_limits<T>::digits;
   assert(!str.empty());
 
@@ -7894,18 +7209,17 @@ result<T, error_info> read_dec_int(const std::string &str,
   std::istringstream iss(str);
   iss >> val;
   if (iss.fail()) {
-    return err(make_error_info("toml::parse_dec_integer: "
-                               "too large integer: current max digits = 2^" +
-                                   std::to_string(max_digits),
-                               std::move(src),
-                               "must be < 2^" + std::to_string(max_digits)));
+    return err(
+        make_error_info("toml::parse_dec_integer: "
+                        "too large integer: current max digits = 2^" +
+                            std::to_string(max_digits),
+                        std::move(src), "must be < 2^" + std::to_string(max_digits)));
   }
   return ok(val);
 }
 
 template <typename T>
-result<T, error_info> read_hex_int(const std::string &str,
-                                   const source_location src) {
+result<T, error_info> read_hex_int(const std::string& str, const source_location src) {
   constexpr auto max_digits = std::numeric_limits<T>::digits;
   assert(!str.empty());
 
@@ -7913,18 +7227,17 @@ result<T, error_info> read_hex_int(const std::string &str,
   std::istringstream iss(str);
   iss >> std::hex >> val;
   if (iss.fail()) {
-    return err(make_error_info("toml::parse_hex_integer: "
-                               "too large integer: current max value = 2^" +
-                                   std::to_string(max_digits),
-                               std::move(src),
-                               "must be < 2^" + std::to_string(max_digits)));
+    return err(
+        make_error_info("toml::parse_hex_integer: "
+                        "too large integer: current max value = 2^" +
+                            std::to_string(max_digits),
+                        std::move(src), "must be < 2^" + std::to_string(max_digits)));
   }
   return ok(val);
 }
 
 template <typename T>
-result<T, error_info> read_oct_int(const std::string &str,
-                                   const source_location src) {
+result<T, error_info> read_oct_int(const std::string& str, const source_location src) {
   constexpr auto max_digits = std::numeric_limits<T>::digits;
   assert(!str.empty());
 
@@ -7932,18 +7245,17 @@ result<T, error_info> read_oct_int(const std::string &str,
   std::istringstream iss(str);
   iss >> std::oct >> val;
   if (iss.fail()) {
-    return err(make_error_info("toml::parse_oct_integer: "
-                               "too large integer: current max value = 2^" +
-                                   std::to_string(max_digits),
-                               std::move(src),
-                               "must be < 2^" + std::to_string(max_digits)));
+    return err(
+        make_error_info("toml::parse_oct_integer: "
+                        "too large integer: current max value = 2^" +
+                            std::to_string(max_digits),
+                        std::move(src), "must be < 2^" + std::to_string(max_digits)));
   }
   return ok(val);
 }
 
 template <typename T>
-result<T, error_info> read_bin_int(const std::string &str,
-                                   const source_location src) {
+result<T, error_info> read_bin_int(const std::string& str, const source_location src) {
   constexpr auto is_bounded = std::numeric_limits<T>::is_bounded;
   constexpr auto max_digits = std::numeric_limits<T>::digits;
   const auto max_value = (std::numeric_limits<T>::max)();
@@ -7971,39 +7283,36 @@ result<T, error_info> read_bin_int(const std::string &str,
     }
   }
   if (base == 0) {
-    return err(make_error_info("toml::parse_bin_integer: "
-                               "too large integer: current max value = 2^" +
-                                   std::to_string(max_digits),
-                               std::move(src),
-                               "must be < 2^" + std::to_string(max_digits)));
+    return err(
+        make_error_info("toml::parse_bin_integer: "
+                        "too large integer: current max value = 2^" +
+                            std::to_string(max_digits),
+                        std::move(src), "must be < 2^" + std::to_string(max_digits)));
   }
   return ok(val);
 }
 
 template <typename T>
-result<T, error_info> read_int(const std::string &str,
-                               const source_location src,
-                               const std::uint8_t base) {
+result<T, error_info> read_int(const std::string& str, const source_location src, const std::uint8_t base) {
   assert(base == 10 || base == 16 || base == 8 || base == 2);
   switch (base) {
-  case 2: {
-    return read_bin_int<T>(str, src);
-  }
-  case 8: {
-    return read_oct_int<T>(str, src);
-  }
-  case 16: {
-    return read_hex_int<T>(str, src);
-  }
-  default: {
-    assert(base == 10);
-    return read_dec_int<T>(str, src);
-  }
+    case 2: {
+      return read_bin_int<T>(str, src);
+    }
+    case 8: {
+      return read_oct_int<T>(str, src);
+    }
+    case 16: {
+      return read_hex_int<T>(str, src);
+    }
+    default: {
+      assert(base == 10);
+      return read_dec_int<T>(str, src);
+    }
   }
 }
 
-inline result<float, error_info>
-read_hex_float(const std::string &str, const source_location src, float val) {
+inline result<float, error_info> read_hex_float(const std::string& str, const source_location src, float val) {
 #if defined(_MSC_VER) && !defined(__clang__)
   const auto res = ::sscanf_s(str.c_str(), "%a", std::addressof(val));
 #else
@@ -8017,8 +7326,7 @@ read_hex_float(const std::string &str, const source_location src, float val) {
   }
   return ok(val);
 }
-inline result<double, error_info>
-read_hex_float(const std::string &str, const source_location src, double val) {
+inline result<double, error_info> read_hex_float(const std::string& str, const source_location src, double val) {
 #if defined(_MSC_VER) && !defined(__clang__)
   const auto res = ::sscanf_s(str.c_str(), "%la", std::addressof(val));
 #else
@@ -8033,21 +7341,18 @@ read_hex_float(const std::string &str, const source_location src, double val) {
   return ok(val);
 }
 template <typename T>
-cxx::enable_if_t<
-    cxx::conjunction<
-        cxx::negation<std::is_same<cxx::remove_cvref_t<T>, double>>,
-        cxx::negation<std::is_same<cxx::remove_cvref_t<T>, float>>>::value,
-    result<T, error_info>>
-read_hex_float(const std::string &, const source_location src, T) {
-  return err(make_error_info(
-      "toml::parse_floating: failed to read "
-      "floating point value because of unknown type in type_config",
-      std::move(src), "here"));
+cxx::enable_if_t<cxx::conjunction<cxx::negation<std::is_same<cxx::remove_cvref_t<T>, double>>,
+                                  cxx::negation<std::is_same<cxx::remove_cvref_t<T>, float>>>::value,
+                 result<T, error_info>>
+read_hex_float(const std::string&, const source_location src, T) {
+  return err(
+      make_error_info("toml::parse_floating: failed to read "
+                      "floating point value because of unknown type in type_config",
+                      std::move(src), "here"));
 }
 
 template <typename T>
-result<T, error_info> read_dec_float(const std::string &str,
-                                     const source_location src) {
+result<T, error_info> read_dec_float(const std::string& str, const source_location src) {
   T val;
   std::istringstream iss(str);
   iss >> val;
@@ -8061,8 +7366,7 @@ result<T, error_info> read_dec_float(const std::string &str,
 }
 
 template <typename T>
-result<T, error_info> read_float(const std::string &str,
-                                 const source_location src, const bool is_hex) {
+result<T, error_info> read_float(const std::string& str, const source_location src, const bool is_hex) {
   if (is_hex) {
     return read_hex_float(str, src, T{});
   } else {
@@ -8078,17 +7382,17 @@ struct type_config {
   using floating_type = double;
   using string_type = std::string;
 
-  template <typename T> using array_type = std::vector<T>;
-  template <typename K, typename T> using table_type = std::unordered_map<K, T>;
+  template <typename T>
+  using array_type = std::vector<T>;
+  template <typename K, typename T>
+  using table_type = std::unordered_map<K, T>;
 
-  static result<integer_type, error_info> parse_int(const std::string &str,
-                                                    const source_location src,
+  static result<integer_type, error_info> parse_int(const std::string& str, const source_location src,
                                                     const std::uint8_t base) {
     return read_int<integer_type>(str, src, base);
   }
-  static result<floating_type, error_info>
-  parse_float(const std::string &str, const source_location src,
-              const bool is_hex) {
+  static result<floating_type, error_info> parse_float(const std::string& str, const source_location src,
+                                                       const bool is_hex) {
     return read_float<floating_type>(str, src, is_hex);
   }
 };
@@ -8105,17 +7409,17 @@ struct ordered_type_config {
   using floating_type = double;
   using string_type = std::string;
 
-  template <typename T> using array_type = std::vector<T>;
-  template <typename K, typename T> using table_type = ordered_map<K, T>;
+  template <typename T>
+  using array_type = std::vector<T>;
+  template <typename K, typename T>
+  using table_type = ordered_map<K, T>;
 
-  static result<integer_type, error_info> parse_int(const std::string &str,
-                                                    const source_location src,
+  static result<integer_type, error_info> parse_int(const std::string& str, const source_location src,
                                                     const std::uint8_t base) {
     return read_int<integer_type>(str, src, base);
   }
-  static result<floating_type, error_info>
-  parse_float(const std::string &str, const source_location src,
-              const bool is_hex) {
+  static result<floating_type, error_info> parse_float(const std::string& str, const source_location src,
+                                                       const bool is_hex) {
     return read_float<floating_type>(str, src, is_hex);
   }
 };
@@ -8133,89 +7437,97 @@ namespace detail {
 // check if type T has all the needed member types
 
 struct has_comment_type_impl {
-  template <typename T> static std::true_type check(typename T::comment_type *);
-  template <typename T> static std::false_type check(...);
+  template <typename T>
+  static std::true_type check(typename T::comment_type*);
+  template <typename T>
+  static std::false_type check(...);
 };
 template <typename T>
 using has_comment_type = decltype(has_comment_type_impl::check<T>(nullptr));
 
 struct has_integer_type_impl {
-  template <typename T> static std::true_type check(typename T::integer_type *);
-  template <typename T> static std::false_type check(...);
+  template <typename T>
+  static std::true_type check(typename T::integer_type*);
+  template <typename T>
+  static std::false_type check(...);
 };
 template <typename T>
 using has_integer_type = decltype(has_integer_type_impl::check<T>(nullptr));
 
 struct has_floating_type_impl {
   template <typename T>
-  static std::true_type check(typename T::floating_type *);
-  template <typename T> static std::false_type check(...);
+  static std::true_type check(typename T::floating_type*);
+  template <typename T>
+  static std::false_type check(...);
 };
 template <typename T>
 using has_floating_type = decltype(has_floating_type_impl::check<T>(nullptr));
 
 struct has_string_type_impl {
-  template <typename T> static std::true_type check(typename T::string_type *);
-  template <typename T> static std::false_type check(...);
+  template <typename T>
+  static std::true_type check(typename T::string_type*);
+  template <typename T>
+  static std::false_type check(...);
 };
 template <typename T>
 using has_string_type = decltype(has_string_type_impl::check<T>(nullptr));
 
 struct has_array_type_impl {
   template <typename T>
-  static std::true_type check(typename T::template array_type<int> *);
-  template <typename T> static std::false_type check(...);
+  static std::true_type check(typename T::template array_type<int>*);
+  template <typename T>
+  static std::false_type check(...);
 };
 template <typename T>
 using has_array_type = decltype(has_array_type_impl::check<T>(nullptr));
 
 struct has_table_type_impl {
   template <typename T>
-  static std::true_type check(typename T::template table_type<int, int> *);
-  template <typename T> static std::false_type check(...);
+  static std::true_type check(typename T::template table_type<int, int>*);
+  template <typename T>
+  static std::false_type check(...);
 };
 template <typename T>
 using has_table_type = decltype(has_table_type_impl::check<T>(nullptr));
 
 struct has_parse_int_impl {
   template <typename T>
-  static std::true_type check(decltype(
-      std::declval<T>().parse_int(std::declval<const std::string &>(),
-                                  std::declval<const source_location>(),
-                                  std::declval<const std::uint8_t>())) *);
-  template <typename T> static std::false_type check(...);
+  static std::true_type check(decltype(std::declval<T>().parse_int(std::declval<const std::string&>(),
+                                                                   std::declval<const source_location>(),
+                                                                   std::declval<const std::uint8_t>()))*);
+  template <typename T>
+  static std::false_type check(...);
 };
 template <typename T>
 using has_parse_int = decltype(has_parse_int_impl::check<T>(nullptr));
 
 struct has_parse_float_impl {
   template <typename T>
-  static std::true_type check(decltype(std::declval<T>().parse_float(
-      std::declval<const std::string &>(),
-      std::declval<const source_location>(), std::declval<const bool>())) *);
-  template <typename T> static std::false_type check(...);
+  static std::true_type check(decltype(std::declval<T>().parse_float(std::declval<const std::string&>(),
+                                                                     std::declval<const source_location>(),
+                                                                     std::declval<const bool>()))*);
+  template <typename T>
+  static std::false_type check(...);
 };
 template <typename T>
 using has_parse_float = decltype(has_parse_float_impl::check<T>(nullptr));
 
 template <typename T>
 using is_type_config =
-    cxx::conjunction<has_comment_type<T>, has_integer_type<T>,
-                     has_floating_type<T>, has_string_type<T>,
-                     has_array_type<T>, has_table_type<T>, has_parse_int<T>,
-                     has_parse_float<T>>;
+    cxx::conjunction<has_comment_type<T>, has_integer_type<T>, has_floating_type<T>, has_string_type<T>,
+                     has_array_type<T>, has_table_type<T>, has_parse_int<T>, has_parse_float<T>>;
 
-} // namespace detail
-} // namespace toml
+}  // namespace detail
+}  // namespace toml
 
 #if defined(TOML11_COMPILE_SOURCES)
 namespace toml {
 extern template class basic_value<type_config>;
 extern template class basic_value<ordered_type_config>;
-} // namespace toml
-#endif // TOML11_COMPILE_SOURCES
+}  // namespace toml
+#endif  // TOML11_COMPILE_SOURCES
 
-#endif // TOML11_TYPES_HPP
+#endif  // TOML11_TYPES_HPP
 #ifndef TOML11_GET_HPP
 #define TOML11_GET_HPP
 
@@ -8223,7 +7535,7 @@ extern template class basic_value<ordered_type_config>;
 
 #if defined(TOML11_HAS_STRING_VIEW)
 #include <string_view>
-#endif // string_view
+#endif  // string_view
 
 namespace toml {
 
@@ -8231,20 +7543,17 @@ namespace toml {
 // T is toml::value; identity transformation.
 
 template <typename T, typename TC>
-cxx::enable_if_t<std::is_same<T, basic_value<TC>>::value, T> &
-get(basic_value<TC> &v) {
+cxx::enable_if_t<std::is_same<T, basic_value<TC>>::value, T>& get(basic_value<TC>& v) {
   return v;
 }
 
 template <typename T, typename TC>
-cxx::enable_if_t<std::is_same<T, basic_value<TC>>::value, T> const &
-get(const basic_value<TC> &v) {
+cxx::enable_if_t<std::is_same<T, basic_value<TC>>::value, T> const& get(const basic_value<TC>& v) {
   return v;
 }
 
 template <typename T, typename TC>
-cxx::enable_if_t<std::is_same<T, basic_value<TC>>::value, T>
-get(basic_value<TC> &&v) {
+cxx::enable_if_t<std::is_same<T, basic_value<TC>>::value, T> get(basic_value<TC>&& v) {
   return basic_value<TC>(std::move(v));
 }
 
@@ -8252,23 +7561,19 @@ get(basic_value<TC> &&v) {
 // exact toml::* type
 
 template <typename T, typename TC>
-cxx::enable_if_t<detail::is_exact_toml_type<T, basic_value<TC>>::value, T> &
-get(basic_value<TC> &v) {
+cxx::enable_if_t<detail::is_exact_toml_type<T, basic_value<TC>>::value, T>& get(basic_value<TC>& v) {
   constexpr auto ty = detail::type_to_enum<T, basic_value<TC>>::value;
   return detail::getter<TC, ty>::get(v);
 }
 
 template <typename T, typename TC>
-cxx::enable_if_t<detail::is_exact_toml_type<T, basic_value<TC>>::value,
-                 T> const &
-get(const basic_value<TC> &v) {
+cxx::enable_if_t<detail::is_exact_toml_type<T, basic_value<TC>>::value, T> const& get(const basic_value<TC>& v) {
   constexpr auto ty = detail::type_to_enum<T, basic_value<TC>>::value;
   return detail::getter<TC, ty>::get(v);
 }
 
 template <typename T, typename TC>
-cxx::enable_if_t<detail::is_exact_toml_type<T, basic_value<TC>>::value, T>
-get(basic_value<TC> &&v) {
+cxx::enable_if_t<detail::is_exact_toml_type<T, basic_value<TC>>::value, T> get(basic_value<TC>&& v) {
   constexpr auto ty = detail::type_to_enum<T, basic_value<TC>>::value;
   return detail::getter<TC, ty>::get(std::move(v));
 }
@@ -8277,10 +7582,7 @@ get(basic_value<TC> &&v) {
 // T is toml::basic_value<U>
 
 template <typename T, typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<detail::is_basic_value<T>,
-                     cxx::negation<std::is_same<T, basic_value<TC>>>>::value,
-    T>
+cxx::enable_if_t<cxx::conjunction<detail::is_basic_value<T>, cxx::negation<std::is_same<T, basic_value<TC>>>>::value, T>
 get(basic_value<TC> v) {
   return T(std::move(v));
 }
@@ -8291,11 +7593,10 @@ get(basic_value<TC> v) {
 template <typename T, typename TC>
 cxx::enable_if_t<
     cxx::conjunction<std::is_integral<T>, cxx::negation<std::is_same<T, bool>>,
-                     detail::is_not_toml_type<T, basic_value<TC>>,
-                     cxx::negation<detail::has_from_toml_method<T, TC>>,
+                     detail::is_not_toml_type<T, basic_value<TC>>, cxx::negation<detail::has_from_toml_method<T, TC>>,
                      cxx::negation<detail::has_specialized_from<T>>>::value,
     T>
-get(const basic_value<TC> &v) {
+get(const basic_value<TC>& v) {
   return static_cast<T>(v.as_integer());
 }
 
@@ -8303,13 +7604,11 @@ get(const basic_value<TC> &v) {
 // floating point convertible from toml::value::floating_type
 
 template <typename T, typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<std::is_floating_point<T>,
-                     detail::is_not_toml_type<T, basic_value<TC>>,
-                     cxx::negation<detail::has_from_toml_method<T, TC>>,
-                     cxx::negation<detail::has_specialized_from<T>>>::value,
-    T>
-get(const basic_value<TC> &v) {
+cxx::enable_if_t<cxx::conjunction<std::is_floating_point<T>, detail::is_not_toml_type<T, basic_value<TC>>,
+                                  cxx::negation<detail::has_from_toml_method<T, TC>>,
+                                  cxx::negation<detail::has_specialized_from<T>>>::value,
+                 T>
+get(const basic_value<TC>& v) {
   return static_cast<T>(v.as_floating());
 }
 
@@ -8317,10 +7616,9 @@ get(const basic_value<TC> &v) {
 // std::string with different char/trait/allocator
 
 template <typename T, typename TC>
-cxx::enable_if_t<cxx::conjunction<detail::is_not_toml_type<T, basic_value<TC>>,
-                                  detail::is_1byte_std_basic_string<T>>::value,
-                 T>
-get(const basic_value<TC> &v) {
+cxx::enable_if_t<
+    cxx::conjunction<detail::is_not_toml_type<T, basic_value<TC>>, detail::is_1byte_std_basic_string<T>>::value, T>
+get(const basic_value<TC>& v) {
   return detail::string_conv<cxx::remove_cvref_t<T>>(v.as_string());
 }
 
@@ -8330,50 +7628,43 @@ get(const basic_value<TC> &v) {
 #if defined(TOML11_HAS_STRING_VIEW)
 
 template <typename T, typename TC>
-cxx::enable_if_t<
-    detail::is_string_view_of<T, typename basic_value<TC>::string_type>::value,
-    T>
-get(const basic_value<TC> &v) {
+cxx::enable_if_t<detail::is_string_view_of<T, typename basic_value<TC>::string_type>::value, T> get(
+    const basic_value<TC>& v) {
   return T(v.as_string());
 }
 
-#endif // string_view
+#endif  // string_view
 
 // ============================================================================
 // std::chrono::duration from toml::local_time
 
 template <typename T, typename TC>
-cxx::enable_if_t<detail::is_chrono_duration<T>::value, T>
-get(const basic_value<TC> &v) {
-  return std::chrono::duration_cast<T>(
-      std::chrono::nanoseconds(v.as_local_time()));
+cxx::enable_if_t<detail::is_chrono_duration<T>::value, T> get(const basic_value<TC>& v) {
+  return std::chrono::duration_cast<T>(std::chrono::nanoseconds(v.as_local_time()));
 }
 
 // ============================================================================
 // std::chrono::system_clock::time_point from toml::datetime variants
 
 template <typename T, typename TC>
-cxx::enable_if_t<std::is_same<std::chrono::system_clock::time_point, T>::value,
-                 T>
-get(const basic_value<TC> &v) {
+cxx::enable_if_t<std::is_same<std::chrono::system_clock::time_point, T>::value, T> get(const basic_value<TC>& v) {
   switch (v.type()) {
-  case value_t::local_date: {
-    return std::chrono::system_clock::time_point(v.as_local_date());
-  }
-  case value_t::local_datetime: {
-    return std::chrono::system_clock::time_point(v.as_local_datetime());
-  }
-  case value_t::offset_datetime: {
-    return std::chrono::system_clock::time_point(v.as_offset_datetime());
-  }
-  default: {
-    const auto loc = v.location();
-    throw type_error(
-        format_error("toml::get: "
-                     "bad_cast to std::chrono::system_clock::time_point",
-                     loc, "the actual type is " + to_string(v.type())),
-        loc);
-  }
+    case value_t::local_date: {
+      return std::chrono::system_clock::time_point(v.as_local_date());
+    }
+    case value_t::local_datetime: {
+      return std::chrono::system_clock::time_point(v.as_local_datetime());
+    }
+    case value_t::offset_datetime: {
+      return std::chrono::system_clock::time_point(v.as_offset_datetime());
+    }
+    default: {
+      const auto loc = v.location();
+      throw type_error(format_error("toml::get: "
+                                    "bad_cast to std::chrono::system_clock::time_point",
+                                    loc, "the actual type is " + to_string(v.type())),
+                       loc);
+    }
   }
 }
 
@@ -8382,138 +7673,113 @@ get(const basic_value<TC> &v) {
 
 // array-like (w/ push_back)
 template <typename T, typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<
-        detail::is_container<T>,                      // T is a container
-        detail::has_push_back_method<T>,              // .push_back() works
-        detail::is_not_toml_type<T, basic_value<TC>>, // but not toml::array
-        cxx::negation<
-            detail::is_std_basic_string<T>>, // but not std::basic_string<CharT>
+cxx::enable_if_t<cxx::conjunction<detail::is_container<T>,                        // T is a container
+                                  detail::has_push_back_method<T>,                // .push_back() works
+                                  detail::is_not_toml_type<T, basic_value<TC>>,   // but not toml::array
+                                  cxx::negation<detail::is_std_basic_string<T>>,  // but not std::basic_string<CharT>
 #if defined(TOML11_HAS_STRING_VIEW)
-        cxx::negation<detail::is_std_basic_string_view<
-            T>>, // but not
-                 // std::basic_string_view<CharT>
+                                  cxx::negation<detail::is_std_basic_string_view<T>>,  // but not
+                                                                                       // std::basic_string_view<CharT>
 #endif
-        cxx::negation<detail::has_from_toml_method<T, TC>>, // no T.from_toml()
-        cxx::negation<detail::has_specialized_from<T>>,     // no toml::from<T>
-        cxx::negation<std::is_constructible<T, const basic_value<TC> &>>>::
-        value,
-    T>
-get(const basic_value<TC> &);
+                                  cxx::negation<detail::has_from_toml_method<T, TC>>,  // no T.from_toml()
+                                  cxx::negation<detail::has_specialized_from<T>>,      // no toml::from<T>
+                                  cxx::negation<std::is_constructible<T, const basic_value<TC>&>>>::value,
+                 T>
+get(const basic_value<TC>&);
 
 // std::array
 template <typename T, typename TC>
-cxx::enable_if_t<detail::is_std_array<T>::value, T>
-get(const basic_value<TC> &);
+cxx::enable_if_t<detail::is_std_array<T>::value, T> get(const basic_value<TC>&);
 
 // std::forward_list
 template <typename T, typename TC>
-cxx::enable_if_t<detail::is_std_forward_list<T>::value, T>
-get(const basic_value<TC> &);
+cxx::enable_if_t<detail::is_std_forward_list<T>::value, T> get(const basic_value<TC>&);
 
 // std::pair<T1, T2>
 template <typename T, typename TC>
-cxx::enable_if_t<detail::is_std_pair<T>::value, T> get(const basic_value<TC> &);
+cxx::enable_if_t<detail::is_std_pair<T>::value, T> get(const basic_value<TC>&);
 
 // std::tuple<T1, T2, ...>
 template <typename T, typename TC>
-cxx::enable_if_t<detail::is_std_tuple<T>::value, T>
-get(const basic_value<TC> &);
+cxx::enable_if_t<detail::is_std_tuple<T>::value, T> get(const basic_value<TC>&);
 
 // std::map<key, value> (key is convertible from toml::value::key_type)
 template <typename T, typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<
-        detail::is_map<T>,                            // T is map
-        detail::is_not_toml_type<T, basic_value<TC>>, // but not toml::table
-        std::is_convertible<typename basic_value<TC>::key_type,
-                            typename T::key_type>, // keys are convertible
-        cxx::negation<detail::has_from_toml_method<T, TC>>, // no T.from_toml()
-        cxx::negation<detail::has_specialized_from<T>>,     // no toml::from<T>
-        cxx::negation<std::is_constructible<T, const basic_value<TC> &>>>::
-        value,
-    T>
-get(const basic_value<TC> &v);
+cxx::enable_if_t<cxx::conjunction<detail::is_map<T>,                             // T is map
+                                  detail::is_not_toml_type<T, basic_value<TC>>,  // but not toml::table
+                                  std::is_convertible<typename basic_value<TC>::key_type,
+                                                      typename T::key_type>,           // keys are convertible
+                                  cxx::negation<detail::has_from_toml_method<T, TC>>,  // no T.from_toml()
+                                  cxx::negation<detail::has_specialized_from<T>>,      // no toml::from<T>
+                                  cxx::negation<std::is_constructible<T, const basic_value<TC>&>>>::value,
+                 T>
+get(const basic_value<TC>& v);
 
 // std::map<key, value> (key is not convertible from toml::value::key_type, but
 // is a std::basic_string)
 template <typename T, typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<
-        detail::is_map<T>,                            // T is map
-        detail::is_not_toml_type<T, basic_value<TC>>, // but not toml::table
-        cxx::negation<std::is_convertible<typename basic_value<TC>::key_type,
-                                          typename T::key_type>>, // keys are
-                                                                  // NOT
-                                                                  // convertible
-        detail::is_1byte_std_basic_string<
-            typename T::key_type>, // is std::basic_string
-        cxx::negation<detail::has_from_toml_method<T, TC>>, // no T.from_toml()
-        cxx::negation<detail::has_specialized_from<T>>,     // no toml::from<T>
-        cxx::negation<std::is_constructible<T, const basic_value<TC> &>>>::
-        value,
-    T>
-get(const basic_value<TC> &v);
+cxx::enable_if_t<cxx::conjunction<detail::is_map<T>,                             // T is map
+                                  detail::is_not_toml_type<T, basic_value<TC>>,  // but not toml::table
+                                  cxx::negation<std::is_convertible<typename basic_value<TC>::key_type,
+                                                                    typename T::key_type>>,  // keys are
+                                                                                             // NOT
+                                                                                             // convertible
+                                  detail::is_1byte_std_basic_string<typename T::key_type>,   // is std::basic_string
+                                  cxx::negation<detail::has_from_toml_method<T, TC>>,        // no T.from_toml()
+                                  cxx::negation<detail::has_specialized_from<T>>,            // no toml::from<T>
+                                  cxx::negation<std::is_constructible<T, const basic_value<TC>&>>>::value,
+                 T>
+get(const basic_value<TC>& v);
 
 // toml::from<T>::from_toml(v)
 template <typename T, typename TC>
-cxx::enable_if_t<detail::has_specialized_from<T>::value, T>
-get(const basic_value<TC> &);
+cxx::enable_if_t<detail::has_specialized_from<T>::value, T> get(const basic_value<TC>&);
 
 // has T.from_toml(v) but no from<T>
 template <typename T, typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<
-        detail::has_from_toml_method<T, TC>,            // has T.from_toml()
-        cxx::negation<detail::has_specialized_from<T>>, // no toml::from<T>
-        std::is_default_constructible<T>                // T{} works
-        >::value,
-    T>
-get(const basic_value<TC> &);
+cxx::enable_if_t<cxx::conjunction<detail::has_from_toml_method<T, TC>,             // has T.from_toml()
+                                  cxx::negation<detail::has_specialized_from<T>>,  // no toml::from<T>
+                                  std::is_default_constructible<T>                 // T{} works
+                                  >::value,
+                 T>
+get(const basic_value<TC>&);
 
 // T(const toml::value&) and T is not toml::basic_value,
 // and it does not have `from<T>` nor `from_toml`.
 template <typename T, typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<
-        std::is_constructible<T, const basic_value<TC> &>, // has T(const
-                                                           // basic_value&)
-        cxx::negation<detail::is_basic_value<T>>, // but not basic_value itself
-        cxx::negation<detail::has_from_toml_method<T, TC>>, // no .from_toml()
-        cxx::negation<detail::has_specialized_from<T>>      // no toml::from<T>
-        >::value,
-    T>
-get(const basic_value<TC> &);
+cxx::enable_if_t<cxx::conjunction<std::is_constructible<T, const basic_value<TC>&>,    // has T(const
+                                                                                       // basic_value&)
+                                  cxx::negation<detail::is_basic_value<T>>,            // but not basic_value itself
+                                  cxx::negation<detail::has_from_toml_method<T, TC>>,  // no .from_toml()
+                                  cxx::negation<detail::has_specialized_from<T>>       // no toml::from<T>
+                                  >::value,
+                 T>
+get(const basic_value<TC>&);
 
 // ============================================================================
 // array-like types; most likely STL container, like std::vector, etc.
 
 template <typename T, typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<
-        detail::is_container<T>,                      // T is a container
-        detail::has_push_back_method<T>,              // .push_back() works
-        detail::is_not_toml_type<T, basic_value<TC>>, // but not toml::array
-        cxx::negation<
-            detail::is_std_basic_string<T>>, // but not std::basic_string<CharT>
+cxx::enable_if_t<cxx::conjunction<detail::is_container<T>,                        // T is a container
+                                  detail::has_push_back_method<T>,                // .push_back() works
+                                  detail::is_not_toml_type<T, basic_value<TC>>,   // but not toml::array
+                                  cxx::negation<detail::is_std_basic_string<T>>,  // but not std::basic_string<CharT>
 #if defined(TOML11_HAS_STRING_VIEW)
-        cxx::negation<detail::is_std_basic_string_view<
-            T>>, // but not
-                 // std::basic_string_view<CharT>
+                                  cxx::negation<detail::is_std_basic_string_view<T>>,  // but not
+                                                                                       // std::basic_string_view<CharT>
 #endif
-        cxx::negation<detail::has_from_toml_method<T, TC>>, // no T.from_toml()
-        cxx::negation<detail::has_specialized_from<T>>,     // no toml::from<T>
-        cxx::negation<std::is_constructible<T, const basic_value<TC> &>>>::
-        value,
-    T>
-get(const basic_value<TC> &v) {
+                                  cxx::negation<detail::has_from_toml_method<T, TC>>,  // no T.from_toml()
+                                  cxx::negation<detail::has_specialized_from<T>>,      // no toml::from<T>
+                                  cxx::negation<std::is_constructible<T, const basic_value<TC>&>>>::value,
+                 T>
+get(const basic_value<TC>& v) {
   using value_type = typename T::value_type;
-  const auto &a = v.as_array();
+  const auto& a = v.as_array();
 
   T container;
-  detail::try_reserve(container, a.size()); // if T has .reserve(), call it
+  detail::try_reserve(container, a.size());  // if T has .reserve(), call it
 
-  for (const auto &elem : a) {
+  for (const auto& elem : a) {
     container.push_back(get<value_type>(elem));
   }
   return container;
@@ -8523,10 +7789,9 @@ get(const basic_value<TC> &v) {
 // std::array
 
 template <typename T, typename TC>
-cxx::enable_if_t<detail::is_std_array<T>::value, T>
-get(const basic_value<TC> &v) {
+cxx::enable_if_t<detail::is_std_array<T>::value, T> get(const basic_value<TC>& v) {
   using value_type = typename T::value_type;
-  const auto &a = v.as_array();
+  const auto& a = v.as_array();
 
   T container;
   if (a.size() != container.size()) {
@@ -8534,8 +7799,8 @@ get(const basic_value<TC> &v) {
     throw std::out_of_range(
         format_error("toml::get: while converting to an array: "
                      " array size is " +
-                         std::to_string(container.size()) + " but there are " +
-                         std::to_string(a.size()) + " elements in toml array.",
+                         std::to_string(container.size()) + " but there are " + std::to_string(a.size()) +
+                         " elements in toml array.",
                      loc, "here"));
   }
   for (std::size_t i = 0; i < a.size(); ++i) {
@@ -8548,12 +7813,11 @@ get(const basic_value<TC> &v) {
 // std::forward_list
 
 template <typename T, typename TC>
-cxx::enable_if_t<detail::is_std_forward_list<T>::value, T>
-get(const basic_value<TC> &v) {
+cxx::enable_if_t<detail::is_std_forward_list<T>::value, T> get(const basic_value<TC>& v) {
   using value_type = typename T::value_type;
 
   T container;
-  for (const auto &elem : v.as_array()) {
+  for (const auto& elem : v.as_array()) {
     container.push_front(get<value_type>(elem));
   }
   container.reverse();
@@ -8564,22 +7828,20 @@ get(const basic_value<TC> &v) {
 // std::pair
 
 template <typename T, typename TC>
-cxx::enable_if_t<detail::is_std_pair<T>::value, T>
-get(const basic_value<TC> &v) {
+cxx::enable_if_t<detail::is_std_pair<T>::value, T> get(const basic_value<TC>& v) {
   using first_type = typename T::first_type;
   using second_type = typename T::second_type;
 
-  const auto &ar = v.as_array();
+  const auto& ar = v.as_array();
   if (ar.size() != 2) {
     const auto loc = v.location();
-    throw std::out_of_range(format_error(
-        "toml::get: while converting std::pair: "
-        " but there are " +
-            std::to_string(ar.size()) + " > 2 elements in toml array.",
-        loc, "here"));
+    throw std::out_of_range(
+        format_error("toml::get: while converting std::pair: "
+                     " but there are " +
+                         std::to_string(ar.size()) + " > 2 elements in toml array.",
+                     loc, "here"));
   }
-  return std::make_pair(::toml::get<first_type>(ar.at(0)),
-                        ::toml::get<second_type>(ar.at(1)));
+  return std::make_pair(::toml::get<first_type>(ar.at(0)), ::toml::get<second_type>(ar.at(1)));
 }
 
 // ============================================================================
@@ -8587,28 +7849,23 @@ get(const basic_value<TC> &v) {
 
 namespace detail {
 template <typename T, typename Array, std::size_t... I>
-T get_tuple_impl(const Array &a, cxx::index_sequence<I...>) {
-  return std::make_tuple(
-      ::toml::get<typename std::tuple_element<I, T>::type>(a.at(I))...);
+T get_tuple_impl(const Array& a, cxx::index_sequence<I...>) {
+  return std::make_tuple(::toml::get<typename std::tuple_element<I, T>::type>(a.at(I))...);
 }
-} // namespace detail
+}  // namespace detail
 
 template <typename T, typename TC>
-cxx::enable_if_t<detail::is_std_tuple<T>::value, T>
-get(const basic_value<TC> &v) {
-  const auto &ar = v.as_array();
+cxx::enable_if_t<detail::is_std_tuple<T>::value, T> get(const basic_value<TC>& v) {
+  const auto& ar = v.as_array();
   if (ar.size() != std::tuple_size<T>::value) {
     const auto loc = v.location();
-    throw std::out_of_range(
-        format_error("toml::get: while converting std::tuple: "
-                     " there are " +
-                         std::to_string(ar.size()) + " > " +
-                         std::to_string(std::tuple_size<T>::value) +
-                         " elements in toml array.",
-                     loc, "here"));
+    throw std::out_of_range(format_error(
+        "toml::get: while converting std::tuple: "
+        " there are " +
+            std::to_string(ar.size()) + " > " + std::to_string(std::tuple_size<T>::value) + " elements in toml array.",
+        loc, "here"));
   }
-  return detail::get_tuple_impl<T>(
-      ar, cxx::make_index_sequence<std::tuple_size<T>::value>{});
+  return detail::get_tuple_impl<T>(ar, cxx::make_index_sequence<std::tuple_size<T>::value>{});
 }
 
 // ============================================================================
@@ -8616,27 +7873,23 @@ get(const basic_value<TC> &v) {
 
 // key is convertible from toml::value::key_type
 template <typename T, typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<
-        detail::is_map<T>,                            // T is map
-        detail::is_not_toml_type<T, basic_value<TC>>, // but not toml::table
-        std::is_convertible<typename basic_value<TC>::key_type,
-                            typename T::key_type>, // keys are convertible
-        cxx::negation<detail::has_from_toml_method<T, TC>>, // no T.from_toml()
-        cxx::negation<detail::has_specialized_from<T>>,     // no toml::from<T>
-        cxx::negation<std::is_constructible<T, const basic_value<TC> &>>>::
-        value,
-    T>
-get(const basic_value<TC> &v) {
+cxx::enable_if_t<cxx::conjunction<detail::is_map<T>,                             // T is map
+                                  detail::is_not_toml_type<T, basic_value<TC>>,  // but not toml::table
+                                  std::is_convertible<typename basic_value<TC>::key_type,
+                                                      typename T::key_type>,           // keys are convertible
+                                  cxx::negation<detail::has_from_toml_method<T, TC>>,  // no T.from_toml()
+                                  cxx::negation<detail::has_specialized_from<T>>,      // no toml::from<T>
+                                  cxx::negation<std::is_constructible<T, const basic_value<TC>&>>>::value,
+                 T>
+get(const basic_value<TC>& v) {
   using key_type = typename T::key_type;
   using mapped_type = typename T::mapped_type;
-  static_assert(
-      std::is_convertible<typename basic_value<TC>::key_type, key_type>::value,
-      "toml::get only supports map type of which key_type is "
-      "convertible from toml::basic_value::key_type.");
+  static_assert(std::is_convertible<typename basic_value<TC>::key_type, key_type>::value,
+                "toml::get only supports map type of which key_type is "
+                "convertible from toml::basic_value::key_type.");
 
   T m;
-  for (const auto &kv : v.as_table()) {
+  for (const auto& kv : v.as_table()) {
     m.emplace(key_type(kv.first), get<mapped_type>(kv.second));
   }
   return m;
@@ -8644,29 +7897,24 @@ get(const basic_value<TC> &v) {
 
 // key is NOT convertible from toml::value::key_type but std::basic_string
 template <typename T, typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<
-        detail::is_map<T>,                            // T is map
-        detail::is_not_toml_type<T, basic_value<TC>>, // but not toml::table
-        cxx::negation<std::is_convertible<typename basic_value<TC>::key_type,
-                                          typename T::key_type>>, // keys are
-                                                                  // NOT
-                                                                  // convertible
-        detail::is_1byte_std_basic_string<
-            typename T::key_type>, // is std::basic_string
-        cxx::negation<detail::has_from_toml_method<T, TC>>, // no T.from_toml()
-        cxx::negation<detail::has_specialized_from<T>>,     // no toml::from<T>
-        cxx::negation<std::is_constructible<T, const basic_value<TC> &>>>::
-        value,
-    T>
-get(const basic_value<TC> &v) {
+cxx::enable_if_t<cxx::conjunction<detail::is_map<T>,                             // T is map
+                                  detail::is_not_toml_type<T, basic_value<TC>>,  // but not toml::table
+                                  cxx::negation<std::is_convertible<typename basic_value<TC>::key_type,
+                                                                    typename T::key_type>>,  // keys are
+                                                                                             // NOT
+                                                                                             // convertible
+                                  detail::is_1byte_std_basic_string<typename T::key_type>,   // is std::basic_string
+                                  cxx::negation<detail::has_from_toml_method<T, TC>>,        // no T.from_toml()
+                                  cxx::negation<detail::has_specialized_from<T>>,            // no toml::from<T>
+                                  cxx::negation<std::is_constructible<T, const basic_value<TC>&>>>::value,
+                 T>
+get(const basic_value<TC>& v) {
   using key_type = typename T::key_type;
   using mapped_type = typename T::mapped_type;
 
   T m;
-  for (const auto &kv : v.as_table()) {
-    m.emplace(detail::string_conv<key_type>(kv.first),
-              get<mapped_type>(kv.second));
+  for (const auto& kv : v.as_table()) {
+    m.emplace(detail::string_conv<key_type>(kv.first), get<mapped_type>(kv.second));
   }
   return m;
 }
@@ -8676,21 +7924,18 @@ get(const basic_value<TC> &v) {
 
 // toml::from<T>
 template <typename T, typename TC>
-cxx::enable_if_t<detail::has_specialized_from<T>::value, T>
-get(const basic_value<TC> &v) {
+cxx::enable_if_t<detail::has_specialized_from<T>::value, T> get(const basic_value<TC>& v) {
   return ::toml::from<T>::from_toml(v);
 }
 
 // has T.from_toml(v) but no from<T>
 template <typename T, typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<
-        detail::has_from_toml_method<T, TC>,            // has T.from_toml()
-        cxx::negation<detail::has_specialized_from<T>>, // no toml::from<T>
-        std::is_default_constructible<T>                // T{} works
-        >::value,
-    T>
-get(const basic_value<TC> &v) {
+cxx::enable_if_t<cxx::conjunction<detail::has_from_toml_method<T, TC>,             // has T.from_toml()
+                                  cxx::negation<detail::has_specialized_from<T>>,  // no toml::from<T>
+                                  std::is_default_constructible<T>                 // T{} works
+                                  >::value,
+                 T>
+get(const basic_value<TC>& v) {
   T ud;
   ud.from_toml(v);
   return ud;
@@ -8699,16 +7944,14 @@ get(const basic_value<TC> &v) {
 // T(const toml::value&) and T is not toml::basic_value,
 // and it does not have `from<T>` nor `from_toml`.
 template <typename T, typename TC>
-cxx::enable_if_t<
-    cxx::conjunction<
-        std::is_constructible<T, const basic_value<TC> &>, // has T(const
-                                                           // basic_value&)
-        cxx::negation<detail::is_basic_value<T>>, // but not basic_value itself
-        cxx::negation<detail::has_from_toml_method<T, TC>>, // no .from_toml()
-        cxx::negation<detail::has_specialized_from<T>>      // no toml::from<T>
-        >::value,
-    T>
-get(const basic_value<TC> &v) {
+cxx::enable_if_t<cxx::conjunction<std::is_constructible<T, const basic_value<TC>&>,    // has T(const
+                                                                                       // basic_value&)
+                                  cxx::negation<detail::is_basic_value<T>>,            // but not basic_value itself
+                                  cxx::negation<detail::has_from_toml_method<T, TC>>,  // no .from_toml()
+                                  cxx::negation<detail::has_specialized_from<T>>       // no toml::from<T>
+                                  >::value,
+                 T>
+get(const basic_value<TC>& v) {
   return T(v);
 }
 
@@ -8716,20 +7959,18 @@ get(const basic_value<TC> &v) {
 // get_or(value, fallback)
 
 template <typename TC>
-cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> const &
-get_or(const basic_value<TC> &v, const basic_value<TC> &) {
+cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> const& get_or(const basic_value<TC>& v,
+                                                                                   const basic_value<TC>&) {
   return v;
 }
 
 template <typename TC>
-cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> &
-get_or(basic_value<TC> &v, basic_value<TC> &) {
+cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>>& get_or(basic_value<TC>& v, basic_value<TC>&) {
   return v;
 }
 
 template <typename TC>
-cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>>
-get_or(basic_value<TC> &&v, basic_value<TC> &&) {
+cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> get_or(basic_value<TC>&& v, basic_value<TC>&&) {
   return v;
 }
 
@@ -8737,9 +7978,8 @@ get_or(basic_value<TC> &&v, basic_value<TC> &&) {
 // specialization for the exact toml types (return type becomes lvalue ref)
 
 template <typename T, typename TC>
-cxx::enable_if_t<detail::is_exact_toml_type<T, basic_value<TC>>::value,
-                 T> const &
-get_or(const basic_value<TC> &v, const T &opt) noexcept {
+cxx::enable_if_t<detail::is_exact_toml_type<T, basic_value<TC>>::value, T> const& get_or(const basic_value<TC>& v,
+                                                                                         const T& opt) noexcept {
   try {
     return get<cxx::remove_cvref_t<T>>(v);
   } catch (...) {
@@ -8748,10 +7988,8 @@ get_or(const basic_value<TC> &v, const T &opt) noexcept {
 }
 template <typename T, typename TC>
 cxx::enable_if_t<
-    cxx::conjunction<cxx::negation<std::is_const<T>>,
-                     detail::is_exact_toml_type<T, basic_value<TC>>>::value,
-    T> &
-get_or(basic_value<TC> &v, T &opt) noexcept {
+    cxx::conjunction<cxx::negation<std::is_const<T>>, detail::is_exact_toml_type<T, basic_value<TC>>>::value, T>&
+get_or(basic_value<TC>& v, T& opt) noexcept {
   try {
     return get<cxx::remove_cvref_t<T>>(v);
   } catch (...) {
@@ -8759,10 +7997,8 @@ get_or(basic_value<TC> &v, T &opt) noexcept {
   }
 }
 template <typename T, typename TC>
-cxx::enable_if_t<
-    detail::is_exact_toml_type<cxx::remove_cvref_t<T>, basic_value<TC>>::value,
-    cxx::remove_cvref_t<T>>
-get_or(basic_value<TC> &&v, T &&opt) noexcept {
+cxx::enable_if_t<detail::is_exact_toml_type<cxx::remove_cvref_t<T>, basic_value<TC>>::value, cxx::remove_cvref_t<T>>
+get_or(basic_value<TC>&& v, T&& opt) noexcept {
   try {
     return get<cxx::remove_cvref_t<T>>(std::move(v));
   } catch (...) {
@@ -8798,9 +8034,8 @@ get_or(basic_value<TC> &&v, T &&opt) noexcept {
 // a character here.
 
 template <typename TC>
-typename basic_value<TC>::string_type
-get_or(const basic_value<TC> &v,
-       const typename basic_value<TC>::string_type::value_type *opt) {
+typename basic_value<TC>::string_type get_or(const basic_value<TC>& v,
+                                             const typename basic_value<TC>::string_type::value_type* opt) {
   try {
     return v.as_string();
   } catch (...) {
@@ -8814,13 +8049,11 @@ get_or(const basic_value<TC> &v,
 template <typename T, typename TC>
 cxx::enable_if_t<
     cxx::conjunction<
-        cxx::negation<detail::is_basic_value<T>>,
-        cxx::negation<detail::is_exact_toml_type<T, basic_value<TC>>>,
-        cxx::negation<std::is_same<
-            cxx::remove_cvref_t<T>,
-            typename basic_value<TC>::string_type::value_type const *>>>::value,
+        cxx::negation<detail::is_basic_value<T>>, cxx::negation<detail::is_exact_toml_type<T, basic_value<TC>>>,
+        cxx::negation<std::is_same<cxx::remove_cvref_t<T>, typename basic_value<TC>::string_type::value_type const*>>>::
+        value,
     cxx::remove_cvref_t<T>>
-get_or(const basic_value<TC> &v, T &&opt) {
+get_or(const basic_value<TC>& v, T&& opt) {
   try {
     return get<cxx::remove_cvref_t<T>>(v);
   } catch (...) {
@@ -8828,8 +8061,8 @@ get_or(const basic_value<TC> &v, T &&opt) {
   }
 }
 
-} // namespace toml
-#endif // TOML11_GET_HPP
+}  // namespace toml
+#endif  // TOML11_GET_HPP
 #ifndef TOML11_FIND_HPP
 #define TOML11_FIND_HPP
 
@@ -8845,20 +8078,20 @@ namespace toml {
 // find<T>(value, key);
 
 template <typename T, typename TC>
-decltype(::toml::get<T>(std::declval<basic_value<TC> const &>()))
-find(const basic_value<TC> &v, const typename basic_value<TC>::key_type &ky) {
+decltype(::toml::get<T>(std::declval<basic_value<TC> const&>())) find(const basic_value<TC>& v,
+                                                                      const typename basic_value<TC>::key_type& ky) {
   return ::toml::get<T>(v.at(ky));
 }
 
 template <typename T, typename TC>
-decltype(::toml::get<T>(std::declval<basic_value<TC> &>()))
-find(basic_value<TC> &v, const typename basic_value<TC>::key_type &ky) {
+decltype(::toml::get<T>(std::declval<basic_value<TC>&>())) find(basic_value<TC>& v,
+                                                                const typename basic_value<TC>::key_type& ky) {
   return ::toml::get<T>(v.at(ky));
 }
 
 template <typename T, typename TC>
-decltype(::toml::get<T>(std::declval<basic_value<TC> &&>()))
-find(basic_value<TC> &&v, const typename basic_value<TC>::key_type &ky) {
+decltype(::toml::get<T>(std::declval<basic_value<TC>&&>())) find(basic_value<TC>&& v,
+                                                                 const typename basic_value<TC>::key_type& ky) {
   return ::toml::get<T>(std::move(v.at(ky)));
 }
 
@@ -8866,18 +8099,15 @@ find(basic_value<TC> &&v, const typename basic_value<TC>::key_type &ky) {
 // find<T>(value, idx)
 
 template <typename T, typename TC>
-decltype(::toml::get<T>(std::declval<basic_value<TC> const &>()))
-find(const basic_value<TC> &v, const std::size_t idx) {
+decltype(::toml::get<T>(std::declval<basic_value<TC> const&>())) find(const basic_value<TC>& v, const std::size_t idx) {
   return ::toml::get<T>(v.at(idx));
 }
 template <typename T, typename TC>
-decltype(::toml::get<T>(std::declval<basic_value<TC> &>()))
-find(basic_value<TC> &v, const std::size_t idx) {
+decltype(::toml::get<T>(std::declval<basic_value<TC>&>())) find(basic_value<TC>& v, const std::size_t idx) {
   return ::toml::get<T>(v.at(idx));
 }
 template <typename T, typename TC>
-decltype(::toml::get<T>(std::declval<basic_value<TC> &&>()))
-find(basic_value<TC> &&v, const std::size_t idx) {
+decltype(::toml::get<T>(std::declval<basic_value<TC>&&>())) find(basic_value<TC>&& v, const std::size_t idx) {
   return ::toml::get<T>(std::move(v.at(idx)));
 }
 
@@ -8885,34 +8115,32 @@ find(basic_value<TC> &&v, const std::size_t idx) {
 // find(value, key/idx), w/o conversion
 
 template <typename TC>
-cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> &
-find(basic_value<TC> &v, const typename basic_value<TC>::key_type &ky) {
+cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>>& find(
+    basic_value<TC>& v, const typename basic_value<TC>::key_type& ky) {
   return v.at(ky);
 }
 template <typename TC>
-cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> const &
-find(basic_value<TC> const &v, const typename basic_value<TC>::key_type &ky) {
+cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> const& find(
+    basic_value<TC> const& v, const typename basic_value<TC>::key_type& ky) {
   return v.at(ky);
 }
 template <typename TC>
-cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>>
-find(basic_value<TC> &&v, const typename basic_value<TC>::key_type &ky) {
+cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> find(
+    basic_value<TC>&& v, const typename basic_value<TC>::key_type& ky) {
   return basic_value<TC>(std::move(v.at(ky)));
 }
 
 template <typename TC>
-cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> &
-find(basic_value<TC> &v, const std::size_t idx) {
+cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>>& find(basic_value<TC>& v, const std::size_t idx) {
   return v.at(idx);
 }
 template <typename TC>
-cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> const &
-find(basic_value<TC> const &v, const std::size_t idx) {
+cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> const& find(basic_value<TC> const& v,
+                                                                                 const std::size_t idx) {
   return v.at(idx);
 }
 template <typename TC>
-cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>>
-find(basic_value<TC> &&v, const std::size_t idx) {
+cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> find(basic_value<TC>&& v, const std::size_t idx) {
   return basic_value<TC>(std::move(v.at(idx)));
 }
 
@@ -8925,25 +8153,23 @@ namespace detail {
 // to toml::find. integer literal `0` is deduced as an int, and will be
 // converted to std::size_t. This causes sign-conversion.
 
-template <typename TC> std::size_t key_cast(const std::size_t &v) noexcept {
+template <typename TC>
+std::size_t key_cast(const std::size_t& v) noexcept {
   return v;
 }
 template <typename TC, typename T>
-cxx::enable_if_t<std::is_integral<cxx::remove_cvref_t<T>>::value, std::size_t>
-key_cast(const T &v) noexcept {
+cxx::enable_if_t<std::is_integral<cxx::remove_cvref_t<T>>::value, std::size_t> key_cast(const T& v) noexcept {
   return static_cast<std::size_t>(v);
 }
 
 // for string-like (string, string literal, string_view)
 
 template <typename TC>
-typename basic_value<TC>::key_type const &
-key_cast(const typename basic_value<TC>::key_type &v) noexcept {
+typename basic_value<TC>::key_type const& key_cast(const typename basic_value<TC>::key_type& v) noexcept {
   return v;
 }
 template <typename TC>
-typename basic_value<TC>::key_type
-key_cast(const typename basic_value<TC>::key_type::value_type *v) {
+typename basic_value<TC>::key_type key_cast(const typename basic_value<TC>::key_type::value_type* v) {
   return typename basic_value<TC>::key_type(v);
 }
 #if defined(TOML11_HAS_STRING_VIEW)
@@ -8951,50 +8177,46 @@ template <typename TC>
 typename basic_value<TC>::key_type key_cast(const std::string_view v) {
   return typename basic_value<TC>::key_type(v);
 }
-#endif // string_view
+#endif  // string_view
 
-} // namespace detail
+}  // namespace detail
 
 // ----------------------------------------------------------------------------
 // find(v, keys...)
 
 template <typename TC, typename K1, typename K2, typename... Ks>
-cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> const &
-find(const basic_value<TC> &v, const K1 &k1, const K2 &k2, const Ks &... ks) {
+cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> const& find(const basic_value<TC>& v, const K1& k1,
+                                                                                 const K2& k2, const Ks&... ks) {
   return find(v.at(detail::key_cast<TC>(k1)), detail::key_cast<TC>(k2), ks...);
 }
 template <typename TC, typename K1, typename K2, typename... Ks>
-cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> &
-find(basic_value<TC> &v, const K1 &k1, const K2 &k2, const Ks &... ks) {
+cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>>& find(basic_value<TC>& v, const K1& k1,
+                                                                           const K2& k2, const Ks&... ks) {
   return find(v.at(detail::key_cast<TC>(k1)), detail::key_cast<TC>(k2), ks...);
 }
 template <typename TC, typename K1, typename K2, typename... Ks>
-cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>>
-find(basic_value<TC> &&v, const K1 &k1, const K2 &k2, const Ks &... ks) {
-  return find(std::move(v.at(detail::key_cast<TC>(k1))),
-              detail::key_cast<TC>(k2), ks...);
+cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> find(basic_value<TC>&& v, const K1& k1,
+                                                                          const K2& k2, const Ks&... ks) {
+  return find(std::move(v.at(detail::key_cast<TC>(k1))), detail::key_cast<TC>(k2), ks...);
 }
 
 // ----------------------------------------------------------------------------
 // find<T>(v, keys...)
 
 template <typename T, typename TC, typename K1, typename K2, typename... Ks>
-decltype(::toml::get<T>(std::declval<const basic_value<TC> &>()))
-find(const basic_value<TC> &v, const K1 &k1, const K2 &k2, const Ks &... ks) {
-  return find<T>(v.at(detail::key_cast<TC>(k1)), detail::key_cast<TC>(k2),
-                 ks...);
+decltype(::toml::get<T>(std::declval<const basic_value<TC>&>())) find(const basic_value<TC>& v, const K1& k1,
+                                                                      const K2& k2, const Ks&... ks) {
+  return find<T>(v.at(detail::key_cast<TC>(k1)), detail::key_cast<TC>(k2), ks...);
 }
 template <typename T, typename TC, typename K1, typename K2, typename... Ks>
-decltype(::toml::get<T>(std::declval<basic_value<TC> &>()))
-find(basic_value<TC> &v, const K1 &k1, const K2 &k2, const Ks &... ks) {
-  return find<T>(v.at(detail::key_cast<TC>(k1)), detail::key_cast<TC>(k2),
-                 ks...);
+decltype(::toml::get<T>(std::declval<basic_value<TC>&>())) find(basic_value<TC>& v, const K1& k1, const K2& k2,
+                                                                const Ks&... ks) {
+  return find<T>(v.at(detail::key_cast<TC>(k1)), detail::key_cast<TC>(k2), ks...);
 }
 template <typename T, typename TC, typename K1, typename K2, typename... Ks>
-decltype(::toml::get<T>(std::declval<basic_value<TC> &&>()))
-find(basic_value<TC> &&v, const K1 &k1, const K2 &k2, const Ks &... ks) {
-  return find<T>(std::move(v.at(detail::key_cast<TC>(k1))),
-                 detail::key_cast<TC>(k2), ks...);
+decltype(::toml::get<T>(std::declval<basic_value<TC>&&>())) find(basic_value<TC>&& v, const K1& k1, const K2& k2,
+                                                                 const Ks&... ks) {
+  return find<T>(std::move(v.at(detail::key_cast<TC>(k1))), detail::key_cast<TC>(k2), ks...);
 }
 
 // ===========================================================================
@@ -9004,8 +8226,8 @@ find(basic_value<TC> &&v, const K1 &k1, const K2 &k2, const Ks &... ks) {
 // find_or(v, key, other_v)
 
 template <typename TC, typename K>
-cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> &
-find_or(basic_value<TC> &v, const K &k, basic_value<TC> &opt) noexcept {
+cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>>& find_or(basic_value<TC>& v, const K& k,
+                                                                              basic_value<TC>& opt) noexcept {
   try {
     return ::toml::find(v, detail::key_cast<TC>(k));
   } catch (...) {
@@ -9013,9 +8235,8 @@ find_or(basic_value<TC> &v, const K &k, basic_value<TC> &opt) noexcept {
   }
 }
 template <typename TC, typename K>
-cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> const &
-find_or(const basic_value<TC> &v, const K &k,
-        const basic_value<TC> &opt) noexcept {
+cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> const& find_or(
+    const basic_value<TC>& v, const K& k, const basic_value<TC>& opt) noexcept {
   try {
     return ::toml::find(v, detail::key_cast<TC>(k));
   } catch (...) {
@@ -9023,8 +8244,8 @@ find_or(const basic_value<TC> &v, const K &k,
   }
 }
 template <typename TC, typename K>
-cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>>
-find_or(basic_value<TC> &&v, const K &k, basic_value<TC> &&opt) noexcept {
+cxx::enable_if_t<detail::is_type_config<TC>::value, basic_value<TC>> find_or(basic_value<TC>&& v, const K& k,
+                                                                             basic_value<TC>&& opt) noexcept {
   try {
     return ::toml::find(v, detail::key_cast<TC>(k));
   } catch (...) {
@@ -9036,9 +8257,8 @@ find_or(basic_value<TC> &&v, const K &k, basic_value<TC> &&opt) noexcept {
 // toml types (return type can be a reference)
 
 template <typename T, typename TC, typename K>
-cxx::enable_if_t<detail::is_exact_toml_type<T, basic_value<TC>>::value,
-                 cxx::remove_cvref_t<T> const &>
-find_or(const basic_value<TC> &v, const K &k, const T &opt) {
+cxx::enable_if_t<detail::is_exact_toml_type<T, basic_value<TC>>::value, cxx::remove_cvref_t<T> const&> find_or(
+    const basic_value<TC>& v, const K& k, const T& opt) {
   try {
     return ::toml::get<T>(v.at(detail::key_cast<TC>(k)));
   } catch (...) {
@@ -9048,10 +8268,9 @@ find_or(const basic_value<TC> &v, const K &k, const T &opt) {
 
 template <typename T, typename TC, typename K>
 cxx::enable_if_t<
-    cxx::conjunction<cxx::negation<std::is_const<T>>,
-                     detail::is_exact_toml_type<T, basic_value<TC>>>::value,
-    cxx::remove_cvref_t<T> &>
-find_or(basic_value<TC> &v, const K &k, T &opt) {
+    cxx::conjunction<cxx::negation<std::is_const<T>>, detail::is_exact_toml_type<T, basic_value<TC>>>::value,
+    cxx::remove_cvref_t<T>&>
+find_or(basic_value<TC>& v, const K& k, T& opt) {
   try {
     return ::toml::get<T>(v.at(detail::key_cast<TC>(k)));
   } catch (...) {
@@ -9060,9 +8279,8 @@ find_or(basic_value<TC> &v, const K &k, T &opt) {
 }
 
 template <typename T, typename TC, typename K>
-cxx::enable_if_t<detail::is_exact_toml_type<T, basic_value<TC>>::value,
-                 cxx::remove_cvref_t<T>>
-find_or(basic_value<TC> &&v, const K &k, T opt) {
+cxx::enable_if_t<detail::is_exact_toml_type<T, basic_value<TC>>::value, cxx::remove_cvref_t<T>> find_or(
+    basic_value<TC>&& v, const K& k, T opt) {
   try {
     return ::toml::get<T>(std::move(v.at(detail::key_cast<TC>(k))));
   } catch (...) {
@@ -9076,8 +8294,8 @@ find_or(basic_value<TC> &&v, const K &k, T opt) {
 // XXX to avoid confusion when T is explicitly specified in find_or<T>(),
 //     we restrict the string type as std::string.
 template <typename TC, typename K>
-cxx::enable_if_t<detail::is_type_config<TC>::value, std::string>
-find_or(const basic_value<TC> &v, const K &k, const char *opt) {
+cxx::enable_if_t<detail::is_type_config<TC>::value, std::string> find_or(const basic_value<TC>& v, const K& k,
+                                                                         const char* opt) {
   try {
     return ::toml::get<std::string>(v.at(detail::key_cast<TC>(k)));
   } catch (...) {
@@ -9090,14 +8308,12 @@ find_or(const basic_value<TC> &v, const K &k, const char *opt) {
 
 template <typename T, typename TC, typename K>
 cxx::enable_if_t<
-    cxx::conjunction<
-        cxx::negation<detail::is_basic_value<cxx::remove_cvref_t<T>>>,
-        detail::is_not_toml_type<cxx::remove_cvref_t<T>, basic_value<TC>>,
-        cxx::negation<std::is_same<
-            cxx::remove_cvref_t<T>,
-            const typename basic_value<TC>::string_type::value_type *>>>::value,
+    cxx::conjunction<cxx::negation<detail::is_basic_value<cxx::remove_cvref_t<T>>>,
+                     detail::is_not_toml_type<cxx::remove_cvref_t<T>, basic_value<TC>>,
+                     cxx::negation<std::is_same<cxx::remove_cvref_t<T>,
+                                                const typename basic_value<TC>::string_type::value_type*>>>::value,
     cxx::remove_cvref_t<T>>
-find_or(const basic_value<TC> &v, const K &ky, T opt) {
+find_or(const basic_value<TC>& v, const K& ky, T opt) {
   try {
     return ::toml::get<cxx::remove_cvref_t<T>>(v.at(detail::key_cast<TC>(ky)));
   } catch (...) {
@@ -9111,33 +8327,25 @@ find_or(const basic_value<TC> &v, const K &ky, T opt) {
 namespace detail {
 
 template <typename... Ts>
-auto last_one(Ts &&... args) -> decltype(std::get<sizeof...(Ts) - 1>(
-    std::forward_as_tuple(std::forward<Ts>(args)...))) {
-  return std::get<sizeof...(Ts) - 1>(
-      std::forward_as_tuple(std::forward<Ts>(args)...));
+auto last_one(Ts&&... args) -> decltype(std::get<sizeof...(Ts) - 1>(std::forward_as_tuple(std::forward<Ts>(args)...))) {
+  return std::get<sizeof...(Ts) - 1>(std::forward_as_tuple(std::forward<Ts>(args)...));
 }
 
-} // namespace detail
+}  // namespace detail
 
 template <typename Value, typename K1, typename K2, typename K3, typename... Ks>
-auto find_or(Value &&v, const K1 &k1, const K2 &k2, K3 &&k3,
-             Ks &&... keys) noexcept
-    -> cxx::enable_if_t<
-        detail::is_basic_value<cxx::remove_cvref_t<Value>>::value,
-        decltype(find_or(v, k2, std::forward<K3>(k3),
-                         std::forward<Ks>(keys)...))> {
+auto find_or(Value&& v, const K1& k1, const K2& k2, K3&& k3, Ks&&... keys) noexcept
+    -> cxx::enable_if_t<detail::is_basic_value<cxx::remove_cvref_t<Value>>::value,
+                        decltype(find_or(v, k2, std::forward<K3>(k3), std::forward<Ks>(keys)...))> {
   try {
-    return find_or(v.at(k1), k2, std::forward<K3>(k3),
-                   std::forward<Ks>(keys)...);
+    return find_or(v.at(k1), k2, std::forward<K3>(k3), std::forward<Ks>(keys)...);
   } catch (...) {
     return detail::last_one(k3, keys...);
   }
 }
 
-template <typename T, typename TC, typename K1, typename K2, typename K3,
-          typename... Ks>
-T find_or(const basic_value<TC> &v, const K1 &k1, const K2 &k2, const K3 &k3,
-          const Ks &... keys) noexcept {
+template <typename T, typename TC, typename K1, typename K2, typename K3, typename... Ks>
+T find_or(const basic_value<TC>& v, const K1& k1, const K2& k2, const K3& k3, const Ks&... keys) noexcept {
   try {
     return find_or<T>(v.at(k1), k2, k3, keys...);
   } catch (...) {
@@ -9145,8 +8353,8 @@ T find_or(const basic_value<TC> &v, const K1 &k1, const K2 &k2, const K3 &k3,
   }
 }
 
-} // namespace toml
-#endif // TOML11_FIND_HPP
+}  // namespace toml
+#endif  // TOML11_FIND_HPP
 #ifndef TOML11_CONVERSION_HPP
 #define TOML11_CONVERSION_HPP
 
@@ -9157,14 +8365,14 @@ T find_or(const basic_value<TC> &v, const K1 &k1, const K2 &k2, const K3 &k3,
 namespace toml {
 namespace detail {
 
-template <typename T> inline constexpr bool is_optional_v = false;
+template <typename T>
+inline constexpr bool is_optional_v = false;
 
 template <typename T>
 inline constexpr bool is_optional_v<std::optional<T>> = true;
 
 template <typename T, typename TC>
-void find_member_variable_from_value(T &obj, const basic_value<TC> &v,
-                                     const char *var_name) {
+void find_member_variable_from_value(T& obj, const basic_value<TC>& v, const char* var_name) {
   if constexpr (is_optional_v<T>) {
     if (v.contains(var_name)) {
       obj = toml::find<typename T::value_type>(v, var_name);
@@ -9177,8 +8385,7 @@ void find_member_variable_from_value(T &obj, const basic_value<TC> &v,
 }
 
 template <typename T, typename TC>
-void assign_member_variable_to_value(const T &obj, basic_value<TC> &v,
-                                     const char *var_name) {
+void assign_member_variable_to_value(const T& obj, basic_value<TC>& v, const char* var_name) {
   if constexpr (is_optional_v<T>) {
     if (obj.has_value()) {
       v[var_name] = obj.value();
@@ -9188,8 +8395,8 @@ void assign_member_variable_to_value(const T &obj, basic_value<TC> &v,
   }
 }
 
-} // namespace detail
-} // namespace toml
+}  // namespace detail
+}  // namespace toml
 
 #else
 
@@ -9197,21 +8404,19 @@ namespace toml {
 namespace detail {
 
 template <typename T, typename TC>
-void find_member_variable_from_value(T &obj, const basic_value<TC> &v,
-                                     const char *var_name) {
+void find_member_variable_from_value(T& obj, const basic_value<TC>& v, const char* var_name) {
   obj = toml::find<T>(v, var_name);
 }
 
 template <typename T, typename TC>
-void assign_member_variable_to_value(const T &obj, basic_value<TC> &v,
-                                     const char *var_name) {
+void assign_member_variable_to_value(const T& obj, basic_value<TC>& v, const char* var_name) {
   v[var_name] = obj;
 }
 
-} // namespace detail
-} // namespace toml
+}  // namespace detail
+}  // namespace toml
 
-#endif // optional
+#endif  // optional
 
 // use it in the following way.
 // ```cpp
@@ -9246,123 +8451,118 @@ void assign_member_variable_to_value(const T &obj, basic_value<TC> &v,
 // ----------------------------------------------------------------------------
 // TOML11_ARGS_SIZE
 
-#define TOML11_INDEX_RSEQ()                                                    \
-  32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14,  \
-      13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
-#define TOML11_ARGS_SIZE_IMPL(ARG1, ARG2, ARG3, ARG4, ARG5, ARG6, ARG7, ARG8,  \
-                              ARG9, ARG10, ARG11, ARG12, ARG13, ARG14, ARG15,  \
-                              ARG16, ARG17, ARG18, ARG19, ARG20, ARG21, ARG22, \
-                              ARG23, ARG24, ARG25, ARG26, ARG27, ARG28, ARG29, \
-                              ARG30, ARG31, ARG32, N, ...)                     \
+#define TOML11_INDEX_RSEQ()                                                                                           \
+  32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, \
+      1, 0
+#define TOML11_ARGS_SIZE_IMPL(ARG1, ARG2, ARG3, ARG4, ARG5, ARG6, ARG7, ARG8, ARG9, ARG10, ARG11, ARG12, ARG13, ARG14, \
+                              ARG15, ARG16, ARG17, ARG18, ARG19, ARG20, ARG21, ARG22, ARG23, ARG24, ARG25, ARG26,      \
+                              ARG27, ARG28, ARG29, ARG30, ARG31, ARG32, N, ...)                                        \
   N
 #define TOML11_ARGS_SIZE_AUX(...) TOML11_ARGS_SIZE_IMPL(__VA_ARGS__)
-#define TOML11_ARGS_SIZE(...)                                                  \
-  TOML11_ARGS_SIZE_AUX(__VA_ARGS__, TOML11_INDEX_RSEQ())
+#define TOML11_ARGS_SIZE(...) TOML11_ARGS_SIZE_AUX(__VA_ARGS__, TOML11_INDEX_RSEQ())
 
 // ----------------------------------------------------------------------------
 // TOML11_FOR_EACH_VA_ARGS
 
 #define TOML11_FOR_EACH_VA_ARGS_AUX_1(FUNCTOR, ARG1) FUNCTOR(ARG1)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_2(FUNCTOR, ARG1, ...)                      \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_2(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_1(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_3(FUNCTOR, ARG1, ...)                      \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_3(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_2(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_4(FUNCTOR, ARG1, ...)                      \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_4(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_3(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_5(FUNCTOR, ARG1, ...)                      \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_5(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_4(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_6(FUNCTOR, ARG1, ...)                      \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_6(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_5(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_7(FUNCTOR, ARG1, ...)                      \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_7(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_6(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_8(FUNCTOR, ARG1, ...)                      \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_8(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_7(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_9(FUNCTOR, ARG1, ...)                      \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_9(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_8(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_10(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_10(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_9(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_11(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_11(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_10(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_12(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_12(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_11(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_13(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_13(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_12(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_14(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_14(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_13(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_15(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_15(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_14(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_16(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_16(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_15(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_17(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_17(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_16(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_18(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_18(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_17(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_19(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_19(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_18(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_20(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_20(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_19(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_21(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_21(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_20(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_22(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_22(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_21(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_23(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_23(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_22(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_24(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_24(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_23(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_25(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_25(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_24(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_26(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_26(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_25(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_27(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_27(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_26(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_28(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_28(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_27(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_29(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_29(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_28(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_30(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_30(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_29(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_31(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_31(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_30(FUNCTOR, __VA_ARGS__)
-#define TOML11_FOR_EACH_VA_ARGS_AUX_32(FUNCTOR, ARG1, ...)                     \
+#define TOML11_FOR_EACH_VA_ARGS_AUX_32(FUNCTOR, ARG1, ...) \
   FUNCTOR(ARG1) TOML11_FOR_EACH_VA_ARGS_AUX_31(FUNCTOR, __VA_ARGS__)
 
-#define TOML11_FOR_EACH_VA_ARGS(FUNCTOR, ...)                                  \
-  TOML11_CONCATENATE(TOML11_FOR_EACH_VA_ARGS_AUX_,                             \
-                     TOML11_ARGS_SIZE(__VA_ARGS__))                            \
+#define TOML11_FOR_EACH_VA_ARGS(FUNCTOR, ...)                                     \
+  TOML11_CONCATENATE(TOML11_FOR_EACH_VA_ARGS_AUX_, TOML11_ARGS_SIZE(__VA_ARGS__)) \
   (FUNCTOR, __VA_ARGS__)
 
-#define TOML11_FIND_MEMBER_VARIABLE_FROM_VALUE(VAR_NAME)                       \
-  toml::detail::find_member_variable_from_value(obj.VAR_NAME, v,               \
-                                                TOML11_STRINGIZE(VAR_NAME));
+#define TOML11_FIND_MEMBER_VARIABLE_FROM_VALUE(VAR_NAME) \
+  toml::detail::find_member_variable_from_value(obj.VAR_NAME, v, TOML11_STRINGIZE(VAR_NAME));
 
-#define TOML11_ASSIGN_MEMBER_VARIABLE_TO_VALUE(VAR_NAME)                       \
-  toml::detail::assign_member_variable_to_value(obj.VAR_NAME, v,               \
-                                                TOML11_STRINGIZE(VAR_NAME));
+#define TOML11_ASSIGN_MEMBER_VARIABLE_TO_VALUE(VAR_NAME) \
+  toml::detail::assign_member_variable_to_value(obj.VAR_NAME, v, TOML11_STRINGIZE(VAR_NAME));
 
-#define TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(NAME, ...)                      \
-  namespace toml {                                                             \
-  template <> struct from<NAME> {                                              \
-    template <typename TC> static NAME from_toml(const basic_value<TC> &v) {   \
-      NAME obj;                                                                \
-      TOML11_FOR_EACH_VA_ARGS(TOML11_FIND_MEMBER_VARIABLE_FROM_VALUE,          \
-                              __VA_ARGS__)                                     \
-      return obj;                                                              \
-    }                                                                          \
-  };                                                                           \
-  template <> struct into<NAME> {                                              \
-    template <typename TC> static basic_value<TC> into_toml(const NAME &obj) { \
-      ::toml::basic_value<TC> v =                                              \
-          typename ::toml::basic_value<TC>::table_type{};                      \
-      TOML11_FOR_EACH_VA_ARGS(TOML11_ASSIGN_MEMBER_VARIABLE_TO_VALUE,          \
-                              __VA_ARGS__)                                     \
-      return v;                                                                \
-    }                                                                          \
-  };                                                                           \
+#define TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(NAME, ...)                          \
+  namespace toml {                                                                 \
+  template <>                                                                      \
+  struct from<NAME> {                                                              \
+    template <typename TC>                                                         \
+    static NAME from_toml(const basic_value<TC>& v) {                              \
+      NAME obj;                                                                    \
+      TOML11_FOR_EACH_VA_ARGS(TOML11_FIND_MEMBER_VARIABLE_FROM_VALUE, __VA_ARGS__) \
+      return obj;                                                                  \
+    }                                                                              \
+  };                                                                               \
+  template <>                                                                      \
+  struct into<NAME> {                                                              \
+    template <typename TC>                                                         \
+    static basic_value<TC> into_toml(const NAME& obj) {                            \
+      ::toml::basic_value<TC> v = typename ::toml::basic_value<TC>::table_type{};  \
+      TOML11_FOR_EACH_VA_ARGS(TOML11_ASSIGN_MEMBER_VARIABLE_TO_VALUE, __VA_ARGS__) \
+      return v;                                                                    \
+    }                                                                              \
+  };                                                                               \
   } /* toml */
 
-#endif // TOML11_WITHOUT_DEFINE_NON_INTRUSIVE
+#endif  // TOML11_WITHOUT_DEFINE_NON_INTRUSIVE
 
-#endif // TOML11_CONVERSION_HPP
+#endif  // TOML11_CONVERSION_HPP
 #ifndef TOML11_CONTEXT_HPP
 #define TOML11_CONTEXT_HPP
 
@@ -9371,21 +8571,20 @@ void assign_member_variable_to_value(const T &obj, basic_value<TC> &v,
 namespace toml {
 namespace detail {
 
-template <typename TypeConfig> class context {
-public:
-  explicit context(const spec &toml_spec) : toml_spec_(toml_spec), errors_{} {}
+template <typename TypeConfig>
+class context {
+ public:
+  explicit context(const spec& toml_spec) : toml_spec_(toml_spec), errors_{} {}
 
   bool has_error() const noexcept { return !errors_.empty(); }
 
-  std::vector<error_info> const &errors() const noexcept { return errors_; }
+  std::vector<error_info> const& errors() const noexcept { return errors_; }
 
-  semantic_version &toml_version() noexcept { return toml_spec_.version; }
-  semantic_version const &toml_version() const noexcept {
-    return toml_spec_.version;
-  }
+  semantic_version& toml_version() noexcept { return toml_spec_.version; }
+  semantic_version const& toml_version() const noexcept { return toml_spec_.version; }
 
-  spec &toml_spec() noexcept { return toml_spec_; }
-  spec const &toml_spec() const noexcept { return toml_spec_; }
+  spec& toml_spec() noexcept { return toml_spec_; }
+  spec const& toml_spec() const noexcept { return toml_spec_; }
 
   void report_error(error_info err) { this->errors_.push_back(std::move(err)); }
 
@@ -9396,13 +8595,13 @@ public:
     return e;
   }
 
-private:
+ private:
   spec toml_spec_;
   std::vector<error_info> errors_;
 };
 
-} // namespace detail
-} // namespace toml
+}  // namespace detail
+}  // namespace toml
 
 #if defined(TOML11_COMPILE_SOURCES)
 namespace toml {
@@ -9411,11 +8610,11 @@ struct ordered_type_config;
 namespace detail {
 extern template class context<::toml::type_config>;
 extern template class context<::toml::ordered_type_config>;
-} // namespace detail
-} // namespace toml
-#endif // TOML11_COMPILE_SOURCES
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_COMPILE_SOURCES
 
-#endif // TOML11_CONTEXT_HPP
+#endif  // TOML11_CONTEXT_HPP
 #ifndef TOML11_SCANNER_HPP
 #define TOML11_SCANNER_HPP
 
@@ -9435,85 +8634,79 @@ namespace toml {
 namespace detail {
 
 class scanner_base {
-public:
+ public:
   virtual ~scanner_base() = default;
-  virtual region scan(location &loc) const = 0;
-  virtual scanner_base *clone() const = 0;
+  virtual region scan(location& loc) const = 0;
+  virtual scanner_base* clone() const = 0;
 
   // returns expected character or set of characters or literal.
   // to show the error location, it changes loc (in `sequence`, especially).
-  virtual std::string expected_chars(location &loc) const = 0;
+  virtual std::string expected_chars(location& loc) const = 0;
   virtual std::string name() const = 0;
 };
 
 // make `scanner*` copyable
 struct scanner_storage {
-  template <
-      typename Scanner,
-      cxx::enable_if_t<
-          std::is_base_of<scanner_base, cxx::remove_cvref_t<Scanner>>::value,
-          std::nullptr_t> = nullptr>
-  explicit scanner_storage(Scanner &&s)
-      : scanner_(cxx::make_unique<cxx::remove_cvref_t<Scanner>>(
-            std::forward<Scanner>(s))) {}
+  template <typename Scanner, cxx::enable_if_t<std::is_base_of<scanner_base, cxx::remove_cvref_t<Scanner>>::value,
+                                               std::nullptr_t> = nullptr>
+  explicit scanner_storage(Scanner&& s)
+      : scanner_(cxx::make_unique<cxx::remove_cvref_t<Scanner>>(std::forward<Scanner>(s))) {}
   ~scanner_storage() = default;
 
-  scanner_storage(const scanner_storage &other);
-  scanner_storage &operator=(const scanner_storage &other);
-  scanner_storage(scanner_storage &&) = default;
-  scanner_storage &operator=(scanner_storage &&) = default;
+  scanner_storage(const scanner_storage& other);
+  scanner_storage& operator=(const scanner_storage& other);
+  scanner_storage(scanner_storage&&) = default;
+  scanner_storage& operator=(scanner_storage&&) = default;
 
   bool is_ok() const noexcept { return static_cast<bool>(scanner_); }
 
-  region scan(location &loc) const;
+  region scan(location& loc) const;
 
-  std::string expected_chars(location &loc) const;
+  std::string expected_chars(location& loc) const;
 
-  scanner_base &get() const noexcept;
+  scanner_base& get() const noexcept;
 
   std::string name() const;
 
-private:
+ private:
   std::unique_ptr<scanner_base> scanner_;
 };
 
 // ----------------------------------------------------------------------------
 
 class character final : public scanner_base {
-public:
+ public:
   using char_type = location::char_type;
 
-public:
+ public:
   explicit character(const char_type c) noexcept : value_(c) {}
   ~character() override = default;
 
-  region scan(location &loc) const override;
+  region scan(location& loc) const override;
 
-  std::string expected_chars(location &) const override;
+  std::string expected_chars(location&) const override;
 
-  scanner_base *clone() const override;
+  scanner_base* clone() const override;
 
   std::string name() const override;
 
-private:
+ private:
   char_type value_;
 };
 
 // ----------------------------------------------------------------------------
 
 class character_either final : public scanner_base {
-public:
+ public:
   using char_type = location::char_type;
 
-public:
-  explicit character_either(std::initializer_list<char_type> cs) noexcept
-      : chars_(std::move(cs)) {
+ public:
+  explicit character_either(std::initializer_list<char_type> cs) noexcept : chars_(std::move(cs)) {
     assert(!this->chars_.empty());
   }
 
   template <std::size_t N>
-  explicit character_either(const char (&cs)[N]) noexcept
-      : chars_(N - 1, '\0') {
+  explicit character_either(const char (&cs)[N]) noexcept : chars_(N - 1, '\0') {
     static_assert(N >= 1, "");
     for (std::size_t i = 0; i + 1 < N; ++i) {
       chars_.at(i) = char_type(cs[i]);
@@ -9521,40 +8714,39 @@ public:
   }
   ~character_either() override = default;
 
-  region scan(location &loc) const override;
+  region scan(location& loc) const override;
 
-  std::string expected_chars(location &) const override;
+  std::string expected_chars(location&) const override;
 
-  scanner_base *clone() const override;
+  scanner_base* clone() const override;
 
   void push_back(const char_type c);
 
   std::string name() const override;
 
-private:
+ private:
   std::vector<char_type> chars_;
 };
 
 // ----------------------------------------------------------------------------
 
 class character_in_range final : public scanner_base {
-public:
+ public:
   using char_type = location::char_type;
 
-public:
-  explicit character_in_range(const char_type from, const char_type to) noexcept
-      : from_(from), to_(to) {}
+ public:
+  explicit character_in_range(const char_type from, const char_type to) noexcept : from_(from), to_(to) {}
   ~character_in_range() override = default;
 
-  region scan(location &loc) const override;
+  region scan(location& loc) const override;
 
-  std::string expected_chars(location &) const override;
+  std::string expected_chars(location&) const override;
 
-  scanner_base *clone() const override;
+  scanner_base* clone() const override;
 
   std::string name() const override;
 
-private:
+ private:
   char_type from_;
   char_type to_;
 };
@@ -9562,136 +8754,140 @@ private:
 // ----------------------------------------------------------------------------
 
 class literal final : public scanner_base {
-public:
+ public:
   using char_type = location::char_type;
 
-public:
+ public:
   template <std::size_t N>
   explicit literal(const char (&cs)[N]) noexcept
-      : value_(cs), size_(N - 1) // remove null character at the end
+      : value_(cs),
+        size_(N - 1)  // remove null character at the end
   {}
   ~literal() override = default;
 
-  region scan(location &loc) const override;
+  region scan(location& loc) const override;
 
-  std::string expected_chars(location &) const override;
+  std::string expected_chars(location&) const override;
 
-  scanner_base *clone() const override;
+  scanner_base* clone() const override;
 
   std::string name() const override;
 
-private:
-  const char *value_;
+ private:
+  const char* value_;
   std::size_t size_;
 };
 
 // ----------------------------------------------------------------------------
 
 class sequence final : public scanner_base {
-public:
+ public:
   using char_type = location::char_type;
 
-public:
-  template <typename... Ts> explicit sequence(Ts &&... args) {
+ public:
+  template <typename... Ts>
+  explicit sequence(Ts&&... args) {
     push_back_all(std::forward<Ts>(args)...);
   }
-  sequence(const sequence &) = default;
-  sequence(sequence &&) = default;
-  sequence &operator=(const sequence &) = default;
-  sequence &operator=(sequence &&) = default;
+  sequence(const sequence&) = default;
+  sequence(sequence&&) = default;
+  sequence& operator=(const sequence&) = default;
+  sequence& operator=(sequence&&) = default;
   ~sequence() override = default;
 
-  region scan(location &loc) const override;
+  region scan(location& loc) const override;
 
-  std::string expected_chars(location &loc) const override;
+  std::string expected_chars(location& loc) const override;
 
-  scanner_base *clone() const override;
+  scanner_base* clone() const override;
 
-  template <typename Scanner> void push_back(Scanner &&other_scanner) {
+  template <typename Scanner>
+  void push_back(Scanner&& other_scanner) {
     this->others_.emplace_back(std::forward<Scanner>(other_scanner));
   }
 
   std::string name() const override;
 
-private:
+ private:
   void push_back_all() { return; }
   template <typename T, typename... Ts>
-  void push_back_all(T &&head, Ts &&... args) {
+  void push_back_all(T&& head, Ts&&... args) {
     others_.emplace_back(std::forward<T>(head));
     push_back_all(std::forward<Ts>(args)...);
     return;
   }
 
-private:
+ private:
   std::vector<scanner_storage> others_;
 };
 
 // ----------------------------------------------------------------------------
 
 class either final : public scanner_base {
-public:
+ public:
   using char_type = location::char_type;
 
-public:
-  template <typename... Ts> explicit either(Ts &&... args) {
+ public:
+  template <typename... Ts>
+  explicit either(Ts&&... args) {
     push_back_all(std::forward<Ts>(args)...);
   }
-  either(const either &) = default;
-  either(either &&) = default;
-  either &operator=(const either &) = default;
-  either &operator=(either &&) = default;
+  either(const either&) = default;
+  either(either&&) = default;
+  either& operator=(const either&) = default;
+  either& operator=(either&&) = default;
   ~either() override = default;
 
-  region scan(location &loc) const override;
+  region scan(location& loc) const override;
 
-  std::string expected_chars(location &loc) const override;
+  std::string expected_chars(location& loc) const override;
 
-  scanner_base *clone() const override;
+  scanner_base* clone() const override;
 
-  template <typename Scanner> void push_back(Scanner &&other_scanner) {
+  template <typename Scanner>
+  void push_back(Scanner&& other_scanner) {
     this->others_.emplace_back(std::forward<Scanner>(other_scanner));
   }
 
   std::string name() const override;
 
-private:
+ private:
   void push_back_all() { return; }
   template <typename T, typename... Ts>
-  void push_back_all(T &&head, Ts &&... args) {
+  void push_back_all(T&& head, Ts&&... args) {
     others_.emplace_back(std::forward<T>(head));
     push_back_all(std::forward<Ts>(args)...);
     return;
   }
 
-private:
+ private:
   std::vector<scanner_storage> others_;
 };
 
 // ----------------------------------------------------------------------------
 
 class repeat_exact final : public scanner_base {
-public:
+ public:
   using char_type = location::char_type;
 
-public:
+ public:
   template <typename Scanner>
-  repeat_exact(const std::size_t length, Scanner &&other)
-      : length_(length), other_(std::forward<Scanner>(other)) {}
-  repeat_exact(const repeat_exact &) = default;
-  repeat_exact(repeat_exact &&) = default;
-  repeat_exact &operator=(const repeat_exact &) = default;
-  repeat_exact &operator=(repeat_exact &&) = default;
+  repeat_exact(const std::size_t length, Scanner&& other) : length_(length), other_(std::forward<Scanner>(other)) {}
+  repeat_exact(const repeat_exact&) = default;
+  repeat_exact(repeat_exact&&) = default;
+  repeat_exact& operator=(const repeat_exact&) = default;
+  repeat_exact& operator=(repeat_exact&&) = default;
   ~repeat_exact() override = default;
 
-  region scan(location &loc) const override;
+  region scan(location& loc) const override;
 
-  std::string expected_chars(location &loc) const override;
+  std::string expected_chars(location& loc) const override;
 
-  scanner_base *clone() const override;
+  scanner_base* clone() const override;
 
   std::string name() const override;
 
-private:
+ private:
   std::size_t length_;
   scanner_storage other_;
 };
@@ -9699,28 +8895,27 @@ private:
 // ----------------------------------------------------------------------------
 
 class repeat_at_least final : public scanner_base {
-public:
+ public:
   using char_type = location::char_type;
 
-public:
+ public:
   template <typename Scanner>
-  repeat_at_least(const std::size_t length, Scanner &&s)
-      : length_(length), other_(std::forward<Scanner>(s)) {}
-  repeat_at_least(const repeat_at_least &) = default;
-  repeat_at_least(repeat_at_least &&) = default;
-  repeat_at_least &operator=(const repeat_at_least &) = default;
-  repeat_at_least &operator=(repeat_at_least &&) = default;
+  repeat_at_least(const std::size_t length, Scanner&& s) : length_(length), other_(std::forward<Scanner>(s)) {}
+  repeat_at_least(const repeat_at_least&) = default;
+  repeat_at_least(repeat_at_least&&) = default;
+  repeat_at_least& operator=(const repeat_at_least&) = default;
+  repeat_at_least& operator=(repeat_at_least&&) = default;
   ~repeat_at_least() override = default;
 
-  region scan(location &loc) const override;
+  region scan(location& loc) const override;
 
-  std::string expected_chars(location &loc) const override;
+  std::string expected_chars(location& loc) const override;
 
-  scanner_base *clone() const override;
+  scanner_base* clone() const override;
 
   std::string name() const override;
 
-private:
+ private:
   std::size_t length_;
   scanner_storage other_;
 };
@@ -9728,33 +8923,33 @@ private:
 // ----------------------------------------------------------------------------
 
 class maybe final : public scanner_base {
-public:
+ public:
   using char_type = location::char_type;
 
-public:
+ public:
   template <typename Scanner>
-  explicit maybe(Scanner &&s) : other_(std::forward<Scanner>(s)) {}
-  maybe(const maybe &) = default;
-  maybe(maybe &&) = default;
-  maybe &operator=(const maybe &) = default;
-  maybe &operator=(maybe &&) = default;
+  explicit maybe(Scanner&& s) : other_(std::forward<Scanner>(s)) {}
+  maybe(const maybe&) = default;
+  maybe(maybe&&) = default;
+  maybe& operator=(const maybe&) = default;
+  maybe& operator=(maybe&&) = default;
   ~maybe() override = default;
 
-  region scan(location &loc) const override;
+  region scan(location& loc) const override;
 
-  std::string expected_chars(location &) const override;
+  std::string expected_chars(location&) const override;
 
-  scanner_base *clone() const override;
+  scanner_base* clone() const override;
 
   std::string name() const override;
 
-private:
+ private:
   scanner_storage other_;
 };
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_SCANNER_FWD_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_SCANNER_FWD_HPP
 
 #if !defined(TOML11_COMPILE_SOURCES)
 #ifndef TOML11_SCANNER_IMPL_HPP
@@ -9763,14 +8958,12 @@ private:
 namespace toml {
 namespace detail {
 
-TOML11_INLINE scanner_storage::scanner_storage(const scanner_storage &other)
-    : scanner_(nullptr) {
+TOML11_INLINE scanner_storage::scanner_storage(const scanner_storage& other) : scanner_(nullptr) {
   if (other.is_ok()) {
     scanner_.reset(other.get().clone());
   }
 }
-TOML11_INLINE scanner_storage &
-scanner_storage::operator=(const scanner_storage &other) {
+TOML11_INLINE scanner_storage& scanner_storage::operator=(const scanner_storage& other) {
   if (this == std::addressof(other)) {
     return *this;
   }
@@ -9780,17 +8973,17 @@ scanner_storage::operator=(const scanner_storage &other) {
   return *this;
 }
 
-TOML11_INLINE region scanner_storage::scan(location &loc) const {
+TOML11_INLINE region scanner_storage::scan(location& loc) const {
   assert(this->is_ok());
   return this->scanner_->scan(loc);
 }
 
-TOML11_INLINE std::string scanner_storage::expected_chars(location &loc) const {
+TOML11_INLINE std::string scanner_storage::expected_chars(location& loc) const {
   assert(this->is_ok());
   return this->scanner_->expected_chars(loc);
 }
 
-TOML11_INLINE scanner_base &scanner_storage::get() const noexcept {
+TOML11_INLINE scanner_base& scanner_storage::get() const noexcept {
   assert(this->is_ok());
   return *scanner_;
 }
@@ -9802,7 +8995,7 @@ TOML11_INLINE std::string scanner_storage::name() const {
 
 // ----------------------------------------------------------------------------
 
-TOML11_INLINE region character::scan(location &loc) const {
+TOML11_INLINE region character::scan(location& loc) const {
   if (loc.eof()) {
     return region{};
   }
@@ -9815,21 +9008,15 @@ TOML11_INLINE region character::scan(location &loc) const {
   return region{};
 }
 
-TOML11_INLINE std::string character::expected_chars(location &) const {
-  return show_char(value_);
-}
+TOML11_INLINE std::string character::expected_chars(location&) const { return show_char(value_); }
 
-TOML11_INLINE scanner_base *character::clone() const {
-  return new character(*this);
-}
+TOML11_INLINE scanner_base* character::clone() const { return new character(*this); }
 
-TOML11_INLINE std::string character::name() const {
-  return "character{" + show_char(value_) + "}";
-}
+TOML11_INLINE std::string character::name() const { return "character{" + show_char(value_) + "}"; }
 
 // ----------------------------------------------------------------------------
 
-TOML11_INLINE region character_either::scan(location &loc) const {
+TOML11_INLINE region character_either::scan(location& loc) const {
   if (loc.eof()) {
     return region{};
   }
@@ -9844,7 +9031,7 @@ TOML11_INLINE region character_either::scan(location &loc) const {
   return region{};
 }
 
-TOML11_INLINE std::string character_either::expected_chars(location &) const {
+TOML11_INLINE std::string character_either::expected_chars(location&) const {
   assert(!chars_.empty());
 
   std::string expected;
@@ -9866,13 +9053,9 @@ TOML11_INLINE std::string character_either::expected_chars(location &) const {
   return expected;
 }
 
-TOML11_INLINE scanner_base *character_either::clone() const {
-  return new character_either(*this);
-}
+TOML11_INLINE scanner_base* character_either::clone() const { return new character_either(*this); }
 
-TOML11_INLINE void character_either::push_back(const char_type c) {
-  chars_.push_back(c);
-}
+TOML11_INLINE void character_either::push_back(const char_type c) { chars_.push_back(c); }
 
 TOML11_INLINE std::string character_either::name() const {
   std::string n("character_either{");
@@ -9891,7 +9074,7 @@ TOML11_INLINE std::string character_either::name() const {
 // ----------------------------------------------------------------------------
 // character_in_range
 
-TOML11_INLINE region character_in_range::scan(location &loc) const {
+TOML11_INLINE region character_in_range::scan(location& loc) const {
   if (loc.eof()) {
     return region{};
   }
@@ -9905,7 +9088,7 @@ TOML11_INLINE region character_in_range::scan(location &loc) const {
   return region{};
 }
 
-TOML11_INLINE std::string character_in_range::expected_chars(location &) const {
+TOML11_INLINE std::string character_in_range::expected_chars(location&) const {
   std::string expected("from `");
   expected += show_char(from_);
   expected += "` to `";
@@ -9914,9 +9097,7 @@ TOML11_INLINE std::string character_in_range::expected_chars(location &) const {
   return expected;
 }
 
-TOML11_INLINE scanner_base *character_in_range::clone() const {
-  return new character_in_range(*this);
-}
+TOML11_INLINE scanner_base* character_in_range::clone() const { return new character_in_range(*this); }
 
 TOML11_INLINE std::string character_in_range::name() const {
   return "character_in_range{" + show_char(from_) + "," + show_char(to_) + "}";
@@ -9925,7 +9106,7 @@ TOML11_INLINE std::string character_in_range::name() const {
 // ----------------------------------------------------------------------------
 // literal
 
-TOML11_INLINE region literal::scan(location &loc) const {
+TOML11_INLINE region literal::scan(location& loc) const {
   const auto first = loc;
   for (std::size_t i = 0; i < size_; ++i) {
     if (loc.eof() || char_type(value_[i]) != loc.current()) {
@@ -9937,24 +9118,18 @@ TOML11_INLINE region literal::scan(location &loc) const {
   return region(first, loc);
 }
 
-TOML11_INLINE std::string literal::expected_chars(location &) const {
-  return std::string(value_);
-}
+TOML11_INLINE std::string literal::expected_chars(location&) const { return std::string(value_); }
 
-TOML11_INLINE scanner_base *literal::clone() const {
-  return new literal(*this);
-}
+TOML11_INLINE scanner_base* literal::clone() const { return new literal(*this); }
 
-TOML11_INLINE std::string literal::name() const {
-  return std::string("literal{") + std::string(value_, size_) + "}";
-}
+TOML11_INLINE std::string literal::name() const { return std::string("literal{") + std::string(value_, size_) + "}"; }
 
 // ----------------------------------------------------------------------------
 // sequence
 
-TOML11_INLINE region sequence::scan(location &loc) const {
+TOML11_INLINE region sequence::scan(location& loc) const {
   const auto first = loc;
-  for (const auto &other : others_) {
+  for (const auto& other : others_) {
     const auto reg = other.scan(loc);
     if (!reg.is_ok()) {
       loc = first;
@@ -9964,25 +9139,23 @@ TOML11_INLINE region sequence::scan(location &loc) const {
   return region(first, loc);
 }
 
-TOML11_INLINE std::string sequence::expected_chars(location &loc) const {
+TOML11_INLINE std::string sequence::expected_chars(location& loc) const {
   const auto first = loc;
-  for (const auto &other : others_) {
+  for (const auto& other : others_) {
     const auto reg = other.scan(loc);
     if (!reg.is_ok()) {
       return other.expected_chars(loc);
     }
   }
   assert(false);
-  return ""; // XXX
+  return "";  // XXX
 }
 
-TOML11_INLINE scanner_base *sequence::clone() const {
-  return new sequence(*this);
-}
+TOML11_INLINE scanner_base* sequence::clone() const { return new sequence(*this); }
 
 TOML11_INLINE std::string sequence::name() const {
   std::string n("sequence{");
-  for (const auto &other : others_) {
+  for (const auto& other : others_) {
     n += other.name();
     n += ", ";
   }
@@ -9997,8 +9170,8 @@ TOML11_INLINE std::string sequence::name() const {
 // ----------------------------------------------------------------------------
 // either
 
-TOML11_INLINE region either::scan(location &loc) const {
-  for (const auto &other : others_) {
+TOML11_INLINE region either::scan(location& loc) const {
+  for (const auto& other : others_) {
     const auto reg = other.scan(loc);
     if (reg.is_ok()) {
       return reg;
@@ -10007,7 +9180,7 @@ TOML11_INLINE region either::scan(location &loc) const {
   return region{};
 }
 
-TOML11_INLINE std::string either::expected_chars(location &loc) const {
+TOML11_INLINE std::string either::expected_chars(location& loc) const {
   assert(!others_.empty());
 
   std::string expected = others_.at(0).expected_chars(loc);
@@ -10026,11 +9199,11 @@ TOML11_INLINE std::string either::expected_chars(location &loc) const {
   return expected;
 }
 
-TOML11_INLINE scanner_base *either::clone() const { return new either(*this); }
+TOML11_INLINE scanner_base* either::clone() const { return new either(*this); }
 
 TOML11_INLINE std::string either::name() const {
   std::string n("either{");
-  for (const auto &other : others_) {
+  for (const auto& other : others_) {
     n += other.name();
     n += ", ";
   }
@@ -10045,7 +9218,7 @@ TOML11_INLINE std::string either::name() const {
 // ----------------------------------------------------------------------------
 // repeat_exact
 
-TOML11_INLINE region repeat_exact::scan(location &loc) const {
+TOML11_INLINE region repeat_exact::scan(location& loc) const {
   const auto first = loc;
   for (std::size_t i = 0; i < length_; ++i) {
     const auto reg = other_.scan(loc);
@@ -10057,7 +9230,7 @@ TOML11_INLINE region repeat_exact::scan(location &loc) const {
   return region(first, loc);
 }
 
-TOML11_INLINE std::string repeat_exact::expected_chars(location &loc) const {
+TOML11_INLINE std::string repeat_exact::expected_chars(location& loc) const {
   for (std::size_t i = 0; i < length_; ++i) {
     const auto reg = other_.scan(loc);
     if (!reg.is_ok()) {
@@ -10068,9 +9241,7 @@ TOML11_INLINE std::string repeat_exact::expected_chars(location &loc) const {
   return "";
 }
 
-TOML11_INLINE scanner_base *repeat_exact::clone() const {
-  return new repeat_exact(*this);
-}
+TOML11_INLINE scanner_base* repeat_exact::clone() const { return new repeat_exact(*this); }
 
 TOML11_INLINE std::string repeat_exact::name() const {
   return "repeat_exact{" + std::to_string(length_) + ", " + other_.name() + "}";
@@ -10079,7 +9250,7 @@ TOML11_INLINE std::string repeat_exact::name() const {
 // ----------------------------------------------------------------------------
 // repeat_at_least
 
-TOML11_INLINE region repeat_at_least::scan(location &loc) const {
+TOML11_INLINE region repeat_at_least::scan(location& loc) const {
   const auto first = loc;
   for (std::size_t i = 0; i < length_; ++i) {
     const auto reg = other_.scan(loc);
@@ -10099,7 +9270,7 @@ TOML11_INLINE region repeat_at_least::scan(location &loc) const {
   return region(first, loc);
 }
 
-TOML11_INLINE std::string repeat_at_least::expected_chars(location &loc) const {
+TOML11_INLINE std::string repeat_at_least::expected_chars(location& loc) const {
   for (std::size_t i = 0; i < length_; ++i) {
     const auto reg = other_.scan(loc);
     if (!reg.is_ok()) {
@@ -10110,19 +9281,16 @@ TOML11_INLINE std::string repeat_at_least::expected_chars(location &loc) const {
   return "";
 }
 
-TOML11_INLINE scanner_base *repeat_at_least::clone() const {
-  return new repeat_at_least(*this);
-}
+TOML11_INLINE scanner_base* repeat_at_least::clone() const { return new repeat_at_least(*this); }
 
 TOML11_INLINE std::string repeat_at_least::name() const {
-  return "repeat_at_least{" + std::to_string(length_) + ", " + other_.name() +
-         "}";
+  return "repeat_at_least{" + std::to_string(length_) + ", " + other_.name() + "}";
 }
 
 // ----------------------------------------------------------------------------
 // maybe
 
-TOML11_INLINE region maybe::scan(location &loc) const {
+TOML11_INLINE region maybe::scan(location& loc) const {
   const auto first = loc;
   const auto reg = other_.scan(loc);
   if (!reg.is_ok()) {
@@ -10131,20 +9299,18 @@ TOML11_INLINE region maybe::scan(location &loc) const {
   return region(first, loc);
 }
 
-TOML11_INLINE std::string maybe::expected_chars(location &) const { return ""; }
+TOML11_INLINE std::string maybe::expected_chars(location&) const { return ""; }
 
-TOML11_INLINE scanner_base *maybe::clone() const { return new maybe(*this); }
+TOML11_INLINE scanner_base* maybe::clone() const { return new maybe(*this); }
 
-TOML11_INLINE std::string maybe::name() const {
-  return "maybe{" + other_.name() + "}";
-}
+TOML11_INLINE std::string maybe::name() const { return "maybe{" + other_.name() + "}"; }
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_SCANNER_IMPL_HPP
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_SCANNER_IMPL_HPP
 #endif
 
-#endif // TOML11_SCANNER_HPP
+#endif  // TOML11_SCANNER_HPP
 #ifndef TOML11_SYNTAX_HPP
 #define TOML11_SYNTAX_HPP
 
@@ -10162,259 +9328,247 @@ using char_type = location::char_type;
 
 // avoid redundant representation and out-of-unicode sequence
 
-character_in_range utf8_1byte(const spec &);
-sequence utf8_2bytes(const spec &);
-sequence utf8_3bytes(const spec &);
-sequence utf8_4bytes(const spec &);
+character_in_range utf8_1byte(const spec&);
+sequence utf8_2bytes(const spec&);
+sequence utf8_3bytes(const spec&);
+sequence utf8_4bytes(const spec&);
 
 class non_ascii final : public scanner_base {
-public:
+ public:
   using char_type = location::char_type;
 
-public:
-  explicit non_ascii(const spec &s) noexcept;
+ public:
+  explicit non_ascii(const spec& s) noexcept;
   ~non_ascii() override = default;
 
-  region scan(location &loc) const override { return scanner_.scan(loc); }
+  region scan(location& loc) const override { return scanner_.scan(loc); }
 
-  std::string expected_chars(location &) const override {
-    return "non-ascii utf-8 bytes";
-  }
+  std::string expected_chars(location&) const override { return "non-ascii utf-8 bytes"; }
 
-  scanner_base *clone() const override { return new non_ascii(*this); }
+  scanner_base* clone() const override { return new non_ascii(*this); }
 
   std::string name() const override { return "non_ascii"; }
 
-private:
+ private:
   either scanner_;
 };
 
 // ===========================================================================
 // Whitespace
 
-character_either wschar(const spec &);
+character_either wschar(const spec&);
 
-repeat_at_least ws(const spec &s);
+repeat_at_least ws(const spec& s);
 
 // ===========================================================================
 // Newline
 
-either newline(const spec &);
+either newline(const spec&);
 
 // ===========================================================================
 // Comments
 
-either allowed_comment_char(const spec &s);
+either allowed_comment_char(const spec& s);
 
 // XXX Note that it does not take newline
-sequence comment(const spec &s);
+sequence comment(const spec& s);
 
 // ===========================================================================
 // Boolean
 
-either boolean(const spec &);
+either boolean(const spec&);
 
 // ===========================================================================
 // Integer
 
 class digit final : public scanner_base {
-public:
+ public:
   using char_type = location::char_type;
 
-public:
-  explicit digit(const spec &) noexcept;
+ public:
+  explicit digit(const spec&) noexcept;
   ~digit() override = default;
 
-  region scan(location &loc) const override { return scanner_.scan(loc); }
+  region scan(location& loc) const override { return scanner_.scan(loc); }
 
-  std::string expected_chars(location &) const override {
-    return "digit [0-9]";
-  }
+  std::string expected_chars(location&) const override { return "digit [0-9]"; }
 
-  scanner_base *clone() const override { return new digit(*this); }
+  scanner_base* clone() const override { return new digit(*this); }
 
   std::string name() const override { return "digit"; }
 
-private:
+ private:
   character_in_range scanner_;
 };
 
 class alpha final : public scanner_base {
-public:
+ public:
   using char_type = location::char_type;
 
-public:
-  explicit alpha(const spec &) noexcept;
+ public:
+  explicit alpha(const spec&) noexcept;
   ~alpha() override = default;
 
-  region scan(location &loc) const override { return scanner_.scan(loc); }
+  region scan(location& loc) const override { return scanner_.scan(loc); }
 
-  std::string expected_chars(location &) const override {
-    return "alpha [a-zA-Z]";
-  }
+  std::string expected_chars(location&) const override { return "alpha [a-zA-Z]"; }
 
-  scanner_base *clone() const override { return new alpha(*this); }
+  scanner_base* clone() const override { return new alpha(*this); }
 
   std::string name() const override { return "alpha"; }
 
-private:
+ private:
   either scanner_;
 };
 
 class hexdig final : public scanner_base {
-public:
+ public:
   using char_type = location::char_type;
 
-public:
-  explicit hexdig(const spec &s) noexcept;
+ public:
+  explicit hexdig(const spec& s) noexcept;
   ~hexdig() override = default;
 
-  region scan(location &loc) const override { return scanner_.scan(loc); }
+  region scan(location& loc) const override { return scanner_.scan(loc); }
 
-  std::string expected_chars(location &) const override {
-    return "hex [0-9a-fA-F]";
-  }
+  std::string expected_chars(location&) const override { return "hex [0-9a-fA-F]"; }
 
-  scanner_base *clone() const override { return new hexdig(*this); }
+  scanner_base* clone() const override { return new hexdig(*this); }
 
   std::string name() const override { return "hexdig"; }
 
-private:
+ private:
   either scanner_;
 };
 
-sequence num_suffix(const spec &s);
+sequence num_suffix(const spec& s);
 
-sequence dec_int(const spec &s);
-sequence hex_int(const spec &s);
-sequence oct_int(const spec &);
-sequence bin_int(const spec &);
-either integer(const spec &s);
+sequence dec_int(const spec& s);
+sequence hex_int(const spec& s);
+sequence oct_int(const spec&);
+sequence bin_int(const spec&);
+either integer(const spec& s);
 
 // ===========================================================================
 // Floating
 
-sequence zero_prefixable_int(const spec &s);
-sequence fractional_part(const spec &s);
-sequence exponent_part(const spec &s);
-sequence hex_floating(const spec &s);
-either floating(const spec &s);
+sequence zero_prefixable_int(const spec& s);
+sequence fractional_part(const spec& s);
+sequence exponent_part(const spec& s);
+sequence hex_floating(const spec& s);
+either floating(const spec& s);
 
 // ===========================================================================
 // Datetime
 
-sequence local_date(const spec &s);
-sequence local_time(const spec &s);
-either time_offset(const spec &s);
-sequence full_time(const spec &s);
-character_either time_delim(const spec &);
-sequence local_datetime(const spec &s);
-sequence offset_datetime(const spec &s);
+sequence local_date(const spec& s);
+sequence local_time(const spec& s);
+either time_offset(const spec& s);
+sequence full_time(const spec& s);
+character_either time_delim(const spec&);
+sequence local_datetime(const spec& s);
+sequence offset_datetime(const spec& s);
 
 // ===========================================================================
 // String
 
-sequence escaped(const spec &s);
+sequence escaped(const spec& s);
 
-either basic_char(const spec &s);
+either basic_char(const spec& s);
 
-sequence basic_string(const spec &s);
+sequence basic_string(const spec& s);
 
 // ---------------------------------------------------------------------------
 // multiline string
 
-sequence escaped_newline(const spec &s);
-sequence ml_basic_string(const spec &s);
+sequence escaped_newline(const spec& s);
+sequence ml_basic_string(const spec& s);
 
 // ---------------------------------------------------------------------------
 // literal string
 
-either literal_char(const spec &s);
-sequence literal_string(const spec &s);
+either literal_char(const spec& s);
+sequence literal_string(const spec& s);
 
-sequence ml_literal_string(const spec &s);
+sequence ml_literal_string(const spec& s);
 
-either string(const spec &s);
+either string(const spec& s);
 
 // ===========================================================================
 // Keys
 
 // to keep `expected_chars` simple
 class non_ascii_key_char final : public scanner_base {
-public:
+ public:
   using char_type = location::char_type;
 
-private:
-  using in_range = character_in_range; // make definition short
+ private:
+  using in_range = character_in_range;  // make definition short
 
-public:
-  explicit non_ascii_key_char(const spec &s) noexcept;
+ public:
+  explicit non_ascii_key_char(const spec& s) noexcept;
   ~non_ascii_key_char() override = default;
 
-  region scan(location &loc) const override;
+  region scan(location& loc) const override;
 
-  std::string expected_chars(location &) const override {
-    return "bare key non-ASCII script";
-  }
+  std::string expected_chars(location&) const override { return "bare key non-ASCII script"; }
 
-  scanner_base *clone() const override { return new non_ascii_key_char(*this); }
+  scanner_base* clone() const override { return new non_ascii_key_char(*this); }
 
   std::string name() const override { return "non-ASCII bare key"; }
 
-private:
-  std::uint32_t read_utf8(location &loc) const;
+ private:
+  std::uint32_t read_utf8(location& loc) const;
 };
 
-repeat_at_least unquoted_key(const spec &s);
+repeat_at_least unquoted_key(const spec& s);
 
-either quoted_key(const spec &s);
+either quoted_key(const spec& s);
 
-either simple_key(const spec &s);
+either simple_key(const spec& s);
 
-sequence dot_sep(const spec &s);
+sequence dot_sep(const spec& s);
 
-sequence dotted_key(const spec &s);
+sequence dotted_key(const spec& s);
 
 class key final : public scanner_base {
-public:
+ public:
   using char_type = location::char_type;
 
-public:
-  explicit key(const spec &s) noexcept;
+ public:
+  explicit key(const spec& s) noexcept;
   ~key() override = default;
 
-  region scan(location &loc) const override { return scanner_.scan(loc); }
+  region scan(location& loc) const override { return scanner_.scan(loc); }
 
-  std::string expected_chars(location &) const override {
-    return "basic key([a-zA-Z0-9_-]) or quoted key(\" or ')";
-  }
+  std::string expected_chars(location&) const override { return "basic key([a-zA-Z0-9_-]) or quoted key(\" or ')"; }
 
-  scanner_base *clone() const override { return new key(*this); }
+  scanner_base* clone() const override { return new key(*this); }
 
   std::string name() const override { return "key"; }
 
-private:
+ private:
   either scanner_;
 };
 
-sequence keyval_sep(const spec &s);
+sequence keyval_sep(const spec& s);
 
 // ===========================================================================
 // Table key
 
-sequence std_table(const spec &s);
+sequence std_table(const spec& s);
 
-sequence array_table(const spec &s);
+sequence array_table(const spec& s);
 
 // ===========================================================================
 // extension: null
 
-literal null_value(const spec &);
+literal null_value(const spec&);
 
-} // namespace syntax
-} // namespace detail
-} // namespace toml
-#endif // TOML11_SYNTAX_FWD_HPP
+}  // namespace syntax
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_SYNTAX_FWD_HPP
 
 #if !defined(TOML11_COMPILE_SOURCES)
 #ifndef TOML11_SYNTAX_IMPL_HPP
@@ -10431,179 +9585,129 @@ using char_type = location::char_type;
 
 // avoid redundant representation and out-of-unicode sequence
 
-TOML11_INLINE character_in_range utf8_1byte(const spec &) {
-  return character_in_range(0x00, 0x7F);
+TOML11_INLINE character_in_range utf8_1byte(const spec&) { return character_in_range(0x00, 0x7F); }
+
+TOML11_INLINE sequence utf8_2bytes(const spec&) {
+  return sequence(character_in_range(0xC2, 0xDF), character_in_range(0x80, 0xBF));
 }
 
-TOML11_INLINE sequence utf8_2bytes(const spec &) {
-  return sequence(character_in_range(0xC2, 0xDF),
-                  character_in_range(0x80, 0xBF));
-}
-
-TOML11_INLINE sequence utf8_3bytes(const spec &) {
-  return sequence(/*1~2 bytes = */ either(
-                      sequence(character(0xE0), character_in_range(0xA0, 0xBF)),
-                      sequence(character_in_range(0xE1, 0xEC),
-                               character_in_range(0x80, 0xBF)),
-                      sequence(character(0xED), character_in_range(0x80, 0x9F)),
-                      sequence(character_in_range(0xEE, 0xEF),
-                               character_in_range(0x80, 0xBF))),
+TOML11_INLINE sequence utf8_3bytes(const spec&) {
+  return sequence(/*1~2 bytes = */ either(sequence(character(0xE0), character_in_range(0xA0, 0xBF)),
+                                          sequence(character_in_range(0xE1, 0xEC), character_in_range(0x80, 0xBF)),
+                                          sequence(character(0xED), character_in_range(0x80, 0x9F)),
+                                          sequence(character_in_range(0xEE, 0xEF), character_in_range(0x80, 0xBF))),
                   /*3rd byte = */ character_in_range(0x80, 0xBF));
 }
 
-TOML11_INLINE sequence utf8_4bytes(const spec &) {
+TOML11_INLINE sequence utf8_4bytes(const spec&) {
   return sequence(
-      /*1~2 bytes = */ either(
-          sequence(character(0xF0), character_in_range(0x90, 0xBF)),
-          sequence(character_in_range(0xF1, 0xF3),
-                   character_in_range(0x80, 0xBF)),
-          sequence(character(0xF4), character_in_range(0x80, 0x8F))),
+      /*1~2 bytes = */ either(sequence(character(0xF0), character_in_range(0x90, 0xBF)),
+                              sequence(character_in_range(0xF1, 0xF3), character_in_range(0x80, 0xBF)),
+                              sequence(character(0xF4), character_in_range(0x80, 0x8F))),
       character_in_range(0x80, 0xBF), character_in_range(0x80, 0xBF));
 }
 
-TOML11_INLINE non_ascii::non_ascii(const spec &s) noexcept
-    : scanner_(utf8_2bytes(s), utf8_3bytes(s), utf8_4bytes(s)) {}
+TOML11_INLINE non_ascii::non_ascii(const spec& s) noexcept : scanner_(utf8_2bytes(s), utf8_3bytes(s), utf8_4bytes(s)) {}
 
 // ===========================================================================
 // Whitespace
 
-TOML11_INLINE character_either wschar(const spec &) {
-  return character_either{char_type(' '), char_type('\t')};
-}
+TOML11_INLINE character_either wschar(const spec&) { return character_either{char_type(' '), char_type('\t')}; }
 
-TOML11_INLINE repeat_at_least ws(const spec &s) {
-  return repeat_at_least(0, wschar(s));
-}
+TOML11_INLINE repeat_at_least ws(const spec& s) { return repeat_at_least(0, wschar(s)); }
 
 // ===========================================================================
 // Newline
 
-TOML11_INLINE either newline(const spec &) {
-  return either(character(char_type('\n')), literal("\r\n"));
-}
+TOML11_INLINE either newline(const spec&) { return either(character(char_type('\n')), literal("\r\n")); }
 
 // ===========================================================================
 // Comments
 
-TOML11_INLINE either allowed_comment_char(const spec &s) {
+TOML11_INLINE either allowed_comment_char(const spec& s) {
   if (s.v1_1_0_allow_control_characters_in_comments) {
-    return either(character_in_range(0x01, 0x09),
-                  character_in_range(0x0E, 0x7F), non_ascii(s));
+    return either(character_in_range(0x01, 0x09), character_in_range(0x0E, 0x7F), non_ascii(s));
   } else {
-    return either(character(0x09), character_in_range(0x20, 0x7E),
-                  non_ascii(s));
+    return either(character(0x09), character_in_range(0x20, 0x7E), non_ascii(s));
   }
 }
 
 // XXX Note that it does not take newline
-TOML11_INLINE sequence comment(const spec &s) {
-  return sequence(character(char_type('#')),
-                  repeat_at_least(0, allowed_comment_char(s)));
+TOML11_INLINE sequence comment(const spec& s) {
+  return sequence(character(char_type('#')), repeat_at_least(0, allowed_comment_char(s)));
 }
 
 // ===========================================================================
 // Boolean
 
-TOML11_INLINE either boolean(const spec &) {
-  return either(literal("true"), literal("false"));
-}
+TOML11_INLINE either boolean(const spec&) { return either(literal("true"), literal("false")); }
 
 // ===========================================================================
 // Integer
 
-TOML11_INLINE digit::digit(const spec &) noexcept
-    : scanner_(char_type('0'), char_type('9')) {}
+TOML11_INLINE digit::digit(const spec&) noexcept : scanner_(char_type('0'), char_type('9')) {}
 
-TOML11_INLINE alpha::alpha(const spec &) noexcept
-    : scanner_(character_in_range(char_type('a'), char_type('z')),
-               character_in_range(char_type('A'), char_type('Z'))) {}
+TOML11_INLINE alpha::alpha(const spec&) noexcept
+    : scanner_(character_in_range(char_type('a'), char_type('z')), character_in_range(char_type('A'), char_type('Z'))) {
+}
 
-TOML11_INLINE hexdig::hexdig(const spec &s) noexcept
+TOML11_INLINE hexdig::hexdig(const spec& s) noexcept
     : scanner_(digit(s), character_in_range(char_type('a'), char_type('f')),
                character_in_range(char_type('A'), char_type('F'))) {}
 
 // non-digit-graph = ([a-zA-Z]|unicode mb char)
 // graph           = ([a-zA-Z0-9]|unicode mb char)
 // suffix          = _ non-digit-graph (graph | _graph)
-TOML11_INLINE sequence num_suffix(const spec &s) {
-  const auto non_digit_graph = [&s]() {
-    return either(alpha(s), non_ascii(s));
-  };
-  const auto graph = [&s]() {
-    return either(alpha(s), digit(s), non_ascii(s));
-  };
+TOML11_INLINE sequence num_suffix(const spec& s) {
+  const auto non_digit_graph = [&s]() { return either(alpha(s), non_ascii(s)); };
+  const auto graph = [&s]() { return either(alpha(s), digit(s), non_ascii(s)); };
 
-  return sequence(
-      character(char_type('_')), non_digit_graph(),
-      repeat_at_least(
-          0, either(sequence(character(char_type('_')), graph()), graph())));
+  return sequence(character(char_type('_')), non_digit_graph(),
+                  repeat_at_least(0, either(sequence(character(char_type('_')), graph()), graph())));
 }
 
-TOML11_INLINE sequence dec_int(const spec &s) {
-  const auto digit19 = []() {
-    return character_in_range(char_type('1'), char_type('9'));
-  };
+TOML11_INLINE sequence dec_int(const spec& s) {
+  const auto digit19 = []() { return character_in_range(char_type('1'), char_type('9')); };
   return sequence(
       maybe(character_either{char_type('-'), char_type('+')}),
-      either(
-          sequence(digit19(),
-                   repeat_at_least(
-                       1, either(digit(s), sequence(character(char_type('_')),
-                                                    digit(s))))),
-          digit(s)));
+      either(sequence(digit19(), repeat_at_least(1, either(digit(s), sequence(character(char_type('_')), digit(s))))),
+             digit(s)));
 }
 
-TOML11_INLINE sequence hex_int(const spec &s) {
-  return sequence(
-      literal("0x"), hexdig(s),
-      repeat_at_least(0, either(hexdig(s), sequence(character(char_type('_')),
-                                                    hexdig(s)))));
+TOML11_INLINE sequence hex_int(const spec& s) {
+  return sequence(literal("0x"), hexdig(s),
+                  repeat_at_least(0, either(hexdig(s), sequence(character(char_type('_')), hexdig(s)))));
 }
 
-TOML11_INLINE sequence oct_int(const spec &) {
-  const auto digit07 = []() {
-    return character_in_range(char_type('0'), char_type('7'));
-  };
-  return sequence(
-      literal("0o"), digit07(),
-      repeat_at_least(0, either(digit07(), sequence(character(char_type('_')),
-                                                    digit07()))));
+TOML11_INLINE sequence oct_int(const spec&) {
+  const auto digit07 = []() { return character_in_range(char_type('0'), char_type('7')); };
+  return sequence(literal("0o"), digit07(),
+                  repeat_at_least(0, either(digit07(), sequence(character(char_type('_')), digit07()))));
 }
 
-TOML11_INLINE sequence bin_int(const spec &) {
-  const auto digit01 = []() {
-    return character_either{char_type('0'), char_type('1')};
-  };
-  return sequence(
-      literal("0b"), digit01(),
-      repeat_at_least(0, either(digit01(), sequence(character(char_type('_')),
-                                                    digit01()))));
+TOML11_INLINE sequence bin_int(const spec&) {
+  const auto digit01 = []() { return character_either{char_type('0'), char_type('1')}; };
+  return sequence(literal("0b"), digit01(),
+                  repeat_at_least(0, either(digit01(), sequence(character(char_type('_')), digit01()))));
 }
 
-TOML11_INLINE either integer(const spec &s) {
-  return either(hex_int(s), oct_int(s), bin_int(s), dec_int(s));
-}
+TOML11_INLINE either integer(const spec& s) { return either(hex_int(s), oct_int(s), bin_int(s), dec_int(s)); }
 
 // ===========================================================================
 // Floating
 
-TOML11_INLINE sequence zero_prefixable_int(const spec &s) {
-  return sequence(
-      digit(s),
-      repeat_at_least(0, either(digit(s), sequence(character('_'), digit(s)))));
+TOML11_INLINE sequence zero_prefixable_int(const spec& s) {
+  return sequence(digit(s), repeat_at_least(0, either(digit(s), sequence(character('_'), digit(s)))));
 }
 
-TOML11_INLINE sequence fractional_part(const spec &s) {
-  return sequence(character('.'), zero_prefixable_int(s));
-}
+TOML11_INLINE sequence fractional_part(const spec& s) { return sequence(character('.'), zero_prefixable_int(s)); }
 
-TOML11_INLINE sequence exponent_part(const spec &s) {
+TOML11_INLINE sequence exponent_part(const spec& s) {
   return sequence(character_either{char_type('e'), char_type('E')},
-                  maybe(character_either{char_type('+'), char_type('-')}),
-                  zero_prefixable_int(s));
+                  maybe(character_either{char_type('+'), char_type('-')}), zero_prefixable_int(s));
 }
 
-TOML11_INLINE sequence hex_floating(const spec &s) {
+TOML11_INLINE sequence hex_floating(const spec& s) {
   // C99 hexfloat (%a)
   // [+-]? 0x ( [0-9a-fA-F]*\.[0-9a-fA-F]+ | [0-9a-fA-F]+\.? ) [pP] [+-]? [0-9]+
 
@@ -10612,80 +9716,61 @@ TOML11_INLINE sequence hex_floating(const spec &s) {
   // - 0x.(frac)p[+-](int)
   // - 0x(int)p[+-](int)
 
-  return sequence(
-      maybe(character_either{char_type('+'), char_type('-')}), character('0'),
-      character_either{char_type('x'), char_type('X')},
-      either(sequence(repeat_at_least(0, hexdig(s)), character('.'),
-                      repeat_at_least(1, hexdig(s))),
-             sequence(repeat_at_least(1, hexdig(s)), maybe(character('.')))),
-      character_either{char_type('p'), char_type('P')},
-      maybe(character_either{char_type('+'), char_type('-')}),
-      repeat_at_least(1, character_in_range('0', '9')));
+  return sequence(maybe(character_either{char_type('+'), char_type('-')}), character('0'),
+                  character_either{char_type('x'), char_type('X')},
+                  either(sequence(repeat_at_least(0, hexdig(s)), character('.'), repeat_at_least(1, hexdig(s))),
+                         sequence(repeat_at_least(1, hexdig(s)), maybe(character('.')))),
+                  character_either{char_type('p'), char_type('P')},
+                  maybe(character_either{char_type('+'), char_type('-')}),
+                  repeat_at_least(1, character_in_range('0', '9')));
 }
 
-TOML11_INLINE either floating(const spec &s) {
+TOML11_INLINE either floating(const spec& s) {
   return either(
-      sequence(dec_int(s),
-               either(exponent_part(s),
-                      sequence(fractional_part(s), maybe(exponent_part(s))))),
-      sequence(maybe(character_either{char_type('-'), char_type('+')}),
-               either(literal("inf"), literal("nan"))));
+      sequence(dec_int(s), either(exponent_part(s), sequence(fractional_part(s), maybe(exponent_part(s))))),
+      sequence(maybe(character_either{char_type('-'), char_type('+')}), either(literal("inf"), literal("nan"))));
 }
 
 // ===========================================================================
 // Datetime
 
-TOML11_INLINE sequence local_date(const spec &s) {
-  return sequence(repeat_exact(4, digit(s)), character('-'),
-                  repeat_exact(2, digit(s)), character('-'),
+TOML11_INLINE sequence local_date(const spec& s) {
+  return sequence(repeat_exact(4, digit(s)), character('-'), repeat_exact(2, digit(s)), character('-'),
                   repeat_exact(2, digit(s)));
 }
-TOML11_INLINE sequence local_time(const spec &s) {
-  auto time = sequence(repeat_exact(2, digit(s)), character(':'),
-                       repeat_exact(2, digit(s)));
+TOML11_INLINE sequence local_time(const spec& s) {
+  auto time = sequence(repeat_exact(2, digit(s)), character(':'), repeat_exact(2, digit(s)));
 
   if (s.v1_1_0_make_seconds_optional) {
-    time.push_back(maybe(sequence(
-        character(':'), repeat_exact(2, digit(s)),
-        maybe(sequence(character('.'), repeat_at_least(1, digit(s)))))));
+    time.push_back(maybe(sequence(character(':'), repeat_exact(2, digit(s)),
+                                  maybe(sequence(character('.'), repeat_at_least(1, digit(s)))))));
   } else {
     time.push_back(character(':'));
     time.push_back(repeat_exact(2, digit(s)));
-    time.push_back(
-        maybe(sequence(character('.'), repeat_at_least(1, digit(s)))));
+    time.push_back(maybe(sequence(character('.'), repeat_at_least(1, digit(s)))));
   }
 
   return time;
 }
-TOML11_INLINE either time_offset(const spec &s) {
-  return either(character_either{'Z', 'z'},
-                sequence(character_either{'+', '-'}, repeat_exact(2, digit(s)),
-                         character(':'), repeat_exact(2, digit(s))));
+TOML11_INLINE either time_offset(const spec& s) {
+  return either(character_either{'Z', 'z'}, sequence(character_either{'+', '-'}, repeat_exact(2, digit(s)),
+                                                     character(':'), repeat_exact(2, digit(s))));
 }
-TOML11_INLINE sequence full_time(const spec &s) {
-  return sequence(local_time(s), time_offset(s));
-}
-TOML11_INLINE character_either time_delim(const spec &) {
-  return character_either{'T', 't', ' '};
-}
-TOML11_INLINE sequence local_datetime(const spec &s) {
-  return sequence(local_date(s), time_delim(s), local_time(s));
-}
-TOML11_INLINE sequence offset_datetime(const spec &s) {
-  return sequence(local_date(s), time_delim(s), full_time(s));
-}
+TOML11_INLINE sequence full_time(const spec& s) { return sequence(local_time(s), time_offset(s)); }
+TOML11_INLINE character_either time_delim(const spec&) { return character_either{'T', 't', ' '}; }
+TOML11_INLINE sequence local_datetime(const spec& s) { return sequence(local_date(s), time_delim(s), local_time(s)); }
+TOML11_INLINE sequence offset_datetime(const spec& s) { return sequence(local_date(s), time_delim(s), full_time(s)); }
 
 // ===========================================================================
 // String
 
-TOML11_INLINE sequence escaped(const spec &s) {
+TOML11_INLINE sequence escaped(const spec& s) {
   character_either escape_char{'\"', '\\', 'b', 'f', 'n', 'r', 't'};
   if (s.v1_1_0_add_escape_sequence_e) {
     escape_char.push_back(char_type('e'));
   }
 
-  either escape_seq(std::move(escape_char),
-                    sequence(character('u'), repeat_exact(4, hexdig(s))),
+  either escape_seq(std::move(escape_char), sequence(character('u'), repeat_exact(4, hexdig(s))),
                     sequence(character('U'), repeat_exact(8, hexdig(s))));
 
   if (s.v1_1_0_add_escape_sequence_x) {
@@ -10695,93 +9780,76 @@ TOML11_INLINE sequence escaped(const spec &s) {
   return sequence(character('\\'), std::move(escape_seq));
 }
 
-TOML11_INLINE either basic_char(const spec &s) {
+TOML11_INLINE either basic_char(const spec& s) {
   const auto basic_unescaped = [&s]() {
     return either(wschar(s),
-                  character(0x21),                // 22 is "
-                  character_in_range(0x23, 0x5B), // 5C is backslash
-                  character_in_range(0x5D, 0x7E), // 7F is DEL
+                  character(0x21),                 // 22 is "
+                  character_in_range(0x23, 0x5B),  // 5C is backslash
+                  character_in_range(0x5D, 0x7E),  // 7F is DEL
                   non_ascii(s));
   };
   return either(basic_unescaped(), escaped(s));
 }
 
-TOML11_INLINE sequence basic_string(const spec &s) {
-  return sequence(character('"'), repeat_at_least(0, basic_char(s)),
-                  character('"'));
+TOML11_INLINE sequence basic_string(const spec& s) {
+  return sequence(character('"'), repeat_at_least(0, basic_char(s)), character('"'));
 }
 
 // ---------------------------------------------------------------------------
 // multiline string
 
-TOML11_INLINE sequence escaped_newline(const spec &s) {
-  return sequence(character('\\'), ws(s), newline(s),
-                  repeat_at_least(0, either(wschar(s), newline(s))));
+TOML11_INLINE sequence escaped_newline(const spec& s) {
+  return sequence(character('\\'), ws(s), newline(s), repeat_at_least(0, either(wschar(s), newline(s))));
 }
 
-TOML11_INLINE sequence ml_basic_string(const spec &s) {
-  const auto mlb_content = [&s]() {
-    return either(basic_char(s), newline(s), escaped_newline(s));
-  };
-  const auto mlb_quotes = []() {
-    return either(literal("\"\""), character('\"'));
-  };
+TOML11_INLINE sequence ml_basic_string(const spec& s) {
+  const auto mlb_content = [&s]() { return either(basic_char(s), newline(s), escaped_newline(s)); };
+  const auto mlb_quotes = []() { return either(literal("\"\""), character('\"')); };
 
-  return sequence(
-      literal("\"\"\""), maybe(newline(s)), repeat_at_least(0, mlb_content()),
-      repeat_at_least(
-          0, sequence(mlb_quotes(), repeat_at_least(1, mlb_content()))),
-      // XXX """ and mlb_quotes are intentionally reordered to avoid
-      //     unexpected match of mlb_quotes
-      literal("\"\"\""), maybe(mlb_quotes()));
+  return sequence(literal("\"\"\""), maybe(newline(s)), repeat_at_least(0, mlb_content()),
+                  repeat_at_least(0, sequence(mlb_quotes(), repeat_at_least(1, mlb_content()))),
+                  // XXX """ and mlb_quotes are intentionally reordered to avoid
+                  //     unexpected match of mlb_quotes
+                  literal("\"\"\""), maybe(mlb_quotes()));
 }
 
 // ---------------------------------------------------------------------------
 // literal string
 
-TOML11_INLINE either literal_char(const spec &s) {
-  return either(character(0x09), character_in_range(0x20, 0x26),
-                character_in_range(0x28, 0x7E), non_ascii(s));
+TOML11_INLINE either literal_char(const spec& s) {
+  return either(character(0x09), character_in_range(0x20, 0x26), character_in_range(0x28, 0x7E), non_ascii(s));
 }
 
-TOML11_INLINE sequence literal_string(const spec &s) {
-  return sequence(character('\''), repeat_at_least(0, literal_char(s)),
-                  character('\''));
+TOML11_INLINE sequence literal_string(const spec& s) {
+  return sequence(character('\''), repeat_at_least(0, literal_char(s)), character('\''));
 }
 
-TOML11_INLINE sequence ml_literal_string(const spec &s) {
-  const auto mll_quotes = []() {
-    return either(literal("''"), character('\''));
-  };
-  const auto mll_content = [&s]() {
-    return either(literal_char(s), newline(s));
-  };
+TOML11_INLINE sequence ml_literal_string(const spec& s) {
+  const auto mll_quotes = []() { return either(literal("''"), character('\'')); };
+  const auto mll_content = [&s]() { return either(literal_char(s), newline(s)); };
 
-  return sequence(
-      literal("'''"), maybe(newline(s)), repeat_at_least(0, mll_content()),
-      repeat_at_least(
-          0, sequence(mll_quotes(), repeat_at_least(1, mll_content()))),
-      literal("'''"), maybe(mll_quotes())
-      // XXX ''' and mll_quotes are intentionally reordered to avoid
-      //     unexpected match of mll_quotes
+  return sequence(literal("'''"), maybe(newline(s)), repeat_at_least(0, mll_content()),
+                  repeat_at_least(0, sequence(mll_quotes(), repeat_at_least(1, mll_content()))), literal("'''"),
+                  maybe(mll_quotes())
+                  // XXX ''' and mll_quotes are intentionally reordered to avoid
+                  //     unexpected match of mll_quotes
   );
 }
 
-TOML11_INLINE either string(const spec &s) {
-  return either(ml_basic_string(s), ml_literal_string(s), basic_string(s),
-                literal_string(s));
+TOML11_INLINE either string(const spec& s) {
+  return either(ml_basic_string(s), ml_literal_string(s), basic_string(s), literal_string(s));
 }
 
 // ===========================================================================
 // Keys
 
 // to keep `expected_chars` simple
-TOML11_INLINE non_ascii_key_char::non_ascii_key_char(const spec &s) noexcept {
+TOML11_INLINE non_ascii_key_char::non_ascii_key_char(const spec& s) noexcept {
   assert(s.v1_1_0_allow_non_english_in_bare_keys);
-  (void)s; // for NDEBUG
+  (void)s;  // for NDEBUG
 }
 
-TOML11_INLINE std::uint32_t non_ascii_key_char::read_utf8(location &loc) const {
+TOML11_INLINE std::uint32_t non_ascii_key_char::read_utf8(location& loc) const {
   // U+0000   ... U+0079  ; 0xxx_xxxx
   // U+0080   ... U+07FF  ; 110y_yyyx 10xx_xxxx;
   // U+0800   ... U+FFFF  ; 1110_yyyy 10yx_xxxx 10xx_xxxx
@@ -10791,7 +9859,7 @@ TOML11_INLINE std::uint32_t non_ascii_key_char::read_utf8(location &loc) const {
   loc.advance(1);
   if (b1 < 0x80) {
     return static_cast<std::uint32_t>(b1);
-  } else if ((b1 >> 5) == 6) // 0b110 == 6
+  } else if ((b1 >> 5) == 6)  // 0b110 == 6
   {
     const auto b2 = loc.current();
     loc.advance(1);
@@ -10804,7 +9872,7 @@ TOML11_INLINE std::uint32_t non_ascii_key_char::read_utf8(location &loc) const {
       return 0xFFFFFFFF;
     }
     return codep;
-  } else if ((b1 >> 4) == 14) // 0b1110 == 14
+  } else if ((b1 >> 4) == 14)  // 0b1110 == 14
   {
     const auto b2 = loc.current();
     loc.advance(1);
@@ -10823,7 +9891,7 @@ TOML11_INLINE std::uint32_t non_ascii_key_char::read_utf8(location &loc) const {
       return 0xFFFFFFFF;
     }
     return codep;
-  } else if ((b1 >> 3) == 30) // 0b11110 == 30
+  } else if ((b1 >> 3) == 30)  // 0b11110 == 30
   {
     const auto b2 = loc.current();
     loc.advance(1);
@@ -10848,13 +9916,13 @@ TOML11_INLINE std::uint32_t non_ascii_key_char::read_utf8(location &loc) const {
       return 0xFFFFFFFF;
     }
     return codep;
-  } else // not a Unicode codepoint in UTF-8
+  } else  // not a Unicode codepoint in UTF-8
   {
     return 0xFFFFFFFF;
   }
 }
 
-TOML11_INLINE region non_ascii_key_char::scan(location &loc) const {
+TOML11_INLINE region non_ascii_key_char::scan(location& loc) const {
   if (loc.eof()) {
     return region{};
   }
@@ -10881,21 +9949,18 @@ TOML11_INLINE region non_ascii_key_char::scan(location &loc) const {
   // %x10000-EFFFF                ; all chars outside BMP range, excluding
   // Private Use planes (F0000-10FFFF)
 
-  if (cp == 0xB2 || cp == 0xB3 || cp == 0xB9 || (0xBC <= cp && cp <= 0xBE) ||
-      (0xC0 <= cp && cp <= 0xD6) || (0xD8 <= cp && cp <= 0xF6) ||
-      (0xF8 <= cp && cp <= 0x37D) || (0x37F <= cp && cp <= 0x1FFF) ||
-      (0x200C <= cp && cp <= 0x200D) || (0x203F <= cp && cp <= 0x2040) ||
-      (0x2070 <= cp && cp <= 0x218F) || (0x2460 <= cp && cp <= 0x24FF) ||
-      (0x2C00 <= cp && cp <= 0x2FEF) || (0x3001 <= cp && cp <= 0xD7FF) ||
-      (0xF900 <= cp && cp <= 0xFDCF) || (0xFDF0 <= cp && cp <= 0xFFFD) ||
-      (0x10000 <= cp && cp <= 0xEFFFF)) {
+  if (cp == 0xB2 || cp == 0xB3 || cp == 0xB9 || (0xBC <= cp && cp <= 0xBE) || (0xC0 <= cp && cp <= 0xD6) ||
+      (0xD8 <= cp && cp <= 0xF6) || (0xF8 <= cp && cp <= 0x37D) || (0x37F <= cp && cp <= 0x1FFF) ||
+      (0x200C <= cp && cp <= 0x200D) || (0x203F <= cp && cp <= 0x2040) || (0x2070 <= cp && cp <= 0x218F) ||
+      (0x2460 <= cp && cp <= 0x24FF) || (0x2C00 <= cp && cp <= 0x2FEF) || (0x3001 <= cp && cp <= 0xD7FF) ||
+      (0xF900 <= cp && cp <= 0xFDCF) || (0xFDF0 <= cp && cp <= 0xFFFD) || (0x10000 <= cp && cp <= 0xEFFFF)) {
     return region(first, loc);
   }
   loc = first;
   return region{};
 }
 
-TOML11_INLINE repeat_at_least unquoted_key(const spec &s) {
+TOML11_INLINE repeat_at_least unquoted_key(const spec& s) {
   auto keychar = either(alpha(s), digit(s), character{0x2D}, character{0x5F});
 
   if (s.v1_1_0_allow_non_english_in_bare_keys) {
@@ -10905,53 +9970,43 @@ TOML11_INLINE repeat_at_least unquoted_key(const spec &s) {
   return repeat_at_least(1, std::move(keychar));
 }
 
-TOML11_INLINE either quoted_key(const spec &s) {
-  return either(basic_string(s), literal_string(s));
+TOML11_INLINE either quoted_key(const spec& s) { return either(basic_string(s), literal_string(s)); }
+
+TOML11_INLINE either simple_key(const spec& s) { return either(unquoted_key(s), quoted_key(s)); }
+
+TOML11_INLINE sequence dot_sep(const spec& s) { return sequence(ws(s), character('.'), ws(s)); }
+
+TOML11_INLINE sequence dotted_key(const spec& s) {
+  return sequence(simple_key(s), repeat_at_least(1, sequence(dot_sep(s), simple_key(s))));
 }
 
-TOML11_INLINE either simple_key(const spec &s) {
-  return either(unquoted_key(s), quoted_key(s));
-}
+TOML11_INLINE key::key(const spec& s) noexcept : scanner_(dotted_key(s), simple_key(s)) {}
 
-TOML11_INLINE sequence dot_sep(const spec &s) {
-  return sequence(ws(s), character('.'), ws(s));
-}
-
-TOML11_INLINE sequence dotted_key(const spec &s) {
-  return sequence(simple_key(s),
-                  repeat_at_least(1, sequence(dot_sep(s), simple_key(s))));
-}
-
-TOML11_INLINE key::key(const spec &s) noexcept
-    : scanner_(dotted_key(s), simple_key(s)) {}
-
-TOML11_INLINE sequence keyval_sep(const spec &s) {
-  return sequence(ws(s), character('='), ws(s));
-}
+TOML11_INLINE sequence keyval_sep(const spec& s) { return sequence(ws(s), character('='), ws(s)); }
 
 // ===========================================================================
 // Table key
 
-TOML11_INLINE sequence std_table(const spec &s) {
+TOML11_INLINE sequence std_table(const spec& s) {
   return sequence(character('['), ws(s), key(s), ws(s), character(']'));
 }
 
-TOML11_INLINE sequence array_table(const spec &s) {
+TOML11_INLINE sequence array_table(const spec& s) {
   return sequence(literal("[["), ws(s), key(s), ws(s), literal("]]"));
 }
 
 // ===========================================================================
 // extension: null
 
-TOML11_INLINE literal null_value(const spec &) { return literal("null"); }
+TOML11_INLINE literal null_value(const spec&) { return literal("null"); }
 
-} // namespace syntax
-} // namespace detail
-} // namespace toml
-#endif // TOML11_SYNTAX_IMPL_HPP
+}  // namespace syntax
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_SYNTAX_IMPL_HPP
 #endif
 
-#endif // TOML11_SYNTAX_HPP
+#endif  // TOML11_SYNTAX_HPP
 #ifndef TOML11_SKIP_HPP
 #define TOML11_SKIP_HPP
 
@@ -10961,16 +10016,13 @@ namespace toml {
 namespace detail {
 
 template <typename TC>
-bool skip_whitespace(location &loc, const context<TC> &ctx) {
+bool skip_whitespace(location& loc, const context<TC>& ctx) {
   return syntax::ws(ctx.toml_spec()).scan(loc).is_ok();
 }
 
 template <typename TC>
-bool skip_empty_lines(location &loc, const context<TC> &ctx) {
-  return repeat_at_least(1, sequence(syntax::ws(ctx.toml_spec()),
-                                     syntax::newline(ctx.toml_spec())))
-      .scan(loc)
-      .is_ok();
+bool skip_empty_lines(location& loc, const context<TC>& ctx) {
+  return repeat_at_least(1, sequence(syntax::ws(ctx.toml_spec()), syntax::newline(ctx.toml_spec()))).scan(loc).is_ok();
 }
 
 // For error recovery.
@@ -10978,7 +10030,7 @@ bool skip_empty_lines(location &loc, const context<TC> &ctx) {
 // In case if a comment line contains an invalid character, we need to skip it
 // to advance parsing.
 template <typename TC>
-void skip_comment_block(location &loc, const context<TC> &ctx) {
+void skip_comment_block(location& loc, const context<TC>& ctx) {
   while (!loc.eof()) {
     skip_whitespace(loc, ctx);
     if (loc.current() == '#') {
@@ -10990,7 +10042,7 @@ void skip_comment_block(location &loc, const context<TC> &ctx) {
         }
       }
     } else if (syntax::newline(ctx.toml_spec()).scan(loc).is_ok()) {
-      ; // an empty line. skip this also
+      ;  // an empty line. skip this also
     } else {
       // the next token is neither a comment nor empty line.
       return;
@@ -11000,11 +10052,9 @@ void skip_comment_block(location &loc, const context<TC> &ctx) {
 }
 
 template <typename TC>
-void skip_empty_or_comment_lines(location &loc, const context<TC> &ctx) {
-  const auto &spec = ctx.toml_spec();
-  repeat_at_least(0, sequence(syntax::ws(spec), maybe(syntax::comment(spec)),
-                              syntax::newline(spec)))
-      .scan(loc);
+void skip_empty_or_comment_lines(location& loc, const context<TC>& ctx) {
+  const auto& spec = ctx.toml_spec();
+  repeat_at_least(0, sequence(syntax::ws(spec), maybe(syntax::comment(spec)), syntax::newline(spec))).scan(loc);
   return;
 }
 
@@ -11015,7 +10065,7 @@ void skip_empty_or_comment_lines(location &loc, const context<TC> &ctx) {
 // skipping invalid value while error recovery, we don't need to check the
 // syntax. Here we just skip string-like region until closing quote is found.
 template <typename TC>
-void skip_string_like(location &loc, const context<TC> &) {
+void skip_string_like(location& loc, const context<TC>&) {
   // if """ is found, skip until the closing """ is found.
   if (literal("\"\"\"").scan(loc).is_ok()) {
     while (!loc.eof()) {
@@ -11053,21 +10103,21 @@ void skip_string_like(location &loc, const context<TC> &) {
   return;
 }
 
-template <typename TC> void skip_value(location &loc, const context<TC> &ctx);
 template <typename TC>
-void skip_array_like(location &loc, const context<TC> &ctx);
+void skip_value(location& loc, const context<TC>& ctx);
 template <typename TC>
-void skip_inline_table_like(location &loc, const context<TC> &ctx);
+void skip_array_like(location& loc, const context<TC>& ctx);
 template <typename TC>
-void skip_key_value_pair(location &loc, const context<TC> &ctx);
+void skip_inline_table_like(location& loc, const context<TC>& ctx);
+template <typename TC>
+void skip_key_value_pair(location& loc, const context<TC>& ctx);
 
 template <typename TC>
-result<value_t, error_info> guess_value_type(const location &loc,
-                                             const context<TC> &ctx);
+result<value_t, error_info> guess_value_type(const location& loc, const context<TC>& ctx);
 
 template <typename TC>
-void skip_array_like(location &loc, const context<TC> &ctx) {
-  const auto &spec = ctx.toml_spec();
+void skip_array_like(location& loc, const context<TC>& ctx) {
+  const auto& spec = ctx.toml_spec();
   assert(loc.current() == '[');
   loc.advance();
 
@@ -11080,8 +10130,7 @@ void skip_array_like(location &loc, const context<TC> &ctx) {
       skip_inline_table_like(loc, ctx);
     } else if (loc.current() == '[') {
       const auto checkpoint = loc;
-      if (syntax::std_table(spec).scan(loc).is_ok() ||
-          syntax::array_table(spec).scan(loc).is_ok()) {
+      if (syntax::std_table(spec).scan(loc).is_ok() || syntax::array_table(spec).scan(loc).is_ok()) {
         loc = checkpoint;
         break;
       }
@@ -11100,7 +10149,7 @@ void skip_array_like(location &loc, const context<TC> &ctx) {
       }
       break;
     } else if (loc.current() == ']') {
-      break; // found closing bracket
+      break;  // found closing bracket
     } else {
       loc.advance();
     }
@@ -11109,29 +10158,28 @@ void skip_array_like(location &loc, const context<TC> &ctx) {
 }
 
 template <typename TC>
-void skip_inline_table_like(location &loc, const context<TC> &ctx) {
+void skip_inline_table_like(location& loc, const context<TC>& ctx) {
   assert(loc.current() == '{');
   loc.advance();
 
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   while (!loc.eof()) {
     if (loc.current() == '\n' && !spec.v1_1_0_allow_newlines_in_inline_tables) {
-      break; // missing closing `}`.
+      break;  // missing closing `}`.
     } else if (loc.current() == '\"' || loc.current() == '\'') {
       skip_string_like(loc, ctx);
     } else if (loc.current() == '#') {
       skip_comment_block(loc, ctx);
       if (!spec.v1_1_0_allow_newlines_in_inline_tables) {
         // comment must end with newline.
-        break; // missing closing `}`.
+        break;  // missing closing `}`.
       }
     } else if (loc.current() == '[') {
       const auto checkpoint = loc;
-      if (syntax::std_table(spec).scan(loc).is_ok() ||
-          syntax::array_table(spec).scan(loc).is_ok()) {
+      if (syntax::std_table(spec).scan(loc).is_ok() || syntax::array_table(spec).scan(loc).is_ok()) {
         loc = checkpoint;
-        break; // missing closing `}`.
+        break;  // missing closing `}`.
       }
       // if it is not a table-definition, then it is an array.
       skip_array_like(loc, ctx);
@@ -11148,7 +10196,8 @@ void skip_inline_table_like(location &loc, const context<TC> &ctx) {
   return;
 }
 
-template <typename TC> void skip_value(location &loc, const context<TC> &ctx) {
+template <typename TC>
+void skip_value(location& loc, const context<TC>& ctx) {
   value_t ty = guess_value_type(loc, ctx).unwrap_or(value_t::empty);
   if (ty == value_t::string) {
     skip_string_like(loc, ctx);
@@ -11158,13 +10207,12 @@ template <typename TC> void skip_value(location &loc, const context<TC> &ctx) {
     // In case of multiline tables, it may skip key-value pair but not the
     // whole table.
     skip_inline_table_like(loc, ctx);
-  } else // others are an "in-line" values. skip until the next line
+  } else  // others are an "in-line" values. skip until the next line
   {
     while (!loc.eof()) {
       if (loc.current() == '\n') {
         break;
-      } else if (loc.current() == ',' || loc.current() == ']' ||
-                 loc.current() == '}') {
+      } else if (loc.current() == ',' || loc.current() == ']' || loc.current() == '}') {
         break;
       }
       loc.advance();
@@ -11174,7 +10222,7 @@ template <typename TC> void skip_value(location &loc, const context<TC> &ctx) {
 }
 
 template <typename TC>
-void skip_key_value_pair(location &loc, const context<TC> &ctx) {
+void skip_key_value_pair(location& loc, const context<TC>& ctx) {
   while (!loc.eof()) {
     if (loc.current() == '=') {
       skip_whitespace(loc, ctx);
@@ -11190,8 +10238,8 @@ void skip_key_value_pair(location &loc, const context<TC> &ctx) {
 }
 
 template <typename TC>
-void skip_until_next_table(location &loc, const context<TC> &ctx) {
-  const auto &spec = ctx.toml_spec();
+void skip_until_next_table(location& loc, const context<TC>& ctx) {
+  const auto& spec = ctx.toml_spec();
   while (!loc.eof()) {
     if (loc.current() == '\n') {
       loc.advance();
@@ -11211,8 +10259,8 @@ void skip_until_next_table(location &loc, const context<TC> &ctx) {
   }
 }
 
-} // namespace detail
-} // namespace toml
+}  // namespace detail
+}  // namespace toml
 
 #if defined(TOML11_COMPILE_SOURCES)
 namespace toml {
@@ -11220,62 +10268,34 @@ struct type_config;
 struct ordered_type_config;
 
 namespace detail {
-extern template bool skip_whitespace<type_config>(location &loc,
-                                                  const context<type_config> &);
-extern template bool
-skip_empty_lines<type_config>(location &loc, const context<type_config> &);
-extern template void
-skip_comment_block<type_config>(location &loc, const context<type_config> &);
-extern template void
-skip_empty_or_comment_lines<type_config>(location &loc,
-                                         const context<type_config> &);
-extern template void
-skip_string_like<type_config>(location &loc, const context<type_config> &);
-extern template void skip_array_like<type_config>(location &loc,
-                                                  const context<type_config> &);
-extern template void
-skip_inline_table_like<type_config>(location &loc,
-                                    const context<type_config> &);
-extern template void skip_value<type_config>(location &loc,
-                                             const context<type_config> &);
-extern template void
-skip_key_value_pair<type_config>(location &loc, const context<type_config> &);
-extern template void
-skip_until_next_table<type_config>(location &loc, const context<type_config> &);
+extern template bool skip_whitespace<type_config>(location& loc, const context<type_config>&);
+extern template bool skip_empty_lines<type_config>(location& loc, const context<type_config>&);
+extern template void skip_comment_block<type_config>(location& loc, const context<type_config>&);
+extern template void skip_empty_or_comment_lines<type_config>(location& loc, const context<type_config>&);
+extern template void skip_string_like<type_config>(location& loc, const context<type_config>&);
+extern template void skip_array_like<type_config>(location& loc, const context<type_config>&);
+extern template void skip_inline_table_like<type_config>(location& loc, const context<type_config>&);
+extern template void skip_value<type_config>(location& loc, const context<type_config>&);
+extern template void skip_key_value_pair<type_config>(location& loc, const context<type_config>&);
+extern template void skip_until_next_table<type_config>(location& loc, const context<type_config>&);
 
-extern template bool
-skip_whitespace<ordered_type_config>(location &loc,
-                                     const context<ordered_type_config> &);
-extern template bool
-skip_empty_lines<ordered_type_config>(location &loc,
-                                      const context<ordered_type_config> &);
-extern template void
-skip_comment_block<ordered_type_config>(location &loc,
-                                        const context<ordered_type_config> &);
-extern template void skip_empty_or_comment_lines<ordered_type_config>(
-    location &loc, const context<ordered_type_config> &);
-extern template void
-skip_string_like<ordered_type_config>(location &loc,
-                                      const context<ordered_type_config> &);
-extern template void
-skip_array_like<ordered_type_config>(location &loc,
-                                     const context<ordered_type_config> &);
-extern template void skip_inline_table_like<ordered_type_config>(
-    location &loc, const context<ordered_type_config> &);
-extern template void
-skip_value<ordered_type_config>(location &loc,
-                                const context<ordered_type_config> &);
-extern template void
-skip_key_value_pair<ordered_type_config>(location &loc,
-                                         const context<ordered_type_config> &);
-extern template void skip_until_next_table<ordered_type_config>(
-    location &loc, const context<ordered_type_config> &);
+extern template bool skip_whitespace<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template bool skip_empty_lines<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template void skip_comment_block<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template void skip_empty_or_comment_lines<ordered_type_config>(location& loc,
+                                                                      const context<ordered_type_config>&);
+extern template void skip_string_like<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template void skip_array_like<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template void skip_inline_table_like<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template void skip_value<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template void skip_key_value_pair<ordered_type_config>(location& loc, const context<ordered_type_config>&);
+extern template void skip_until_next_table<ordered_type_config>(location& loc, const context<ordered_type_config>&);
 
-} // namespace detail
-} // namespace toml
-#endif // TOML11_COMPILE_SOURCES
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_COMPILE_SOURCES
 
-#endif // TOML11_SKIP_HPP
+#endif  // TOML11_SKIP_HPP
 #ifndef TOML11_PARSER_HPP
 #define TOML11_PARSER_HPP
 
@@ -11292,35 +10312,33 @@ extern template void skip_until_next_table<ordered_type_config>(
 namespace toml {
 
 struct syntax_error final : public ::toml::exception {
-public:
-  syntax_error(std::string what_arg, std::vector<error_info> err)
-      : what_(std::move(what_arg)), err_(std::move(err)) {}
+ public:
+  syntax_error(std::string what_arg, std::vector<error_info> err) : what_(std::move(what_arg)), err_(std::move(err)) {}
   ~syntax_error() noexcept override = default;
 
-  const char *what() const noexcept override { return what_.c_str(); }
+  const char* what() const noexcept override { return what_.c_str(); }
 
-  std::vector<error_info> const &errors() const noexcept { return err_; }
+  std::vector<error_info> const& errors() const noexcept { return err_; }
 
-private:
+ private:
   std::string what_;
   std::vector<error_info> err_;
 };
 
 struct file_io_error final : public ::toml::exception {
-public:
-  file_io_error(const std::string &msg, const std::string &fname)
+ public:
+  file_io_error(const std::string& msg, const std::string& fname)
       : errno_(cxx::make_nullopt()), what_(msg + " \"" + fname + "\"") {}
-  file_io_error(int errnum, const std::string &msg, const std::string &fname)
-      : errno_(errnum),
-        what_(msg + " \"" + fname + "\": errno=" + std::to_string(errnum)) {}
+  file_io_error(int errnum, const std::string& msg, const std::string& fname)
+      : errno_(errnum), what_(msg + " \"" + fname + "\": errno=" + std::to_string(errnum)) {}
   ~file_io_error() noexcept override = default;
 
-  const char *what() const noexcept override { return what_.c_str(); }
+  const char* what() const noexcept override { return what_.c_str(); }
 
   bool has_errno() const noexcept { return errno_.has_value(); }
   int get_errno() const noexcept { return errno_.value_or(0); }
 
-private:
+ private:
   cxx::optional<int> errno_;
   std::string what_;
 };
@@ -11334,12 +10352,10 @@ namespace detail {
  */
 
 template <typename S>
-error_info make_syntax_error(std::string title, const S &scanner, location loc,
-                             std::string suffix = "") {
+error_info make_syntax_error(std::string title, const S& scanner, location loc, std::string suffix = "") {
   auto msg = std::string("expected ") + scanner.expected_chars(loc);
   auto src = source_location(region(loc));
-  return make_error_info(std::move(title), std::move(src), std::move(msg),
-                         std::move(suffix));
+  return make_error_info(std::move(title), std::move(src), std::move(msg), std::move(suffix));
 }
 
 /* ============================================================================
@@ -11350,9 +10366,8 @@ error_info make_syntax_error(std::string title, const S &scanner, location loc,
  */
 
 template <typename TC>
-result<cxx::optional<std::string>, error_info>
-parse_comment_line(location &loc, context<TC> &ctx) {
-  const auto &spec = ctx.toml_spec();
+result<cxx::optional<std::string>, error_info> parse_comment_line(location& loc, context<TC>& ctx) {
+  const auto& spec = ctx.toml_spec();
   const auto first = loc;
 
   skip_whitespace(loc, ctx);
@@ -11361,7 +10376,7 @@ parse_comment_line(location &loc, context<TC> &ctx) {
   if (com_reg.is_ok()) {
     // once comment started, newline must follow (or reach EOF).
     if (!loc.eof() && !syntax::newline(spec).scan(loc).is_ok()) {
-      while (!loc.eof()) // skip until newline to continue parsing
+      while (!loc.eof())  // skip until newline to continue parsing
       {
         loc.advance();
         if (loc.current() == '\n') { /*skip LF*/
@@ -11369,15 +10384,15 @@ parse_comment_line(location &loc, context<TC> &ctx) {
           break;
         }
       }
-      return err(make_error_info(
-          "toml::parse_comment_line: "
-          "newline (LF / CRLF) or EOF is expected",
-          source_location(region(loc)), "but got this",
-          "Hint: most of the control characters are not allowed in comments"));
+      return err(
+          make_error_info("toml::parse_comment_line: "
+                          "newline (LF / CRLF) or EOF is expected",
+                          source_location(region(loc)), "but got this",
+                          "Hint: most of the control characters are not allowed in comments"));
     }
     return ok(cxx::optional<std::string>(com_reg.as_string()));
   } else {
-    loc = first; // rollback whitespace to parse indent
+    loc = first;  // rollback whitespace to parse indent
     return ok(cxx::optional<std::string>(cxx::make_nullopt()));
   }
 }
@@ -11390,19 +10405,18 @@ parse_comment_line(location &loc, context<TC> &ctx) {
  */
 
 template <typename TC>
-result<basic_value<TC>, error_info> parse_boolean(location &loc,
-                                                  const context<TC> &ctx) {
-  const auto &spec = ctx.toml_spec();
+result<basic_value<TC>, error_info> parse_boolean(location& loc, const context<TC>& ctx) {
+  const auto& spec = ctx.toml_spec();
 
   // ----------------------------------------------------------------------
   // check syntax
   auto reg = syntax::boolean(spec).scan(loc);
   if (!reg.is_ok()) {
-    return err(make_syntax_error(
-        "toml::parse_boolean: "
-        "invalid boolean: boolean must be `true` or `false`, in lowercase. "
-        "string must be surrounded by `\"`",
-        syntax::boolean(spec), loc));
+    return err(
+        make_syntax_error("toml::parse_boolean: "
+                          "invalid boolean: boolean must be `true` or `false`, in lowercase. "
+                          "string must be surrounded by `\"`",
+                          syntax::boolean(spec), loc));
   }
 
   // ----------------------------------------------------------------------
@@ -11433,29 +10447,26 @@ result<basic_value<TC>, error_info> parse_boolean(location &loc,
  */
 
 template <typename TC>
-result<basic_value<TC>, error_info> parse_bin_integer(location &loc,
-                                                      const context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_bin_integer(location& loc, const context<TC>& ctx) {
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
   auto reg = syntax::bin_int(spec).scan(loc);
   if (!reg.is_ok()) {
-    return err(make_syntax_error(
-        "toml::parse_bin_integer: "
-        "invalid integer: bin_int must be like: 0b0101, 0b1111_0000",
-        syntax::bin_int(spec), loc));
+    return err(
+        make_syntax_error("toml::parse_bin_integer: "
+                          "invalid integer: bin_int must be like: 0b0101, 0b1111_0000",
+                          syntax::bin_int(spec), loc));
   }
 
   auto str = reg.as_string();
 
   integer_format_info fmt;
   fmt.fmt = integer_format::bin;
-  fmt.width = str.size() - 2 -
-              static_cast<std::size_t>(std::count(str.begin(), str.end(), '_'));
+  fmt.width = str.size() - 2 - static_cast<std::size_t>(std::count(str.begin(), str.end(), '_'));
 
   const auto first_underscore = std::find(str.rbegin(), str.rend(), '_');
   if (first_underscore != str.rend()) {
-    fmt.spacer =
-        static_cast<std::size_t>(std::distance(str.rbegin(), first_underscore));
+    fmt.spacer = static_cast<std::size_t>(std::distance(str.rbegin(), first_underscore));
   }
 
   // skip prefix `0b` and zeros and underscores at the MSB
@@ -11481,35 +10492,31 @@ result<basic_value<TC>, error_info> parse_bin_integer(location &loc,
 // ----------------------------------------------------------------------------
 
 template <typename TC>
-result<basic_value<TC>, error_info> parse_oct_integer(location &loc,
-                                                      const context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_oct_integer(location& loc, const context<TC>& ctx) {
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
   auto reg = syntax::oct_int(spec).scan(loc);
   if (!reg.is_ok()) {
-    return err(make_syntax_error(
-        "toml::parse_oct_integer: "
-        "invalid integer: oct_int must be like: 0o775, 0o04_44",
-        syntax::oct_int(spec), loc));
+    return err(
+        make_syntax_error("toml::parse_oct_integer: "
+                          "invalid integer: oct_int must be like: 0o775, 0o04_44",
+                          syntax::oct_int(spec), loc));
   }
 
   auto str = reg.as_string();
 
   integer_format_info fmt;
   fmt.fmt = integer_format::oct;
-  fmt.width = str.size() - 2 -
-              static_cast<std::size_t>(std::count(str.begin(), str.end(), '_'));
+  fmt.width = str.size() - 2 - static_cast<std::size_t>(std::count(str.begin(), str.end(), '_'));
 
   const auto first_underscore = std::find(str.rbegin(), str.rend(), '_');
   if (first_underscore != str.rend()) {
-    fmt.spacer =
-        static_cast<std::size_t>(std::distance(str.rbegin(), first_underscore));
+    fmt.spacer = static_cast<std::size_t>(std::distance(str.rbegin(), first_underscore));
   }
 
   // skip prefix `0o` and zeros and underscores at the MSB
   str.erase(str.begin(),
-            std::find_if(std::next(str.begin(), 2), str.end(),
-                         [](const char c) { return c != '0' && c != '_'; }));
+            std::find_if(std::next(str.begin(), 2), str.end(), [](const char c) { return c != '0' && c != '_'; }));
 
   // remove all `_` before calling TC::parse_int
   str.erase(std::remove(str.begin(), str.end(), '_'), str.end());
@@ -11529,35 +10536,31 @@ result<basic_value<TC>, error_info> parse_oct_integer(location &loc,
 }
 
 template <typename TC>
-result<basic_value<TC>, error_info> parse_hex_integer(location &loc,
-                                                      const context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_hex_integer(location& loc, const context<TC>& ctx) {
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
   auto reg = syntax::hex_int(spec).scan(loc);
   if (!reg.is_ok()) {
-    return err(make_syntax_error(
-        "toml::parse_hex_integer: "
-        "invalid integer: hex_int must be like: 0xC0FFEE, 0xdead_beef",
-        syntax::hex_int(spec), loc));
+    return err(
+        make_syntax_error("toml::parse_hex_integer: "
+                          "invalid integer: hex_int must be like: 0xC0FFEE, 0xdead_beef",
+                          syntax::hex_int(spec), loc));
   }
 
   auto str = reg.as_string();
 
   integer_format_info fmt;
   fmt.fmt = integer_format::hex;
-  fmt.width = str.size() - 2 -
-              static_cast<std::size_t>(std::count(str.begin(), str.end(), '_'));
+  fmt.width = str.size() - 2 - static_cast<std::size_t>(std::count(str.begin(), str.end(), '_'));
 
   const auto first_underscore = std::find(str.rbegin(), str.rend(), '_');
   if (first_underscore != str.rend()) {
-    fmt.spacer =
-        static_cast<std::size_t>(std::distance(str.rbegin(), first_underscore));
+    fmt.spacer = static_cast<std::size_t>(std::distance(str.rbegin(), first_underscore));
   }
 
   // skip prefix `0x` and zeros and underscores at the MSB
   str.erase(str.begin(),
-            std::find_if(std::next(str.begin(), 2), str.end(),
-                         [](const char c) { return c != '0' && c != '_'; }));
+            std::find_if(std::next(str.begin(), 2), str.end(), [](const char c) { return c != '0' && c != '_'; }));
 
   // remove all `_` before calling TC::parse_int
   str.erase(std::remove(str.begin(), str.end(), '_'), str.end());
@@ -11569,14 +10572,12 @@ result<basic_value<TC>, error_info> parse_hex_integer(location &loc,
 
   // prefix zero and _ is removed. check if it uses upper/lower case.
   // if both upper and lower case letters are found, set upper=true.
-  const auto lower_not_found =
-      std::find_if(str.begin(), str.end(), [](const char c) {
-        return std::islower(static_cast<int>(c)) != 0;
-      }) == str.end();
-  const auto upper_found =
-      std::find_if(str.begin(), str.end(), [](const char c) {
-        return std::isupper(static_cast<int>(c)) != 0;
-      }) != str.end();
+  const auto lower_not_found = std::find_if(str.begin(), str.end(), [](const char c) {
+                                 return std::islower(static_cast<int>(c)) != 0;
+                               }) == str.end();
+  const auto upper_found = std::find_if(str.begin(), str.end(), [](const char c) {
+                             return std::isupper(static_cast<int>(c)) != 0;
+                           }) != str.end();
   fmt.uppercase = lower_not_found || upper_found;
 
   const auto val = TC::parse_int(str, source_location(region(loc)), 16);
@@ -11589,19 +10590,18 @@ result<basic_value<TC>, error_info> parse_hex_integer(location &loc,
 }
 
 template <typename TC>
-result<basic_value<TC>, error_info> parse_dec_integer(location &loc,
-                                                      const context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_dec_integer(location& loc, const context<TC>& ctx) {
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   // ----------------------------------------------------------------------
   // check syntax
   auto reg = syntax::dec_int(spec).scan(loc);
   if (!reg.is_ok()) {
-    return err(make_syntax_error(
-        "toml::parse_dec_integer: "
-        "invalid integer: dec_int must be like: 42, 123_456_789",
-        syntax::dec_int(spec), loc));
+    return err(
+        make_syntax_error("toml::parse_dec_integer: "
+                          "invalid integer: dec_int must be like: 42, 123_456_789",
+                          syntax::dec_int(spec), loc));
   }
 
   // ----------------------------------------------------------------------
@@ -11610,13 +10610,11 @@ result<basic_value<TC>, error_info> parse_dec_integer(location &loc,
 
   integer_format_info fmt;
   fmt.fmt = integer_format::dec;
-  fmt.width = str.size() -
-              static_cast<std::size_t>(std::count(str.begin(), str.end(), '_'));
+  fmt.width = str.size() - static_cast<std::size_t>(std::count(str.begin(), str.end(), '_'));
 
   const auto first_underscore = std::find(str.rbegin(), str.rend(), '_');
   if (first_underscore != str.rend()) {
-    fmt.spacer =
-        static_cast<std::size_t>(std::distance(str.rbegin(), first_underscore));
+    fmt.spacer = static_cast<std::size_t>(std::distance(str.rbegin(), first_underscore));
   }
 
   // remove all `_` before calling TC::parse_int
@@ -11636,14 +10634,14 @@ result<basic_value<TC>, error_info> parse_dec_integer(location &loc,
     const auto sfx_reg = syntax::num_suffix(spec).scan(loc);
     if (!sfx_reg.is_ok()) {
       loc = first;
-      return err(make_error_info(
-          "toml::parse_dec_integer: "
-          "invalid suffix: should be `_ non-digit-graph (graph | _graph)`",
-          source_location(region(loc)), "here"));
+      return err(
+          make_error_info("toml::parse_dec_integer: "
+                          "invalid suffix: should be `_ non-digit-graph (graph | _graph)`",
+                          source_location(region(loc)), "here"));
     }
     auto sfx = sfx_reg.as_string();
     assert(!sfx.empty() && sfx.front() == '_');
-    sfx.erase(sfx.begin()); // remove the first `_`
+    sfx.erase(sfx.begin());  // remove the first `_`
 
     fmt.suffix = sfx;
   }
@@ -11652,8 +10650,7 @@ result<basic_value<TC>, error_info> parse_dec_integer(location &loc,
 }
 
 template <typename TC>
-result<basic_value<TC>, error_info> parse_integer(location &loc,
-                                                  const context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_integer(location& loc, const context<TC>& ctx) {
   const auto first = loc;
 
   if (!loc.eof() && (loc.current() == '+' || loc.current() == '-')) {
@@ -11708,39 +10705,37 @@ result<basic_value<TC>, error_info> parse_integer(location &loc,
  */
 
 template <typename TC>
-result<basic_value<TC>, error_info> parse_floating(location &loc,
-                                                   const context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_floating(location& loc, const context<TC>& ctx) {
   using floating_type = typename basic_value<TC>::floating_type;
 
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   // ----------------------------------------------------------------------
   // check syntax
   bool is_hex = false;
   std::string str;
   region reg;
-  if (spec.ext_hex_float &&
-      sequence(character('0'), character('x')).scan(loc).is_ok()) {
+  if (spec.ext_hex_float && sequence(character('0'), character('x')).scan(loc).is_ok()) {
     loc = first;
     is_hex = true;
 
     reg = syntax::hex_floating(spec).scan(loc);
     if (!reg.is_ok()) {
-      return err(make_syntax_error(
-          "toml::parse_floating: "
-          "invalid hex floating: float must be like: 0xABCp-3f",
-          syntax::floating(spec), loc));
+      return err(
+          make_syntax_error("toml::parse_floating: "
+                            "invalid hex floating: float must be like: 0xABCp-3f",
+                            syntax::floating(spec), loc));
     }
     str = reg.as_string();
   } else {
     reg = syntax::floating(spec).scan(loc);
     if (!reg.is_ok()) {
-      return err(make_syntax_error(
-          "toml::parse_floating: "
-          "invalid floating: float must be like: -3.14159_26535, 6.022e+23, "
-          "inf, or nan (lowercase).",
-          syntax::floating(spec), loc));
+      return err(
+          make_syntax_error("toml::parse_floating: "
+                            "invalid floating: float must be like: -3.14159_26535, 6.022e+23, "
+                            "inf, or nan (lowercase).",
+                            syntax::floating(spec), loc));
     }
     str = reg.as_string();
   }
@@ -11754,11 +10749,10 @@ result<basic_value<TC>, error_info> parse_floating(location &loc,
     fmt.fmt = floating_format::hex;
   } else {
     // since we already checked that the string conforms the TOML standard.
-    if (std::find(str.begin(), str.end(), 'e') != str.end() ||
-        std::find(str.begin(), str.end(), 'E') != str.end()) {
-      fmt.fmt = floating_format::scientific; // use exponent part
+    if (std::find(str.begin(), str.end(), 'e') != str.end() || std::find(str.begin(), str.end(), 'E') != str.end()) {
+      fmt.fmt = floating_format::scientific;  // use exponent part
     } else {
-      fmt.fmt = floating_format::fixed; // do not use exponent part
+      fmt.fmt = floating_format::fixed;  // do not use exponent part
     }
   }
 
@@ -11771,68 +10765,61 @@ result<basic_value<TC>, error_info> parse_floating(location &loc,
       val = std::numeric_limits<floating_type>::infinity();
     }
     else {
-      return err(make_error_info(
-          "toml::parse_floating: inf value found"
-          " but the current environment does not support inf. Please"
-          " make sure that the floating-point implementation conforms"
-          " IEEE 754/ISO 60559 international standard.",
-          source_location(region(loc)), "floating_type: inf is not supported"));
+      return err(
+          make_error_info("toml::parse_floating: inf value found"
+                          " but the current environment does not support inf. Please"
+                          " make sure that the floating-point implementation conforms"
+                          " IEEE 754/ISO 60559 international standard.",
+                          source_location(region(loc)), "floating_type: inf is not supported"));
     }
   } else if (str == "-inf") {
     TOML11_CONSTEXPR_IF(std::numeric_limits<floating_type>::has_infinity) {
       val = -std::numeric_limits<floating_type>::infinity();
     }
     else {
-      return err(make_error_info(
-          "toml::parse_floating: inf value found"
-          " but the current environment does not support inf. Please"
-          " make sure that the floating-point implementation conforms"
-          " IEEE 754/ISO 60559 international standard.",
-          source_location(region(loc)), "floating_type: inf is not supported"));
+      return err(
+          make_error_info("toml::parse_floating: inf value found"
+                          " but the current environment does not support inf. Please"
+                          " make sure that the floating-point implementation conforms"
+                          " IEEE 754/ISO 60559 international standard.",
+                          source_location(region(loc)), "floating_type: inf is not supported"));
     }
   } else if (str == "nan" || str == "+nan") {
     TOML11_CONSTEXPR_IF(std::numeric_limits<floating_type>::has_quiet_NaN) {
       val = std::numeric_limits<floating_type>::quiet_NaN();
     }
-    else TOML11_CONSTEXPR_IF(
-        std::numeric_limits<floating_type>::has_signaling_NaN) {
+    else TOML11_CONSTEXPR_IF(std::numeric_limits<floating_type>::has_signaling_NaN) {
       val = std::numeric_limits<floating_type>::signaling_NaN();
     }
     else {
-      return err(make_error_info(
-          "toml::parse_floating: NaN value found"
-          " but the current environment does not support NaN. Please"
-          " make sure that the floating-point implementation conforms"
-          " IEEE 754/ISO 60559 international standard.",
-          source_location(region(loc)), "floating_type: NaN is not supported"));
+      return err(
+          make_error_info("toml::parse_floating: NaN value found"
+                          " but the current environment does not support NaN. Please"
+                          " make sure that the floating-point implementation conforms"
+                          " IEEE 754/ISO 60559 international standard.",
+                          source_location(region(loc)), "floating_type: NaN is not supported"));
     }
   } else if (str == "-nan") {
     using std::copysign;
     TOML11_CONSTEXPR_IF(std::numeric_limits<floating_type>::has_quiet_NaN) {
-      val = copysign(std::numeric_limits<floating_type>::quiet_NaN(),
-                     floating_type(-1));
+      val = copysign(std::numeric_limits<floating_type>::quiet_NaN(), floating_type(-1));
     }
-    else TOML11_CONSTEXPR_IF(
-        std::numeric_limits<floating_type>::has_signaling_NaN) {
-      val = copysign(std::numeric_limits<floating_type>::signaling_NaN(),
-                     floating_type(-1));
+    else TOML11_CONSTEXPR_IF(std::numeric_limits<floating_type>::has_signaling_NaN) {
+      val = copysign(std::numeric_limits<floating_type>::signaling_NaN(), floating_type(-1));
     }
     else {
-      return err(make_error_info(
-          "toml::parse_floating: NaN value found"
-          " but the current environment does not support NaN. Please"
-          " make sure that the floating-point implementation conforms"
-          " IEEE 754/ISO 60559 international standard.",
-          source_location(region(loc)), "floating_type: NaN is not supported"));
+      return err(
+          make_error_info("toml::parse_floating: NaN value found"
+                          " but the current environment does not support NaN. Please"
+                          " make sure that the floating-point implementation conforms"
+                          " IEEE 754/ISO 60559 international standard.",
+                          source_location(region(loc)), "floating_type: NaN is not supported"));
     }
   } else {
     // set precision
-    const auto has_sign =
-        !str.empty() && (str.front() == '+' || str.front() == '-');
+    const auto has_sign = !str.empty() && (str.front() == '+' || str.front() == '-');
     const auto decpoint = std::find(str.begin(), str.end(), '.');
-    const auto exponent =
-        std::find_if(str.begin(), str.end(),
-                     [](const char c) { return c == 'e' || c == 'E'; });
+    const auto exponent = std::find_if(str.begin(), str.end(), [](const char c) { return c == 'e' || c == 'E'; });
     if (decpoint != str.end() && exponent != str.end()) {
       assert(decpoint < exponent);
     }
@@ -11850,8 +10837,7 @@ result<basic_value<TC>, error_info> parse_floating(location &loc,
       fmt.prec = std::numeric_limits<floating_type>::max_digits10;
     } else {
       // width after decimal point
-      fmt.prec = static_cast<std::size_t>(
-          std::distance(std::next(decpoint), exponent));
+      fmt.prec = static_cast<std::size_t>(std::distance(std::next(decpoint), exponent));
     }
 
     auto src = source_location(region(loc));
@@ -11871,14 +10857,14 @@ result<basic_value<TC>, error_info> parse_floating(location &loc,
     if (!sfx_reg.is_ok()) {
       auto src = source_location(region(loc));
       loc = first;
-      return err(make_error_info(
-          "toml::parse_floating: "
-          "invalid suffix: should be `_ non-digit-graph (graph | _graph)`",
-          std::move(src), "here"));
+      return err(
+          make_error_info("toml::parse_floating: "
+                          "invalid suffix: should be `_ non-digit-graph (graph | _graph)`",
+                          std::move(src), "here"));
     }
     auto sfx = sfx_reg.as_string();
     assert(!sfx.empty() && sfx.front() == '_');
-    sfx.erase(sfx.begin()); // remove the first `_`
+    sfx.erase(sfx.begin());  // remove the first `_`
 
     fmt.suffix = sfx;
   }
@@ -11895,10 +10881,10 @@ result<basic_value<TC>, error_info> parse_floating(location &loc,
 
 // all the offset_datetime, local_datetime, local_date parses date part.
 template <typename TC>
-result<std::tuple<local_date, local_date_format_info, region>, error_info>
-parse_local_date_only(location &loc, const context<TC> &ctx) {
+result<std::tuple<local_date, local_date_format_info, region>, error_info> parse_local_date_only(
+    location& loc, const context<TC>& ctx) {
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   local_date_format_info fmt;
 
@@ -11906,10 +10892,10 @@ parse_local_date_only(location &loc, const context<TC> &ctx) {
   // check syntax
   auto reg = syntax::local_date(spec).scan(loc);
   if (!reg.is_ok()) {
-    return err(make_syntax_error(
-        "toml::parse_local_date: "
-        "invalid date: date must be like: 1234-05-06, yyyy-mm-dd.",
-        syntax::local_date(spec), loc));
+    return err(
+        make_syntax_error("toml::parse_local_date: "
+                          "invalid date: date must be like: 1234-05-06, yyyy-mm-dd.",
+                          syntax::local_date(spec), loc));
   }
 
   // ----------------------------------------------------------------------
@@ -11924,24 +10910,27 @@ parse_local_date_only(location &loc, const context<TC> &ctx) {
 
   if (year_r.is_err()) {
     auto src = source_location(region(first));
-    return err(make_error_info("toml::parse_local_date: "
-                               "failed to read year `" +
-                                   str.substr(0, 4) + "`",
-                               std::move(src), "here"));
+    return err(
+        make_error_info("toml::parse_local_date: "
+                        "failed to read year `" +
+                            str.substr(0, 4) + "`",
+                        std::move(src), "here"));
   }
   if (month_r.is_err()) {
     auto src = source_location(region(first));
-    return err(make_error_info("toml::parse_local_date: "
-                               "failed to read month `" +
-                                   str.substr(5, 2) + "`",
-                               std::move(src), "here"));
+    return err(
+        make_error_info("toml::parse_local_date: "
+                        "failed to read month `" +
+                            str.substr(5, 2) + "`",
+                        std::move(src), "here"));
   }
   if (day_r.is_err()) {
     auto src = source_location(region(first));
-    return err(make_error_info("toml::parse_local_date: "
-                               "failed to read day `" +
-                                   str.substr(8, 2) + "`",
-                               std::move(src), "here"));
+    return err(
+        make_error_info("toml::parse_local_date: "
+                        "failed to read day `" +
+                            str.substr(8, 2) + "`",
+                        std::move(src), "here"));
   }
 
   const auto year = year_r.unwrap();
@@ -11958,8 +10947,7 @@ parse_local_date_only(location &loc, const context<TC> &ctx) {
     // validate date accurately, that means that the one need a specialized
     // library for their purpose in another layer.
 
-    const bool is_leap =
-        (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
+    const bool is_leap = (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
     const auto max_day = [month, is_leap]() {
       if (month == 2) {
         return is_leap ? 29 : 28;
@@ -11972,21 +10960,17 @@ parse_local_date_only(location &loc, const context<TC> &ctx) {
 
     if ((month < 1 || 12 < month) || (day < 1 || max_day < day)) {
       auto src = source_location(region(first));
-      return err(make_error_info(
-          "toml::parse_local_date: invalid date.", std::move(src),
-          "month must be 01-12, day must be any of "
-          "01-28,29,30,31 depending on the month/year."));
+      return err(make_error_info("toml::parse_local_date: invalid date.", std::move(src),
+                                 "month must be 01-12, day must be any of "
+                                 "01-28,29,30,31 depending on the month/year."));
     }
   }
 
-  return ok(
-      std::make_tuple(local_date(year, static_cast<month_t>(month - 1), day),
-                      std::move(fmt), std::move(reg)));
+  return ok(std::make_tuple(local_date(year, static_cast<month_t>(month - 1), day), std::move(fmt), std::move(reg)));
 }
 
 template <typename TC>
-result<basic_value<TC>, error_info> parse_local_date(location &loc,
-                                                     const context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_local_date(location& loc, const context<TC>& ctx) {
   auto val_fmt_reg = parse_local_date_only(loc, ctx);
   if (val_fmt_reg.is_err()) {
     return err(val_fmt_reg.unwrap_err());
@@ -11996,16 +10980,15 @@ result<basic_value<TC>, error_info> parse_local_date(location &loc,
   auto fmt = std::move(std::get<1>(val_fmt_reg.unwrap()));
   auto reg = std::move(std::get<2>(val_fmt_reg.unwrap()));
 
-  return ok(
-      basic_value<TC>(std::move(val), std::move(fmt), {}, std::move(reg)));
+  return ok(basic_value<TC>(std::move(val), std::move(fmt), {}, std::move(reg)));
 }
 
 // all the offset_datetime, local_datetime, local_time parses date part.
 template <typename TC>
-result<std::tuple<local_time, local_time_format_info, region>, error_info>
-parse_local_time_only(location &loc, const context<TC> &ctx) {
+result<std::tuple<local_time, local_time_format_info, region>, error_info> parse_local_time_only(
+    location& loc, const context<TC>& ctx) {
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   local_time_format_info fmt;
 
@@ -12014,15 +10997,15 @@ parse_local_time_only(location &loc, const context<TC> &ctx) {
   auto reg = syntax::local_time(spec).scan(loc);
   if (!reg.is_ok()) {
     if (spec.v1_1_0_make_seconds_optional) {
-      return err(make_syntax_error(
-          "toml::parse_local_time: "
-          "invalid time: time must be HH:MM(:SS.sss) (seconds are optional)",
-          syntax::local_time(spec), loc));
+      return err(
+          make_syntax_error("toml::parse_local_time: "
+                            "invalid time: time must be HH:MM(:SS.sss) (seconds are optional)",
+                            syntax::local_time(spec), loc));
     } else {
-      return err(make_syntax_error(
-          "toml::parse_local_time: "
-          "invalid time: time must be HH:MM:SS(.sss) (subseconds are optional)",
-          syntax::local_time(spec), loc));
+      return err(
+          make_syntax_error("toml::parse_local_time: "
+                            "invalid time: time must be HH:MM:SS(.sss) (subseconds are optional)",
+                            syntax::local_time(spec), loc));
     }
   }
 
@@ -12038,17 +11021,19 @@ parse_local_time_only(location &loc, const context<TC> &ctx) {
 
   if (hour_r.is_err()) {
     auto src = source_location(region(first));
-    return err(make_error_info("toml::parse_local_time: "
-                               "failed to read hour `" +
-                                   str.substr(0, 2) + "`",
-                               std::move(src), "here"));
+    return err(
+        make_error_info("toml::parse_local_time: "
+                        "failed to read hour `" +
+                            str.substr(0, 2) + "`",
+                        std::move(src), "here"));
   }
   if (minute_r.is_err()) {
     auto src = source_location(region(first));
-    return err(make_error_info("toml::parse_local_time: "
-                               "failed to read minute `" +
-                                   str.substr(3, 2) + "`",
-                               std::move(src), "here"));
+    return err(
+        make_error_info("toml::parse_local_time: "
+                        "failed to read minute `" +
+                            str.substr(3, 2) + "`",
+                        std::move(src), "here"));
   }
 
   const auto hour = hour_r.unwrap();
@@ -12056,8 +11041,7 @@ parse_local_time_only(location &loc, const context<TC> &ctx) {
 
   if ((hour < 0 || 24 <= hour) || (minute < 0 || 60 <= minute)) {
     auto src = source_location(region(first));
-    return err(make_error_info("toml::parse_local_time: invalid time.",
-                               std::move(src),
+    return err(make_error_info("toml::parse_local_time: invalid time.", std::move(src),
                                "hour must be 00-23, minute must be 00-59."));
   }
 
@@ -12069,8 +11053,7 @@ parse_local_time_only(location &loc, const context<TC> &ctx) {
   if (str.size() == 5 && spec.v1_1_0_make_seconds_optional) {
     fmt.has_seconds = false;
     fmt.subsecond_precision = 0;
-    return ok(std::make_tuple(local_time(hour, minute, 0), std::move(fmt),
-                              std::move(reg)));
+    return ok(std::make_tuple(local_time(hour, minute, 0), std::move(fmt), std::move(reg)));
   }
   assert(str.at(5) == ':');
 
@@ -12082,25 +11065,24 @@ parse_local_time_only(location &loc, const context<TC> &ctx) {
   const auto sec_r = from_string<int>(str.substr(6, 2));
   if (sec_r.is_err()) {
     auto src = source_location(region(first));
-    return err(make_error_info("toml::parse_local_time: "
-                               "failed to read second `" +
-                                   str.substr(6, 2) + "`",
-                               std::move(src), "here"));
+    return err(
+        make_error_info("toml::parse_local_time: "
+                        "failed to read second `" +
+                            str.substr(6, 2) + "`",
+                        std::move(src), "here"));
   }
   const auto sec = sec_r.unwrap();
 
-  if (sec < 0 || 60 < sec) // :60 is allowed
+  if (sec < 0 || 60 < sec)  // :60 is allowed
   {
     auto src = source_location(region(first));
-    return err(make_error_info("toml::parse_local_time: invalid time.",
-                               std::move(src), "second must be 00-60."));
+    return err(make_error_info("toml::parse_local_time: invalid time.", std::move(src), "second must be 00-60."));
   }
 
   if (str.size() == 8) {
     fmt.has_seconds = true;
     fmt.subsecond_precision = 0;
-    return ok(std::make_tuple(local_time(hour, minute, sec), std::move(fmt),
-                              std::move(reg)));
+    return ok(std::make_tuple(local_time(hour, minute, sec), std::move(fmt), std::move(reg)));
   }
 
   assert(str.at(8) == '.');
@@ -12120,36 +11102,37 @@ parse_local_time_only(location &loc, const context<TC> &ctx) {
 
   if (ms_r.is_err()) {
     auto src = source_location(region(first));
-    return err(make_error_info("toml::parse_local_time: "
-                               "failed to read milliseconds `" +
-                                   secfrac.substr(0, 3) + "`",
-                               std::move(src), "here"));
+    return err(
+        make_error_info("toml::parse_local_time: "
+                        "failed to read milliseconds `" +
+                            secfrac.substr(0, 3) + "`",
+                        std::move(src), "here"));
   }
   if (us_r.is_err()) {
     auto src = source_location(region(first));
-    return err(make_error_info("toml::parse_local_time: "
-                               "failed to read microseconds`" +
-                                   str.substr(3, 3) + "`",
-                               std::move(src), "here"));
+    return err(
+        make_error_info("toml::parse_local_time: "
+                        "failed to read microseconds`" +
+                            str.substr(3, 3) + "`",
+                        std::move(src), "here"));
   }
   if (ns_r.is_err()) {
     auto src = source_location(region(first));
-    return err(make_error_info("toml::parse_local_time: "
-                               "failed to read nanoseconds`" +
-                                   str.substr(6, 3) + "`",
-                               std::move(src), "here"));
+    return err(
+        make_error_info("toml::parse_local_time: "
+                        "failed to read nanoseconds`" +
+                            str.substr(6, 3) + "`",
+                        std::move(src), "here"));
   }
   const auto ms = ms_r.unwrap();
   const auto us = us_r.unwrap();
   const auto ns = ns_r.unwrap();
 
-  return ok(std::make_tuple(local_time(hour, minute, sec, ms, us, ns),
-                            std::move(fmt), std::move(reg)));
+  return ok(std::make_tuple(local_time(hour, minute, sec, ms, us, ns), std::move(fmt), std::move(reg)));
 }
 
 template <typename TC>
-result<basic_value<TC>, error_info> parse_local_time(location &loc,
-                                                     const context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_local_time(location& loc, const context<TC>& ctx) {
   const auto first = loc;
 
   auto val_fmt_reg = parse_local_time_only(loc, ctx);
@@ -12161,13 +11144,11 @@ result<basic_value<TC>, error_info> parse_local_time(location &loc,
   auto fmt = std::move(std::get<1>(val_fmt_reg.unwrap()));
   auto reg = std::move(std::get<2>(val_fmt_reg.unwrap()));
 
-  return ok(
-      basic_value<TC>(std::move(val), std::move(fmt), {}, std::move(reg)));
+  return ok(basic_value<TC>(std::move(val), std::move(fmt), {}, std::move(reg)));
 }
 
 template <typename TC>
-result<basic_value<TC>, error_info>
-parse_local_datetime(location &loc, const context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_local_datetime(location& loc, const context<TC>& ctx) {
   using char_type = location::char_type;
 
   const auto first = loc;
@@ -12204,25 +11185,22 @@ parse_local_datetime(location &loc, const context<TC> &ctx) {
   }
 
   fmt.has_seconds = std::get<1>(time_fmt_reg.unwrap()).has_seconds;
-  fmt.subsecond_precision =
-      std::get<1>(time_fmt_reg.unwrap()).subsecond_precision;
+  fmt.subsecond_precision = std::get<1>(time_fmt_reg.unwrap()).subsecond_precision;
 
   // ----------------------------------------------------------------------
 
   region reg(first, loc);
-  local_datetime val(std::get<0>(date_fmt_reg.unwrap()),
-                     std::get<0>(time_fmt_reg.unwrap()));
+  local_datetime val(std::get<0>(date_fmt_reg.unwrap()), std::get<0>(time_fmt_reg.unwrap()));
 
   return ok(basic_value<TC>(val, std::move(fmt), {}, std::move(reg)));
 }
 
 template <typename TC>
-result<basic_value<TC>, error_info>
-parse_offset_datetime(location &loc, const context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_offset_datetime(location& loc, const context<TC>& ctx) {
   using char_type = location::char_type;
 
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   offset_datetime_format_info fmt;
 
@@ -12248,9 +11226,10 @@ parse_offset_datetime(location &loc, const context<TC> &ctx) {
     fmt.delimiter = datetime_delimiter_kind::space;
   } else {
     auto src = source_location(region(loc));
-    return err(make_error_info("toml::parse_offset_datetime: "
-                               "expect date-time delimiter `T` or ` `(space).",
-                               std::move(src), "here"));
+    return err(
+        make_error_info("toml::parse_offset_datetime: "
+                        "expect date-time delimiter `T` or ` `(space).",
+                        std::move(src), "here"));
   }
 
   // ----------------------------------------------------------------------
@@ -12262,18 +11241,17 @@ parse_offset_datetime(location &loc, const context<TC> &ctx) {
   }
 
   fmt.has_seconds = std::get<1>(time_fmt_reg.unwrap()).has_seconds;
-  fmt.subsecond_precision =
-      std::get<1>(time_fmt_reg.unwrap()).subsecond_precision;
+  fmt.subsecond_precision = std::get<1>(time_fmt_reg.unwrap()).subsecond_precision;
 
   // ----------------------------------------------------------------------
   // offset part
 
   const auto ofs_reg = syntax::time_offset(spec).scan(loc);
   if (!ofs_reg.is_ok()) {
-    return err(make_syntax_error(
-        "toml::parse_offset_datetime: "
-        "invalid offset: offset must be like: Z, +01:00, or -10:00.",
-        syntax::time_offset(spec), loc));
+    return err(
+        make_syntax_error("toml::parse_offset_datetime: "
+                          "invalid offset: offset must be like: Z, +01:00, or -10:00.",
+                          syntax::time_offset(spec), loc));
   }
 
   const auto ofs_str = ofs_reg.as_string();
@@ -12287,15 +11265,17 @@ parse_offset_datetime(location &loc, const context<TC> &ctx) {
     const auto minute_r = from_string<int>(ofs_str.substr(4, 2));
     if (hour_r.is_err()) {
       auto src = source_location(region(loc));
-      return err(make_error_info("toml::parse_offset_datetime: "
-                                 "Failed to read offset hour part",
-                                 std::move(src), "here"));
+      return err(
+          make_error_info("toml::parse_offset_datetime: "
+                          "Failed to read offset hour part",
+                          std::move(src), "here"));
     }
     if (minute_r.is_err()) {
       auto src = source_location(region(loc));
-      return err(make_error_info("toml::parse_offset_datetime: "
-                                 "Failed to read offset minute part",
-                                 std::move(src), "here"));
+      return err(
+          make_error_info("toml::parse_offset_datetime: "
+                          "Failed to read offset minute part",
+                          std::move(src), "here"));
     }
     const auto hour = hour_r.unwrap();
     const auto minute = minute_r.unwrap();
@@ -12309,19 +11289,17 @@ parse_offset_datetime(location &loc, const context<TC> &ctx) {
     assert(ofs_str.at(0) == char_type('Z') || ofs_str.at(0) == char_type('z'));
   }
 
-  if (offset.hour < -24 || 24 < offset.hour || offset.minute < -60 ||
-      60 < offset.minute) {
-    return err(make_error_info("toml::parse_offset_datetime: "
-                               "too large offset: |hour| <= 24, |minute| <= 60",
-                               source_location(region(first, loc)), "here"));
+  if (offset.hour < -24 || 24 < offset.hour || offset.minute < -60 || 60 < offset.minute) {
+    return err(
+        make_error_info("toml::parse_offset_datetime: "
+                        "too large offset: |hour| <= 24, |minute| <= 60",
+                        source_location(region(first, loc)), "here"));
   }
 
   // ----------------------------------------------------------------------
 
   region reg(first, loc);
-  offset_datetime val(local_datetime(std::get<0>(date_fmt_reg.unwrap()),
-                                     std::get<0>(time_fmt_reg.unwrap())),
-                      offset);
+  offset_datetime val(local_datetime(std::get<0>(date_fmt_reg.unwrap()), std::get<0>(time_fmt_reg.unwrap())), offset);
 
   return ok(basic_value<TC>(val, std::move(fmt), {}, std::move(reg)));
 }
@@ -12335,8 +11313,7 @@ parse_offset_datetime(location &loc, const context<TC> &ctx) {
  */
 
 template <typename TC>
-result<typename basic_value<TC>::string_type, error_info>
-parse_utf8_codepoint(const region &reg) {
+result<typename basic_value<TC>::string_type, error_info> parse_utf8_codepoint(const region& reg) {
   using string_type = typename basic_value<TC>::string_type;
   using char_type = typename string_type::value_type;
 
@@ -12356,56 +11333,56 @@ parse_utf8_codepoint(const region &reg) {
   };
 
   string_type character;
-  if (codepoint < 0x80) // U+0000 ... U+0079 ; just an ASCII.
+  if (codepoint < 0x80)  // U+0000 ... U+0079 ; just an ASCII.
   {
     character += static_cast<char>(codepoint);
-  } else if (codepoint < 0x800) // U+0080 ... U+07FF
+  } else if (codepoint < 0x800)  // U+0080 ... U+07FF
   {
     // 110yyyyx 10xxxxxx; 0x3f == 0b0011'1111
     character += to_char(0xC0 | (codepoint >> 6));
     character += to_char(0x80 | (codepoint & 0x3F));
-  } else if (codepoint < 0x10000) // U+0800...U+FFFF
+  } else if (codepoint < 0x10000)  // U+0800...U+FFFF
   {
     if (0xD800 <= codepoint && codepoint <= 0xDFFF) {
       auto src = source_location(reg);
-      return err(make_error_info("toml::parse_utf8_codepoint: "
-                                 "[0xD800, 0xDFFF] is not a valid UTF-8",
-                                 std::move(src), "here"));
+      return err(
+          make_error_info("toml::parse_utf8_codepoint: "
+                          "[0xD800, 0xDFFF] is not a valid UTF-8",
+                          std::move(src), "here"));
     }
     assert(codepoint < 0xD800 || 0xDFFF < codepoint);
     // 1110yyyy 10yxxxxx 10xxxxxx
     character += to_char(0xE0 | (codepoint >> 12));
     character += to_char(0x80 | ((codepoint >> 6) & 0x3F));
     character += to_char(0x80 | ((codepoint)&0x3F));
-  } else if (codepoint < 0x110000) // U+010000 ... U+10FFFF
+  } else if (codepoint < 0x110000)  // U+010000 ... U+10FFFF
   {
     // 11110yyy 10yyxxxx 10xxxxxx 10xxxxxx
     character += to_char(0xF0 | (codepoint >> 18));
     character += to_char(0x80 | ((codepoint >> 12) & 0x3F));
     character += to_char(0x80 | ((codepoint >> 6) & 0x3F));
     character += to_char(0x80 | ((codepoint)&0x3F));
-  } else // out of UTF-8 region
+  } else  // out of UTF-8 region
   {
     auto src = source_location(reg);
-    return err(make_error_info("toml::parse_utf8_codepoint: "
-                               "input codepoint is too large.",
-                               std::move(src),
-                               "must be in range [0x00, 0x10FFFF]"));
+    return err(
+        make_error_info("toml::parse_utf8_codepoint: "
+                        "input codepoint is too large.",
+                        std::move(src), "must be in range [0x00, 0x10FFFF]"));
   }
   return ok(character);
 }
 
 template <typename TC>
-result<typename basic_value<TC>::string_type, error_info>
-parse_escape_sequence(location &loc, const context<TC> &ctx) {
+result<typename basic_value<TC>::string_type, error_info> parse_escape_sequence(location& loc, const context<TC>& ctx) {
   using string_type = typename basic_value<TC>::string_type;
   using char_type = typename string_type::value_type;
 
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   assert(!loc.eof());
   assert(loc.current() == '\\');
-  loc.advance(); // consume the first backslash
+  loc.advance();  // consume the first backslash
 
   string_type retval;
 
@@ -12434,14 +11411,14 @@ parse_escape_sequence(location &loc, const context<TC> &ctx) {
     retval += char_type('\x1b');
     loc.advance();
   } else if (spec.v1_1_0_add_escape_sequence_x && loc.current() == 'x') {
-    auto scanner =
-        sequence(character('x'), repeat_exact(2, syntax::hexdig(spec)));
+    auto scanner = sequence(character('x'), repeat_exact(2, syntax::hexdig(spec)));
     const auto reg = scanner.scan(loc);
     if (!reg.is_ok()) {
       auto src = source_location(region(loc));
-      return err(make_error_info("toml::parse_escape_sequence: "
-                                 "invalid token found in UTF-8 codepoint \\xhh",
-                                 std::move(src), "here"));
+      return err(
+          make_error_info("toml::parse_escape_sequence: "
+                          "invalid token found in UTF-8 codepoint \\xhh",
+                          std::move(src), "here"));
     }
     const auto utf8 = parse_utf8_codepoint<TC>(reg);
     if (utf8.is_err()) {
@@ -12449,8 +11426,7 @@ parse_escape_sequence(location &loc, const context<TC> &ctx) {
     }
     retval += utf8.unwrap();
   } else if (loc.current() == 'u') {
-    auto scanner =
-        sequence(character('u'), repeat_exact(4, syntax::hexdig(spec)));
+    auto scanner = sequence(character('u'), repeat_exact(4, syntax::hexdig(spec)));
     const auto reg = scanner.scan(loc);
     if (!reg.is_ok()) {
       auto src = source_location(region(loc));
@@ -12465,8 +11441,7 @@ parse_escape_sequence(location &loc, const context<TC> &ctx) {
     }
     retval += utf8.unwrap();
   } else if (loc.current() == 'U') {
-    auto scanner =
-        sequence(character('U'), repeat_exact(8, syntax::hexdig(spec)));
+    auto scanner = sequence(character('U'), repeat_exact(8, syntax::hexdig(spec)));
     const auto reg = scanner.scan(loc);
     if (!reg.is_ok()) {
       auto src = source_location(region(loc));
@@ -12482,8 +11457,7 @@ parse_escape_sequence(location &loc, const context<TC> &ctx) {
     retval += utf8.unwrap();
   } else {
     auto src = source_location(region(loc));
-    std::string escape_seqs =
-        "allowed escape seqs: \\\\, \\\", \\b, \\f, \\n, \\r, \\t";
+    std::string escape_seqs = "allowed escape seqs: \\\\, \\\", \\b, \\f, \\n, \\r, \\t";
     if (spec.v1_1_0_add_escape_sequence_e) {
       escape_seqs += ", \\e";
     }
@@ -12492,27 +11466,28 @@ parse_escape_sequence(location &loc, const context<TC> &ctx) {
     }
     escape_seqs += ", \\uhhhh, or \\Uhhhhhhhh";
 
-    return err(make_error_info("toml::parse_escape_sequence: "
-                               "unknown escape sequence.",
-                               std::move(src), escape_seqs));
+    return err(
+        make_error_info("toml::parse_escape_sequence: "
+                        "unknown escape sequence.",
+                        std::move(src), escape_seqs));
   }
   return ok(retval);
 }
 
 template <typename TC>
-result<basic_value<TC>, error_info>
-parse_ml_basic_string(location &loc, const context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_ml_basic_string(location& loc, const context<TC>& ctx) {
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   string_format_info fmt;
   fmt.fmt = string_format::multiline_basic;
 
   auto reg = syntax::ml_basic_string(spec).scan(loc);
   if (!reg.is_ok()) {
-    return err(make_syntax_error("toml::parse_ml_basic_string: "
-                                 "invalid string format",
-                                 syntax::ml_basic_string(spec), loc));
+    return err(
+        make_syntax_error("toml::parse_ml_basic_string: "
+                          "invalid string format",
+                          syntax::ml_basic_string(spec), loc));
   }
 
   // ----------------------------------------------------------------------
@@ -12542,16 +11517,16 @@ parse_ml_basic_string(location &loc, const context<TC> &ctx) {
   {
     auto iter = str.cbegin();
     while (iter != str.cend()) {
-      if (*iter == '\\') // remove whitespaces around escaped-newline
+      if (*iter == '\\')  // remove whitespaces around escaped-newline
       {
         // we assume that the string is not too long to copy
         auto loc2 = make_temporary_location(make_string(iter, str.cend()));
         if (syntax::escaped_newline(spec).scan(loc2).is_ok()) {
           std::advance(iter,
-                       loc2.get_location()); // skip escaped newline and indent
+                       loc2.get_location());  // skip escaped newline and indent
           // now iter points non-WS char
           assert(iter == str.end() || (*iter != ' ' && *iter != '\t'));
-        } else // normal escape seq.
+        } else  // normal escape seq.
         {
           auto esc = parse_escape_sequence(loc2, ctx);
 
@@ -12564,7 +11539,7 @@ parse_ml_basic_string(location &loc, const context<TC> &ctx) {
           val += esc.unwrap();
           std::advance(iter, loc2.get_location());
         }
-      } else // we already checked the syntax. we don't need to check it again.
+      } else  // we already checked the syntax. we don't need to check it again.
       {
         val += static_cast<typename string_type::value_type>(*iter);
         ++iter;
@@ -12572,21 +11547,21 @@ parse_ml_basic_string(location &loc, const context<TC> &ctx) {
     }
   }
 
-  return ok(
-      basic_value<TC>(std::move(val), std::move(fmt), {}, std::move(reg)));
+  return ok(basic_value<TC>(std::move(val), std::move(fmt), {}, std::move(reg)));
 }
 
 template <typename TC>
-result<std::pair<typename basic_value<TC>::string_type, region>, error_info>
-parse_basic_string_only(location &loc, const context<TC> &ctx) {
+result<std::pair<typename basic_value<TC>::string_type, region>, error_info> parse_basic_string_only(
+    location& loc, const context<TC>& ctx) {
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   auto reg = syntax::basic_string(spec).scan(loc);
   if (!reg.is_ok()) {
-    return err(make_syntax_error("toml::parse_basic_string: "
-                                 "invalid string format",
-                                 syntax::basic_string(spec), loc));
+    return err(
+        make_syntax_error("toml::parse_basic_string: "
+                          "invalid string format",
+                          syntax::basic_string(spec), loc));
   }
 
   // ----------------------------------------------------------------------
@@ -12620,7 +11595,7 @@ parse_basic_string_only(location &loc, const context<TC> &ctx) {
         val += esc.unwrap();
         std::advance(iter, loc2.get_location());
       } else {
-        val += char_type(*iter); // we already checked the syntax.
+        val += char_type(*iter);  // we already checked the syntax.
         ++iter;
       }
     }
@@ -12629,8 +11604,7 @@ parse_basic_string_only(location &loc, const context<TC> &ctx) {
 }
 
 template <typename TC>
-result<basic_value<TC>, error_info> parse_basic_string(location &loc,
-                                                       const context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_basic_string(location& loc, const context<TC>& ctx) {
   const auto first = loc;
 
   string_format_info fmt;
@@ -12643,24 +11617,23 @@ result<basic_value<TC>, error_info> parse_basic_string(location &loc,
   auto val = std::move(val_res.unwrap().first);
   auto reg = std::move(val_res.unwrap().second);
 
-  return ok(
-      basic_value<TC>(std::move(val), std::move(fmt), {}, std::move(reg)));
+  return ok(basic_value<TC>(std::move(val), std::move(fmt), {}, std::move(reg)));
 }
 
 template <typename TC>
-result<basic_value<TC>, error_info>
-parse_ml_literal_string(location &loc, const context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_ml_literal_string(location& loc, const context<TC>& ctx) {
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   string_format_info fmt;
   fmt.fmt = string_format::multiline_literal;
 
   auto reg = syntax::ml_literal_string(spec).scan(loc);
   if (!reg.is_ok()) {
-    return err(make_syntax_error("toml::parse_ml_literal_string: "
-                                 "invalid string format",
-                                 syntax::ml_literal_string(spec), loc));
+    return err(
+        make_syntax_error("toml::parse_ml_literal_string: "
+                          "invalid string format",
+                          syntax::ml_literal_string(spec), loc));
   }
 
   // ----------------------------------------------------------------------
@@ -12685,21 +11658,21 @@ parse_ml_literal_string(location &loc, const context<TC> &ctx) {
   using string_type = typename basic_value<TC>::string_type;
   string_type val(str.begin(), str.end());
 
-  return ok(
-      basic_value<TC>(std::move(val), std::move(fmt), {}, std::move(reg)));
+  return ok(basic_value<TC>(std::move(val), std::move(fmt), {}, std::move(reg)));
 }
 
 template <typename TC>
-result<std::pair<typename basic_value<TC>::string_type, region>, error_info>
-parse_literal_string_only(location &loc, const context<TC> &ctx) {
+result<std::pair<typename basic_value<TC>::string_type, region>, error_info> parse_literal_string_only(
+    location& loc, const context<TC>& ctx) {
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   auto reg = syntax::literal_string(spec).scan(loc);
   if (!reg.is_ok()) {
-    return err(make_syntax_error("toml::parse_literal_string: "
-                                 "invalid string format",
-                                 syntax::literal_string(spec), loc));
+    return err(
+        make_syntax_error("toml::parse_literal_string: "
+                          "invalid string format",
+                          syntax::literal_string(spec), loc));
   }
 
   // ----------------------------------------------------------------------
@@ -12719,8 +11692,7 @@ parse_literal_string_only(location &loc, const context<TC> &ctx) {
 }
 
 template <typename TC>
-result<basic_value<TC>, error_info>
-parse_literal_string(location &loc, const context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_literal_string(location& loc, const context<TC>& ctx) {
   const auto first = loc;
 
   string_format_info fmt;
@@ -12733,13 +11705,11 @@ parse_literal_string(location &loc, const context<TC> &ctx) {
   auto val = std::move(val_res.unwrap().first);
   auto reg = std::move(val_res.unwrap().second);
 
-  return ok(
-      basic_value<TC>(std::move(val), std::move(fmt), {}, std::move(reg)));
+  return ok(basic_value<TC>(std::move(val), std::move(fmt), {}, std::move(reg)));
 }
 
 template <typename TC>
-result<basic_value<TC>, error_info> parse_string(location &loc,
-                                                 const context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_string(location& loc, const context<TC>& ctx) {
   const auto first = loc;
 
   if (!loc.eof() && loc.current() == '"') {
@@ -12760,16 +11730,16 @@ result<basic_value<TC>, error_info> parse_string(location &loc,
     }
   } else {
     auto src = source_location(region(loc));
-    return err(make_error_info("toml::parse_string: "
-                               "not a string",
-                               std::move(src), "here"));
+    return err(
+        make_error_info("toml::parse_string: "
+                        "not a string",
+                        std::move(src), "here"));
   }
 }
 
 template <typename TC>
-result<basic_value<TC>, error_info> parse_null(location &loc,
-                                               const context<TC> &ctx) {
-  const auto &spec = ctx.toml_spec();
+result<basic_value<TC>, error_info> parse_null(location& loc, const context<TC>& ctx) {
+  const auto& spec = ctx.toml_spec();
   if (!spec.ext_null_value) {
     return err(
         make_error_info("toml::parse_null: "
@@ -12781,9 +11751,10 @@ result<basic_value<TC>, error_info> parse_null(location &loc,
   // check syntax
   auto reg = syntax::null_value(spec).scan(loc);
   if (!reg.is_ok()) {
-    return err(make_syntax_error("toml::parse_null: "
-                                 "invalid null: null must be lowercase. ",
-                                 syntax::null_value(spec), loc));
+    return err(
+        make_syntax_error("toml::parse_null: "
+                          "invalid null: null must be lowercase. ",
+                          syntax::null_value(spec), loc));
   }
 
   // ----------------------------------------------------------------------
@@ -12805,10 +11776,9 @@ result<basic_value<TC>, error_info> parse_null(location &loc,
 
 // non-dotted key.
 template <typename TC>
-result<typename basic_value<TC>::key_type, error_info>
-parse_simple_key(location &loc, const context<TC> &ctx) {
+result<typename basic_value<TC>::key_type, error_info> parse_simple_key(location& loc, const context<TC>& ctx) {
   using key_type = typename basic_value<TC>::key_type;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   if (loc.current() == '\"') {
     auto str_res = parse_basic_string_only(loc, ctx);
@@ -12835,23 +11805,23 @@ parse_simple_key(location &loc, const context<TC> &ctx) {
     if (spec.v1_1_0_allow_non_english_in_bare_keys) {
       postfix = "Hint: Not all Unicode characters are allowed as bare key.\n";
     } else {
-      postfix = "Hint: non-ASCII scripts are allowed in toml v1.1.0, but not "
-                "in v1.0.0.\n";
+      postfix =
+          "Hint: non-ASCII scripts are allowed in toml v1.1.0, but not "
+          "in v1.0.0.\n";
     }
-    return err(make_syntax_error(
-        "toml::parse_simple_key: "
-        "invalid key: key must be \"quoted\", 'quoted-literal', or bare key.",
-        syntax::unquoted_key(spec), loc, postfix));
+    return err(
+        make_syntax_error("toml::parse_simple_key: "
+                          "invalid key: key must be \"quoted\", 'quoted-literal', or bare key.",
+                          syntax::unquoted_key(spec), loc, postfix));
   }
 }
 
 // dotted key become vector of keys
 template <typename TC>
-result<std::pair<std::vector<typename basic_value<TC>::key_type>, region>,
-       error_info>
-parse_key(location &loc, const context<TC> &ctx) {
+result<std::pair<std::vector<typename basic_value<TC>::key_type>, region>, error_info> parse_key(
+    location& loc, const context<TC>& ctx) {
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   using key_type = typename basic_value<TC>::key_type;
   std::vector<key_type> keys;
@@ -12869,9 +11839,10 @@ parse_key(location &loc, const context<TC> &ctx) {
   }
   if (keys.empty()) {
     auto src = source_location(region(first));
-    return err(make_error_info("toml::parse_key: expected a new key, "
-                               "but got nothing",
-                               std::move(src), "reached EOF"));
+    return err(
+        make_error_info("toml::parse_key: expected a new key, "
+                        "but got nothing",
+                        std::move(src), "reached EOF"));
   }
 
   return ok(std::make_pair(std::move(keys), region(first, loc)));
@@ -12881,16 +11852,13 @@ parse_key(location &loc, const context<TC> &ctx) {
 
 // forward-decl to implement parse_array and parse_table
 template <typename TC>
-result<basic_value<TC>, error_info> parse_value(location &, context<TC> &ctx);
+result<basic_value<TC>, error_info> parse_value(location&, context<TC>& ctx);
 
 template <typename TC>
-result<std::pair<
-           std::pair<std::vector<typename basic_value<TC>::key_type>, region>,
-           basic_value<TC>>,
-       error_info>
-parse_key_value_pair(location &loc, context<TC> &ctx) {
+result<std::pair<std::pair<std::vector<typename basic_value<TC>::key_type>, region>, basic_value<TC>>, error_info>
+parse_key_value_pair(location& loc, context<TC>& ctx) {
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   auto key_res = parse_key(loc, ctx);
   if (key_res.is_err()) {
@@ -12899,9 +11867,10 @@ parse_key_value_pair(location &loc, context<TC> &ctx) {
   }
 
   if (!syntax::keyval_sep(spec).scan(loc).is_ok()) {
-    auto e = make_syntax_error("toml::parse_key_value_pair: "
-                               "invalid key value separator `=`",
-                               syntax::keyval_sep(spec), loc);
+    auto e = make_syntax_error(
+        "toml::parse_key_value_pair: "
+        "invalid key value separator `=`",
+        syntax::keyval_sep(spec), loc);
     loc = first;
     return err(std::move(e));
   }
@@ -12911,8 +11880,7 @@ parse_key_value_pair(location &loc, context<TC> &ctx) {
     // loc = first;
     return err(v_res.unwrap_err());
   }
-  return ok(
-      std::make_pair(std::move(key_res.unwrap()), std::move(v_res.unwrap())));
+  return ok(std::make_pair(std::move(key_res.unwrap()), std::move(v_res.unwrap())));
 }
 
 /* ============================================================================
@@ -12930,7 +11898,8 @@ parse_key_value_pair(location &loc, context<TC> &ctx) {
 // (ws|newline|comment-line)? (value) (ws|newline|comment-line)? (`,`)?
 // (ws|newline|comment-line)? `]`
 // it skips (ws|newline|comment-line) and returns the token.
-template <typename TC> struct multiline_spacer {
+template <typename TC>
+struct multiline_spacer {
   using comment_type = typename TC::comment_type;
   bool newline_found;
   indent_char indent_type;
@@ -12938,7 +11907,7 @@ template <typename TC> struct multiline_spacer {
   comment_type comments;
 };
 template <typename T>
-std::ostream &operator<<(std::ostream &os, const multiline_spacer<T> &sp) {
+std::ostream& operator<<(std::ostream& os, const multiline_spacer<T>& sp) {
   os << "{newline=" << sp.newline_found << ", ";
   os << "indent_type=" << sp.indent_type << ", ";
   os << "indent=" << sp.indent << ", ";
@@ -12947,10 +11916,9 @@ std::ostream &operator<<(std::ostream &os, const multiline_spacer<T> &sp) {
 }
 
 template <typename TC>
-cxx::optional<multiline_spacer<TC>>
-skip_multiline_spacer(location &loc, context<TC> &ctx,
-                      const bool newline_found = false) {
-  const auto &spec = ctx.toml_spec();
+cxx::optional<multiline_spacer<TC>> skip_multiline_spacer(location& loc, context<TC>& ctx,
+                                                          const bool newline_found = false) {
+  const auto& spec = ctx.toml_spec();
 
   multiline_spacer<TC> spacer;
   spacer.newline_found = newline_found;
@@ -12960,8 +11928,7 @@ skip_multiline_spacer(location &loc, context<TC> &ctx,
 
   bool spacer_found = false;
   while (!loc.eof()) {
-    if (auto comm =
-            sequence(syntax::comment(spec), syntax::newline(spec)).scan(loc)) {
+    if (auto comm = sequence(syntax::comment(spec), syntax::newline(spec)).scan(loc)) {
       spacer.newline_found = true;
       auto comment = comm.as_string();
       if (!comment.empty() && comment.back() == '\n') {
@@ -12981,22 +11948,16 @@ skip_multiline_spacer(location &loc, context<TC> &ctx,
       spacer.indent_type = indent_char::none;
       spacer.indent = 0;
       spacer_found = true;
-    } else if (auto sp =
-                   repeat_at_least(
-                       1, character(cxx::bit_cast<location::char_type>(' ')))
-                       .scan(loc)) {
+    } else if (auto sp = repeat_at_least(1, character(cxx::bit_cast<location::char_type>(' '))).scan(loc)) {
       spacer.indent_type = indent_char::space;
       spacer.indent = static_cast<std::int32_t>(sp.length());
       spacer_found = true;
-    } else if (auto tabs =
-                   repeat_at_least(
-                       1, character(cxx::bit_cast<location::char_type>('\t')))
-                       .scan(loc)) {
+    } else if (auto tabs = repeat_at_least(1, character(cxx::bit_cast<location::char_type>('\t'))).scan(loc)) {
       spacer.indent_type = indent_char::tab;
       spacer.indent = static_cast<std::int32_t>(tabs.length());
       spacer_found = true;
     } else {
-      break; // done
+      break;  // done
     }
   }
   if (!spacer_found) {
@@ -13007,17 +11968,17 @@ skip_multiline_spacer(location &loc, context<TC> &ctx,
 
 // not an [[array.of.tables]]. It parses ["this", "type"]
 template <typename TC>
-result<basic_value<TC>, error_info> parse_array(location &loc,
-                                                context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_array(location& loc, context<TC>& ctx) {
   const auto num_errors = ctx.errors().size();
 
   const auto first = loc;
 
   if (loc.eof() || loc.current() != '[') {
     auto src = source_location(region(loc));
-    return err(make_error_info("toml::parse_array: "
-                               "The next token is not an array",
-                               std::move(src), "here"));
+    return err(
+        make_error_info("toml::parse_array: "
+                        "The next token is not an array",
+                        std::move(src), "here"));
   }
   loc.advance();
 
@@ -13035,8 +11996,7 @@ result<basic_value<TC>, error_info> parse_array(location &loc,
   bool comma_found = true;
   while (!loc.eof()) {
     if (loc.current() == location::char_type(']')) {
-      if (spacer.has_value() && spacer.value().newline_found &&
-          spacer.value().indent_type != indent_char::none) {
+      if (spacer.has_value() && spacer.value().newline_found && spacer.value().indent_type != indent_char::none) {
         fmt.indent_type = spacer.value().indent_type;
         fmt.closing_indent = spacer.value().indent;
       }
@@ -13045,13 +12005,13 @@ result<basic_value<TC>, error_info> parse_array(location &loc,
 
     if (!comma_found) {
       auto src = source_location(region(loc));
-      return err(make_error_info("toml::parse_array: "
-                                 "expected value-separator `,` or closing `]`",
-                                 std::move(src), "here"));
+      return err(
+          make_error_info("toml::parse_array: "
+                          "expected value-separator `,` or closing `]`",
+                          std::move(src), "here"));
     }
 
-    if (spacer.has_value() && spacer.value().newline_found &&
-        spacer.value().indent_type != indent_char::none) {
+    if (spacer.has_value() && spacer.value().newline_found && spacer.value().indent_type != indent_char::none) {
       fmt.indent_type = spacer.value().indent_type;
       fmt.body_indent = spacer.value().indent;
     }
@@ -13059,7 +12019,7 @@ result<basic_value<TC>, error_info> parse_array(location &loc,
     if (auto elem_res = parse_value(loc, ctx)) {
       auto elem = std::move(elem_res.unwrap());
 
-      if (spacer.has_value()) // copy previous comments to value
+      if (spacer.has_value())  // copy previous comments to value
       {
         elem.comments() = std::move(spacer.value().comments);
       }
@@ -13095,8 +12055,7 @@ result<basic_value<TC>, error_info> parse_array(location &loc,
         ctx.report_error(com_res.unwrap_err());
       }
 
-      const bool comment_found =
-          com_res.is_ok() && com_res.unwrap().has_value();
+      const bool comment_found = com_res.is_ok() && com_res.unwrap().has_value();
       if (comment_found) {
         fmt.fmt = array_format::multiline;
         elem.comments().push_back(com_res.unwrap().value());
@@ -13118,7 +12077,7 @@ result<basic_value<TC>, error_info> parse_array(location &loc,
 
       const auto before_skip = loc.get_location();
       skip_value(loc, ctx);
-      if (before_skip == loc.get_location()) // cannot skip! break...
+      if (before_skip == loc.get_location())  // cannot skip! break...
       {
         break;
       }
@@ -13127,19 +12086,18 @@ result<basic_value<TC>, error_info> parse_array(location &loc,
 
   if (loc.current() != ']') {
     auto src = source_location(region(loc));
-    return err(make_error_info("toml::parse_array: missing closing bracket `]`",
-                               std::move(src), "expected `]`, reached EOF"));
+    return err(
+        make_error_info("toml::parse_array: missing closing bracket `]`", std::move(src), "expected `]`, reached EOF"));
   } else {
     loc.advance();
   }
   // any error reported from this function
   if (num_errors != ctx.errors().size()) {
-    assert(ctx.has_error()); // already reported
+    assert(ctx.has_error());  // already reported
     return err(ctx.errors().back());
   }
 
-  return ok(
-      basic_value<TC>(std::move(val), std::move(fmt), {}, region(first, loc)));
+  return ok(basic_value<TC>(std::move(val), std::move(fmt), {}, region(first, loc)));
 }
 
 /* ============================================================================
@@ -13234,17 +12192,16 @@ result<basic_value<TC>, error_info> parse_array(location &loc,
 //   - adding dotted keys in the same table.
 
 enum class inserting_value_kind : std::uint8_t {
-  std_table,   // insert [standard.table]
-  array_table, // insert [[array.of.tables]]
-  dotted_keys  // insert a.b.c = "this"
+  std_table,    // insert [standard.table]
+  array_table,  // insert [[array.of.tables]]
+  dotted_keys   // insert a.b.c = "this"
 };
 
 template <typename TC>
-result<basic_value<TC> *, error_info>
-insert_value(const inserting_value_kind kind,
-             typename basic_value<TC>::table_type *current_table_ptr,
-             const std::vector<typename basic_value<TC>::key_type> &keys,
-             region key_reg, basic_value<TC> val) {
+result<basic_value<TC>*, error_info> insert_value(const inserting_value_kind kind,
+                                                  typename basic_value<TC>::table_type* current_table_ptr,
+                                                  const std::vector<typename basic_value<TC>::key_type>& keys,
+                                                  region key_reg, basic_value<TC> val) {
   using value_type = basic_value<TC>;
   using array_type = typename basic_value<TC>::array_type;
   using table_type = typename basic_value<TC>::table_type;
@@ -13273,58 +12230,51 @@ insert_value(const inserting_value_kind kind,
   // [t1.t2] # INVALID t1.t2 is defined as a dotted-key table.
 
   for (std::size_t i = 0; i < keys.size(); ++i) {
-    const auto &key = keys.at(i);
-    table_type &current_table = *current_table_ptr;
+    const auto& key = keys.at(i);
+    table_type& current_table = *current_table_ptr;
 
-    if (i + 1 < keys.size()) // there are more keys. go down recursively...
+    if (i + 1 < keys.size())  // there are more keys. go down recursively...
     {
       const auto found = current_table.find(key);
-      if (found == current_table.end()) // not found. add new table
+      if (found == current_table.end())  // not found. add new table
       {
         table_format_info fmt;
         fmt.indent_type = indent_char::none;
         if (kind == inserting_value_kind::dotted_keys) {
           fmt.fmt = table_format::dotted;
-        } else // table / array of tables
+        } else  // table / array of tables
         {
           fmt.fmt = table_format::implicit;
         }
-        current_table.emplace(
-            key,
-            value_type(table_type{}, fmt, std::vector<std::string>{}, key_reg));
+        current_table.emplace(key, value_type(table_type{}, fmt, std::vector<std::string>{}, key_reg));
 
         assert(current_table.at(key).is_table());
         current_table_ptr = std::addressof(current_table.at(key).as_table());
       } else if (found->second.is_table()) {
         const auto fmt = found->second.as_table_fmt().fmt;
-        if (fmt == table_format::oneline ||
-            fmt == table_format::multiline_oneline) {
+        if (fmt == table_format::oneline || fmt == table_format::multiline_oneline) {
           // foo = {bar = "baz"} or foo = { \n bar = "baz" \n }
-          return err(make_error_info(
-              "toml::insert_value: "
-              "failed to insert a value: inline table is immutable",
-              key_loc, "inserting this", found->second.location(),
-              "to this table"));
+          return err(
+              make_error_info("toml::insert_value: "
+                              "failed to insert a value: inline table is immutable",
+                              key_loc, "inserting this", found->second.location(), "to this table"));
         }
         // dotted key cannot reopen a table.
-        if (kind == inserting_value_kind::dotted_keys &&
-            fmt != table_format::dotted) {
+        if (kind == inserting_value_kind::dotted_keys && fmt != table_format::dotted) {
           return err(make_error_info(
               "toml::insert_value: "
               "reopening a table using dotted keys",
-              key_loc, "dotted key cannot reopen a table",
-              found->second.location(), "this table is already closed"));
+              key_loc, "dotted key cannot reopen a table", found->second.location(), "this table is already closed"));
         }
         assert(found->second.is_table());
         current_table_ptr = std::addressof(found->second.as_table());
       } else if (found->second.is_array_of_tables()) {
         // aot = [{this = "type", of = "aot"}] # cannot be reopened
         if (found->second.as_array_fmt().fmt != array_format::array_of_tables) {
-          return err(make_error_info("toml::insert_value:"
-                                     "inline array of tables are immutable",
-                                     key_loc, "inserting this",
-                                     found->second.location(),
-                                     "inline array of tables"));
+          return err(
+              make_error_info("toml::insert_value:"
+                              "inline array of tables are immutable",
+                              key_loc, "inserting this", found->second.location(), "inline array of tables"));
         }
         // appending to [[aot]]
 
@@ -13332,11 +12282,10 @@ insert_value(const inserting_value_kind kind,
           // [[array.of.tables]]
           // [array.of]          # reopening supertable is okay
           // tables.x = "foo"    # appending `x` to the first table
-          return err(make_error_info(
-              "toml::insert_value:"
-              "dotted key cannot reopen an array-of-tables",
-              key_loc, "inserting this", found->second.location(),
-              "to this array-of-tables."));
+          return err(
+              make_error_info("toml::insert_value:"
+                              "dotted key cannot reopen an array-of-tables",
+                              key_loc, "inserting this", found->second.location(), "to this array-of-tables."));
         }
 
         // insert_value_by_dotkeys::std_table
@@ -13346,7 +12295,7 @@ insert_value(const inserting_value_kind kind,
         // insert_value_by_dotkeys::array_table
         // [[array.of.tables]]
         // [[array.of.tables.subtable]] # appending to the last aot
-        auto &current_array_table = found->second.as_array().back();
+        auto& current_array_table = found->second.as_array().back();
 
         assert(current_array_table.is_table());
         current_table_ptr = std::addressof(current_array_table.as_table());
@@ -13354,131 +12303,122 @@ insert_value(const inserting_value_kind kind,
         return err(make_error_info(
             "toml::insert_value: "
             "failed to insert a value, value already exists",
-            key_loc, "while inserting this", found->second.location(),
-            "non-table value already exists"));
+            key_loc, "while inserting this", found->second.location(), "non-table value already exists"));
       }
-    } else // this is the last key. insert a new value.
+    } else  // this is the last key. insert a new value.
     {
       switch (kind) {
-      case inserting_value_kind::dotted_keys: {
-        if (current_table.find(key) != current_table.end()) {
-          return err(make_error_info(
-              "toml::insert_value: "
-              "failed to insert a value, value already exists",
-              key_loc, "inserting this", current_table.at(key).location(),
-              "but value already exists"));
-        }
-        current_table.emplace(key, std::move(val));
-        return ok(std::addressof(current_table.at(key)));
-      }
-      case inserting_value_kind::std_table: {
-        // defining a new table or reopening supertable
-        auto found = current_table.find(key);
-        if (found == current_table.end()) // define a new aot
-        {
+        case inserting_value_kind::dotted_keys: {
+          if (current_table.find(key) != current_table.end()) {
+            return err(make_error_info(
+                "toml::insert_value: "
+                "failed to insert a value, value already exists",
+                key_loc, "inserting this", current_table.at(key).location(), "but value already exists"));
+          }
           current_table.emplace(key, std::move(val));
           return ok(std::addressof(current_table.at(key)));
-        } else // the table is already defined, reopen it
-        {
-          // assigning a [std.table]. it must be an implicit table.
-          auto &target = found->second;
-          if (!target.is_table() || // could be an array-of-tables
-              target.as_table_fmt().fmt != table_format::implicit) {
-            return err(make_error_info(
-                "toml::insert_value: "
-                "failed to insert a table, table already defined",
-                key_loc, "inserting this", target.location(),
-                "this table is explicitly defined"));
-          }
+        }
+        case inserting_value_kind::std_table: {
+          // defining a new table or reopening supertable
+          auto found = current_table.find(key);
+          if (found == current_table.end())  // define a new aot
+          {
+            current_table.emplace(key, std::move(val));
+            return ok(std::addressof(current_table.at(key)));
+          } else  // the table is already defined, reopen it
+          {
+            // assigning a [std.table]. it must be an implicit table.
+            auto& target = found->second;
+            if (!target.is_table() ||  // could be an array-of-tables
+                target.as_table_fmt().fmt != table_format::implicit) {
+              return err(
+                  make_error_info("toml::insert_value: "
+                                  "failed to insert a table, table already defined",
+                                  key_loc, "inserting this", target.location(), "this table is explicitly defined"));
+            }
 
-          // merge table
-          for (const auto &kv : val.as_table()) {
-            if (target.contains(kv.first)) {
-              // [x.y.z]
-              // w = "foo"
-              // [x]
-              // y = "bar"
+            // merge table
+            for (const auto& kv : val.as_table()) {
+              if (target.contains(kv.first)) {
+                // [x.y.z]
+                // w = "foo"
+                // [x]
+                // y = "bar"
+                return err(
+                    make_error_info("toml::insert_value: "
+                                    "failed to insert a table, table keys conflict to each other",
+                                    key_loc, "inserting this table", kv.second.location(), "having this value",
+                                    target.at(kv.first).location(), "already defined here"));
+              } else {
+                target[kv.first] = kv.second;
+              }
+            }
+            // change implicit -> explicit
+            target.as_table_fmt().fmt = table_format::multiline;
+            // change definition region
+            change_region_of_value(target, val);
+
+            return ok(std::addressof(current_table.at(key)));
+          }
+        }
+        case inserting_value_kind::array_table: {
+          auto found = current_table.find(key);
+          if (found == current_table.end())  // define a new aot
+          {
+            array_format_info fmt;
+            fmt.fmt = array_format::array_of_tables;
+            fmt.indent_type = indent_char::none;
+
+            current_table.emplace(key, value_type(array_type{std::move(val)}, std::move(fmt),
+                                                  std::vector<std::string>{}, std::move(key_reg)));
+
+            assert(!current_table.at(key).as_array().empty());
+            return ok(std::addressof(current_table.at(key).as_array().back()));
+          } else  // the array is already defined, append to it
+          {
+            if (!found->second.is_array_of_tables()) {
               return err(make_error_info(
                   "toml::insert_value: "
-                  "failed to insert a table, table keys conflict to each other",
-                  key_loc, "inserting this table", kv.second.location(),
-                  "having this value", target.at(kv.first).location(),
-                  "already defined here"));
-            } else {
-              target[kv.first] = kv.second;
+                  "failed to insert an array of tables, value already exists",
+                  key_loc, "while inserting this", found->second.location(), "non-table value already exists"));
             }
+            if (found->second.as_array_fmt().fmt != array_format::array_of_tables) {
+              return err(make_error_info(
+                  "toml::insert_value: "
+                  "failed to insert a table, inline array of tables is immutable",
+                  key_loc, "while inserting this", found->second.location(), "this is inline array-of-tables"));
+            }
+            found->second.as_array().push_back(std::move(val));
+            assert(!current_table.at(key).as_array().empty());
+            return ok(std::addressof(current_table.at(key).as_array().back()));
           }
-          // change implicit -> explicit
-          target.as_table_fmt().fmt = table_format::multiline;
-          // change definition region
-          change_region_of_value(target, val);
-
-          return ok(std::addressof(current_table.at(key)));
         }
-      }
-      case inserting_value_kind::array_table: {
-        auto found = current_table.find(key);
-        if (found == current_table.end()) // define a new aot
-        {
-          array_format_info fmt;
-          fmt.fmt = array_format::array_of_tables;
-          fmt.indent_type = indent_char::none;
-
-          current_table.emplace(
-              key, value_type(array_type{std::move(val)}, std::move(fmt),
-                              std::vector<std::string>{}, std::move(key_reg)));
-
-          assert(!current_table.at(key).as_array().empty());
-          return ok(std::addressof(current_table.at(key).as_array().back()));
-        } else // the array is already defined, append to it
-        {
-          if (!found->second.is_array_of_tables()) {
-            return err(make_error_info(
-                "toml::insert_value: "
-                "failed to insert an array of tables, value already exists",
-                key_loc, "while inserting this", found->second.location(),
-                "non-table value already exists"));
-          }
-          if (found->second.as_array_fmt().fmt !=
-              array_format::array_of_tables) {
-            return err(make_error_info(
-                "toml::insert_value: "
-                "failed to insert a table, inline array of tables is immutable",
-                key_loc, "while inserting this", found->second.location(),
-                "this is inline array-of-tables"));
-          }
-          found->second.as_array().push_back(std::move(val));
-          assert(!current_table.at(key).as_array().empty());
-          return ok(std::addressof(current_table.at(key).as_array().back()));
+        default: {
+          assert(false);
         }
-      }
-      default: {
-        assert(false);
-      }
       }
     }
   }
-  return err(make_error_info("toml::insert_key: no keys found",
-                             std::move(key_loc), "here"));
+  return err(make_error_info("toml::insert_key: no keys found", std::move(key_loc), "here"));
 }
 
 // ----------------------------------------------------------------------------
 
 template <typename TC>
-result<basic_value<TC>, error_info> parse_inline_table(location &loc,
-                                                       context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_inline_table(location& loc, context<TC>& ctx) {
   using table_type = typename basic_value<TC>::table_type;
 
   const auto num_errors = ctx.errors().size();
 
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   if (loc.eof() || loc.current() != '{') {
     auto src = source_location(region(loc));
-    return err(make_error_info("toml::parse_inline_table: "
-                               "The next token is not an inline table",
-                               std::move(src), "here"));
+    return err(
+        make_error_info("toml::parse_inline_table: "
+                        "The next token is not an inline table",
+                        std::move(src), "here"));
   }
   loc.advance();
 
@@ -13505,14 +12445,14 @@ result<basic_value<TC>, error_info> parse_inline_table(location &loc,
     if (loc.current() == '}') {
       if (comma_found && !spec.v1_1_0_allow_trailing_comma_in_inline_tables) {
         auto src = source_location(region(loc));
-        return err(make_error_info("toml::parse_inline_table: trailing "
-                                   "comma is not allowed in TOML-v1.0.0)",
-                                   std::move(src), "here"));
+        return err(
+            make_error_info("toml::parse_inline_table: trailing "
+                            "comma is not allowed in TOML-v1.0.0)",
+                            std::move(src), "here"));
       }
 
       if (spec.v1_1_0_allow_newlines_in_inline_tables) {
-        if (spacer.has_value() && spacer.value().newline_found &&
-            spacer.value().indent_type != indent_char::none) {
+        if (spacer.has_value() && spacer.value().newline_found && spacer.value().indent_type != indent_char::none) {
           fmt.indent_type = spacer.value().indent_type;
           fmt.closing_indent = spacer.value().indent;
         }
@@ -13523,27 +12463,26 @@ result<basic_value<TC>, error_info> parse_inline_table(location &loc,
     // if we already found a value and didn't found `,` nor `}`, error.
     if (!comma_found && !still_empty) {
       auto src = source_location(region(loc));
-      return err(make_error_info("toml::parse_inline_table: "
-                                 "expected value-separator `,` or closing `}`",
-                                 std::move(src), "here"));
+      return err(
+          make_error_info("toml::parse_inline_table: "
+                          "expected value-separator `,` or closing `}`",
+                          std::move(src), "here"));
     }
 
     // parse indent.
-    if (spacer.has_value() && spacer.value().newline_found &&
-        spacer.value().indent_type != indent_char::none) {
+    if (spacer.has_value() && spacer.value().newline_found && spacer.value().indent_type != indent_char::none) {
       fmt.indent_type = spacer.value().indent_type;
       fmt.body_indent = spacer.value().indent;
     }
 
-    still_empty = false; // parsing a value...
+    still_empty = false;  // parsing a value...
     if (auto kv_res = parse_key_value_pair<TC>(loc, ctx)) {
       auto keys = std::move(kv_res.unwrap().first.first);
       auto key_reg = std::move(kv_res.unwrap().first.second);
       auto val = std::move(kv_res.unwrap().second);
 
-      auto ins_res =
-          insert_value(inserting_value_kind::dotted_keys, std::addressof(table),
-                       keys, std::move(key_reg), std::move(val));
+      auto ins_res = insert_value(inserting_value_kind::dotted_keys, std::addressof(table), keys, std::move(key_reg),
+                                  std::move(val));
       if (ins_res.is_err()) {
         ctx.report_error(std::move(ins_res.unwrap_err()));
         // we need to skip until the next value (or end of the table)
@@ -13565,18 +12504,16 @@ result<basic_value<TC>, error_info> parse_inline_table(location &loc,
       // (key) = (val) (ws|newline|comment-line)? `,` (ws)? (comment)?
 
       if (spec.v1_1_0_allow_newlines_in_inline_tables) {
-        if (spacer.has_value()) // copy previous comments to value
+        if (spacer.has_value())  // copy previous comments to value
         {
           for (std::size_t i = 0; i < spacer.value().comments.size(); ++i) {
-            ins_res.unwrap()->comments().push_back(
-                spacer.value().comments.at(i));
+            ins_res.unwrap()->comments().push_back(spacer.value().comments.at(i));
           }
         }
         spacer = skip_multiline_spacer(loc, ctx);
         if (spacer.has_value()) {
           for (std::size_t i = 0; i < spacer.value().comments.size(); ++i) {
-            ins_res.unwrap()->comments().push_back(
-                spacer.value().comments.at(i));
+            ins_res.unwrap()->comments().push_back(spacer.value().comments.at(i));
           }
           if (spacer.value().newline_found) {
             fmt.fmt = table_format::multiline_oneline;
@@ -13597,8 +12534,7 @@ result<basic_value<TC>, error_info> parse_inline_table(location &loc,
         if (com_res.is_err()) {
           ctx.report_error(com_res.unwrap_err());
         }
-        const bool comment_found =
-            com_res.is_ok() && com_res.unwrap().has_value();
+        const bool comment_found = com_res.is_ok() && com_res.unwrap().has_value();
         if (comment_found) {
           fmt.fmt = table_format::multiline_oneline;
           ins_res.unwrap()->comments().push_back(com_res.unwrap().value());
@@ -13618,8 +12554,7 @@ result<basic_value<TC>, error_info> parse_inline_table(location &loc,
         if (loc.current() == '}') {
           break;
         }
-        if (!spec.v1_1_0_allow_newlines_in_inline_tables &&
-            loc.current() == '\n') {
+        if (!spec.v1_1_0_allow_newlines_in_inline_tables && loc.current() == '\n') {
           break;
         }
         loc.advance();
@@ -13630,22 +12565,21 @@ result<basic_value<TC>, error_info> parse_inline_table(location &loc,
 
   if (loc.current() != '}') {
     auto src = source_location(region(loc));
-    return err(make_error_info("toml::parse_inline_table: "
-                               "missing closing bracket `}`",
-                               std::move(src),
-                               "expected `}`, reached line end"));
+    return err(
+        make_error_info("toml::parse_inline_table: "
+                        "missing closing bracket `}`",
+                        std::move(src), "expected `}`, reached line end"));
   } else {
-    loc.advance(); // skip }
+    loc.advance();  // skip }
   }
 
   // any error reported from this function
   if (num_errors < ctx.errors().size()) {
-    assert(ctx.has_error()); // already reported
+    assert(ctx.has_error());  // already reported
     return err(ctx.pop_last_error());
   }
 
-  basic_value<TC> retval(std::move(table), std::move(fmt), {},
-                         region(first, loc));
+  basic_value<TC> retval(std::move(table), std::move(fmt), {}, region(first, loc));
 
   return ok(std::move(retval));
 }
@@ -13658,9 +12592,8 @@ result<basic_value<TC>, error_info> parse_inline_table(location &loc,
  */
 
 template <typename TC>
-result<value_t, error_info> guess_number_type(const location &first,
-                                              const context<TC> &ctx) {
-  const auto &spec = ctx.toml_spec();
+result<value_t, error_info> guess_number_type(const location& first, const context<TC>& ctx) {
+  const auto& spec = ctx.toml_spec();
   location loc = first;
 
   if (syntax::offset_datetime(spec).scan(loc).is_ok()) {
@@ -13673,10 +12606,9 @@ result<value_t, error_info> guess_number_type(const location &first,
     // if offset_datetime contains bad offset, it syntax::offset_datetime
     // fails to scan it.
     if (curr == '+' || curr == '-') {
-      return err(make_syntax_error(
-          "bad offset: must be [+-]HH:MM or Z", syntax::time_offset(spec), loc,
-          std::string("Hint: valid  : +09:00, -05:30\n"
-                      "Hint: invalid: +9:00,  -5:30\n")));
+      return err(make_syntax_error("bad offset: must be [+-]HH:MM or Z", syntax::time_offset(spec), loc,
+                                   std::string("Hint: valid  : +09:00, -05:30\n"
+                                               "Hint: invalid: +9:00,  -5:30\n")));
     }
     return ok(value_t::local_datetime);
   }
@@ -13690,12 +12622,10 @@ result<value_t, error_info> guess_number_type(const location &first,
       if (c == 'T' || c == 't') {
         loc.advance();
 
-        return err(make_syntax_error(
-            "bad time: must be HH:MM:SS.subsec", syntax::local_time(spec), loc,
-            std::string(
-                "Hint: valid  : 1979-05-27T07:32:00, 1979-05-27 "
-                "07:32:00.999999\n"
-                "Hint: invalid: 1979-05-27T7:32:00, 1979-05-27 17:32\n")));
+        return err(make_syntax_error("bad time: must be HH:MM:SS.subsec", syntax::local_time(spec), loc,
+                                     std::string("Hint: valid  : 1979-05-27T07:32:00, 1979-05-27 "
+                                                 "07:32:00.999999\n"
+                                                 "Hint: invalid: 1979-05-27T7:32:00, 1979-05-27 17:32\n")));
       }
       if (c == ' ') {
         // A space is allowed as a delimiter between local time.
@@ -13704,23 +12634,17 @@ result<value_t, error_info> guess_number_type(const location &first,
         // - valid  : 2019-06-16 07:00:00
         loc.advance();
         if (!loc.eof() && ('0' <= loc.current() && loc.current() <= '9')) {
-          return err(make_syntax_error(
-              "bad time: must be HH:MM:SS.subsec", syntax::local_time(spec),
-              loc,
-              std::string(
-                  "Hint: valid  : 1979-05-27T07:32:00, 1979-05-27 "
-                  "07:32:00.999999\n"
-                  "Hint: invalid: 1979-05-27T7:32:00, 1979-05-27 17:32\n")));
+          return err(make_syntax_error("bad time: must be HH:MM:SS.subsec", syntax::local_time(spec), loc,
+                                       std::string("Hint: valid  : 1979-05-27T07:32:00, 1979-05-27 "
+                                                   "07:32:00.999999\n"
+                                                   "Hint: invalid: 1979-05-27T7:32:00, 1979-05-27 17:32\n")));
         }
       }
       if ('0' <= c && c <= '9') {
-        return err(make_syntax_error(
-            "bad datetime: missing T or space", character_either{'T', 't', ' '},
-            loc,
-            std::string(
-                "Hint: valid  : 1979-05-27T07:32:00, 1979-05-27 "
-                "07:32:00.999999\n"
-                "Hint: invalid: 1979-05-27T7:32:00, 1979-05-27 17:32\n")));
+        return err(make_syntax_error("bad datetime: missing T or space", character_either{'T', 't', ' '}, loc,
+                                     std::string("Hint: valid  : 1979-05-27T07:32:00, 1979-05-27 "
+                                                 "07:32:00.999999\n"
+                                                 "Hint: invalid: 1979-05-27T7:32:00, 1979-05-27 17:32\n")));
       }
     }
     return ok(value_t::local_date);
@@ -13738,11 +12662,9 @@ result<value_t, error_info> guess_number_type(const location &first,
         return ok(value_t::floating);
       }
       auto src = source_location(region(loc));
-      return err(make_error_info(
-          "bad float: `_` must be surrounded by digits", std::move(src),
-          "invalid underscore",
-          "Hint: valid  : +1.0, -2e-2, 3.141_592_653_589, inf, nan\n"
-          "Hint: invalid: .0, 1., _1.0, 1.0_, 1_.0, 1.0__0\n"));
+      return err(make_error_info("bad float: `_` must be surrounded by digits", std::move(src), "invalid underscore",
+                                 "Hint: valid  : +1.0, -2e-2, 3.141_592_653_589, inf, nan\n"
+                                 "Hint: invalid: .0, 1., _1.0, 1.0_, 1_.0, 1.0__0\n"));
     }
     return ok(value_t::floating);
   }
@@ -13755,11 +12677,9 @@ result<value_t, error_info> guess_number_type(const location &first,
           return ok(value_t::floating);
         }
         auto src = source_location(region(loc));
-        return err(make_error_info(
-            "bad float: `_` must be surrounded by digits", std::move(src),
-            "invalid underscore",
-            "Hint: valid  : +1.0, -2e-2, 3.141_592_653_589, inf, nan\n"
-            "Hint: invalid: .0, 1., _1.0, 1.0_, 1_.0, 1.0__0\n"));
+        return err(make_error_info("bad float: `_` must be surrounded by digits", std::move(src), "invalid underscore",
+                                   "Hint: valid  : +1.0, -2e-2, 3.141_592_653_589, inf, nan\n"
+                                   "Hint: invalid: .0, 1., _1.0, 1.0_, 1_.0, 1.0__0\n"));
       }
       return ok(value_t::floating);
     }
@@ -13775,241 +12695,231 @@ result<value_t, error_info> guess_number_type(const location &first,
         }
 
         if (int_reg.length() <= 2 &&
-            (int_reg.as_string() == "0" || int_reg.as_string() == "-0" ||
-             int_reg.as_string() == "+0")) {
+            (int_reg.as_string() == "0" || int_reg.as_string() == "-0" || int_reg.as_string() == "+0")) {
           auto src = source_location(region(loc));
-          return err(make_error_info(
-              "bad integer: leading zero is not allowed in decimal int",
-              std::move(src), "leading zero",
-              "Hint: valid  : -42, 1_000, 1_2_3_4_5, 0xC0FFEE, 0b0010, 0o755\n"
-              "Hint: invalid: _42, 1__000, 0123\n"));
+          return err(make_error_info("bad integer: leading zero is not allowed in decimal int", std::move(src),
+                                     "leading zero",
+                                     "Hint: valid  : -42, 1_000, 1_2_3_4_5, 0xC0FFEE, 0b0010, 0o755\n"
+                                     "Hint: invalid: _42, 1__000, 0123\n"));
         } else {
           auto src = source_location(region(loc));
-          return err(make_error_info(
-              "bad integer: `_` must be surrounded by digits", std::move(src),
-              "invalid underscore",
-              "Hint: valid  : -42, 1_000, 1_2_3_4_5, 0xC0FFEE, 0b0010, 0o755\n"
-              "Hint: invalid: _42, 1__000, 0123\n"));
+          return err(make_error_info("bad integer: `_` must be surrounded by digits", std::move(src),
+                                     "invalid underscore",
+                                     "Hint: valid  : -42, 1_000, 1_2_3_4_5, 0xC0FFEE, 0b0010, 0o755\n"
+                                     "Hint: invalid: _42, 1__000, 0123\n"));
         }
       }
       if ('0' <= c && c <= '9') {
         if (loc.current() == '0') {
           loc.retrace();
-          return err(make_error_info(
-              "bad integer: leading zero", source_location(region(loc)),
-              "leading zero is not allowed",
-              std::string("Hint: valid  : -42, 1_000, 1_2_3_4_5, 0xC0FFEE, "
-                          "0b0010, 0o755\n"
-                          "Hint: invalid: _42, 1__000, 0123\n")));
-        } else // invalid digits, especially in oct/bin ints.
+          return err(make_error_info("bad integer: leading zero", source_location(region(loc)),
+                                     "leading zero is not allowed",
+                                     std::string("Hint: valid  : -42, 1_000, 1_2_3_4_5, 0xC0FFEE, "
+                                                 "0b0010, 0o755\n"
+                                                 "Hint: invalid: _42, 1__000, 0123\n")));
+        } else  // invalid digits, especially in oct/bin ints.
         {
-          return err(make_error_info(
-              "bad integer: invalid digit after an integer",
-              source_location(region(loc)), "this digit is not allowed",
-              std::string("Hint: valid  : -42, 1_000, 1_2_3_4_5, 0xC0FFEE, "
-                          "0b0010, 0o755\n"
-                          "Hint: invalid: _42, 1__000, 0123\n")));
+          return err(make_error_info("bad integer: invalid digit after an integer", source_location(region(loc)),
+                                     "this digit is not allowed",
+                                     std::string("Hint: valid  : -42, 1_000, 1_2_3_4_5, 0xC0FFEE, "
+                                                 "0b0010, 0o755\n"
+                                                 "Hint: invalid: _42, 1__000, 0123\n")));
         }
       }
       if (c == ':' || c == '-') {
         auto src = source_location(region(loc));
-        return err(make_error_info(
-            "bad datetime: invalid format", std::move(src), "here",
-            std::string("Hint: valid  : 1979-05-27T07:32:00-07:00, 1979-05-27 "
-                        "07:32:00.999999Z\n"
-                        "Hint: invalid: 1979-05-27T7:32:00-7:00, 1979-05-27 "
-                        "7:32-00:30")));
+        return err(make_error_info("bad datetime: invalid format", std::move(src), "here",
+                                   std::string("Hint: valid  : 1979-05-27T07:32:00-07:00, 1979-05-27 "
+                                               "07:32:00.999999Z\n"
+                                               "Hint: invalid: 1979-05-27T7:32:00-7:00, 1979-05-27 "
+                                               "7:32-00:30")));
       }
       if (c == '.' || c == 'e' || c == 'E') {
         auto src = source_location(region(loc));
-        return err(make_error_info(
-            "bad float: invalid format", std::move(src), "here",
-            std::string(
-                "Hint: valid  : +1.0, -2e-2, 3.141_592_653_589, inf, nan\n"
-                "Hint: invalid: .0, 1., _1.0, 1.0_, 1_.0, 1.0__0\n")));
+        return err(make_error_info("bad float: invalid format", std::move(src), "here",
+                                   std::string("Hint: valid  : +1.0, -2e-2, 3.141_592_653_589, inf, nan\n"
+                                               "Hint: invalid: .0, 1., _1.0, 1.0_, 1_.0, 1.0__0\n")));
       }
     }
     return ok(value_t::integer);
   }
   if (!loc.eof() && loc.current() == '.') {
     auto src = source_location(region(loc));
-    return err(make_error_info(
-        "bad float: integer part is required before decimal point",
-        std::move(src), "missing integer part",
-        std::string("Hint: valid  : +1.0, -2e-2, 3.141_592_653_589, inf, nan\n"
-                    "Hint: invalid: .0, 1., _1.0, 1.0_, 1_.0, 1.0__0\n")));
+    return err(make_error_info("bad float: integer part is required before decimal point", std::move(src),
+                               "missing integer part",
+                               std::string("Hint: valid  : +1.0, -2e-2, 3.141_592_653_589, inf, nan\n"
+                                           "Hint: invalid: .0, 1., _1.0, 1.0_, 1_.0, 1.0__0\n")));
   }
   if (!loc.eof() && loc.current() == '_') {
     auto src = source_location(region(loc));
-    return err(make_error_info(
-        "bad number: `_` must be surrounded by digits", std::move(src),
-        "digits required before `_`",
-        std::string(
-            "Hint: valid  : -42, 1_000, 1_2_3_4_5, 0xC0FFEE, 0b0010, 0o755\n"
-            "Hint: invalid: _42, 1__000, 0123\n")));
+    return err(make_error_info("bad number: `_` must be surrounded by digits", std::move(src),
+                               "digits required before `_`",
+                               std::string("Hint: valid  : -42, 1_000, 1_2_3_4_5, 0xC0FFEE, 0b0010, 0o755\n"
+                                           "Hint: invalid: _42, 1__000, 0123\n")));
   }
 
   auto src = source_location(region(loc));
-  return err(make_error_info("bad format: unknown value appeared",
-                             std::move(src), "here"));
+  return err(make_error_info("bad format: unknown value appeared", std::move(src), "here"));
 }
 
 template <typename TC>
-result<value_t, error_info> guess_value_type(const location &loc,
-                                             const context<TC> &ctx) {
-  const auto &sp = ctx.toml_spec();
+result<value_t, error_info> guess_value_type(const location& loc, const context<TC>& ctx) {
+  const auto& sp = ctx.toml_spec();
   location inner(loc);
 
   switch (loc.current()) {
-  case '"': {
-    return ok(value_t::string);
-  }
-  case '\'': {
-    return ok(value_t::string);
-  }
-  case '[': {
-    return ok(value_t::array);
-  }
-  case '{': {
-    return ok(value_t::table);
-  }
-  case 't': {
-    return ok(value_t::boolean);
-  }
-  case 'f': {
-    return ok(value_t::boolean);
-  }
-  case 'T': // invalid boolean.
-  {
-    return err(make_syntax_error("toml::parse_value: "
-                                 "`true` must be in lowercase. "
-                                 "A string must be surrounded by quotes.",
-                                 syntax::boolean(sp), inner));
-  }
-  case 'F': {
-    return err(make_syntax_error("toml::parse_value: "
-                                 "`false` must be in lowercase. "
-                                 "A string must be surrounded by quotes.",
-                                 syntax::boolean(sp), inner));
-  }
-  case 'i': // inf or string without quotes(syntax error).
-  {
-    if (literal("inf").scan(inner).is_ok()) {
-      return ok(value_t::floating);
-    } else {
-      return err(make_syntax_error("toml::parse_value: "
-                                   "`inf` must be in lowercase. "
-                                   "A string must be surrounded by quotes.",
-                                   syntax::floating(sp), inner));
+    case '"': {
+      return ok(value_t::string);
     }
-  }
-  case 'I': // Inf or string without quotes(syntax error).
-  {
-    return err(make_syntax_error("toml::parse_value: "
-                                 "`inf` must be in lowercase. "
-                                 "A string must be surrounded by quotes.",
-                                 syntax::floating(sp), inner));
-  }
-  case 'n': // nan or null-extension
-  {
-    if (sp.ext_null_value) {
-      if (literal("nan").scan(inner).is_ok()) {
+    case '\'': {
+      return ok(value_t::string);
+    }
+    case '[': {
+      return ok(value_t::array);
+    }
+    case '{': {
+      return ok(value_t::table);
+    }
+    case 't': {
+      return ok(value_t::boolean);
+    }
+    case 'f': {
+      return ok(value_t::boolean);
+    }
+    case 'T':  // invalid boolean.
+    {
+      return err(
+          make_syntax_error("toml::parse_value: "
+                            "`true` must be in lowercase. "
+                            "A string must be surrounded by quotes.",
+                            syntax::boolean(sp), inner));
+    }
+    case 'F': {
+      return err(
+          make_syntax_error("toml::parse_value: "
+                            "`false` must be in lowercase. "
+                            "A string must be surrounded by quotes.",
+                            syntax::boolean(sp), inner));
+    }
+    case 'i':  // inf or string without quotes(syntax error).
+    {
+      if (literal("inf").scan(inner).is_ok()) {
         return ok(value_t::floating);
-      } else if (literal("null").scan(inner).is_ok()) {
-        return ok(value_t::empty);
       } else {
+        return err(
+            make_syntax_error("toml::parse_value: "
+                              "`inf` must be in lowercase. "
+                              "A string must be surrounded by quotes.",
+                              syntax::floating(sp), inner));
+      }
+    }
+    case 'I':  // Inf or string without quotes(syntax error).
+    {
+      return err(
+          make_syntax_error("toml::parse_value: "
+                            "`inf` must be in lowercase. "
+                            "A string must be surrounded by quotes.",
+                            syntax::floating(sp), inner));
+    }
+    case 'n':  // nan or null-extension
+    {
+      if (sp.ext_null_value) {
+        if (literal("nan").scan(inner).is_ok()) {
+          return ok(value_t::floating);
+        } else if (literal("null").scan(inner).is_ok()) {
+          return ok(value_t::empty);
+        } else {
+          return err(
+              make_syntax_error("toml::parse_value: "
+                                "Both `nan` and `null` must be in lowercase. "
+                                "A string must be surrounded by quotes.",
+                                syntax::floating(sp), inner));
+        }
+      } else  // must be nan.
+      {
+        if (literal("nan").scan(inner).is_ok()) {
+          return ok(value_t::floating);
+        } else {
+          return err(
+              make_syntax_error("toml::parse_value: "
+                                "`nan` must be in lowercase. "
+                                "A string must be surrounded by quotes.",
+                                syntax::floating(sp), inner));
+        }
+      }
+    }
+    case 'N':  // nan or null-extension
+    {
+      if (sp.ext_null_value) {
         return err(
             make_syntax_error("toml::parse_value: "
                               "Both `nan` and `null` must be in lowercase. "
                               "A string must be surrounded by quotes.",
                               syntax::floating(sp), inner));
-      }
-    } else // must be nan.
-    {
-      if (literal("nan").scan(inner).is_ok()) {
-        return ok(value_t::floating);
       } else {
-        return err(make_syntax_error("toml::parse_value: "
-                                     "`nan` must be in lowercase. "
-                                     "A string must be surrounded by quotes.",
-                                     syntax::floating(sp), inner));
+        return err(
+            make_syntax_error("toml::parse_value: "
+                              "`nan` must be in lowercase. "
+                              "A string must be surrounded by quotes.",
+                              syntax::floating(sp), inner));
       }
     }
-  }
-  case 'N': // nan or null-extension
-  {
-    if (sp.ext_null_value) {
-      return err(
-          make_syntax_error("toml::parse_value: "
-                            "Both `nan` and `null` must be in lowercase. "
-                            "A string must be surrounded by quotes.",
-                            syntax::floating(sp), inner));
-    } else {
-      return err(make_syntax_error("toml::parse_value: "
-                                   "`nan` must be in lowercase. "
-                                   "A string must be surrounded by quotes.",
-                                   syntax::floating(sp), inner));
+    default: {
+      return guess_number_type(loc, ctx);
     }
-  }
-  default: {
-    return guess_number_type(loc, ctx);
-  }
   }
 }
 
 template <typename TC>
-result<basic_value<TC>, error_info> parse_value(location &loc,
-                                                context<TC> &ctx) {
+result<basic_value<TC>, error_info> parse_value(location& loc, context<TC>& ctx) {
   const auto ty_res = guess_value_type(loc, ctx);
   if (ty_res.is_err()) {
     return err(ty_res.unwrap_err());
   }
 
   switch (ty_res.unwrap()) {
-  case value_t::empty: {
-    if (ctx.toml_spec().ext_null_value) {
-      return parse_null(loc, ctx);
-    } else {
-      auto src = source_location(region(loc));
-      return err(make_error_info("toml::parse_value: unknown value appeared",
-                                 std::move(src), "here"));
+    case value_t::empty: {
+      if (ctx.toml_spec().ext_null_value) {
+        return parse_null(loc, ctx);
+      } else {
+        auto src = source_location(region(loc));
+        return err(make_error_info("toml::parse_value: unknown value appeared", std::move(src), "here"));
+      }
     }
-  }
-  case value_t::boolean: {
-    return parse_boolean(loc, ctx);
-  }
-  case value_t::integer: {
-    return parse_integer(loc, ctx);
-  }
-  case value_t::floating: {
-    return parse_floating(loc, ctx);
-  }
-  case value_t::string: {
-    return parse_string(loc, ctx);
-  }
-  case value_t::offset_datetime: {
-    return parse_offset_datetime(loc, ctx);
-  }
-  case value_t::local_datetime: {
-    return parse_local_datetime(loc, ctx);
-  }
-  case value_t::local_date: {
-    return parse_local_date(loc, ctx);
-  }
-  case value_t::local_time: {
-    return parse_local_time(loc, ctx);
-  }
-  case value_t::array: {
-    return parse_array(loc, ctx);
-  }
-  case value_t::table: {
-    return parse_inline_table(loc, ctx);
-  }
-  default: {
-    auto src = source_location(region(loc));
-    return err(make_error_info("toml::parse_value: unknown value appeared",
-                               std::move(src), "here"));
-  }
+    case value_t::boolean: {
+      return parse_boolean(loc, ctx);
+    }
+    case value_t::integer: {
+      return parse_integer(loc, ctx);
+    }
+    case value_t::floating: {
+      return parse_floating(loc, ctx);
+    }
+    case value_t::string: {
+      return parse_string(loc, ctx);
+    }
+    case value_t::offset_datetime: {
+      return parse_offset_datetime(loc, ctx);
+    }
+    case value_t::local_datetime: {
+      return parse_local_datetime(loc, ctx);
+    }
+    case value_t::local_date: {
+      return parse_local_date(loc, ctx);
+    }
+    case value_t::local_time: {
+      return parse_local_time(loc, ctx);
+    }
+    case value_t::array: {
+      return parse_array(loc, ctx);
+    }
+    case value_t::table: {
+      return parse_inline_table(loc, ctx);
+    }
+    default: {
+      auto src = source_location(region(loc));
+      return err(make_error_info("toml::parse_value: unknown value appeared", std::move(src), "here"));
+    }
   }
 }
 
@@ -14021,20 +12931,18 @@ result<basic_value<TC>, error_info> parse_value(location &loc,
  */
 
 template <typename TC>
-result<std::pair<std::vector<typename basic_value<TC>::key_type>, region>,
-       error_info>
-parse_table_key(location &loc, context<TC> &ctx) {
+result<std::pair<std::vector<typename basic_value<TC>::key_type>, region>, error_info> parse_table_key(
+    location& loc, context<TC>& ctx) {
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   auto reg = syntax::std_table(spec).scan(loc);
   if (!reg.is_ok()) {
-    return err(make_syntax_error("toml::parse_table_key: invalid table key",
-                                 syntax::std_table(spec), loc));
+    return err(make_syntax_error("toml::parse_table_key: invalid table key", syntax::std_table(spec), loc));
   }
 
   loc = first;
-  loc.advance(); // skip [
+  loc.advance();  // skip [
   skip_whitespace(loc, ctx);
 
   auto keys_res = parse_key(loc, ctx);
@@ -14043,28 +12951,26 @@ parse_table_key(location &loc, context<TC> &ctx) {
   }
 
   skip_whitespace(loc, ctx);
-  loc.advance(); // ]
+  loc.advance();  // ]
 
   return ok(std::make_pair(std::move(keys_res.unwrap().first), std::move(reg)));
 }
 
 template <typename TC>
-result<std::pair<std::vector<typename basic_value<TC>::key_type>, region>,
-       error_info>
-parse_array_table_key(location &loc, context<TC> &ctx) {
+result<std::pair<std::vector<typename basic_value<TC>::key_type>, region>, error_info> parse_array_table_key(
+    location& loc, context<TC>& ctx) {
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   auto reg = syntax::array_table(spec).scan(loc);
   if (!reg.is_ok()) {
-    return err(make_syntax_error(
-        "toml::parse_array_table_key: invalid array-of-tables key",
-        syntax::array_table(spec), loc));
+    return err(
+        make_syntax_error("toml::parse_array_table_key: invalid array-of-tables key", syntax::array_table(spec), loc));
   }
 
   loc = first;
-  loc.advance(); // [
-  loc.advance(); // [
+  loc.advance();  // [
+  loc.advance();  // [
   skip_whitespace(loc, ctx);
 
   auto keys_res = parse_key(loc, ctx);
@@ -14073,8 +12979,8 @@ parse_array_table_key(location &loc, context<TC> &ctx) {
   }
 
   skip_whitespace(loc, ctx);
-  loc.advance(); // ]
-  loc.advance(); // ]
+  loc.advance();  // ]
+  loc.advance();  // ]
 
   return ok(std::make_pair(std::move(keys_res.unwrap().first), std::move(reg)));
 }
@@ -14083,12 +12989,11 @@ parse_array_table_key(location &loc, context<TC> &ctx) {
 // Since table may already contain a subtable ([x.y.z] can be defined before
 // [x]), the table that is being parsed is passed as an argument.
 template <typename TC>
-result<none_t, error_info> parse_table(location &loc, context<TC> &ctx,
-                                       basic_value<TC> &table) {
+result<none_t, error_info> parse_table(location& loc, context<TC>& ctx, basic_value<TC>& table) {
   assert(table.is_table());
 
   const auto num_errors = ctx.errors().size();
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   // clear indent info
   table.as_table_fmt().indent_type = indent_char::none;
@@ -14109,26 +13014,26 @@ result<none_t, error_info> parse_table(location &loc, context<TC> &ctx,
       break;
     }
     // otherwise, it should be a key-value pair.
-    newline_found =
-        newline_found || (sp.has_value() && sp.value().newline_found);
+    newline_found = newline_found || (sp.has_value() && sp.value().newline_found);
     if (!newline_found) {
-      return err(make_error_info("toml::parse_table: "
-                                 "newline (LF / CRLF) or EOF is expected",
-                                 source_location(region(loc)), "here"));
+      return err(
+          make_error_info("toml::parse_table: "
+                          "newline (LF / CRLF) or EOF is expected",
+                          source_location(region(loc)), "here"));
     }
     if (sp.has_value() && sp.value().indent_type != indent_char::none) {
       table.as_table_fmt().indent_type = sp.value().indent_type;
       table.as_table_fmt().body_indent = sp.value().indent;
     }
 
-    newline_found = false; // reset
+    newline_found = false;  // reset
     if (auto kv_res = parse_key_value_pair(loc, ctx)) {
       auto keys = std::move(kv_res.unwrap().first.first);
       auto key_reg = std::move(kv_res.unwrap().first.second);
       auto val = std::move(kv_res.unwrap().second);
 
       if (sp.has_value()) {
-        for (const auto &com : sp.value().comments) {
+        for (const auto& com : sp.value().comments) {
           val.comments().push_back(com);
         }
       }
@@ -14136,14 +13041,13 @@ result<none_t, error_info> parse_table(location &loc, context<TC> &ctx,
       if (auto com_res = parse_comment_line(loc, ctx)) {
         if (auto com_opt = com_res.unwrap()) {
           val.comments().push_back(com_opt.value());
-          newline_found = true; // comment includes newline at the end
+          newline_found = true;  // comment includes newline at the end
         }
       } else {
         ctx.report_error(std::move(com_res.unwrap_err()));
       }
 
-      auto ins_res = insert_value(inserting_value_kind::dotted_keys,
-                                  std::addressof(table.as_table()), keys,
+      auto ins_res = insert_value(inserting_value_kind::dotted_keys, std::addressof(table.as_table()), keys,
                                   std::move(key_reg), std::move(val));
       if (ins_res.is_err()) {
         ctx.report_error(std::move(ins_res.unwrap_err()));
@@ -14155,20 +13059,19 @@ result<none_t, error_info> parse_table(location &loc, context<TC> &ctx,
   }
 
   if (num_errors < ctx.errors().size()) {
-    assert(ctx.has_error()); // already reported
+    assert(ctx.has_error());  // already reported
     return err(ctx.pop_last_error());
   }
   return ok();
 }
 
 template <typename TC>
-result<basic_value<TC>, std::vector<error_info>> parse_file(location &loc,
-                                                            context<TC> &ctx) {
+result<basic_value<TC>, std::vector<error_info>> parse_file(location& loc, context<TC>& ctx) {
   using value_type = basic_value<TC>;
   using table_type = typename value_type::table_type;
 
   const auto first = loc;
-  const auto &spec = ctx.toml_spec();
+  const auto& spec = ctx.toml_spec();
 
   if (loc.eof()) {
     return ok(value_type(table_type(), table_format_info{}, {}, region(loc)));
@@ -14194,12 +13097,10 @@ result<basic_value<TC>, std::vector<error_info>> parse_file(location &loc,
     if (auto com_res = parse_comment_line(loc, ctx)) {
       if (auto com_opt = com_res.unwrap()) {
         root.comments().push_back(std::move(com_opt.value()));
-      } else // no comment found.
+      } else  // no comment found.
       {
         // if it is not an empty line, clear the root comment.
-        if (!sequence(syntax::ws(spec), syntax::newline(spec))
-                 .scan(loc)
-                 .is_ok()) {
+        if (!sequence(syntax::ws(spec), syntax::newline(spec)).scan(loc).is_ok()) {
           loc = first;
           root.comments().clear();
         }
@@ -14243,20 +13144,19 @@ result<basic_value<TC>, std::vector<error_info>> parse_file(location &loc,
       if (auto com_res = parse_comment_line(loc, ctx)) {
         if (auto com_opt = com_res.unwrap()) {
           com.push_back(com_opt.value());
-        } else // if there is no comment, ws+newline must exist (or EOF)
+        } else  // if there is no comment, ws+newline must exist (or EOF)
         {
           skip_whitespace(loc, ctx);
-          if (!loc.eof() &&
-              !syntax::newline(ctx.toml_spec()).scan(loc).is_ok()) {
-            ctx.report_error(make_syntax_error("toml::parse_file: "
-                                               "newline (or EOF) expected",
-                                               syntax::newline(ctx.toml_spec()),
-                                               loc));
+          if (!loc.eof() && !syntax::newline(ctx.toml_spec()).scan(loc).is_ok()) {
+            ctx.report_error(
+                make_syntax_error("toml::parse_file: "
+                                  "newline (or EOF) expected",
+                                  syntax::newline(ctx.toml_spec()), loc));
             skip_until_next_table(loc, ctx);
             continue;
           }
         }
-      } else // comment syntax error (rare)
+      } else  // comment syntax error (rare)
       {
         ctx.report_error(com_res.unwrap_err());
         skip_until_next_table(loc, ctx);
@@ -14268,8 +13168,7 @@ result<basic_value<TC>, std::vector<error_info>> parse_file(location &loc,
       fmt.indent_type = indent_char::none;
       auto tab = value_type(table_type{}, std::move(fmt), std::move(com), reg);
 
-      auto inserted = insert_value(inserting_value_kind::array_table,
-                                   std::addressof(root.as_table()), key,
+      auto inserted = insert_value(inserting_value_kind::array_table, std::addressof(root.as_table()), key,
                                    std::move(reg), std::move(tab));
 
       if (inserted.is_err()) {
@@ -14320,20 +13219,19 @@ result<basic_value<TC>, std::vector<error_info>> parse_file(location &loc,
       if (auto com_res = parse_comment_line(loc, ctx)) {
         if (auto com_opt = com_res.unwrap()) {
           com.push_back(com_opt.value());
-        } else // if there is no comment, ws+newline must exist (or EOF)
+        } else  // if there is no comment, ws+newline must exist (or EOF)
         {
           skip_whitespace(loc, ctx);
-          if (!loc.eof() &&
-              !syntax::newline(ctx.toml_spec()).scan(loc).is_ok()) {
-            ctx.report_error(make_syntax_error("toml::parse_file: "
-                                               "newline (or EOF) expected",
-                                               syntax::newline(ctx.toml_spec()),
-                                               loc));
+          if (!loc.eof() && !syntax::newline(ctx.toml_spec()).scan(loc).is_ok()) {
+            ctx.report_error(
+                make_syntax_error("toml::parse_file: "
+                                  "newline (or EOF) expected",
+                                  syntax::newline(ctx.toml_spec()), loc));
             skip_until_next_table(loc, ctx);
             continue;
           }
         }
-      } else // comment syntax error (rare)
+      } else  // comment syntax error (rare)
       {
         ctx.report_error(com_res.unwrap_err());
         skip_until_next_table(loc, ctx);
@@ -14345,8 +13243,7 @@ result<basic_value<TC>, std::vector<error_info>> parse_file(location &loc,
       fmt.indent_type = indent_char::none;
       auto tab = value_type(table_type{}, std::move(fmt), std::move(com), reg);
 
-      auto inserted = insert_value(inserting_value_kind::std_table,
-                                   std::addressof(root.as_table()), key,
+      auto inserted = insert_value(inserting_value_kind::std_table, std::addressof(root.as_table()), key,
                                    std::move(reg), std::move(tab));
 
       if (inserted.is_err()) {
@@ -14383,12 +13280,9 @@ result<basic_value<TC>, std::vector<error_info>> parse_file(location &loc,
     loc = keytop;
 
     if (maybe_array_of_tables) {
-      ctx.report_error(
-          make_syntax_error("toml::parse_file: invalid array-table key",
-                            syntax::array_table(spec), loc));
+      ctx.report_error(make_syntax_error("toml::parse_file: invalid array-table key", syntax::array_table(spec), loc));
     } else {
-      ctx.report_error(make_syntax_error("toml::parse_file: invalid table key",
-                                         syntax::std_table(spec), loc));
+      ctx.report_error(make_syntax_error("toml::parse_file: invalid table key", syntax::std_table(spec), loc));
     }
     skip_until_next_table(loc, ctx);
   }
@@ -14400,19 +13294,16 @@ result<basic_value<TC>, std::vector<error_info>> parse_file(location &loc,
 }
 
 template <typename TC>
-result<basic_value<TC>, std::vector<error_info>>
-parse_impl(std::vector<location::char_type> cs, std::string fname,
-           const spec &s) {
+result<basic_value<TC>, std::vector<error_info>> parse_impl(std::vector<location::char_type> cs, std::string fname,
+                                                            const spec& s) {
   using value_type = basic_value<TC>;
   using table_type = typename value_type::table_type;
 
   // an empty file is a valid toml file.
   if (cs.empty()) {
-    auto src =
-        std::make_shared<std::vector<location::char_type>>(std::move(cs));
+    auto src = std::make_shared<std::vector<location::char_type>>(std::move(cs));
     location loc(std::move(src), std::move(fname));
-    return ok(value_type(table_type(), table_format_info{},
-                         std::vector<std::string>{}, region(loc)));
+    return ok(value_type(table_type(), table_format_info{}, std::vector<std::string>{}, region(loc)));
   }
 
   // to simplify parser, add newline at the end if there is no LF.
@@ -14448,28 +13339,24 @@ parse_impl(std::vector<location::char_type> cs, std::string fname,
   return parse_file(loc, ctx);
 }
 
-} // namespace detail
+}  // namespace detail
 
 // -----------------------------------------------------------------------------
 // parse(byte array)
 
 template <typename TC = type_config>
-result<basic_value<TC>, std::vector<error_info>>
-try_parse(std::vector<unsigned char> content, std::string filename,
-          spec s = spec::default_version()) {
-  return detail::parse_impl<TC>(std::move(content), std::move(filename),
-                                std::move(s));
+result<basic_value<TC>, std::vector<error_info>> try_parse(std::vector<unsigned char> content, std::string filename,
+                                                           spec s = spec::default_version()) {
+  return detail::parse_impl<TC>(std::move(content), std::move(filename), std::move(s));
 }
 template <typename TC = type_config>
-basic_value<TC> parse(std::vector<unsigned char> content, std::string filename,
-                      spec s = spec::default_version()) {
-  auto res =
-      try_parse<TC>(std::move(content), std::move(filename), std::move(s));
+basic_value<TC> parse(std::vector<unsigned char> content, std::string filename, spec s = spec::default_version()) {
+  auto res = try_parse<TC>(std::move(content), std::move(filename), std::move(s));
   if (res.is_ok()) {
     return res.unwrap();
   } else {
     std::string msg;
-    for (const auto &err : res.unwrap_err()) {
+    for (const auto& err : res.unwrap_err()) {
       msg += format_error(err);
     }
     throw syntax_error(std::move(msg), std::move(res.unwrap_err()));
@@ -14480,9 +13367,8 @@ basic_value<TC> parse(std::vector<unsigned char> content, std::string filename,
 // parse(istream)
 
 template <typename TC = type_config>
-result<basic_value<TC>, std::vector<error_info>>
-try_parse(std::istream &is, std::string fname = "unknown file",
-          spec s = spec::default_version()) {
+result<basic_value<TC>, std::vector<error_info>> try_parse(std::istream& is, std::string fname = "unknown file",
+                                                           spec s = spec::default_version()) {
   const auto beg = is.tellg();
   is.seekg(0, std::ios::end);
   const auto end = is.tellg();
@@ -14491,24 +13377,20 @@ try_parse(std::istream &is, std::string fname = "unknown file",
 
   // read whole file as a sequence of char
   assert(fsize >= 0);
-  std::vector<detail::location::char_type> letters(
-      static_cast<std::size_t>(fsize), '\0');
-  is.read(reinterpret_cast<char *>(letters.data()),
-          static_cast<std::streamsize>(fsize));
+  std::vector<detail::location::char_type> letters(static_cast<std::size_t>(fsize), '\0');
+  is.read(reinterpret_cast<char*>(letters.data()), static_cast<std::streamsize>(fsize));
 
-  return detail::parse_impl<TC>(std::move(letters), std::move(fname),
-                                std::move(s));
+  return detail::parse_impl<TC>(std::move(letters), std::move(fname), std::move(s));
 }
 
 template <typename TC = type_config>
-basic_value<TC> parse(std::istream &is, std::string fname = "unknown file",
-                      spec s = spec::default_version()) {
+basic_value<TC> parse(std::istream& is, std::string fname = "unknown file", spec s = spec::default_version()) {
   auto res = try_parse<TC>(is, std::move(fname), std::move(s));
   if (res.is_ok()) {
     return res.unwrap();
   } else {
     std::string msg;
-    for (const auto &err : res.unwrap_err()) {
+    for (const auto& err : res.unwrap_err()) {
       msg += format_error(err);
     }
     throw syntax_error(std::move(msg), std::move(res.unwrap_err()));
@@ -14519,13 +13401,11 @@ basic_value<TC> parse(std::istream &is, std::string fname = "unknown file",
 // parse(filename)
 
 template <typename TC = type_config>
-result<basic_value<TC>, std::vector<error_info>>
-try_parse(std::string fname, spec s = spec::default_version()) {
+result<basic_value<TC>, std::vector<error_info>> try_parse(std::string fname, spec s = spec::default_version()) {
   std::ifstream ifs(fname, std::ios_base::binary);
   if (!ifs.good()) {
     std::vector<error_info> e;
-    e.push_back(
-        error_info("toml::parse: Error opening file \"" + fname + "\"", {}));
+    e.push_back(error_info("toml::parse: Error opening file \"" + fname + "\"", {}));
     return err(std::move(e));
   }
   ifs.exceptions(std::ifstream::failbit | std::ifstream::badbit);
@@ -14545,14 +13425,12 @@ basic_value<TC> parse(std::string fname, spec s = spec::default_version()) {
 }
 
 template <typename TC = type_config, std::size_t N>
-result<basic_value<TC>, std::vector<error_info>>
-try_parse(const char (&fname)[N], spec s = spec::default_version()) {
+result<basic_value<TC>, std::vector<error_info>> try_parse(const char (&fname)[N], spec s = spec::default_version()) {
   return try_parse<TC>(std::string(fname), std::move(s));
 }
 
 template <typename TC = type_config, std::size_t N>
-basic_value<TC> parse(const char (&fname)[N],
-                      spec s = spec::default_version()) {
+basic_value<TC> parse(const char (&fname)[N], spec s = spec::default_version()) {
   return parse<TC>(std::string(fname), std::move(s));
 }
 
@@ -14560,25 +13438,22 @@ basic_value<TC> parse(const char (&fname)[N],
 // parse_str
 
 template <typename TC = type_config>
-result<basic_value<TC>, std::vector<error_info>>
-try_parse_str(std::string content, spec s = spec::default_version(),
-              cxx::source_location loc = cxx::source_location::current()) {
+result<basic_value<TC>, std::vector<error_info>> try_parse_str(
+    std::string content, spec s = spec::default_version(), cxx::source_location loc = cxx::source_location::current()) {
   std::istringstream iss(std::move(content));
   std::string name("internal string" + cxx::to_string(loc));
   return try_parse<TC>(iss, std::move(name), std::move(s));
 }
 
 template <typename TC = type_config>
-basic_value<TC>
-parse_str(std::string content, spec s = spec::default_version(),
-          cxx::source_location loc = cxx::source_location::current()) {
-  auto res =
-      try_parse_str<TC>(std::move(content), std::move(s), std::move(loc));
+basic_value<TC> parse_str(std::string content, spec s = spec::default_version(),
+                          cxx::source_location loc = cxx::source_location::current()) {
+  auto res = try_parse_str<TC>(std::move(content), std::move(s), std::move(loc));
   if (res.is_ok()) {
     return res.unwrap();
   } else {
     std::string msg;
-    for (const auto &err : res.unwrap_err()) {
+    for (const auto& err : res.unwrap_err()) {
       msg += format_error(err);
     }
     throw syntax_error(std::move(msg), std::move(res.unwrap_err()));
@@ -14591,14 +13466,12 @@ parse_str(std::string content, spec s = spec::default_version(),
 #if defined(TOML11_HAS_FILESYSTEM)
 
 template <typename TC = type_config, typename FSPATH>
-cxx::enable_if_t<std::is_same<FSPATH, std::filesystem::path>::value,
-                 result<basic_value<TC>, std::vector<error_info>>>
-try_parse(const FSPATH &fpath, spec s = spec::default_version()) {
+cxx::enable_if_t<std::is_same<FSPATH, std::filesystem::path>::value, result<basic_value<TC>, std::vector<error_info>>>
+try_parse(const FSPATH& fpath, spec s = spec::default_version()) {
   std::ifstream ifs(fpath, std::ios_base::binary);
   if (!ifs.good()) {
     std::vector<error_info> e;
-    e.push_back(error_info(
-        "toml::parse: Error opening file \"" + fpath.string() + "\"", {}));
+    e.push_back(error_info("toml::parse: Error opening file \"" + fpath.string() + "\"", {}));
     return err(std::move(e));
   }
   ifs.exceptions(std::ifstream::failbit | std::ifstream::badbit);
@@ -14607,9 +13480,8 @@ try_parse(const FSPATH &fpath, spec s = spec::default_version()) {
 }
 
 template <typename TC = type_config, typename FSPATH>
-cxx::enable_if_t<std::is_same<FSPATH, std::filesystem::path>::value,
-                 basic_value<TC>>
-parse(const FSPATH &fpath, spec s = spec::default_version()) {
+cxx::enable_if_t<std::is_same<FSPATH, std::filesystem::path>::value, basic_value<TC>> parse(
+    const FSPATH& fpath, spec s = spec::default_version()) {
   std::ifstream ifs(fpath, std::ios_base::binary);
   if (!ifs.good()) {
     throw file_io_error("toml::parse: error opening file", fpath.string());
@@ -14624,30 +13496,24 @@ parse(const FSPATH &fpath, spec s = spec::default_version()) {
 // FILE*
 
 template <typename TC = type_config>
-result<basic_value<TC>, std::vector<error_info>>
-try_parse(FILE *fp, std::string filename, spec s = spec::default_version()) {
+result<basic_value<TC>, std::vector<error_info>> try_parse(FILE* fp, std::string filename,
+                                                           spec s = spec::default_version()) {
   const long beg = std::ftell(fp);
   if (beg == -1L) {
     return err(std::vector<error_info>{
-        error_info(std::string("Failed to access: \"") + filename +
-                       "\", errno = " + std::to_string(errno),
-                   {})});
+        error_info(std::string("Failed to access: \"") + filename + "\", errno = " + std::to_string(errno), {})});
   }
 
   const int res_seekend = std::fseek(fp, 0, SEEK_END);
   if (res_seekend != 0) {
     return err(std::vector<error_info>{
-        error_info(std::string("Failed to seek: \"") + filename +
-                       "\", errno = " + std::to_string(errno),
-                   {})});
+        error_info(std::string("Failed to seek: \"") + filename + "\", errno = " + std::to_string(errno), {})});
   }
 
   const long end = std::ftell(fp);
   if (end == -1L) {
     return err(std::vector<error_info>{
-        error_info(std::string("Failed to access: \"") + filename +
-                       "\", errno = " + std::to_string(errno),
-                   {})});
+        error_info(std::string("Failed to access: \"") + filename + "\", errno = " + std::to_string(errno), {})});
   }
 
   const auto fsize = end - beg;
@@ -14655,32 +13521,25 @@ try_parse(FILE *fp, std::string filename, spec s = spec::default_version()) {
   const auto res_seekbeg = std::fseek(fp, beg, SEEK_SET);
   if (res_seekbeg != 0) {
     return err(std::vector<error_info>{
-        error_info(std::string("Failed to seek: \"") + filename +
-                       "\", errno = " + std::to_string(errno),
-                   {})});
+        error_info(std::string("Failed to seek: \"") + filename + "\", errno = " + std::to_string(errno), {})});
   }
 
   // read whole file as a sequence of char
   assert(fsize >= 0);
-  std::vector<detail::location::char_type> letters(
-      static_cast<std::size_t>(fsize));
-  const auto actual = std::fread(letters.data(), sizeof(char),
-                                 static_cast<std::size_t>(fsize), fp);
+  std::vector<detail::location::char_type> letters(static_cast<std::size_t>(fsize));
+  const auto actual = std::fread(letters.data(), sizeof(char), static_cast<std::size_t>(fsize), fp);
   if (actual != static_cast<std::size_t>(fsize)) {
-    return err(std::vector<error_info>{
-        error_info(std::string("File size changed: \"") + filename +
-                       std::string("\" make sure that FILE* is in binary mode "
-                                   "to avoid LF <-> CRLF conversion"),
-                   {})});
+    return err(std::vector<error_info>{error_info(std::string("File size changed: \"") + filename +
+                                                      std::string("\" make sure that FILE* is in binary mode "
+                                                                  "to avoid LF <-> CRLF conversion"),
+                                                  {})});
   }
 
-  return detail::parse_impl<TC>(std::move(letters), std::move(filename),
-                                std::move(s));
+  return detail::parse_impl<TC>(std::move(letters), std::move(filename), std::move(s));
 }
 
 template <typename TC = type_config>
-basic_value<TC> parse(FILE *fp, std::string filename,
-                      spec s = spec::default_version()) {
+basic_value<TC> parse(FILE* fp, std::string filename, spec s = spec::default_version()) {
   const long beg = std::ftell(fp);
   if (beg == -1L) {
     throw file_io_error(errno, "Failed to access", filename);
@@ -14705,113 +13564,88 @@ basic_value<TC> parse(FILE *fp, std::string filename,
 
   // read whole file as a sequence of char
   assert(fsize >= 0);
-  std::vector<detail::location::char_type> letters(
-      static_cast<std::size_t>(fsize));
-  const auto actual = std::fread(letters.data(), sizeof(char),
-                                 static_cast<std::size_t>(fsize), fp);
+  std::vector<detail::location::char_type> letters(static_cast<std::size_t>(fsize));
+  const auto actual = std::fread(letters.data(), sizeof(char), static_cast<std::size_t>(fsize), fp);
   if (actual != static_cast<std::size_t>(fsize)) {
-    throw file_io_error(
-        errno,
-        "File size changed; make sure that "
-        "FILE* is in binary mode to avoid LF <-> CRLF conversion",
-        filename);
+    throw file_io_error(errno,
+                        "File size changed; make sure that "
+                        "FILE* is in binary mode to avoid LF <-> CRLF conversion",
+                        filename);
   }
 
-  auto res = detail::parse_impl<TC>(std::move(letters), std::move(filename),
-                                    std::move(s));
+  auto res = detail::parse_impl<TC>(std::move(letters), std::move(filename), std::move(s));
   if (res.is_ok()) {
     return res.unwrap();
   } else {
     std::string msg;
-    for (const auto &err : res.unwrap_err()) {
+    for (const auto& err : res.unwrap_err()) {
       msg += format_error(err);
     }
     throw syntax_error(std::move(msg), std::move(res.unwrap_err()));
   }
 }
 
-} // namespace toml
+}  // namespace toml
 
 #if defined(TOML11_COMPILE_SOURCES)
 namespace toml {
 struct type_config;
 struct ordered_type_config;
 
-extern template result<basic_value<type_config>, std::vector<error_info>>
-    try_parse<type_config>(std::vector<unsigned char>, std::string, spec);
-extern template result<basic_value<type_config>, std::vector<error_info>>
-try_parse<type_config>(std::istream &, std::string, spec);
-extern template result<basic_value<type_config>, std::vector<error_info>>
-    try_parse<type_config>(std::string, spec);
-extern template result<basic_value<type_config>, std::vector<error_info>>
-try_parse<type_config>(FILE *, std::string, spec);
-extern template result<basic_value<type_config>, std::vector<error_info>>
-    try_parse_str<type_config>(std::string, spec, cxx::source_location);
+extern template result<basic_value<type_config>, std::vector<error_info>> try_parse<type_config>(
+    std::vector<unsigned char>, std::string, spec);
+extern template result<basic_value<type_config>, std::vector<error_info>> try_parse<type_config>(std::istream&,
+                                                                                                 std::string, spec);
+extern template result<basic_value<type_config>, std::vector<error_info>> try_parse<type_config>(std::string, spec);
+extern template result<basic_value<type_config>, std::vector<error_info>> try_parse<type_config>(FILE*, std::string,
+                                                                                                 spec);
+extern template result<basic_value<type_config>, std::vector<error_info>> try_parse_str<type_config>(
+    std::string, spec, cxx::source_location);
 
-extern template basic_value<type_config>
-    parse<type_config>(std::vector<unsigned char>, std::string, spec);
-extern template basic_value<type_config> parse<type_config>(std::istream &,
-                                                            std::string, spec);
+extern template basic_value<type_config> parse<type_config>(std::vector<unsigned char>, std::string, spec);
+extern template basic_value<type_config> parse<type_config>(std::istream&, std::string, spec);
 extern template basic_value<type_config> parse<type_config>(std::string, spec);
-extern template basic_value<type_config> parse<type_config>(FILE *, std::string,
-                                                            spec);
-extern template basic_value<type_config>
-    parse_str<type_config>(std::string, spec, cxx::source_location);
+extern template basic_value<type_config> parse<type_config>(FILE*, std::string, spec);
+extern template basic_value<type_config> parse_str<type_config>(std::string, spec, cxx::source_location);
 
-extern template result<basic_value<ordered_type_config>,
-                       std::vector<error_info>>
-    try_parse<ordered_type_config>(std::vector<unsigned char>, std::string,
-                                   spec);
-extern template result<basic_value<ordered_type_config>,
-                       std::vector<error_info>>
-try_parse<ordered_type_config>(std::istream &, std::string, spec);
-extern template result<basic_value<ordered_type_config>,
-                       std::vector<error_info>>
-    try_parse<ordered_type_config>(std::string, spec);
-extern template result<basic_value<ordered_type_config>,
-                       std::vector<error_info>>
-try_parse<ordered_type_config>(FILE *, std::string, spec);
-extern template result<basic_value<ordered_type_config>,
-                       std::vector<error_info>>
-    try_parse_str<ordered_type_config>(std::string, spec, cxx::source_location);
+extern template result<basic_value<ordered_type_config>, std::vector<error_info>> try_parse<ordered_type_config>(
+    std::vector<unsigned char>, std::string, spec);
+extern template result<basic_value<ordered_type_config>, std::vector<error_info>> try_parse<ordered_type_config>(
+    std::istream&, std::string, spec);
+extern template result<basic_value<ordered_type_config>, std::vector<error_info>> try_parse<ordered_type_config>(
+    std::string, spec);
+extern template result<basic_value<ordered_type_config>, std::vector<error_info>> try_parse<ordered_type_config>(
+    FILE*, std::string, spec);
+extern template result<basic_value<ordered_type_config>, std::vector<error_info>> try_parse_str<ordered_type_config>(
+    std::string, spec, cxx::source_location);
 
-extern template basic_value<ordered_type_config>
-    parse<ordered_type_config>(std::vector<unsigned char>, std::string, spec);
-extern template basic_value<ordered_type_config>
-parse<ordered_type_config>(std::istream &, std::string, spec);
-extern template basic_value<ordered_type_config>
-    parse<ordered_type_config>(std::string, spec);
-extern template basic_value<ordered_type_config>
-parse<ordered_type_config>(FILE *, std::string, spec);
-extern template basic_value<ordered_type_config>
-    parse_str<ordered_type_config>(std::string, spec, cxx::source_location);
+extern template basic_value<ordered_type_config> parse<ordered_type_config>(std::vector<unsigned char>, std::string,
+                                                                            spec);
+extern template basic_value<ordered_type_config> parse<ordered_type_config>(std::istream&, std::string, spec);
+extern template basic_value<ordered_type_config> parse<ordered_type_config>(std::string, spec);
+extern template basic_value<ordered_type_config> parse<ordered_type_config>(FILE*, std::string, spec);
+extern template basic_value<ordered_type_config> parse_str<ordered_type_config>(std::string, spec,
+                                                                                cxx::source_location);
 
 #if defined(TOML11_HAS_FILESYSTEM)
-extern template cxx::enable_if_t<
-    std::is_same<std::filesystem::path, std::filesystem::path>::value,
-    result<basic_value<type_config>, std::vector<error_info>>>
-try_parse<type_config, std::filesystem::path>(const std::filesystem::path &,
-                                              spec);
-extern template cxx::enable_if_t<
-    std::is_same<std::filesystem::path, std::filesystem::path>::value,
-    result<basic_value<ordered_type_config>, std::vector<error_info>>>
-try_parse<ordered_type_config, std::filesystem::path>(
-    const std::filesystem::path &, spec);
-extern template cxx::enable_if_t<
-    std::is_same<std::filesystem::path, std::filesystem::path>::value,
-    basic_value<type_config>>
-parse<type_config, std::filesystem::path>(const std::filesystem::path &, spec);
-extern template cxx::enable_if_t<
-    std::is_same<std::filesystem::path, std::filesystem::path>::value,
-    basic_value<ordered_type_config>>
-parse<ordered_type_config, std::filesystem::path>(const std::filesystem::path &,
-                                                  spec);
-#endif // filesystem
+extern template cxx::enable_if_t<std::is_same<std::filesystem::path, std::filesystem::path>::value,
+                                 result<basic_value<type_config>, std::vector<error_info>>>
+try_parse<type_config, std::filesystem::path>(const std::filesystem::path&, spec);
+extern template cxx::enable_if_t<std::is_same<std::filesystem::path, std::filesystem::path>::value,
+                                 result<basic_value<ordered_type_config>, std::vector<error_info>>>
+try_parse<ordered_type_config, std::filesystem::path>(const std::filesystem::path&, spec);
+extern template cxx::enable_if_t<std::is_same<std::filesystem::path, std::filesystem::path>::value,
+                                 basic_value<type_config>>
+parse<type_config, std::filesystem::path>(const std::filesystem::path&, spec);
+extern template cxx::enable_if_t<std::is_same<std::filesystem::path, std::filesystem::path>::value,
+                                 basic_value<ordered_type_config>>
+parse<ordered_type_config, std::filesystem::path>(const std::filesystem::path&, spec);
+#endif  // filesystem
 
-} // namespace toml
-#endif // TOML11_COMPILE_SOURCES
+}  // namespace toml
+#endif  // TOML11_COMPILE_SOURCES
 
-#endif // TOML11_PARSER_HPP
+#endif  // TOML11_PARSER_HPP
 #ifndef TOML11_LITERAL_HPP
 #define TOML11_LITERAL_HPP
 
@@ -14823,23 +13657,23 @@ namespace toml {
 namespace detail {
 // implementation
 ::toml::value literal_internal_impl(location loc);
-} // namespace detail
+}  // namespace detail
 
 inline namespace literals {
 inline namespace toml_literals {
 
-::toml::value operator"" _toml(const char *str, std::size_t len);
+::toml::value operator"" _toml(const char* str, std::size_t len);
 
 #if defined(TOML11_HAS_CHAR8_T)
 // value of u8"" literal has been changed from char to char8_t and char8_t is
 // NOT compatible to char
-::toml::value operator"" _toml(const char8_t *str, std::size_t len);
+::toml::value operator"" _toml(const char8_t* str, std::size_t len);
 #endif
 
-} // namespace toml_literals
-} // namespace literals
-} // namespace toml
-#endif // TOML11_LITERAL_FWD_HPP
+}  // namespace toml_literals
+}  // namespace literals
+}  // namespace toml
+#endif  // TOML11_LITERAL_FWD_HPP
 
 #if !defined(TOML11_COMPILE_SOURCES)
 #ifndef TOML11_LITERAL_IMPL_HPP
@@ -14923,39 +13757,36 @@ TOML11_INLINE ::toml::value literal_internal_impl(location loc) {
   auto data = parse_file(loc, ctx);
   if (data.is_ok()) {
     return data.unwrap();
-  } else // not a value && not a file. error.
+  } else  // not a value && not a file. error.
   {
     std::string msg;
-    for (const auto &err : data.unwrap_err()) {
+    for (const auto& err : data.unwrap_err()) {
       msg += format_error(err);
     }
     throw ::toml::syntax_error(std::move(msg), std::move(data.unwrap_err()));
   }
 }
 
-} // namespace detail
+}  // namespace detail
 
 inline namespace literals {
 inline namespace toml_literals {
 
-TOML11_INLINE ::toml::value operator"" _toml(const char *str, std::size_t len) {
+TOML11_INLINE ::toml::value operator"" _toml(const char* str, std::size_t len) {
   if (len == 0) {
     return ::toml::value{};
   }
 
   ::toml::detail::location::container_type c(len);
-  std::copy(
-      reinterpret_cast<const ::toml::detail::location::char_type *>(str),
-      reinterpret_cast<const ::toml::detail::location::char_type *>(str + len),
-      c.begin());
+  std::copy(reinterpret_cast<const ::toml::detail::location::char_type*>(str),
+            reinterpret_cast<const ::toml::detail::location::char_type*>(str + len), c.begin());
   if (!c.empty() && c.back()) {
-    c.push_back('\n'); // to make it easy to parse comment, we add newline
+    c.push_back('\n');  // to make it easy to parse comment, we add newline
   }
 
-  return literal_internal_impl(::toml::detail::location(
-      std::make_shared<const toml::detail::location::container_type>(
-          std::move(c)),
-      "TOML literal encoded in a C++ code"));
+  return literal_internal_impl(
+      ::toml::detail::location(std::make_shared<const toml::detail::location::container_type>(std::move(c)),
+                               "TOML literal encoded in a C++ code"));
 }
 
 #if defined(__cpp_char8_t)
@@ -14967,35 +13798,31 @@ TOML11_INLINE ::toml::value operator"" _toml(const char *str, std::size_t len) {
 #if defined(TOML11_HAS_CHAR8_T)
 // value of u8"" literal has been changed from char to char8_t and char8_t is
 // NOT compatible to char
-TOML11_INLINE ::toml::value operator"" _toml(const char8_t *str,
-                                             std::size_t len) {
+TOML11_INLINE ::toml::value operator"" _toml(const char8_t* str, std::size_t len) {
   if (len == 0) {
     return ::toml::value{};
   }
 
   ::toml::detail::location::container_type c(len);
-  std::copy(
-      reinterpret_cast<const ::toml::detail::location::char_type *>(str),
-      reinterpret_cast<const ::toml::detail::location::char_type *>(str + len),
-      c.begin());
+  std::copy(reinterpret_cast<const ::toml::detail::location::char_type*>(str),
+            reinterpret_cast<const ::toml::detail::location::char_type*>(str + len), c.begin());
   if (!c.empty() && c.back()) {
-    c.push_back('\n'); // to make it easy to parse comment, we add newline
+    c.push_back('\n');  // to make it easy to parse comment, we add newline
   }
 
-  return literal_internal_impl(::toml::detail::location(
-      std::make_shared<const toml::detail::location::container_type>(
-          std::move(c)),
-      "TOML literal encoded in a C++ code"));
+  return literal_internal_impl(
+      ::toml::detail::location(std::make_shared<const toml::detail::location::container_type>(std::move(c)),
+                               "TOML literal encoded in a C++ code"));
 }
 #endif
 
-} // namespace toml_literals
-} // namespace literals
-} // namespace toml
-#endif // TOML11_LITERAL_IMPL_HPP
+}  // namespace toml_literals
+}  // namespace literals
+}  // namespace toml
+#endif  // TOML11_LITERAL_IMPL_HPP
 #endif
 
-#endif // TOML11_LITERAL_HPP
+#endif  // TOML11_LITERAL_HPP
 #ifndef TOML11_SERIALIZER_HPP
 #define TOML11_SERIALIZER_HPP
 
@@ -15009,22 +13836,23 @@ TOML11_INLINE ::toml::value operator"" _toml(const char8_t *str,
 namespace toml {
 
 struct serialization_error final : public ::toml::exception {
-public:
+ public:
   explicit serialization_error(std::string what_arg, source_location loc)
       : what_(std::move(what_arg)), loc_(std::move(loc)) {}
   ~serialization_error() noexcept override = default;
 
-  const char *what() const noexcept override { return what_.c_str(); }
-  source_location const &location() const noexcept { return loc_; }
+  const char* what() const noexcept override { return what_.c_str(); }
+  source_location const& location() const noexcept { return loc_; }
 
-private:
+ private:
   std::string what_;
   source_location loc_;
 };
 
 namespace detail {
-template <typename TC> class serializer {
-public:
+template <typename TC>
+class serializer {
+ public:
   using value_type = basic_value<TC>;
 
   using key_type = typename value_type::key_type;
@@ -15042,100 +13870,93 @@ public:
 
   using char_type = typename string_type::value_type;
 
-public:
-  explicit serializer(const spec &sp)
-      : spec_(sp), force_inline_(false), current_indent_(0) {}
+ public:
+  explicit serializer(const spec& sp) : spec_(sp), force_inline_(false), current_indent_(0) {}
 
-  string_type operator()(const std::vector<key_type> &ks, const value_type &v) {
-    for (const auto &k : ks) {
+  string_type operator()(const std::vector<key_type>& ks, const value_type& v) {
+    for (const auto& k : ks) {
       this->keys_.push_back(k);
     }
     return (*this)(v);
   }
 
-  string_type operator()(const key_type &k, const value_type &v) {
+  string_type operator()(const key_type& k, const value_type& v) {
     this->keys_.push_back(k);
     return (*this)(v);
   }
 
-  string_type operator()(const value_type &v) {
+  string_type operator()(const value_type& v) {
     switch (v.type()) {
-    case value_t::boolean: {
-      return (*this)(v.as_boolean(), v.as_boolean_fmt(), v.location());
-    }
-    case value_t::integer: {
-      return (*this)(v.as_integer(), v.as_integer_fmt(), v.location());
-    }
-    case value_t::floating: {
-      return (*this)(v.as_floating(), v.as_floating_fmt(), v.location());
-    }
-    case value_t::string: {
-      return (*this)(v.as_string(), v.as_string_fmt(), v.location());
-    }
-    case value_t::offset_datetime: {
-      return (*this)(v.as_offset_datetime(), v.as_offset_datetime_fmt(),
-                     v.location());
-    }
-    case value_t::local_datetime: {
-      return (*this)(v.as_local_datetime(), v.as_local_datetime_fmt(),
-                     v.location());
-    }
-    case value_t::local_date: {
-      return (*this)(v.as_local_date(), v.as_local_date_fmt(), v.location());
-    }
-    case value_t::local_time: {
-      return (*this)(v.as_local_time(), v.as_local_time_fmt(), v.location());
-    }
-    case value_t::array: {
-      return (*this)(v.as_array(), v.as_array_fmt(), v.comments(),
-                     v.location());
-    }
-    case value_t::table: {
-      string_type retval;
-      if (this->keys_
-              .empty()) // it might be the root table. emit comments here.
-      {
-        retval += format_comments(v.comments(), v.as_table_fmt().indent_type);
+      case value_t::boolean: {
+        return (*this)(v.as_boolean(), v.as_boolean_fmt(), v.location());
       }
-      if (!retval.empty()) // we have comment.
-      {
-        retval += char_type('\n');
+      case value_t::integer: {
+        return (*this)(v.as_integer(), v.as_integer_fmt(), v.location());
       }
+      case value_t::floating: {
+        return (*this)(v.as_floating(), v.as_floating_fmt(), v.location());
+      }
+      case value_t::string: {
+        return (*this)(v.as_string(), v.as_string_fmt(), v.location());
+      }
+      case value_t::offset_datetime: {
+        return (*this)(v.as_offset_datetime(), v.as_offset_datetime_fmt(), v.location());
+      }
+      case value_t::local_datetime: {
+        return (*this)(v.as_local_datetime(), v.as_local_datetime_fmt(), v.location());
+      }
+      case value_t::local_date: {
+        return (*this)(v.as_local_date(), v.as_local_date_fmt(), v.location());
+      }
+      case value_t::local_time: {
+        return (*this)(v.as_local_time(), v.as_local_time_fmt(), v.location());
+      }
+      case value_t::array: {
+        return (*this)(v.as_array(), v.as_array_fmt(), v.comments(), v.location());
+      }
+      case value_t::table: {
+        string_type retval;
+        if (this->keys_.empty())  // it might be the root table. emit comments here.
+        {
+          retval += format_comments(v.comments(), v.as_table_fmt().indent_type);
+        }
+        if (!retval.empty())  // we have comment.
+        {
+          retval += char_type('\n');
+        }
 
-      retval +=
-          (*this)(v.as_table(), v.as_table_fmt(), v.comments(), v.location());
-      return retval;
-    }
-    case value_t::empty: {
-      if (this->spec_.ext_null_value) {
-        return string_conv<string_type>("null");
+        retval += (*this)(v.as_table(), v.as_table_fmt(), v.comments(), v.location());
+        return retval;
       }
-      break;
+      case value_t::empty: {
+        if (this->spec_.ext_null_value) {
+          return string_conv<string_type>("null");
+        }
+        break;
+      }
+      default: {
+        break;
+      }
     }
-    default: {
-      break;
-    }
-    }
-    throw serialization_error(
-        format_error("[error] toml::serializer: toml::basic_value "
-                     "does not have any valid type.",
-                     v.location(), "here"),
-        v.location());
+    throw serialization_error(format_error("[error] toml::serializer: toml::basic_value "
+                                           "does not have any valid type.",
+                                           v.location(), "here"),
+                              v.location());
   }
 
-private:
-  string_type operator()(const boolean_type &b, const boolean_format_info &,
-                         const source_location &) // {{{
+ private:
+  string_type operator()(const boolean_type& b, const boolean_format_info&,
+                         const source_location&)  // {{{
   {
     if (b) {
       return string_conv<string_type>("true");
     } else {
       return string_conv<string_type>("false");
     }
-  } // }}}
+  }  // }}}
 
-  string_type operator()(const integer_type i, const integer_format_info &fmt,
-                         const source_location &loc) // {{{
+  string_type operator()(const integer_type i, const integer_format_info& fmt,
+                         const source_location& loc)  // {{{
   {
     std::ostringstream oss;
     this->set_locale(oss);
@@ -15180,76 +14001,71 @@ private:
       }
     } else {
       if (i < 0) {
-        throw serialization_error(
-            format_error("binary, octal, hexadecimal "
-                         "integer does not allow negative value",
-                         loc, "here"),
-            loc);
+        throw serialization_error(format_error("binary, octal, hexadecimal "
+                                               "integer does not allow negative value",
+                                               loc, "here"),
+                                  loc);
       }
       switch (fmt.fmt) {
-      case integer_format::hex: {
-        oss << std::noshowbase << std::setw(static_cast<int>(fmt.width))
-            << std::setfill('0') << std::hex;
-        if (fmt.uppercase) {
-          oss << std::uppercase;
-        } else {
-          oss << std::nouppercase;
-        }
-        oss << i;
-        retval = std::string("0x") + insert_spacer(oss.str());
-        break;
-      }
-      case integer_format::oct: {
-        oss << std::setw(static_cast<int>(fmt.width)) << std::setfill('0')
-            << std::oct << i;
-        retval = std::string("0o") + insert_spacer(oss.str());
-        break;
-      }
-      case integer_format::bin: {
-        integer_type x{i};
-        std::string tmp;
-        std::size_t bits(0);
-        while (x != 0) {
-          if (fmt.spacer != 0) {
-            if (bits != 0 && (bits % fmt.spacer) == 0) {
-              tmp += '_';
-            }
-          }
-          if (x % 2 == 1) {
-            tmp += '1';
+        case integer_format::hex: {
+          oss << std::noshowbase << std::setw(static_cast<int>(fmt.width)) << std::setfill('0') << std::hex;
+          if (fmt.uppercase) {
+            oss << std::uppercase;
           } else {
+            oss << std::nouppercase;
+          }
+          oss << i;
+          retval = std::string("0x") + insert_spacer(oss.str());
+          break;
+        }
+        case integer_format::oct: {
+          oss << std::setw(static_cast<int>(fmt.width)) << std::setfill('0') << std::oct << i;
+          retval = std::string("0o") + insert_spacer(oss.str());
+          break;
+        }
+        case integer_format::bin: {
+          integer_type x{i};
+          std::string tmp;
+          std::size_t bits(0);
+          while (x != 0) {
+            if (fmt.spacer != 0) {
+              if (bits != 0 && (bits % fmt.spacer) == 0) {
+                tmp += '_';
+              }
+            }
+            if (x % 2 == 1) {
+              tmp += '1';
+            } else {
+              tmp += '0';
+            }
+            x >>= 1;
+            bits += 1;
+          }
+          for (; bits < fmt.width; ++bits) {
+            if (fmt.spacer != 0) {
+              if (bits != 0 && (bits % fmt.spacer) == 0) {
+                tmp += '_';
+              }
+            }
             tmp += '0';
           }
-          x >>= 1;
-          bits += 1;
-        }
-        for (; bits < fmt.width; ++bits) {
-          if (fmt.spacer != 0) {
-            if (bits != 0 && (bits % fmt.spacer) == 0) {
-              tmp += '_';
-            }
+          for (auto iter = tmp.rbegin(); iter != tmp.rend(); ++iter) {
+            oss << *iter;
           }
-          tmp += '0';
+          retval = std::string("0b") + oss.str();
+          break;
         }
-        for (auto iter = tmp.rbegin(); iter != tmp.rend(); ++iter) {
-          oss << *iter;
+        default: {
+          throw serialization_error(format_error("none of dec, hex, oct, bin: " + to_string(fmt.fmt), loc, "here"),
+                                    loc);
         }
-        retval = std::string("0b") + oss.str();
-        break;
-      }
-      default: {
-        throw serialization_error(
-            format_error("none of dec, hex, oct, bin: " + to_string(fmt.fmt),
-                         loc, "here"),
-            loc);
-      }
       }
     }
     return string_conv<string_type>(retval);
-  } // }}}
+  }  // }}}
 
-  string_type operator()(const floating_type f, const floating_format_info &fmt,
-                         const source_location &) // {{{
+  string_type operator()(const floating_type f, const floating_format_info& fmt,
+                         const source_location&)  // {{{
   {
     using std::isinf;
     using std::isnan;
@@ -15283,199 +14099,186 @@ private:
     }
 
     switch (fmt.fmt) {
-    case floating_format::defaultfloat: {
-      if (fmt.prec != 0) {
-        oss << std::setprecision(static_cast<int>(fmt.prec));
+      case floating_format::defaultfloat: {
+        if (fmt.prec != 0) {
+          oss << std::setprecision(static_cast<int>(fmt.prec));
+        }
+        oss << f;
+        // since defaultfloat may omit point, we need to add it
+        std::string s = oss.str();
+        if (s.find('.') == std::string::npos && s.find('e') == std::string::npos && s.find('E') == std::string::npos) {
+          s += ".0";
+        }
+        if (this->spec_.ext_num_suffix && !fmt.suffix.empty()) {
+          s += '_';
+          s += fmt.suffix;
+        }
+        return string_conv<string_type>(s);
       }
-      oss << f;
-      // since defaultfloat may omit point, we need to add it
-      std::string s = oss.str();
-      if (s.find('.') == std::string::npos &&
-          s.find('e') == std::string::npos &&
-          s.find('E') == std::string::npos) {
-        s += ".0";
-      }
-      if (this->spec_.ext_num_suffix && !fmt.suffix.empty()) {
-        s += '_';
-        s += fmt.suffix;
-      }
-      return string_conv<string_type>(s);
-    }
-    case floating_format::fixed: {
-      if (fmt.prec != 0) {
-        oss << std::setprecision(static_cast<int>(fmt.prec));
-      }
-      oss << std::fixed << f;
-      if (this->spec_.ext_num_suffix && !fmt.suffix.empty()) {
-        oss << '_' << fmt.suffix;
-      }
-      return string_conv<string_type>(oss.str());
-    }
-    case floating_format::scientific: {
-      if (fmt.prec != 0) {
-        oss << std::setprecision(static_cast<int>(fmt.prec));
-      }
-      oss << std::scientific << f;
-      if (this->spec_.ext_num_suffix && !fmt.suffix.empty()) {
-        oss << '_' << fmt.suffix;
-      }
-      return string_conv<string_type>(oss.str());
-    }
-    case floating_format::hex: {
-      if (this->spec_.ext_hex_float) {
-        oss << std::hexfloat << f;
-        // suffix is only for decimal numbers.
-        return string_conv<string_type>(oss.str());
-      } else // no hex allowed. output with max precision.
-      {
-        oss << std::setprecision(
-                   std::numeric_limits<floating_type>::max_digits10)
-            << std::scientific << f;
-        // suffix is only for decimal numbers.
+      case floating_format::fixed: {
+        if (fmt.prec != 0) {
+          oss << std::setprecision(static_cast<int>(fmt.prec));
+        }
+        oss << std::fixed << f;
+        if (this->spec_.ext_num_suffix && !fmt.suffix.empty()) {
+          oss << '_' << fmt.suffix;
+        }
         return string_conv<string_type>(oss.str());
       }
-    }
-    default: {
-      if (this->spec_.ext_num_suffix && !fmt.suffix.empty()) {
-        oss << '_' << fmt.suffix;
+      case floating_format::scientific: {
+        if (fmt.prec != 0) {
+          oss << std::setprecision(static_cast<int>(fmt.prec));
+        }
+        oss << std::scientific << f;
+        if (this->spec_.ext_num_suffix && !fmt.suffix.empty()) {
+          oss << '_' << fmt.suffix;
+        }
+        return string_conv<string_type>(oss.str());
       }
-      return string_conv<string_type>(oss.str());
+      case floating_format::hex: {
+        if (this->spec_.ext_hex_float) {
+          oss << std::hexfloat << f;
+          // suffix is only for decimal numbers.
+          return string_conv<string_type>(oss.str());
+        } else  // no hex allowed. output with max precision.
+        {
+          oss << std::setprecision(std::numeric_limits<floating_type>::max_digits10) << std::scientific << f;
+          // suffix is only for decimal numbers.
+          return string_conv<string_type>(oss.str());
+        }
+      }
+      default: {
+        if (this->spec_.ext_num_suffix && !fmt.suffix.empty()) {
+          oss << '_' << fmt.suffix;
+        }
+        return string_conv<string_type>(oss.str());
+      }
     }
-    }
-  } // }}}
+  }  // }}}
 
-  string_type operator()(string_type s, const string_format_info &fmt,
-                         const source_location &loc) // {{{
+  string_type operator()(string_type s, const string_format_info& fmt,
+                         const source_location& loc)  // {{{
   {
     string_type retval;
     switch (fmt.fmt) {
-    case string_format::basic: {
-      retval += char_type('"');
-      retval += this->escape_basic_string(s);
-      retval += char_type('"');
-      return retval;
-    }
-    case string_format::literal: {
-      if (std::find(s.begin(), s.end(), char_type('\n')) != s.end()) {
-        throw serialization_error(
-            format_error("toml::serializer: "
-                         "(non-multiline) literal string cannot have a newline",
-                         loc, "here"),
-            loc);
+      case string_format::basic: {
+        retval += char_type('"');
+        retval += this->escape_basic_string(s);
+        retval += char_type('"');
+        return retval;
       }
-      retval += char_type('\'');
-      retval += s;
-      retval += char_type('\'');
-      return retval;
-    }
-    case string_format::multiline_basic: {
-      retval += string_conv<string_type>("\"\"\"");
-      if (fmt.start_with_newline) {
-        retval += char_type('\n');
+      case string_format::literal: {
+        if (std::find(s.begin(), s.end(), char_type('\n')) != s.end()) {
+          throw serialization_error(format_error("toml::serializer: "
+                                                 "(non-multiline) literal string cannot have a newline",
+                                                 loc, "here"),
+                                    loc);
+        }
+        retval += char_type('\'');
+        retval += s;
+        retval += char_type('\'');
+        return retval;
       }
+      case string_format::multiline_basic: {
+        retval += string_conv<string_type>("\"\"\"");
+        if (fmt.start_with_newline) {
+          retval += char_type('\n');
+        }
 
-      retval += this->escape_ml_basic_string(s);
+        retval += this->escape_ml_basic_string(s);
 
-      retval += string_conv<string_type>("\"\"\"");
-      return retval;
-    }
-    case string_format::multiline_literal: {
-      retval += string_conv<string_type>("'''");
-      if (fmt.start_with_newline) {
-        retval += char_type('\n');
+        retval += string_conv<string_type>("\"\"\"");
+        return retval;
       }
-      retval += s;
-      retval += string_conv<string_type>("'''");
-      return retval;
+      case string_format::multiline_literal: {
+        retval += string_conv<string_type>("'''");
+        if (fmt.start_with_newline) {
+          retval += char_type('\n');
+        }
+        retval += s;
+        retval += string_conv<string_type>("'''");
+        return retval;
+      }
+      default: {
+        throw serialization_error(format_error("[error] toml::serializer::operator()(string): "
+                                               "invalid string_format value",
+                                               loc, "here"),
+                                  loc);
+      }
     }
-    default: {
-      throw serialization_error(
-          format_error("[error] toml::serializer::operator()(string): "
-                       "invalid string_format value",
-                       loc, "here"),
-          loc);
-    }
-    }
-  } // }}}
+  }  // }}}
 
-  string_type operator()(const local_date_type &d,
-                         const local_date_format_info &,
-                         const source_location &) // {{{
+  string_type operator()(const local_date_type& d, const local_date_format_info&,
+                         const source_location&)  // {{{
   {
     std::ostringstream oss;
     oss << d;
     return string_conv<string_type>(oss.str());
-  } // }}}
+  }  // }}}
 
-  string_type operator()(const local_time_type &t,
-                         const local_time_format_info &fmt,
-                         const source_location &) // {{{
+  string_type operator()(const local_time_type& t, const local_time_format_info& fmt,
+                         const source_location&)  // {{{
   {
     return this->format_local_time(t, fmt.has_seconds, fmt.subsecond_precision);
-  } // }}}
+  }  // }}}
 
-  string_type operator()(const local_datetime_type &dt,
-                         const local_datetime_format_info &fmt,
-                         const source_location &) // {{{
+  string_type operator()(const local_datetime_type& dt, const local_datetime_format_info& fmt,
+                         const source_location&)  // {{{
   {
     std::ostringstream oss;
     oss << dt.date;
     switch (fmt.delimiter) {
-    case datetime_delimiter_kind::upper_T: {
-      oss << 'T';
-      break;
-    }
-    case datetime_delimiter_kind::lower_t: {
-      oss << 't';
-      break;
-    }
-    case datetime_delimiter_kind::space: {
-      oss << ' ';
-      break;
-    }
-    default: {
-      oss << 'T';
-      break;
-    }
+      case datetime_delimiter_kind::upper_T: {
+        oss << 'T';
+        break;
+      }
+      case datetime_delimiter_kind::lower_t: {
+        oss << 't';
+        break;
+      }
+      case datetime_delimiter_kind::space: {
+        oss << ' ';
+        break;
+      }
+      default: {
+        oss << 'T';
+        break;
+      }
     }
     return string_conv<string_type>(oss.str()) +
-           this->format_local_time(dt.time, fmt.has_seconds,
-                                   fmt.subsecond_precision);
-  } // }}}
+           this->format_local_time(dt.time, fmt.has_seconds, fmt.subsecond_precision);
+  }  // }}}
 
-  string_type operator()(const offset_datetime_type &odt,
-                         const offset_datetime_format_info &fmt,
-                         const source_location &) // {{{
+  string_type operator()(const offset_datetime_type& odt, const offset_datetime_format_info& fmt,
+                         const source_location&)  // {{{
   {
     std::ostringstream oss;
     oss << odt.date;
     switch (fmt.delimiter) {
-    case datetime_delimiter_kind::upper_T: {
-      oss << 'T';
-      break;
+      case datetime_delimiter_kind::upper_T: {
+        oss << 'T';
+        break;
+      }
+      case datetime_delimiter_kind::lower_t: {
+        oss << 't';
+        break;
+      }
+      case datetime_delimiter_kind::space: {
+        oss << ' ';
+        break;
+      }
+      default: {
+        oss << 'T';
+        break;
+      }
     }
-    case datetime_delimiter_kind::lower_t: {
-      oss << 't';
-      break;
-    }
-    case datetime_delimiter_kind::space: {
-      oss << ' ';
-      break;
-    }
-    default: {
-      oss << 'T';
-      break;
-    }
-    }
-    oss << string_conv<std::string>(this->format_local_time(
-        odt.time, fmt.has_seconds, fmt.subsecond_precision));
+    oss << string_conv<std::string>(this->format_local_time(odt.time, fmt.has_seconds, fmt.subsecond_precision));
     oss << odt.offset;
     return string_conv<string_type>(oss.str());
-  } // }}}
+  }  // }}}
 
-  string_type operator()(const array_type &a, const array_format_info &fmt,
-                         const comment_type &com,
-                         const source_location &loc) // {{{
+  string_type operator()(const array_type& a, const array_format_info& fmt, const comment_type& com,
+                         const source_location& loc)  // {{{
   {
     array_format f = fmt.fmt;
     if (fmt.fmt == array_format::default_format) {
@@ -15484,58 +14287,48 @@ private:
       // To keep comments, we need to avoid multiline array-of-tables
       // if array itself has a comment.
       if (!this->keys_.empty() && !a.empty() && com.empty() &&
-          std::all_of(a.begin(), a.end(),
-                      [](const value_type &e) { return e.is_table(); })) {
+          std::all_of(a.begin(), a.end(), [](const value_type& e) { return e.is_table(); })) {
         f = array_format::array_of_tables;
       } else {
         f = array_format::oneline;
 
         // check if it becomes long
         std::size_t approx_len = 0;
-        for (const auto &e : a) {
+        for (const auto& e : a) {
           // have a comment. cannot be inlined
           if (!e.comments().empty()) {
             f = array_format::multiline;
             break;
           }
           // possibly long types ...
-          if (e.is_array() || e.is_table() || e.is_offset_datetime() ||
-              e.is_local_datetime()) {
+          if (e.is_array() || e.is_table() || e.is_offset_datetime() || e.is_local_datetime()) {
             f = array_format::multiline;
             break;
           } else if (e.is_boolean()) {
-            approx_len +=
-                (*this)(e.as_boolean(), e.as_boolean_fmt(), e.location())
-                    .size();
+            approx_len += (*this)(e.as_boolean(), e.as_boolean_fmt(), e.location()).size();
           } else if (e.is_integer()) {
-            approx_len +=
-                (*this)(e.as_integer(), e.as_integer_fmt(), e.location())
-                    .size();
+            approx_len += (*this)(e.as_integer(), e.as_integer_fmt(), e.location()).size();
           } else if (e.is_floating()) {
-            approx_len +=
-                (*this)(e.as_floating(), e.as_floating_fmt(), e.location())
-                    .size();
+            approx_len += (*this)(e.as_floating(), e.as_floating_fmt(), e.location()).size();
           } else if (e.is_string()) {
             if (e.as_string_fmt().fmt == string_format::multiline_basic ||
                 e.as_string_fmt().fmt == string_format::multiline_literal) {
               f = array_format::multiline;
               break;
             }
-            approx_len +=
-                2 +
-                (*this)(e.as_string(), e.as_string_fmt(), e.location()).size();
+            approx_len += 2 + (*this)(e.as_string(), e.as_string_fmt(), e.location()).size();
           } else if (e.is_local_date()) {
-            approx_len += 10; // 1234-56-78
+            approx_len += 10;  // 1234-56-78
           } else if (e.is_local_time()) {
-            approx_len += 15; // 12:34:56.789012
+            approx_len += 15;  // 12:34:56.789012
           }
 
-          if (approx_len > 60) // key, ` = `, `[...]` < 80
+          if (approx_len > 60)  // key, ` = `, `[...]` < 80
           {
             f = array_format::multiline;
             break;
           }
-          approx_len += 2; // `, `
+          approx_len += 2;  // `, `
         }
       }
     }
@@ -15550,17 +14343,17 @@ private:
 
     if (f == array_format::array_of_tables) {
       if (this->keys_.empty()) {
-        throw serialization_error("array of table must have its key. "
-                                  "use format(key, v)",
-                                  loc);
+        throw serialization_error(
+            "array of table must have its key. "
+            "use format(key, v)",
+            loc);
       }
       string_type retval;
-      for (const auto &e : a) {
+      for (const auto& e : a) {
         assert(e.is_table());
 
         this->current_indent_ += e.as_table_fmt().name_indent;
-        retval +=
-            this->format_comments(e.comments(), e.as_table_fmt().indent_type);
+        retval += this->format_comments(e.comments(), e.as_table_fmt().indent_type);
         retval += this->format_indent(e.as_table_fmt().indent_type);
         this->current_indent_ -= e.as_table_fmt().name_indent;
 
@@ -15575,14 +14368,14 @@ private:
       // ignore comments. we cannot emit comments
       string_type retval;
       retval += char_type('[');
-      for (const auto &e : a) {
+      for (const auto& e : a) {
         this->force_inline_ = true;
         retval += (*this)(e);
         retval += string_conv<string_type>(", ");
       }
       if (!a.empty()) {
-        retval.pop_back(); // ` `
-        retval.pop_back(); // `,`
+        retval.pop_back();  // ` `
+        retval.pop_back();  // `,`
       }
       retval += char_type(']');
       this->force_inline_ = false;
@@ -15593,7 +14386,7 @@ private:
       string_type retval;
       retval += string_conv<string_type>("[\n");
 
-      for (const auto &e : a) {
+      for (const auto& e : a) {
         this->current_indent_ += fmt.body_indent;
         retval += this->format_comments(e.comments(), fmt.indent_type);
         retval += this->format_indent(fmt.indent_type);
@@ -15612,11 +14405,10 @@ private:
       retval += char_type(']');
       return retval;
     }
-  } // }}}
+  }  // }}}
 
-  string_type operator()(const table_type &t, const table_format_info &fmt,
-                         const comment_type &com,
-                         const source_location &loc) // {{{
+  string_type operator()(const table_type& t, const table_format_info& fmt, const comment_type& com,
+                         const source_location& loc)  // {{{
   {
     if (this->force_inline_) {
       if (fmt.fmt == table_format::multiline_oneline) {
@@ -15648,11 +14440,10 @@ private:
       } else if (fmt.fmt == table_format::dotted) {
         std::vector<string_type> keys;
         if (this->keys_.empty()) {
-          throw serialization_error(
-              format_error("toml::serializer: "
-                           "dotted table must have its key. use format(key, v)",
-                           loc, "here"),
-              loc);
+          throw serialization_error(format_error("toml::serializer: "
+                                                 "dotted table must have its key. use format(key, v)",
+                                                 loc, "here"),
+                                    loc);
         }
         keys.push_back(this->keys_.back());
 
@@ -15663,38 +14454,31 @@ private:
         assert(fmt.fmt == table_format::implicit);
 
         string_type retval;
-        for (const auto &kv : t) {
-          const auto &k = kv.first;
-          const auto &v = kv.second;
+        for (const auto& kv : t) {
+          const auto& k = kv.first;
+          const auto& v = kv.second;
 
           if (!v.is_table() && !v.is_array_of_tables()) {
-            throw serialization_error(
-                format_error("toml::serializer: "
-                             "an implicit table cannot have non-table value.",
-                             v.location(), "here"),
-                v.location());
+            throw serialization_error(format_error("toml::serializer: "
+                                                   "an implicit table cannot have non-table value.",
+                                                   v.location(), "here"),
+                                      v.location());
           }
           if (v.is_table()) {
-            if (v.as_table_fmt().fmt != table_format::multiline &&
-                v.as_table_fmt().fmt != table_format::implicit) {
-              throw serialization_error(
-                  format_error(
-                      "toml::serializer: "
-                      "an implicit table cannot have non-multiline table",
-                      v.location(), "here"),
-                  v.location());
+            if (v.as_table_fmt().fmt != table_format::multiline && v.as_table_fmt().fmt != table_format::implicit) {
+              throw serialization_error(format_error("toml::serializer: "
+                                                     "an implicit table cannot have non-multiline table",
+                                                     v.location(), "here"),
+                                        v.location());
             }
           } else {
             assert(v.is_array());
-            for (const auto &e : v.as_array()) {
-              if (e.as_table_fmt().fmt != table_format::multiline &&
-                  v.as_table_fmt().fmt != table_format::implicit) {
-                throw serialization_error(
-                    format_error(
-                        "toml::serializer: "
-                        "an implicit table cannot have non-multiline table",
-                        e.location(), "here"),
-                    e.location());
+            for (const auto& e : v.as_array()) {
+              if (e.as_table_fmt().fmt != table_format::multiline && v.as_table_fmt().fmt != table_format::implicit) {
+                throw serialization_error(format_error("toml::serializer: "
+                                                       "an implicit table cannot have non-multiline table",
+                                                       e.location(), "here"),
+                                          e.location());
               }
             }
           }
@@ -15706,124 +14490,122 @@ private:
         return retval;
       }
     }
-  } // }}}
+  }  // }}}
 
-private:
-  string_type escape_basic_string(const string_type &s) const // {{{
+ private:
+  string_type escape_basic_string(const string_type& s) const  // {{{
   {
     string_type retval;
     for (const char_type c : s) {
       switch (c) {
-      case char_type('\\'): {
-        retval += string_conv<string_type>("\\\\");
-        break;
-      }
-      case char_type('\"'): {
-        retval += string_conv<string_type>("\\\"");
-        break;
-      }
-      case char_type('\b'): {
-        retval += string_conv<string_type>("\\b");
-        break;
-      }
-      case char_type('\t'): {
-        retval += string_conv<string_type>("\\t");
-        break;
-      }
-      case char_type('\f'): {
-        retval += string_conv<string_type>("\\f");
-        break;
-      }
-      case char_type('\n'): {
-        retval += string_conv<string_type>("\\n");
-        break;
-      }
-      case char_type('\r'): {
-        retval += string_conv<string_type>("\\r");
-        break;
-      }
-      default: {
-        if (c == char_type(0x1B) && spec_.v1_1_0_add_escape_sequence_e) {
-          retval += string_conv<string_type>("\\e");
-        } else if ((char_type(0x00) <= c && c <= char_type(0x08)) ||
-                   (char_type(0x0A) <= c && c <= char_type(0x1F)) ||
-                   c == char_type(0x7F)) {
-          if (spec_.v1_1_0_add_escape_sequence_x) {
-            retval += string_conv<string_type>("\\x");
-          } else {
-            retval += string_conv<string_type>("\\u00");
-          }
-          const auto c1 = c / 16;
-          const auto c2 = c % 16;
-          retval += static_cast<char_type>('0' + c1);
-          if (c2 < 10) {
-            retval += static_cast<char_type>('0' + c2);
-          } else // 10 <= c2
-          {
-            retval += static_cast<char_type>('A' + (c2 - 10));
-          }
-        } else {
-          retval += c;
+        case char_type('\\'): {
+          retval += string_conv<string_type>("\\\\");
+          break;
         }
-      }
+        case char_type('\"'): {
+          retval += string_conv<string_type>("\\\"");
+          break;
+        }
+        case char_type('\b'): {
+          retval += string_conv<string_type>("\\b");
+          break;
+        }
+        case char_type('\t'): {
+          retval += string_conv<string_type>("\\t");
+          break;
+        }
+        case char_type('\f'): {
+          retval += string_conv<string_type>("\\f");
+          break;
+        }
+        case char_type('\n'): {
+          retval += string_conv<string_type>("\\n");
+          break;
+        }
+        case char_type('\r'): {
+          retval += string_conv<string_type>("\\r");
+          break;
+        }
+        default: {
+          if (c == char_type(0x1B) && spec_.v1_1_0_add_escape_sequence_e) {
+            retval += string_conv<string_type>("\\e");
+          } else if ((char_type(0x00) <= c && c <= char_type(0x08)) || (char_type(0x0A) <= c && c <= char_type(0x1F)) ||
+                     c == char_type(0x7F)) {
+            if (spec_.v1_1_0_add_escape_sequence_x) {
+              retval += string_conv<string_type>("\\x");
+            } else {
+              retval += string_conv<string_type>("\\u00");
+            }
+            const auto c1 = c / 16;
+            const auto c2 = c % 16;
+            retval += static_cast<char_type>('0' + c1);
+            if (c2 < 10) {
+              retval += static_cast<char_type>('0' + c2);
+            } else  // 10 <= c2
+            {
+              retval += static_cast<char_type>('A' + (c2 - 10));
+            }
+          } else {
+            retval += c;
+          }
+        }
       }
     }
     return retval;
-  } // }}}
+  }  // }}}
 
-  string_type escape_ml_basic_string(const string_type &s) // {{{
+  string_type escape_ml_basic_string(const string_type& s)  // {{{
   {
     string_type retval;
     for (const char_type c : s) {
       switch (c) {
-      case char_type('\\'): {
-        retval += string_conv<string_type>("\\\\");
-        break;
-      }
-      case char_type('\b'): {
-        retval += string_conv<string_type>("\\b");
-        break;
-      }
-      case char_type('\t'): {
-        retval += string_conv<string_type>("\\t");
-        break;
-      }
-      case char_type('\f'): {
-        retval += string_conv<string_type>("\\f");
-        break;
-      }
-      case char_type('\n'): {
-        retval += string_conv<string_type>("\n");
-        break;
-      }
-      case char_type('\r'): {
-        retval += string_conv<string_type>("\\r");
-        break;
-      }
-      default: {
-        if (c == char_type(0x1B) && spec_.v1_1_0_add_escape_sequence_e) {
-          retval += string_conv<string_type>("\\e");
-        } else if ((char_type(0x00) <= c && c <= char_type(0x08)) ||
-                   (char_type(0x0A) <= c && c <= char_type(0x1F)) ||
-                   c == char_type(0x7F)) {
-          if (spec_.v1_1_0_add_escape_sequence_x) {
-            retval += string_conv<string_type>("\\x");
-          } else {
-            retval += string_conv<string_type>("\\u00");
-          }
-          const auto c1 = c / 16;
-          const auto c2 = c % 16;
-          retval += static_cast<char_type>('0' + c1);
-          if (c2 < 10) {
-            retval += static_cast<char_type>('0' + c2);
-          } else // 10 <= c2
-          {
-            retval += static_cast<char_type>('A' + (c2 - 10));
-          }
-        } else {
-          retval += c;
+        case char_type('\\'): {
+          retval += string_conv<string_type>("\\\\");
+          break;
         }
-      }
+        case char_type('\b'): {
+          retval += string_conv<string_type>("\\b");
+          break;
+        }
+        case char_type('\t'): {
+          retval += string_conv<string_type>("\\t");
+          break;
+        }
+        case char_type('\f'): {
+          retval += string_conv<string_type>("\\f");
+          break;
+        }
+        case char_type('\n'): {
+          retval += string_conv<string_type>("\n");
+          break;
+        }
+        case char_type('\r'): {
+          retval += string_conv<string_type>("\\r");
+          break;
+        }
+        default: {
+          if (c == char_type(0x1B) && spec_.v1_1_0_add_escape_sequence_e) {
+            retval += string_conv<string_type>("\\e");
+          } else if ((char_type(0x00) <= c && c <= char_type(0x08)) || (char_type(0x0A) <= c && c <= char_type(0x1F)) ||
+                     c == char_type(0x7F)) {
+            if (spec_.v1_1_0_add_escape_sequence_x) {
+              retval += string_conv<string_type>("\\x");
+            } else {
+              retval += string_conv<string_type>("\\u00");
+            }
+            const auto c1 = c / 16;
+            const auto c2 = c % 16;
+            retval += static_cast<char_type>('0' + c1);
+            if (c2 < 10) {
+              retval += static_cast<char_type>('0' + c2);
+            } else  // 10 <= c2
+            {
+              retval += static_cast<char_type>('A' + (c2 - 10));
+            }
+          } else {
+            retval += c;
+          }
+        }
       }
     }
     // Only 1 or 2 consecutive `"`s are allowed in multiline basic string.
@@ -15843,11 +14625,10 @@ private:
       found_3_quotes = retval.find(string_conv<string_type>("\"\"\""));
     }
     return retval;
-  } // }}}
+  }  // }}}
 
-  string_type format_local_time(const local_time_type &t,
-                                const bool has_seconds,
-                                const std::size_t subsec_prec) // {{{
+  string_type format_local_time(const local_time_type& t, const bool has_seconds,
+                                const std::size_t subsec_prec)  // {{{
   {
     std::ostringstream oss;
     oss << std::setfill('0') << std::setw(2) << static_cast<int>(t.hour);
@@ -15858,41 +14639,35 @@ private:
       oss << std::setfill('0') << std::setw(2) << static_cast<int>(t.second);
       if (subsec_prec != 0) {
         std::ostringstream subsec;
-        subsec << std::setfill('0') << std::setw(3)
-               << static_cast<int>(t.millisecond);
-        subsec << std::setfill('0') << std::setw(3)
-               << static_cast<int>(t.microsecond);
-        subsec << std::setfill('0') << std::setw(3)
-               << static_cast<int>(t.nanosecond);
+        subsec << std::setfill('0') << std::setw(3) << static_cast<int>(t.millisecond);
+        subsec << std::setfill('0') << std::setw(3) << static_cast<int>(t.microsecond);
+        subsec << std::setfill('0') << std::setw(3) << static_cast<int>(t.nanosecond);
         std::string subsec_str = subsec.str();
         oss << '.' << subsec_str.substr(0, subsec_prec);
       }
     }
     return string_conv<string_type>(oss.str());
-  } // }}}
+  }  // }}}
 
-  string_type format_ml_table(const table_type &t,
-                              const table_format_info &fmt) // {{{
+  string_type format_ml_table(const table_type& t,
+                              const table_format_info& fmt)  // {{{
   {
-    const auto format_later = [](const value_type &v) -> bool {
-      const bool is_ml_table =
-          v.is_table() && v.as_table_fmt().fmt != table_format::oneline &&
-          v.as_table_fmt().fmt != table_format::multiline_oneline &&
-          v.as_table_fmt().fmt != table_format::dotted;
+    const auto format_later = [](const value_type& v) -> bool {
+      const bool is_ml_table = v.is_table() && v.as_table_fmt().fmt != table_format::oneline &&
+                               v.as_table_fmt().fmt != table_format::multiline_oneline &&
+                               v.as_table_fmt().fmt != table_format::dotted;
 
-      const bool is_ml_array_table =
-          v.is_array_of_tables() &&
-          v.as_array_fmt().fmt != array_format::oneline &&
-          v.as_array_fmt().fmt != array_format::multiline;
+      const bool is_ml_array_table = v.is_array_of_tables() && v.as_array_fmt().fmt != array_format::oneline &&
+                                     v.as_array_fmt().fmt != array_format::multiline;
 
       return is_ml_table || is_ml_array_table;
     };
 
     string_type retval;
     this->current_indent_ += fmt.body_indent;
-    for (const auto &kv : t) {
-      const auto &key = kv.first;
-      const auto &val = kv.second;
+    for (const auto& kv : t) {
+      const auto& key = kv.first;
+      const auto& val = kv.second;
       if (format_later(val)) {
         continue;
       }
@@ -15913,10 +14688,9 @@ private:
     this->current_indent_ -= fmt.body_indent;
 
     if (!retval.empty()) {
-      retval +=
-          char_type('\n'); // for readability, add empty line between tables
+      retval += char_type('\n');  // for readability, add empty line between tables
     }
-    for (const auto &kv : t) {
+    for (const auto& kv : t) {
       if (!format_later(kv.second)) {
         continue;
       }
@@ -15927,15 +14701,15 @@ private:
       this->keys_.pop_back();
     }
     return retval;
-  } // }}}
+  }  // }}}
 
-  string_type format_inline_table(const table_type &t,
-                                  const table_format_info &) // {{{
+  string_type format_inline_table(const table_type& t,
+                                  const table_format_info&)  // {{{
   {
     // comments are ignored because we cannot write without newline
     string_type retval;
     retval += char_type('{');
-    for (const auto &kv : t) {
+    for (const auto& kv : t) {
       this->force_inline_ = true;
       retval += this->format_key(kv.first);
       retval += string_conv<string_type>(" = ");
@@ -15943,21 +14717,21 @@ private:
       retval += string_conv<string_type>(", ");
     }
     if (!t.empty()) {
-      retval.pop_back(); // ' '
-      retval.pop_back(); // ','
+      retval.pop_back();  // ' '
+      retval.pop_back();  // ','
     }
     retval += char_type('}');
     this->force_inline_ = false;
     return retval;
-  } // }}}
+  }  // }}}
 
-  string_type format_ml_inline_table(const table_type &t,
-                                     const table_format_info &fmt) // {{{
+  string_type format_ml_inline_table(const table_type& t,
+                                     const table_format_info& fmt)  // {{{
   {
     string_type retval;
     retval += string_conv<string_type>("{\n");
     this->current_indent_ += fmt.body_indent;
-    for (const auto &kv : t) {
+    for (const auto& kv : t) {
       this->force_inline_ = true;
       retval += format_comments(kv.second.comments(), fmt.indent_type);
       retval += format_indent(fmt.indent_type);
@@ -15970,8 +14744,8 @@ private:
       retval += string_conv<string_type>(",\n");
     }
     if (!t.empty()) {
-      retval.pop_back(); // '\n'
-      retval.pop_back(); // ','
+      retval.pop_back();  // '\n'
+      retval.pop_back();  // ','
     }
     this->current_indent_ -= fmt.body_indent;
     this->force_inline_ = false;
@@ -15982,12 +14756,11 @@ private:
 
     retval += char_type('}');
     return retval;
-  } // }}}
+  }  // }}}
 
-  string_type format_dotted_table(const table_type &t,
-                                  const table_format_info &fmt, // {{{
-                                  const source_location &,
-                                  std::vector<string_type> &keys) {
+  string_type format_dotted_table(const table_type& t,
+                                  const table_format_info& fmt,  // {{{
+                                  const source_location&, std::vector<string_type>& keys) {
     // lets say we have: `{"a": {"b": {"c": {"d": "foo", "e": "bar"} } }`
     // and `a` and `b` are `dotted`.
     //
@@ -16004,24 +14777,23 @@ private:
 
     string_type retval;
 
-    for (const auto &kv : t) {
-      const auto &key = kv.first;
-      const auto &val = kv.second;
+    for (const auto& kv : t) {
+      const auto& key = kv.first;
+      const auto& val = kv.second;
 
       keys.push_back(key);
 
       // format recursive dotted table?
       if (val.is_table() && val.as_table_fmt().fmt != table_format::oneline &&
           val.as_table_fmt().fmt != table_format::multiline_oneline) {
-        retval += this->format_dotted_table(val.as_table(), val.as_table_fmt(),
-                                            val.location(), keys);
-      } else // non-table or inline tables. format normally
+        retval += this->format_dotted_table(val.as_table(), val.as_table_fmt(), val.location(), keys);
+      } else  // non-table or inline tables. format normally
       {
         retval += format_comments(val.comments(), fmt.indent_type);
         retval += format_indent(fmt.indent_type);
         retval += format_keys(keys).value();
         retval += string_conv<string_type>(" = ");
-        this->force_inline_ = true; // sub-table must be inlined
+        this->force_inline_ = true;  // sub-table must be inlined
         retval += (*this)(val);
         retval += char_type('\n');
         this->force_inline_ = false;
@@ -16029,9 +14801,9 @@ private:
       keys.pop_back();
     }
     return retval;
-  } // }}}
+  }  // }}}
 
-  string_type format_key(const key_type &key) // {{{
+  string_type format_key(const key_type& key)  // {{{
   {
     if (key.empty()) {
       return string_conv<string_type>("\"\"");
@@ -16048,89 +14820,87 @@ private:
     string_type formatted = string_conv<string_type>("\"");
     for (const char_type c : key) {
       switch (c) {
-      case char_type('\\'): {
-        formatted += string_conv<string_type>("\\\\");
-        break;
-      }
-      case char_type('\"'): {
-        formatted += string_conv<string_type>("\\\"");
-        break;
-      }
-      case char_type('\b'): {
-        formatted += string_conv<string_type>("\\b");
-        break;
-      }
-      case char_type('\t'): {
-        formatted += string_conv<string_type>("\\t");
-        break;
-      }
-      case char_type('\f'): {
-        formatted += string_conv<string_type>("\\f");
-        break;
-      }
-      case char_type('\n'): {
-        formatted += string_conv<string_type>("\\n");
-        break;
-      }
-      case char_type('\r'): {
-        formatted += string_conv<string_type>("\\r");
-        break;
-      }
-      default: {
-        // ASCII ctrl char
-        if ((char_type(0x00) <= c && c <= char_type(0x08)) ||
-            (char_type(0x0A) <= c && c <= char_type(0x1F)) ||
-            c == char_type(0x7F)) {
-          if (spec_.v1_1_0_add_escape_sequence_x) {
-            formatted += string_conv<string_type>("\\x");
-          } else {
-            formatted += string_conv<string_type>("\\u00");
-          }
-          const auto c1 = c / 16;
-          const auto c2 = c % 16;
-          formatted += static_cast<char_type>('0' + c1);
-          if (c2 < 10) {
-            formatted += static_cast<char_type>('0' + c2);
-          } else // 10 <= c2
-          {
-            formatted += static_cast<char_type>('A' + (c2 - 10));
-          }
-        } else {
-          formatted += c;
+        case char_type('\\'): {
+          formatted += string_conv<string_type>("\\\\");
+          break;
         }
-        break;
-      }
+        case char_type('\"'): {
+          formatted += string_conv<string_type>("\\\"");
+          break;
+        }
+        case char_type('\b'): {
+          formatted += string_conv<string_type>("\\b");
+          break;
+        }
+        case char_type('\t'): {
+          formatted += string_conv<string_type>("\\t");
+          break;
+        }
+        case char_type('\f'): {
+          formatted += string_conv<string_type>("\\f");
+          break;
+        }
+        case char_type('\n'): {
+          formatted += string_conv<string_type>("\\n");
+          break;
+        }
+        case char_type('\r'): {
+          formatted += string_conv<string_type>("\\r");
+          break;
+        }
+        default: {
+          // ASCII ctrl char
+          if ((char_type(0x00) <= c && c <= char_type(0x08)) || (char_type(0x0A) <= c && c <= char_type(0x1F)) ||
+              c == char_type(0x7F)) {
+            if (spec_.v1_1_0_add_escape_sequence_x) {
+              formatted += string_conv<string_type>("\\x");
+            } else {
+              formatted += string_conv<string_type>("\\u00");
+            }
+            const auto c1 = c / 16;
+            const auto c2 = c % 16;
+            formatted += static_cast<char_type>('0' + c1);
+            if (c2 < 10) {
+              formatted += static_cast<char_type>('0' + c2);
+            } else  // 10 <= c2
+            {
+              formatted += static_cast<char_type>('A' + (c2 - 10));
+            }
+          } else {
+            formatted += c;
+          }
+          break;
+        }
       }
     }
     formatted += string_conv<string_type>("\"");
     return formatted;
-  } // }}}
-  cxx::optional<string_type>
-  format_keys(const std::vector<key_type> &keys) // {{{
+  }                                                                          // }}}
+  cxx::optional<string_type> format_keys(const std::vector<key_type>& keys)  // {{{
   {
     if (keys.empty()) {
       return cxx::make_nullopt();
     }
 
     string_type formatted;
-    for (const auto &ky : keys) {
+    for (const auto& ky : keys) {
       formatted += format_key(ky);
       formatted += char_type('.');
     }
-    formatted.pop_back(); // remove the last dot '.'
+    formatted.pop_back();  // remove the last dot '.'
     return formatted;
-  } // }}}
+  }  // }}}
 
-  string_type format_comments(const discard_comments &,
-                              const indent_char) const // {{{
+  string_type format_comments(const discard_comments&,
+                              const indent_char) const  // {{{
   {
     return string_conv<string_type>("");
-  } // }}}
-  string_type format_comments(const preserve_comments &comments,
-                              const indent_char indent_type) const // {{{
+  }  // }}}
+  string_type format_comments(const preserve_comments& comments,
+                              const indent_char indent_type) const  // {{{
   {
     string_type retval;
-    for (const auto &c : comments) {
+    for (const auto& c : comments) {
       if (c.empty()) {
         continue;
       }
@@ -16144,12 +14914,11 @@ private:
       }
     }
     return retval;
-  } // }}}
+  }  // }}}
 
-  string_type format_indent(const indent_char indent_type) const // {{{
+  string_type format_indent(const indent_char indent_type) const  // {{{
   {
-    const auto indent =
-        static_cast<std::size_t>((std::max)(0, this->current_indent_));
+    const auto indent = static_cast<std::size_t>((std::max)(0, this->current_indent_));
     if (indent_type == indent_char::space) {
       return string_conv<string_type>(make_string(indent, ' '));
     } else if (indent_type == indent_char::tab) {
@@ -16157,88 +14926,78 @@ private:
     } else {
       return string_type{};
     }
-  } // }}}
+  }  // }}}
 
-  std::locale set_locale(std::ostream &os) const {
-    return os.imbue(std::locale::classic());
-  }
+  std::locale set_locale(std::ostream& os) const { return os.imbue(std::locale::classic()); }
 
-private:
+ private:
   spec spec_;
-  bool force_inline_; // table inside an array without fmt specification
+  bool force_inline_;  // table inside an array without fmt specification
   std::int32_t current_indent_;
   std::vector<key_type> keys_;
 };
-} // namespace detail
+}  // namespace detail
 
 template <typename TC>
-typename basic_value<TC>::string_type
-format(const basic_value<TC> &v, const spec s = spec::default_version()) {
+typename basic_value<TC>::string_type format(const basic_value<TC>& v, const spec s = spec::default_version()) {
   detail::serializer<TC> ser(s);
   return ser(v);
 }
 template <typename TC>
-typename basic_value<TC>::string_type
-format(const typename basic_value<TC>::key_type &k, const basic_value<TC> &v,
-       const spec s = spec::default_version()) {
+typename basic_value<TC>::string_type format(const typename basic_value<TC>::key_type& k, const basic_value<TC>& v,
+                                             const spec s = spec::default_version()) {
   detail::serializer<TC> ser(s);
   return ser(k, v);
 }
 template <typename TC>
-typename basic_value<TC>::string_type
-format(const std::vector<typename basic_value<TC>::key_type> &ks,
-       const basic_value<TC> &v, const spec s = spec::default_version()) {
+typename basic_value<TC>::string_type format(const std::vector<typename basic_value<TC>::key_type>& ks,
+                                             const basic_value<TC>& v, const spec s = spec::default_version()) {
   detail::serializer<TC> ser(s);
   return ser(ks, v);
 }
 
 template <typename TC>
-std::ostream &operator<<(std::ostream &os, const basic_value<TC> &v) {
+std::ostream& operator<<(std::ostream& os, const basic_value<TC>& v) {
   os << format(v);
   return os;
 }
 
-} // namespace toml
+}  // namespace toml
 
 #if defined(TOML11_COMPILE_SOURCES)
 namespace toml {
 struct type_config;
 struct ordered_type_config;
 
-extern template typename basic_value<type_config>::string_type
-format<type_config>(const basic_value<type_config> &, const spec);
+extern template typename basic_value<type_config>::string_type format<type_config>(const basic_value<type_config>&,
+                                                                                   const spec);
 
-extern template typename basic_value<type_config>::string_type
-format<type_config>(const typename basic_value<type_config>::key_type &k,
-                    const basic_value<type_config> &v, const spec);
+extern template typename basic_value<type_config>::string_type format<type_config>(
+    const typename basic_value<type_config>::key_type& k, const basic_value<type_config>& v, const spec);
 
-extern template typename basic_value<type_config>::string_type
-format<type_config>(
-    const std::vector<typename basic_value<type_config>::key_type> &ks,
-    const basic_value<type_config> &v, const spec s);
+extern template typename basic_value<type_config>::string_type format<type_config>(
+    const std::vector<typename basic_value<type_config>::key_type>& ks, const basic_value<type_config>& v,
+    const spec s);
 
-extern template typename basic_value<type_config>::string_type
-format<ordered_type_config>(const basic_value<ordered_type_config> &,
-                            const spec);
+extern template typename basic_value<type_config>::string_type format<ordered_type_config>(
+    const basic_value<ordered_type_config>&, const spec);
 
-extern template typename basic_value<type_config>::string_type
-format<ordered_type_config>(
-    const typename basic_value<ordered_type_config>::key_type &k,
-    const basic_value<ordered_type_config> &v, const spec);
+extern template typename basic_value<type_config>::string_type format<ordered_type_config>(
+    const typename basic_value<ordered_type_config>::key_type& k, const basic_value<ordered_type_config>& v,
+    const spec);
 
-extern template typename basic_value<type_config>::string_type
-format<ordered_type_config>(
-    const std::vector<typename basic_value<ordered_type_config>::key_type> &ks,
-    const basic_value<ordered_type_config> &v, const spec s);
+extern template typename basic_value<type_config>::string_type format<ordered_type_config>(
+    const std::vector<typename basic_value<ordered_type_config>::key_type>& ks,
+    const basic_value<ordered_type_config>& v, const spec s);
 
 namespace detail {
 extern template class serializer<::toml::type_config>;
 extern template class serializer<::toml::ordered_type_config>;
-} // namespace detail
-} // namespace toml
-#endif // TOML11_COMPILE_SOURCES
+}  // namespace detail
+}  // namespace toml
+#endif  // TOML11_COMPILE_SOURCES
 
-#endif // TOML11_SERIALIZER_HPP
+#endif  // TOML11_SERIALIZER_HPP
 #ifndef TOML11_TOML_HPP
 #define TOML11_TOML_HPP
 
@@ -16267,4 +15026,4 @@ extern template class serializer<::toml::ordered_type_config>;
 // IWYU pragma: begin_exports
 // IWYU pragma: end_exports
 
-#endif // TOML11_TOML_HPP
+#endif  // TOML11_TOML_HPP

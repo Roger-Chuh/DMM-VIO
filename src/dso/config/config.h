@@ -45,8 +45,8 @@ struct ApriltagConfig {
   int cols = 10;
   int apriltag_start_id = 0;
 
-  double tag_size = 0.08; // unit: m
-  double tag_gap = 0.2;   // ratio
+  double tag_size = 0.08;  // unit: m
+  double tag_gap = 0.2;    // ratio
 
   // not config, need init
   int pattern_num = 3;
@@ -61,13 +61,13 @@ struct ApriltagConfig {
 };
 
 class ConfigData {
-public:
+ public:
   // main config
   std::vector<int> calib_cid = {0, 1, 2, 3};
   std::vector<int> gray_cid = {0, 1, 2, 3};
   std::vector<int> rgb_cid = {0, 1, 2, 3};
-  int64_t frame_mini_gap = 100000; // ns
-  int64_t frame_gap = 30000000;    // ns
+  int64_t frame_mini_gap = 100000;  // ns
+  int64_t frame_gap = 30000000;     // ns
   int log_level = 0;
   std::string save_folder = "results";
   std::string intr_folder = "intrinsic";
@@ -121,14 +121,14 @@ public:
   std::string binFilePath_rgb;
 
   ConfigData() = default;
-  explicit ConfigData(const std::string &config_file_path);
+  explicit ConfigData(const std::string& config_file_path);
   VI_Config GetVIConfig();
 
   void InitConfigs();
 
-private:
-  bool LoadConfig(const std::string &config_path);
+ private:
+  bool LoadConfig(const std::string& config_path);
   void CheckConfig();
 };
 
-} // namespace dso::CalibIO
+}  // namespace dso::CalibIO

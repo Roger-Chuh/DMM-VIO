@@ -33,24 +33,23 @@
 namespace dmvio {
 // Class for interacting with the RealsenseT265 camera.
 class RealsenseT265 {
-public:
+ public:
   // Images and IMU data will be passed into frameContainer which can be used to
   // get synchronized image and IMU data. Factory calibration will be saved to
   // cameraCalibSavePath. If datasetSaver is set, the IMU data and images will
   // also be saved to file.
-  RealsenseT265(FrameContainer &frameContainer, std::string cameraCalibSavePath,
-                DatasetSaver *datasetSaver);
+  RealsenseT265(FrameContainer& frameContainer, std::string cameraCalibSavePath, DatasetSaver* datasetSaver);
 
   // Start receiving data.
   void start();
 
   // Set the undistorter to use. Until this is set, no images are passed forward
   // to the frameContainer.
-  void setUndistorter(dso::Undistort *undistort);
+  void setUndistorter(dso::Undistort* undistort);
 
   std::unique_ptr<IMUCalibration> imuCalibration;
 
-private:
+ private:
   void readCalibration();
 
   std::string cameraCalibSavePath;
@@ -71,12 +70,12 @@ private:
   // IMU interpolator will take care of creating "fake measurements" to
   // synchronize the sensors by interpolating IMU data.
   IMUInterpolator imuInt;
-  dso::Undistort *undistorter = nullptr;
+  dso::Undistort* undistorter = nullptr;
   double lastImgTimestamp = -1.0;
 
-  DatasetSaver *saver;
+  DatasetSaver* saver;
 };
 
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_REALSENSET265_H
+#endif  // DMVIO_REALSENSET265_H

@@ -37,9 +37,9 @@
 // be modified in the Pangolin GUI.
 namespace dmvio {
 template <typename T>
-void defaultCommandLineHandler(void *pointer, std::string arg) {
+void defaultCommandLineHandler(void* pointer, std::string arg) {
   std::stringstream stream(arg);
-  T *typedPointer = static_cast<T *>(pointer);
+  T* typedPointer = static_cast<T*>(pointer);
   if (!(stream >> *typedPointer)) {
     std::cerr << "Could not convert argument: " << arg << std::endl;
     assert(0);
@@ -47,33 +47,34 @@ void defaultCommandLineHandler(void *pointer, std::string arg) {
 }
 
 template <typename T>
-void defaultYAMLHandler(void *pointer, const YAML::Node &node) {
-  T *typedPointer = static_cast<T *>(pointer);
+void defaultYAMLHandler(void* pointer, const YAML::Node& node) {
+  T* typedPointer = static_cast<T*>(pointer);
   *typedPointer = node.as<T>();
 }
 
 template <typename T>
-void defaultPrintHandler(void *pointer, std::ostream &stream) {
-  T *typedPointer = static_cast<T *>(pointer);
+void defaultPrintHandler(void* pointer, std::ostream& stream) {
+  T* typedPointer = static_cast<T*>(pointer);
   stream << *typedPointer;
 }
 
 // Class for a setting that can be set by the GUI in Pangolin.
 class PangolinSettingVar {
-public:
+ public:
   virtual ~PangolinSettingVar() = default;
 
   // Called in the Pangolin thread
-  virtual void createVar() = 0; // Create Var
-  virtual void updateVar() = 0; // Update value of var.
+  virtual void createVar() = 0;  // Create Var
+  virtual void updateVar() = 0;  // Update value of var.
 };
 
-template <typename T> class PangolinSetting : public PangolinSettingVar {
-public:
-  PangolinSetting(std::string name, T *pointer, bool toggle)
+template <typename T>
+class PangolinSetting : public PangolinSettingVar {
+ public:
+  PangolinSetting(std::string name, T* pointer, bool toggle)
       : name(name), pointer(pointer), toggle(toggle), boolConstr(true) {}
 
-  PangolinSetting(std::string name, T *pointer, double min, double max)
+  PangolinSetting(std::string name, T* pointer, double min, double max)
       : name(name), pointer(pointer), min(min), max(max), boolConstr(false) {}
 
   void createVar() override {
@@ -89,81 +90,75 @@ public:
     assert(var);
   }
 
-private:
+ private:
   std::string name;
   std::unique_ptr<pangolin::Var<T>> var;
-  T *pointer;
+  T* pointer;
   bool boolConstr, toggle;
   double min, max;
 };
 
 class SettingsUtil {
-public:
+ public:
   // Overwrite settings with the ones saved in the yaml file.
   // Note that for this we don't check that every element in the yaml file must
   // be read, so typos are not checked.
-  void tryReadFromYaml(const YAML::Node &node);
+  void tryReadFromYaml(const YAML::Node& node);
 
   // Set a parameter from a (single) commandline argument.
   // Returns true if the setting existed and was set.
   // Settings set from commandline have preference over ones set from yaml.
-  bool tryReadFromCommandLine(const std::string &arg);
+  bool tryReadFromCommandLine(const std::string& arg);
 
   // Register argument with the given name.
-  template <typename T> void registerArg(std::string name, T &arg) {
+  template <typename T>
+  void registerArg(std::string name, T& arg) {
     if (parameters.find(name) != parameters.end()) {
-      std::cerr << "ERROR: Trying to add parameter twice! " << name
-                << std::endl;
+      std::cerr << "ERROR: Trying to add parameter twice! " << name << std::endl;
       assert(0);
     }
-    parameters.emplace(
-        name, Parameter(static_cast<void *>(&arg), defaultCommandLineHandler<T>,
-                        defaultYAMLHandler<T>, defaultPrintHandler<T>));
+    parameters.emplace(name, Parameter(static_cast<void*>(&arg), defaultCommandLineHandler<T>, defaultYAMLHandler<T>,
+                                       defaultPrintHandler<T>));
   }
 
   // The following 2 methods will also create a GUI item in Pangolin for the
   // setting (either a toggle switch or a slider).
   template <typename T>
-  void registerArg(std::string name, T &arg, bool toggle) {
+  void registerArg(std::string name, T& arg, bool toggle) {
     registerArg(name, arg);
-    parameters.at(name).pangolinSetting.reset(
-        new PangolinSetting<T>(name, &arg, toggle));
+    parameters.at(name).pangolinSetting.reset(new PangolinSetting<T>(name, &arg, toggle));
   }
 
   template <typename T>
-  void registerArg(std::string name, T &arg, double min, double max) {
+  void registerArg(std::string name, T& arg, double min, double max) {
     registerArg(name, arg);
-    parameters.at(name).pangolinSetting.reset(
-        new PangolinSetting<T>(name, &arg, min, max));
+    parameters.at(name).pangolinSetting.reset(new PangolinSetting<T>(name, &arg, min, max));
   }
 
   // Dump all settings to file.
-  void printAllSettings(std::ostream &stream);
+  void printAllSettings(std::ostream& stream);
 
   // Should be called from Pangolin thread.
   void createPangolinSettings();
   void updatePangolinSettings();
 
-private:
+ private:
   struct Parameter {
-    Parameter(
-        void *pointer,
-        const std::function<void(void *, std::string)> &commandLineHandler,
-        const std::function<void(void *, const YAML::Node &)> &yamlHandler,
-        const std::function<void(void *, std::ostream &)> &printHandler);
+    Parameter(void* pointer, const std::function<void(void*, std::string)>& commandLineHandler,
+              const std::function<void(void*, const YAML::Node&)>& yamlHandler,
+              const std::function<void(void*, std::ostream&)>& printHandler);
 
-    void *pointer;
-    std::function<void(void *, std::string)> commandLineHandler;
-    std::function<void(void *, const YAML::Node &)> yamlHandler;
-    std::function<void(void *, std::ostream &)> printHandler;
-    bool loadedFromCommandLine{
-        false}; // Used to make sure that we don't overwrite parameters set
-                // using commandline when reading from yaml.
+    void* pointer;
+    std::function<void(void*, std::string)> commandLineHandler;
+    std::function<void(void*, const YAML::Node&)> yamlHandler;
+    std::function<void(void*, std::ostream&)> printHandler;
+    bool loadedFromCommandLine{false};  // Used to make sure that we don't overwrite parameters set
+                                        // using commandline when reading from yaml.
 
     std::unique_ptr<PangolinSettingVar> pangolinSetting;
   };
   std::map<std::string, Parameter> parameters;
 };
-} // namespace dmvio
+}  // namespace dmvio
 
-#endif // DMVIO_SETTINGSUTIL_H
+#endif  // DMVIO_SETTINGSUTIL_H

@@ -40,8 +40,7 @@ void GrayModel::addObservation(float x, float y, float gray) {
 }
 
 float GrayModel::interpolate(float x, float y) {
-  if (dirty)
-    compute();
+  if (dirty) compute();
   return v[0] * x + v[1] * y + v[2] * x * y + v[3];
 }
 
@@ -56,8 +55,7 @@ void GrayModel::compute() {
     // make symmetric
     Eigen::Matrix4d Ainv;
     for (int i = 0; i < 4; i++)
-      for (int j = i + 1; j < 4; j++)
-        A(j, i) = A(i, j);
+      for (int j = i + 1; j < 4; j++) A(j, i) = A(i, j);
 
     //    try {
     //      Ainv = A.inverse();
@@ -77,9 +75,9 @@ void GrayModel::compute() {
 
   // If we get here, either nobs < 6 or the matrix inverse generated
   // an underflow, so use a constant model.
-  v.setZero(); // need the cast to avoid operator= ambiguity wrt. const-ness
+  v.setZero();  // need the cast to avoid operator= ambiguity wrt. const-ness
   v[3] = b[3] / nobs;
 }
 
-} // namespace AprilTags
-} // namespace dso
+}  // namespace AprilTags
+}  // namespace dso

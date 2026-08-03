@@ -21,7 +21,7 @@
 namespace dso {
 // Solves the right nullspace from QR decomposition,
 // returning the size of the kernel
-MatX solveNullspace(const Mat3 &A) {
+MatX solveNullspace(const Mat3& A) {
   /*
   Eigen::FullPivHouseholderQR<Eigen::Matrix<typename Derived::Scalar,
   Eigen::Dynamic, Eigen::Dynamic>> qr(A.transpose()); Eigen::Matrix<typename
@@ -39,7 +39,7 @@ MatX solveNullspace(const Mat3 &A) {
   return lu.kernel();
 }
 
-VecX real_roots(const VecX &real, const VecX &imag) {
+VecX real_roots(const VecX& real, const VecX& imag) {
   // CHECK_EQ(real.size(), imag.size());
   if (real.size() != imag.size()) {
     printf("size dont match\n");
@@ -60,16 +60,14 @@ VecX real_roots(const VecX &real, const VecX &imag) {
   return roots;
 }
 
-bool line_fit(const std::vector<Vec3> &observations, Vec3 &axis) {
+bool line_fit(const std::vector<Vec3>& observations, Vec3& axis) {
   // LOG(INFO) << "Number of observations: " << observations.size();
-  if (observations.size() < 3)
-    return false;
+  if (observations.size() < 3) return false;
 
   Mat3 M;
   M.setZero();
 
-  for (const Vec3 &v : observations)
-    M += v * v.transpose();
+  for (const Vec3& v : observations) M += v * v.transpose();
 
   // lambda^3
   //+ (m00 + m11 + m22)*lambda^2
@@ -78,11 +76,10 @@ bool line_fit(const std::vector<Vec3> &observations, Vec3 &axis) {
 
   VecX coeffs(4);
   coeffs << 1., M.trace(),
-      -std::pow(M(0, 1), 2) - std::pow(M(0, 2), 2) - std::pow(M(1, 2), 2) +
-          M(0, 0) * M(1, 1) + M(0, 0) * M(2, 2) + M(1, 1) * M(2, 2),
-      -M(2, 2) * std::pow(M(0, 1), 2) + 2. * M(0, 1) * M(0, 2) * M(1, 2) -
-          M(1, 1) * std::pow(M(0, 2), 2) - M(0, 0) * std::pow(M(1, 2), 2) +
-          M(0, 0) * M(1, 1) * M(2, 2);
+      -std::pow(M(0, 1), 2) - std::pow(M(0, 2), 2) - std::pow(M(1, 2), 2) + M(0, 0) * M(1, 1) + M(0, 0) * M(2, 2) +
+          M(1, 1) * M(2, 2),
+      -M(2, 2) * std::pow(M(0, 1), 2) + 2. * M(0, 1) * M(0, 2) * M(1, 2) - M(1, 1) * std::pow(M(0, 2), 2) -
+          M(0, 0) * std::pow(M(1, 2), 2) + M(0, 0) * M(1, 1) * M(2, 2);
 
   VecX real, imag;
   if (!FindPolynomialRootsCompanionMatrix(coeffs, &real, &imag)) {
@@ -102,7 +99,7 @@ bool line_fit(const std::vector<Vec3> &observations, Vec3 &axis) {
   // LOG(INFO) << "Number of candidate solutions: " << lambdas.size();
 
   bool solved;
-  Vec3 x; // solution vector
+  Vec3 x;  // solution vector
   number_t min_cost = std::numeric_limits<number_t>::max();
   for (VecX::Index i = 0; i < lambdas.size(); ++i) {
     const number_t lambda = lambdas[i];
@@ -129,8 +126,7 @@ bool line_fit(const std::vector<Vec3> &observations, Vec3 &axis) {
       break;
     }
 
-    const number_t cost =
-        candidate_solution.transpose() * M * candidate_solution;
+    const number_t cost = candidate_solution.transpose() * M * candidate_solution;
     // LOG(INFO) << "Candidate solution cost: " << cost;
     if (cost < min_cost) {
       x = candidate_solution;
@@ -139,8 +135,7 @@ bool line_fit(const std::vector<Vec3> &observations, Vec3 &axis) {
     }
   }
 
-  if (!solved)
-    return false;
+  if (!solved) return false;
 
   // LOG(INFO) << "Cost: " << min_cost;
   //  TODO Threshold cost?
@@ -148,4 +143,4 @@ bool line_fit(const std::vector<Vec3> &observations, Vec3 &axis) {
   axis = x;
   return true;
 }
-} // namespace dso
+}  // namespace dso

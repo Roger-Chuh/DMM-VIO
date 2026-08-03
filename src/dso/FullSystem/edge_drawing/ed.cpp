@@ -37,7 +37,7 @@ enum TRACE_DIR { TRACE_LEFT, TRACE_RIGHT, TRACE_UP, TRACE_DOWN };
  * @param M [out] gradient magnitude, actually |Gx|+|Gy|
  * @param O [out] gradient orientation, refer to the definition of EDGE_DIR
  */
-void getGradient(const cv::Mat &gray, cv::Mat &M, cv::Mat &O) {
+void getGradient(const cv::Mat& gray, cv::Mat& M, cv::Mat& O) {
   cv::Mat Gx, Gy;
   cv::Sobel(gray, Gx, CV_16SC1, SOBEL_ORDER, 0, SOBEL_SIZE);
   cv::Sobel(gray, Gy, CV_16SC1, 0, SOBEL_ORDER, SOBEL_SIZE);
@@ -64,17 +64,15 @@ void getGradient(const cv::Mat &gray, cv::Mat &M, cv::Mat &O) {
  * @param anchor_thresh [in] minimum gradient diff of anchors
  * @param anchors [out] anchors
  */
-void getAnchors(const cv::Mat &M, const cv::Mat &O, const int proposal_thresh,
-                const int anchor_interval, const int anchor_thresh,
-                std::vector<cv::Point> &anchors) {
+void getAnchors(const cv::Mat& M, const cv::Mat& O, const int proposal_thresh, const int anchor_interval,
+                const int anchor_thresh, std::vector<cv::Point>& anchors) {
   anchors.clear();
   anchors.reserve(M.cols * M.rows);
 
   for (int r = 1; r < M.rows - 1; r += anchor_interval) {
     for (int c = 1; c < M.cols - 1; c += anchor_interval) {
       // ignore non-proposal pixels
-      if (M.at<short>(r, c) < proposal_thresh)
-        continue;
+      if (M.at<short>(r, c) < proposal_thresh) continue;
 
       // horizontal edge
       if (O.at<uchar>(r, c) == EDGE_HOR) {
@@ -104,17 +102,15 @@ void getAnchors(const cv::Mat &M, const cv::Mat &O, const int proposal_thresh,
  * @param status [in|out] status record
  * @param edge [out] traced edge
  */
-void trace(const cv::Mat &M, const cv::Mat &O, const int proposal_thresh,
-           cv::Point pt_last, cv::Point pt_cur, TRACE_DIR dir_last,
-           bool push_back, cv::Mat &status, std::list<cv::Point> &edge) {
+void trace(const cv::Mat& M, const cv::Mat& O, const int proposal_thresh, cv::Point pt_last, cv::Point pt_cur,
+           TRACE_DIR dir_last, bool push_back, cv::Mat& status, std::list<cv::Point>& edge) {
   // current direction
   TRACE_DIR dir_cur;
 
   // repeat until reaches the visited pixel or non-proposal
   while (true) {
     // terminate trace if that point has already been visited
-    if (status.at<uchar>(pt_cur.y, pt_cur.x) != STATUS_UNKNOWN)
-      break;
+    if (status.at<uchar>(pt_cur.y, pt_cur.x) != STATUS_UNKNOWN) break;
 
     // set it to background and terminate trace if that point is not a proposal
     // edge
@@ -159,8 +155,7 @@ void trace(const cv::Mat &M, const cv::Mat &O, const int proposal_thresh,
           pt_cur.x -= 1;
 
         // break if reaches the border of image, the same below
-        if (pt_cur.x == 0 || pt_cur.y == 0 || pt_cur.y == M.rows - 1)
-          break;
+        if (pt_cur.x == 0 || pt_cur.y == 0 || pt_cur.y == M.rows - 1) break;
       }
 
       // go right
@@ -176,8 +171,7 @@ void trace(const cv::Mat &M, const cv::Mat &O, const int proposal_thresh,
         else
           pt_cur.x += 1;
 
-        if (pt_cur.x == M.cols - 1 || pt_cur.y == 0 || pt_cur.y == M.rows - 1)
-          break;
+        if (pt_cur.x == M.cols - 1 || pt_cur.y == 0 || pt_cur.y == M.rows - 1) break;
       }
     }
 
@@ -209,8 +203,7 @@ void trace(const cv::Mat &M, const cv::Mat &O, const int proposal_thresh,
         else
           pt_cur.y -= 1;
 
-        if (pt_cur.y == 0 || pt_cur.x == 0 || pt_cur.x == M.cols - 1)
-          break;
+        if (pt_cur.y == 0 || pt_cur.x == 0 || pt_cur.x == M.cols - 1) break;
       }
 
       // go down
@@ -226,8 +219,7 @@ void trace(const cv::Mat &M, const cv::Mat &O, const int proposal_thresh,
         else
           pt_cur.y += 1;
 
-        if (pt_cur.y == M.rows - 1 || pt_cur.x == 0 || pt_cur.x == M.cols - 1)
-          break;
+        if (pt_cur.y == M.rows - 1 || pt_cur.x == 0 || pt_cur.x == M.cols - 1) break;
       }
     }
   }
@@ -242,13 +234,10 @@ void trace(const cv::Mat &M, const cv::Mat &O, const int proposal_thresh,
  * STATUS
  * @param edges [out] traced edge would be push_back to
  */
-void traceFromAnchor(const cv::Mat &M, const cv::Mat &O,
-                     const int proposal_thresh, const cv::Point &anchor,
-                     cv::Mat &status,
-                     std::vector<std::list<cv::Point>> &edges) {
+void traceFromAnchor(const cv::Mat& M, const cv::Mat& O, const int proposal_thresh, const cv::Point& anchor,
+                     cv::Mat& status, std::vector<std::list<cv::Point>>& edges) {
   // if this anchor point has already been visited
-  if (status.at<uchar>(anchor.y, anchor.x) != STATUS_UNKNOWN)
-    return;
+  if (status.at<uchar>(anchor.y, anchor.x) != STATUS_UNKNOWN) return;
 
   std::list<cv::Point> edge;
   cv::Point pt_last;
@@ -261,8 +250,7 @@ void traceFromAnchor(const cv::Mat &M, const cv::Mat &O,
     // to current point, the same below
     pt_last = cv::Point(anchor.x + 1, anchor.y);
     dir_last = TRACE_LEFT;
-    trace(M, O, proposal_thresh, pt_last, anchor, dir_last, false, status,
-          edge);
+    trace(M, O, proposal_thresh, pt_last, anchor, dir_last, false, status, edge);
 
     // reset anchor point
     // it has already been set in the previous traceEdge(), reset it to satisfy
@@ -280,8 +268,7 @@ void traceFromAnchor(const cv::Mat &M, const cv::Mat &O,
     // go up first
     pt_last = cv::Point(anchor.x, anchor.y + 1);
     dir_last = TRACE_UP;
-    trace(M, O, proposal_thresh, pt_last, anchor, dir_last, false, status,
-          edge);
+    trace(M, O, proposal_thresh, pt_last, anchor, dir_last, false, status, edge);
 
     // reset anchor point
     status.at<uchar>(anchor.y, anchor.x) = STATUS_UNKNOWN;
@@ -296,14 +283,13 @@ void traceFromAnchor(const cv::Mat &M, const cv::Mat &O,
 }
 
 cv::Mat /*std::vector<std::list<cv::Point>>*/
-detectEdges(const cv::Mat &image, const int proposal_thresh,
-            const int anchor_interval, const int anchor_thresh) {
+detectEdges(const cv::Mat& image, const int proposal_thresh, const int anchor_interval, const int anchor_thresh) {
   cv::Mat out(image.rows, image.cols, CV_8UC1, cv::Scalar(0));
   // 0.preparation
   cv::Mat gray;
   if (image.empty()) {
     std::cout << "Empty image input!" << std::endl;
-    return out; // std::vector<std::list<cv::Point>>();
+    return out;  // std::vector<std::list<cv::Point>>();
   }
   if (image.type() == CV_8UC1)
     gray = image.clone();
@@ -311,12 +297,11 @@ detectEdges(const cv::Mat &image, const int proposal_thresh,
     cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
   else {
     std::cout << "Unknow image type!" << std::endl;
-    return out; // std::vector<std::list<cv::Point>>();
+    return out;  // std::vector<std::list<cv::Point>>();
   }
 
   // 1.Gauss blur
-  cv::GaussianBlur(gray, gray, cv::Size(GAUSS_SIZE, GAUSS_SIZE), GAUSS_SIGMA,
-                   GAUSS_SIGMA);
+  cv::GaussianBlur(gray, gray, cv::Size(GAUSS_SIZE, GAUSS_SIZE), GAUSS_SIGMA, GAUSS_SIGMA);
 
   // 2.get gradient magnitude and orientation
   cv::Mat M, O;
@@ -328,15 +313,13 @@ detectEdges(const cv::Mat &image, const int proposal_thresh,
 
   // 4.trace edges from anchors
   cv::Mat status(gray.rows, gray.cols, CV_8UC1,
-                 cv::Scalar(STATUS_UNKNOWN)); // init status to STATUS_UNKNOWN
+                 cv::Scalar(STATUS_UNKNOWN));  // init status to STATUS_UNKNOWN
   std::vector<std::list<cv::Point>> edges;
-  for (const auto &anchor : anchors)
-    traceFromAnchor(M, O, proposal_thresh, anchor, status, edges);
+  for (const auto& anchor : anchors) traceFromAnchor(M, O, proposal_thresh, anchor, status, edges);
 
-  for (const auto &edge : edges) {
-    if (edge.size() < (int)(0.1f * float(image.cols)))
-      continue;
-    for (const auto &pt : edge) {
+  for (const auto& edge : edges) {
+    if (edge.size() < (int)(0.1f * float(image.cols))) continue;
+    for (const auto& pt : edge) {
       out.at<uchar>(pt.y, pt.x) = 255;
       // cv::imshow("draw", out);
       // if(cv::waitKey(1) == 27) {
@@ -345,7 +328,7 @@ detectEdges(const cv::Mat &image, const int proposal_thresh,
       // }
     }
   }
-  return out; // edges;
+  return out;  // edges;
 }
-} // namespace ed
-} // namespace dso
+}  // namespace ed
+}  // namespace dso

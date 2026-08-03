@@ -31,7 +31,8 @@
 using namespace Sophus;
 using namespace std;
 
-template <class Scalar> void tests() {
+template <class Scalar>
+void tests() {
   typedef Sim3Group<Scalar> Sim3Type;
   typedef RxSO3Group<Scalar> RxSO3Type;
   typedef typename Sim3Group<Scalar>::Point Point;
@@ -39,31 +40,20 @@ template <class Scalar> void tests() {
   typedef Matrix<Scalar, 4, 1> Vector4Type;
 
   vector<Sim3Type> sim3_vec;
+  sim3_vec.push_back(Sim3Type(RxSO3Type::exp(Vector4Type(0.2, 0.5, 0.0, 1.)), Point(0, 0, 0)));
+  sim3_vec.push_back(Sim3Type(RxSO3Type::exp(Vector4Type(0.2, 0.5, -1.0, 1.1)), Point(10, 0, 0)));
+  sim3_vec.push_back(Sim3Type(RxSO3Type::exp(Vector4Type(0., 0., 0., 1.1)), Point(0, 10, 5)));
+  sim3_vec.push_back(Sim3Type(RxSO3Type::exp(Vector4Type(0., 0., 0.00001, 0.)), Point(0, 0, 0)));
   sim3_vec.push_back(
-      Sim3Type(RxSO3Type::exp(Vector4Type(0.2, 0.5, 0.0, 1.)), Point(0, 0, 0)));
-  sim3_vec.push_back(Sim3Type(RxSO3Type::exp(Vector4Type(0.2, 0.5, -1.0, 1.1)),
-                              Point(10, 0, 0)));
-  sim3_vec.push_back(
-      Sim3Type(RxSO3Type::exp(Vector4Type(0., 0., 0., 1.1)), Point(0, 10, 5)));
-  sim3_vec.push_back(Sim3Type(RxSO3Type::exp(Vector4Type(0., 0., 0.00001, 0.)),
-                              Point(0, 0, 0)));
-  sim3_vec.push_back(
-      Sim3Type(RxSO3Type::exp(Vector4Type(0., 0., 0.00001, 0.0000001)),
-               Point(1, -1.00000001, 2.0000000001)));
-  sim3_vec.push_back(Sim3Type(RxSO3Type::exp(Vector4Type(0., 0., 0.00001, 0)),
-                              Point(0.01, 0, 0)));
-  sim3_vec.push_back(
-      Sim3Type(RxSO3Type::exp(Vector4Type(M_PI, 0, 0, 0.9)), Point(4, -5, 0)));
-  sim3_vec.push_back(
-      Sim3Type(RxSO3Type::exp(Vector4Type(0.2, 0.5, 0.0, 0)), Point(0, 0, 0)) *
-      Sim3Type(RxSO3Type::exp(Vector4Type(M_PI, 0, 0, 0)), Point(0, 0, 0)) *
-      Sim3Type(RxSO3Type::exp(Vector4Type(-0.2, -0.5, -0.0, 0)),
-               Point(0, 0, 0)));
-  sim3_vec.push_back(
-      Sim3Type(RxSO3Type::exp(Vector4Type(0.3, 0.5, 0.1, 0)), Point(2, 0, -7)) *
-      Sim3Type(RxSO3Type::exp(Vector4Type(M_PI, 0, 0, 0)), Point(0, 0, 0)) *
-      Sim3Type(RxSO3Type::exp(Vector4Type(-0.3, -0.5, -0.1, 0)),
-               Point(0, 6, 0)));
+      Sim3Type(RxSO3Type::exp(Vector4Type(0., 0., 0.00001, 0.0000001)), Point(1, -1.00000001, 2.0000000001)));
+  sim3_vec.push_back(Sim3Type(RxSO3Type::exp(Vector4Type(0., 0., 0.00001, 0)), Point(0.01, 0, 0)));
+  sim3_vec.push_back(Sim3Type(RxSO3Type::exp(Vector4Type(M_PI, 0, 0, 0.9)), Point(4, -5, 0)));
+  sim3_vec.push_back(Sim3Type(RxSO3Type::exp(Vector4Type(0.2, 0.5, 0.0, 0)), Point(0, 0, 0)) *
+                     Sim3Type(RxSO3Type::exp(Vector4Type(M_PI, 0, 0, 0)), Point(0, 0, 0)) *
+                     Sim3Type(RxSO3Type::exp(Vector4Type(-0.2, -0.5, -0.0, 0)), Point(0, 0, 0)));
+  sim3_vec.push_back(Sim3Type(RxSO3Type::exp(Vector4Type(0.3, 0.5, 0.1, 0)), Point(2, 0, -7)) *
+                     Sim3Type(RxSO3Type::exp(Vector4Type(M_PI, 0, 0, 0)), Point(0, 0, 0)) *
+                     Sim3Type(RxSO3Type::exp(Vector4Type(-0.3, -0.5, -0.1, 0)), Point(0, 6, 0)));
   vector<Tangent> tangent_vec;
   Tangent tmp;
   tmp << 0, 0, 0, 0, 0, 0, 0;

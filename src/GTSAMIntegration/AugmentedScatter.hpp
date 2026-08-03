@@ -34,20 +34,18 @@
 
 namespace dmvio {
 class AugmentedScatter : public gtsam::Scatter {
-public:
+ public:
   // Scatter that can additionally handle keys that don't exist in the factor
   // graph. For those keys the dimension must be specified in keyDimMap
-  AugmentedScatter(const gtsam::GaussianFactorGraph &gfg,
-                   boost::optional<const gtsam::Ordering &> ordering,
-                   const std::map<gtsam::Key, size_t> &keyDimMap);
+  AugmentedScatter(const gtsam::GaussianFactorGraph& gfg, boost::optional<const gtsam::Ordering&> ordering,
+                   const std::map<gtsam::Key, size_t>& keyDimMap);
 
   iterator findNew(gtsam::Key key);
 
-  std::pair<gtsam::Matrix, gtsam::Vector>
-  computeHessian(const gtsam::GaussianFactorGraph &gfg);
+  std::pair<gtsam::Matrix, gtsam::Vector> computeHessian(const gtsam::GaussianFactorGraph& gfg);
 
-  gtsam::Matrix computeAugmentedHessian(const gtsam::GaussianFactorGraph &gfg);
+  gtsam::Matrix computeAugmentedHessian(const gtsam::GaussianFactorGraph& gfg);
 };
-} // namespace dmvio
+}  // namespace dmvio
 
 #endif /* AugmentedScatter_hpp */

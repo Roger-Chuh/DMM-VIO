@@ -62,11 +62,9 @@
 #include <boost/filesystem.hpp>
 
 // If mainSettings.calib is set we use this instead of the factory calibration.
-std::string calibSavePath =
-    "./factoryCalibrationT265Camera.txt"; // Factory calibration will be saved
-                                          // here.
-std::string camchainSavePath =
-    ""; // Factory camchain will be saved here if set.
+std::string calibSavePath = "./factoryCalibrationT265Camera.txt";  // Factory calibration will be saved
+                                                                   // here.
+std::string camchainSavePath = "";                                 // Factory camchain will be saved here if set.
 
 int start = 2;
 
@@ -92,19 +90,17 @@ void exitThread() {
   sigIntHandler.sa_flags = 0;
   sigaction(SIGINT, &sigIntHandler, NULL);
 
-  while (true)
-    pause();
+  while (true) pause();
 }
 
-void run(IOWrap::PangolinDSOViewer *viewer, Undistort *undistorter) {
+void run(IOWrap::PangolinDSOViewer* viewer, Undistort* undistorter) {
   bool linearizeOperation = false;
-  auto fullSystem = std::make_unique<FullSystem>(linearizeOperation,
-                                                 imuCalibration, imuSettings);
+  auto fullSystem = std::make_unique<FullSystem>(linearizeOperation, imuCalibration, imuSettings);
 
-  if (setting_photometricCalibration > 0 &&
-      undistorter->photometricUndist == nullptr) {
-    printf("ERROR: dont't have photometric calibation. Need to use commandline "
-           "options mode=1 or mode=2 ");
+  if (setting_photometricCalibration > 0 && undistorter->photometricUndist == nullptr) {
+    printf(
+        "ERROR: dont't have photometric calibation. Need to use commandline "
+        "options mode=1 or mode=2 ");
     exit(1);
   }
 
@@ -133,22 +129,18 @@ void run(IOWrap::PangolinDSOViewer *viewer, Undistort *undistorter) {
       continue;
     }
 
-    auto pair = frameContainer.getImageAndIMUData(
-        frameSkipping.getMaxSkipFrames(frameContainer.getQueueSize()));
+    auto pair = frameContainer.getImageAndIMUData(frameSkipping.getMaxSkipFrames(frameContainer.getQueueSize()));
 
     fullSystem->addActiveFrame(pair.first.get(), ii, &(pair.second), nullptr);
 
     if (fullSystem->initFailed || setting_fullResetRequested) {
       if (ii - lastResetIndex < 250 || setting_fullResetRequested) {
         printf("RESETTING!\n");
-        std::vector<IOWrap::Output3DWrapper *> wraps =
-            fullSystem->outputWrapper;
+        std::vector<IOWrap::Output3DWrapper*> wraps = fullSystem->outputWrapper;
         fullSystem.reset();
-        for (IOWrap::Output3DWrapper *ow : wraps)
-          ow->reset();
+        for (IOWrap::Output3DWrapper* ow : wraps) ow->reset();
 
-        fullSystem = std::make_unique<FullSystem>(linearizeOperation,
-                                                  imuCalibration, imuSettings);
+        fullSystem = std::make_unique<FullSystem>(linearizeOperation, imuCalibration, imuSettings);
         if (undistorter->photometricUndist != nullptr) {
           fullSystem->setGammaFunction(undistorter->photometricUndist->getG());
         }
@@ -174,26 +166,23 @@ void run(IOWrap::PangolinDSOViewer *viewer, Undistort *undistorter) {
 
   fullSystem->blockUntilMappingIsFinished();
 
-  fullSystem->printResult(imuSettings.resultsPrefix + "result.txt", false,
-                          false, true);
+  fullSystem->printResult(imuSettings.resultsPrefix + "result.txt", false, false, true);
 
-  dmvio::TimeMeasurement::saveResults(imuSettings.resultsPrefix +
-                                      "timings.txt");
+  dmvio::TimeMeasurement::saveResults(imuSettings.resultsPrefix + "timings.txt");
 
-  for (IOWrap::Output3DWrapper *ow : fullSystem->outputWrapper) {
+  for (IOWrap::Output3DWrapper* ow : fullSystem->outputWrapper) {
     ow->join();
   }
 
   printf("DELETE FULLSYSTEM!\n");
   fullSystem.reset();
 
-  if (datasetSaver)
-    datasetSaver->end();
+  if (datasetSaver) datasetSaver->end();
 
   printf("EXIT NOW!\n");
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   setlocale(LC_ALL, "C");
 
 #ifdef DEBUG
@@ -235,22 +224,19 @@ int main(int argc, char **argv) {
   if (saveDatasetPath != "") {
     try {
       datasetSaver = std::make_unique<dmvio::DatasetSaver>(saveDatasetPath);
-    } catch (const boost::filesystem::filesystem_error &err) {
+    } catch (const boost::filesystem::filesystem_error& err) {
       std::cout << "ERROR: Cannot save dataset: " << err.what() << std::endl;
     }
   }
 
   std::cout << "Saving camera calibration to " << calibSavePath << "\n";
-  dmvio::RealsenseT265 realsense(frameContainer, calibSavePath,
-                                 datasetSaver.get());
+  dmvio::RealsenseT265 realsense(frameContainer, calibSavePath, datasetSaver.get());
   realsense.start();
 
   std::string usedCalib = calibSavePath;
   if (mainSettings.calib != "") {
     usedCalib = mainSettings.calib;
-    std::cout
-        << "Using custom camera calibration (instead of factory calibration): "
-        << mainSettings.calib << "\n";
+    std::cout << "Using custom camera calibration (instead of factory calibration): " << mainSettings.calib << "\n";
   }
 
   if (camchainSavePath != "") {
@@ -258,12 +244,11 @@ int main(int argc, char **argv) {
     realsense.imuCalibration->saveToFile(camchainSavePath);
   }
 
-  std::unique_ptr<Undistort> undistorter(Undistort::getUndistorterForFile(
-      usedCalib, mainSettings.gammaCalib, mainSettings.vignette));
+  std::unique_ptr<Undistort> undistorter(
+      Undistort::getUndistorterForFile(usedCalib, mainSettings.gammaCalib, mainSettings.vignette));
   realsense.setUndistorter(undistorter.get());
 
-  setGlobalCalib((int)undistorter->getSize()[0], (int)undistorter->getSize()[1],
-                 undistorter->getK().cast<float>());
+  setGlobalCalib((int)undistorter->getSize()[0], (int)undistorter->getSize()[1], undistorter->getK().cast<float>());
 
   if (mainSettings.imuCalibFile != "") {
     imuCalibration.loadFromFile(mainSettings.imuCalibFile);
@@ -273,11 +258,10 @@ int main(int argc, char **argv) {
   }
 
   if (!disableAllDisplay) {
-    IOWrap::PangolinDSOViewer *viewer = new IOWrap::PangolinDSOViewer(
-        wG[0], hG[0], false, settingsUtil, normalizeCamSize);
+    IOWrap::PangolinDSOViewer* viewer =
+        new IOWrap::PangolinDSOViewer(wG[0], hG[0], false, settingsUtil, normalizeCamSize);
 
-    boost::thread runThread =
-        boost::thread(boost::bind(run, viewer, undistorter.get()));
+    boost::thread runThread = boost::thread(boost::bind(run, viewer, undistorter.get()));
 
     viewer->run();
 

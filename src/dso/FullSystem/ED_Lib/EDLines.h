@@ -38,19 +38,18 @@ struct LS {
 };
 
 struct LineSegment {
-  double a, b; // y = a + bx (if invert = 0) || x = a + by (if invert = 1)
+  double a, b;  // y = a + bx (if invert = 0) || x = a + by (if invert = 1)
   int invert;
 
-  double sx, sy; // starting x & y coordinates
-  double ex, ey; // ending x & y coordinates
+  double sx, sy;  // starting x & y coordinates
+  double ex, ey;  // ending x & y coordinates
 
-  int segmentNo;       // Edge segment that this line belongs to
-  int firstPixelIndex; // Index of the first pixel within the segment of pixels
-  int len;             // No of pixels making up the line segment
+  int segmentNo;        // Edge segment that this line belongs to
+  int firstPixelIndex;  // Index of the first pixel within the segment of pixels
+  int len;              // No of pixels making up the line segment
 
-  LineSegment(double _a, double _b, int _invert, double _sx, double _sy,
-              double _ex, double _ey, int _segmentNo, int _firstPixelIndex,
-              int _len) {
+  LineSegment(double _a, double _b, int _invert, double _sx, double _sy, double _ex, double _ey, int _segmentNo,
+              int _firstPixelIndex, int _len) {
     a = _a;
     b = _b;
     invert = _invert;
@@ -65,15 +64,12 @@ struct LineSegment {
 };
 
 class EDLines : public ED {
-public:
+ public:
   EDLines(cv::Mat srcImage, double _line_error = 1.0, int _min_line_len = -1,
-          double _max_distance_between_two_lines = 6.0,
+          double _max_distance_between_two_lines = 6.0, double _max_error = 1.3);
+  EDLines(ED obj, double _line_error = 1.0, int _min_line_len = -1, double _max_distance_between_two_lines = 6.0,
           double _max_error = 1.3);
-  EDLines(ED obj, double _line_error = 1.0, int _min_line_len = -1,
-          double _max_distance_between_two_lines = 6.0,
-          double _max_error = 1.3);
-  EDLines(EDColor obj, double _line_error = 1.0, int _min_line_len = -1,
-          double _max_distance_between_two_lines = 6.0,
+  EDLines(EDColor obj, double _line_error = 1.0, int _min_line_len = -1, double _max_distance_between_two_lines = 6.0,
           double _max_error = 1.3);
   EDLines();
 
@@ -83,11 +79,10 @@ public:
   cv::Mat drawOnImage();
 
   // EDCircle uses this one
-  static void SplitSegment2Lines(double *x, double *y, int noPixels,
-                                 int segmentNo, std::vector<LineSegment> &lines,
+  static void SplitSegment2Lines(double* x, double* y, int noPixels, int segmentNo, std::vector<LineSegment>& lines,
                                  int min_line_len = 6, double line_error = 1.0);
 
-private:
+ private:
   std::vector<LineSegment> lines;
   std::vector<LineSegment> invalidLines;
   std::vector<LS> linePoints;
@@ -97,34 +92,26 @@ private:
   double max_distance_between_two_lines;
   double max_error;
   double prec;
-  NFALUT *nfa;
+  NFALUT* nfa;
 
   int ComputeMinLineLength();
-  void SplitSegment2Lines(double *x, double *y, int noPixels, int segmentNo);
+  void SplitSegment2Lines(double* x, double* y, int noPixels, int segmentNo);
   void JoinCollinearLines();
 
   void ValidateLineSegments();
-  bool ValidateLineSegmentRect(int *x, int *y, LineSegment *ls);
-  bool TryToJoinTwoLineSegments(LineSegment *ls1, LineSegment *ls2,
-                                int changeIndex);
+  bool ValidateLineSegmentRect(int* x, int* y, LineSegment* ls);
+  bool TryToJoinTwoLineSegments(LineSegment* ls1, LineSegment* ls2, int changeIndex);
 
-  static double ComputeMinDistance(double x1, double y1, double a, double b,
-                                   int invert);
-  static void ComputeClosestPoint(double x1, double y1, double a, double b,
-                                  int invert, double &xOut, double &yOut);
-  static void LineFit(double *x, double *y, int count, double &a, double &b,
-                      int invert);
-  static void LineFit(double *x, double *y, int count, double &a, double &b,
-                      double &e, int &invert);
-  static double ComputeMinDistanceBetweenTwoLines(LineSegment *ls1,
-                                                  LineSegment *ls2,
-                                                  int *pwhich);
-  static void UpdateLineParameters(LineSegment *ls);
-  static void EnumerateRectPoints(double sx, double sy, double ex, double ey,
-                                  int ptsx[], int ptsy[], int *pNoPoints);
+  static double ComputeMinDistance(double x1, double y1, double a, double b, int invert);
+  static void ComputeClosestPoint(double x1, double y1, double a, double b, int invert, double& xOut, double& yOut);
+  static void LineFit(double* x, double* y, int count, double& a, double& b, int invert);
+  static void LineFit(double* x, double* y, int count, double& a, double& b, double& e, int& invert);
+  static double ComputeMinDistanceBetweenTwoLines(LineSegment* ls1, LineSegment* ls2, int* pwhich);
+  static void UpdateLineParameters(LineSegment* ls);
+  static void EnumerateRectPoints(double sx, double sy, double ex, double ey, int ptsx[], int ptsy[], int* pNoPoints);
 
   // Utility math functions
 };
-} // namespace ED
-} // namespace dso
+}  // namespace ED
+}  // namespace dso
 #endif

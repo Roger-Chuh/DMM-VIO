@@ -4,22 +4,17 @@ namespace dso {
 
 namespace AprilTags {
 
-GLine2D::GLine2D()
-    : dx(0), dy(0), p(0, 0), didNormalizeSlope(false), didNormalizeP(false) {}
+GLine2D::GLine2D() : dx(0), dy(0), p(0, 0), didNormalizeSlope(false), didNormalizeP(false) {}
 
-GLine2D::GLine2D(float slope, float b)
-    : dx(1), dy(slope), p(0, b), didNormalizeSlope(false),
-      didNormalizeP(false) {}
+GLine2D::GLine2D(float slope, float b) : dx(1), dy(slope), p(0, b), didNormalizeSlope(false), didNormalizeP(false) {}
 
-GLine2D::GLine2D(float dX, float dY, const std::pair<float, float> &pt)
+GLine2D::GLine2D(float dX, float dY, const std::pair<float, float>& pt)
     : dx(dX), dy(dY), p(pt), didNormalizeSlope(false), didNormalizeP(false) {}
 
-GLine2D::GLine2D(const std::pair<float, float> &p1,
-                 const std::pair<float, float> &p2)
-    : dx(p2.first - p1.first), dy(p2.second - p1.second), p(p1),
-      didNormalizeSlope(false), didNormalizeP(false) {}
+GLine2D::GLine2D(const std::pair<float, float>& p1, const std::pair<float, float>& p2)
+    : dx(p2.first - p1.first), dy(p2.second - p1.second), p(p1), didNormalizeSlope(false), didNormalizeP(false) {}
 
-float GLine2D::getLineCoordinate(const std::pair<float, float> &pt) {
+float GLine2D::getLineCoordinate(const std::pair<float, float>& pt) {
   normalizeSlope();
   return pt.first * dx + pt.second * dy;
 }
@@ -29,7 +24,7 @@ std::pair<float, float> GLine2D::getPointOfCoordinate(float coord) {
   return std::pair<float, float>(p.first + coord * dx, p.second + coord * dy);
 }
 
-std::pair<float, float> GLine2D::intersectionWith(const GLine2D &line) const {
+std::pair<float, float> GLine2D::intersectionWith(const GLine2D& line) const {
   float m00 = dx;
   float m01 = -line.getDx();
   float m10 = dy;
@@ -39,8 +34,7 @@ std::pair<float, float> GLine2D::intersectionWith(const GLine2D &line) const {
   float det = m00 * m11 - m01 * m10;
 
   // parallel lines? if so, return (-1,0).
-  if (fabs(det) < 1e-10)
-    return std::pair<float, float>(-1, 0);
+  if (fabs(det) < 1e-10) return std::pair<float, float>(-1, 0);
 
   // inverse of 'm'
   float i00 = m11 / det;
@@ -56,9 +50,8 @@ std::pair<float, float> GLine2D::intersectionWith(const GLine2D &line) const {
   return std::pair<float, float>(dx * x00 + p.first, dy * x00 + p.second);
 }
 
-GLine2D GLine2D::lsqFitXYW(const std::vector<XYWeight> &xyweights) {
-  float Cxx = 0, Cyy = 0, Cxy = 0, Ex = 0, Ey = 0, mXX = 0, mYY = 0, mXY = 0,
-        mX = 0, mY = 0;
+GLine2D GLine2D::lsqFitXYW(const std::vector<XYWeight>& xyweights) {
+  float Cxx = 0, Cyy = 0, Cxy = 0, Ex = 0, Ey = 0, mXX = 0, mYY = 0, mXY = 0, mX = 0, mY = 0;
   float n = 0;
 
   int idx = 0;
@@ -113,6 +106,6 @@ void GLine2D::normalizeP() {
   }
 }
 
-} // namespace AprilTags
+}  // namespace AprilTags
 
-} // namespace dso
+}  // namespace dso

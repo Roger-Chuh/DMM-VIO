@@ -26,13 +26,10 @@
 using namespace dmvio;
 using namespace std::chrono;
 
-std::map<std::string, dmvio::MeasurementLog> dmvio::TimeMeasurement::logs =
-    std::map<std::string, MeasurementLog>();
+std::map<std::string, dmvio::MeasurementLog> dmvio::TimeMeasurement::logs = std::map<std::string, MeasurementLog>();
 bool dmvio::TimeMeasurement::saveFileOpen = false;
 
-dmvio::TimeMeasurement::TimeMeasurement(std::string name) : name(name) {
-  begin = high_resolution_clock::now();
-}
+dmvio::TimeMeasurement::TimeMeasurement(std::string name) : name(name) { begin = high_resolution_clock::now(); }
 
 dmvio::TimeMeasurement::~TimeMeasurement() { end(); }
 
@@ -42,8 +39,7 @@ double dmvio::TimeMeasurement::end() {
   }
 
   auto end = high_resolution_clock::now();
-  double duration =
-      duration_cast<std::chrono::duration<double>>(end - begin).count();
+  double duration = duration_cast<std::chrono::duration<double>>(end - begin).count();
 
   logs[name].addMeasurement(duration);
 
@@ -56,7 +52,7 @@ void dmvio::TimeMeasurement::saveResults(std::string filename) {
   std::ofstream saveFile;
   saveFile.open(filename);
 
-  for (const auto &pair : logs) {
+  for (const auto& pair : logs) {
     saveFile << pair.first << ' ' << pair.second << '\n';
   }
   saveFile.close();
@@ -80,7 +76,7 @@ void dmvio::MeasurementLog::addMeasurement(double time) {
   }
 }
 
-void dmvio::MeasurementLog::writeLogLine(std::ostream &stream) const {
+void dmvio::MeasurementLog::writeLogLine(std::ostream& stream) const {
   double mean = getMean();
   double variance = getVariance();
 
@@ -101,7 +97,7 @@ double dmvio::MeasurementLog::getMax() const { return max; }
 
 int dmvio::MeasurementLog::getNum() const { return num; }
 
-std::ostream &operator<<(std::ostream &os, const dmvio::MeasurementLog &obj) {
+std::ostream& operator<<(std::ostream& os, const dmvio::MeasurementLog& obj) {
   obj.writeLogLine(os);
   return os;
 }
